@@ -1,9 +1,7 @@
 package data
 
-type Block struct {
-	BlockID			int64
-	PreviousHash	[32]byte
-	Entries			[]Entry
+type Hash struct {
+	bytes [32]byte
 }
 
 const (
@@ -18,7 +16,7 @@ type Entry struct {
 
 type HashEntry struct {
 	Entry
-	Hash			[32]byte	// The hash data
+	Hash			Hash		// The hash data
 }
 
 type PlainEntry struct {
@@ -41,5 +39,5 @@ type Key struct {
 
 type Signature struct {
 	PublicKey		Key
-	SignedHash		[32]byte
+	SignedHash		Hash
 }
