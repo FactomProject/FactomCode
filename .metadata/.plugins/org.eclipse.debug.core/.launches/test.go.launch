@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<launchConfiguration type="com.googlecode.goclipse.debug.launchConfig">
+<stringAttribute key="BUILD_CONFIG" value="RELEASE"/>
+<stringAttribute key="MAIN_FILE" value="src/test.go"/>
+<stringAttribute key="PROGRAM_ARGS" value=""/>
+<stringAttribute key="PROJECT_NAME" value="NotaryChainServer"/>
+<booleanAttribute key="org.eclipse.debug.core.capture_output" value="true"/>
+<stringAttribute key="org.eclipse.debug.ui.ATTR_CONSOLE_ENCODING" value="UTF-8"/>
+</launchConfiguration>
