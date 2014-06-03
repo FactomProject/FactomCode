@@ -12,14 +12,14 @@ const (
 )
 
 type Entry struct {
-	EntryType		int8
+	EntryType		int8			`json:"entryType"`
 }
 
 type PlainEntry struct {
 	Entry
-	StructuredData	[]byte		// The data (could be hashes) to record
-	Signatures      []*Signature	// Optional signatures of the data
-	TimeSamp        int64		// Unix Time
+	StructuredData	[]byte			`json:"structuredData"`	// The data (could be hashes) to record
+	Signatures		[]*Signature	`json:"signatures"`	// Optional signatures of the data
+	TimeStamp		int64			`json:"timeStamp"`	// Unix Time
 }
 
 func (e *Entry) Hash() (hash *Hash, err error) {
@@ -43,8 +43,8 @@ func (e *PlainEntry) writeToHash(h hash.Hash) (err error) {
 		}
 	}
 	
-	var buf []byte
-	binary.BigEndian.PutUint64(buf, uint64(e.TimeSamp))
+	buf := make([]byte, 8)
+	binary.BigEndian.PutUint64(buf, uint64(e.TimeStamp))
 	
 	_, err = h.Write(buf)
 	return err

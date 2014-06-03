@@ -16,7 +16,7 @@ const (
 )
 
 type Key struct {
-	KeyType			int8
+	KeyType			int8			`json:"keyType"`
 }
 
 type ECDSAPubKey struct {
