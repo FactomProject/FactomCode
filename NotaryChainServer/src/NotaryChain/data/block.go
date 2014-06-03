@@ -10,10 +10,10 @@ import (
 var nextBlockID uint64 = 0
 
 type Block struct {
-	BlockID			uint64
-	PreviousHash	*Hash
-	Entries			[]*Entry
-	Salt			*Hash
+	BlockID			uint64			`json:"blockID"`
+	PreviousHash	*Hash			`json:"previousHash"`
+	Entries			[]*PlainEntry	`json:"entries"`
+	Salt			*Hash			`json:"salt"`
 }
 
 func CreateBlock(prev *Block, capacity uint) (b *Block, err error) {
@@ -28,63 +28,64 @@ func CreateBlock(prev *Block, capacity uint) (b *Block, err error) {
 	b.BlockID = nextBlockID
 	nextBlockID++
 	
-	b.Entries = make([]*Entry, 0, capacity)
+	b.Entries = make([]*PlainEntry, 0, capacity)
 	
-	b.Salt = new(Hash)
+	b.Salt = EmptyHash()
 	
-	if prev == nil {
-		return b, nil
+	if prev != nil {
+		b.PreviousHash, err = prev.Hash()
 	}
-	
-	b.PreviousHash, err = prev.Hash()
 	
 	return b, err
 }
 
-func (b *Block) AddEntry(e *Entry) (err error) {
+func (b *Block) AddEntry(e *PlainEntry) (err error) {
 	b.Entries = append(b.Entries, e)
 	
 	var eh *Hash
 	eh, err = e.Hash();
 	if err != nil { return err }
 	
-	h := sha256.New()
-	b.Salt.writeToHash(h)
-	eh.writeToHash(h)
+	sha := sha256.New()
+	b.Salt.writeToHash(sha)
+	eh.writeToHash(sha)
 	
-	b.Salt = CreateHash(h)
+	b.Salt = CreateHash(sha)
 	
-	return nil;
+	return
 }
 
 func (b *Block) Hash() (hash *Hash, err error) {
-	h := sha256.New()
+	sha := sha256.New()
 	
-	if err = b.writeToHash(h); err != nil {
-		return nil, err
+	if err = b.writeToHash(sha); err != nil {
+		return
 	}
 	
-	return CreateHash(h), nil
+	hash = CreateHash(sha)
+	return
 }
 
-func (b *Block) writeToHash(h hash.Hash) (err error) {
-	var buf []byte
+func (b *Block) writeToHash(sha hash.Hash) (err error) {
+	buf := make([]byte, 8)
 	binary.BigEndian.PutUint64(buf, b.BlockID)
 	
-	if _, err = h.Write(buf); err != nil {
-		return err
+	if _, err = sha.Write(buf); err != nil {
+		return
 	}
 	
-	if err = b.PreviousHash.writeToHash(h); err != nil {
-		return err
-	}
-	
-	for _,e := range b.Entries {
-		if err = e.writeToHash(h); err != nil {
-			return err
+	if b.PreviousHash != nil {
+		if err = b.PreviousHash.writeToHash(sha); err != nil {
+			return
 		}
 	}
 	
-	err = b.Salt.writeToHash(h)
-	return err
+	for _,e := range b.Entries {
+		if err = e.writeToHash(sha); err != nil {
+			return
+		}
+	}
+	
+	err = b.Salt.writeToHash(sha)
+	return
 }
