@@ -8,17 +8,11 @@ import (
 
 const (
 	EmptyEntryType	= -1
-	HashEntryType	=  0
-	PlainEntryType	=  1
+	PlainEntryType	=  0
 )
 
 type Entry struct {
 	EntryType		int8
-}
-
-type HashEntry struct {
-	Entry
-	Hash			*Hash		// The hash data
 }
 
 type PlainEntry struct {
@@ -36,10 +30,6 @@ func (e *Entry) Hash() (hash *Hash, err error) {
 
 func (e *Entry) writeToHash(h hash.Hash) (err error) {
 	return nil
-}
-
-func (e *HashEntry) writeToHash(h hash.Hash) (err error) {
-	return e.Hash.writeToHash(h)
 }
 
 func (e *PlainEntry) writeToHash(h hash.Hash) (err error) {
