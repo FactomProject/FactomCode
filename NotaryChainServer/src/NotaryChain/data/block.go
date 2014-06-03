@@ -2,12 +2,15 @@ package data
 
 import (
 	"errors"
+	"crypto/sha256"
+	"hash"
+	"encoding/binary"
 )
 
-var nextBlockID int64 = 0
+var nextBlockID uint64 = 0
 
 type Block struct {
-	BlockID			int64
+	BlockID			uint64
 	PreviousHash	*Hash
 	Entries			[]Entry
 }
@@ -36,5 +39,26 @@ func CreateBlock(prev *Block, capacity uint) (b *Block, err error) {
 }
 
 func (b *Block) Hash() (hash *Hash, err error) {
+	h := sha256.New()
+	b.writeToHash(h)
+	
 	return new(Hash), nil
+}
+
+func (b *Block) writeToHash(h hash.Hash) (err error) {
+	var buf []byte
+	binary.BigEndian.PutUint64(buf, b.BlockID)
+	
+	if _, err = h.Write(buf); err != nil {
+		return err
+	}
+	
+	for _,e := range b.Entries {
+		if err = e.writeToHash(h); err != nil {
+			return err
+		}
+	}
+	
+	err = b.PreviousHash.writeToHash(h)
+	return nil
 }
