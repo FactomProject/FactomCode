@@ -5,8 +5,14 @@
 	<projects>
 	</projects>
 	<buildSpec>
+		<buildCommand>
+			<name>com.googlecode.goclipse.goBuilder</name>
+			<arguments>
+			</arguments>
+		</buildCommand>
 	</buildSpec>
 	<natures>
 		<nature>goclipse.goNature</nature>
+		<nature>com.googlecode.goclipse.core.goNature</nature>
 	</natures>
 </projectDescription>
