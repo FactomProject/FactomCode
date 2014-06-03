@@ -6,7 +6,7 @@ import (
 )
 
 type Signature struct {
-	PublicKey		*Key
+	PublicKey		*Key			`json:"key"`
 }
 
 type ECDSASignature struct {

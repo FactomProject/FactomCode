@@ -5,16 +5,22 @@ import (
 )
 
 type Hash struct {
-	bytes []byte
+	Bytes 		[]byte			`json:"bytes"`
 }
 
-func CreateHash(w hash.Hash) (h *Hash) {
+func EmptyHash() (h *Hash) {
 	h = new(Hash)
-	h.bytes = w.Sum(nil)
-	return h
+	h.Bytes = make([]byte, 32)
+	return
 }
 
-func (h *Hash) writeToHash(w hash.Hash) (err error) {
-	w.Write(h.bytes)
-	return nil
+func CreateHash(sha hash.Hash) (h *Hash) {
+	h = new(Hash)
+	h.Bytes = sha.Sum(nil)
+	return
+}
+
+func (h *Hash) writeToHash(sha hash.Hash) (err error) {
+	sha.Write(h.Bytes)
+	return
 }
