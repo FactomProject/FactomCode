@@ -3,6 +3,7 @@ package data
 import (
 	"hash"
 	"encoding/binary"
+	"crypto/sha256"
 )
 
 const (
@@ -17,14 +18,20 @@ type Entry struct {
 
 type HashEntry struct {
 	Entry
-	Hash			Hash		// The hash data
+	Hash			*Hash		// The hash data
 }
 
 type PlainEntry struct {
 	Entry
 	StructuredData	[]byte		// The data (could be hashes) to record
-	Signatures      []Signature	// Optional signatures of the data
+	Signatures      []*Signature	// Optional signatures of the data
 	TimeSamp        int64		// Unix Time
+}
+
+func (e *Entry) Hash() (hash *Hash, err error) {
+	h := sha256.New()
+	e.writeToHash(h)
+	return CreateHash(h), nil
 }
 
 func (e *Entry) writeToHash(h hash.Hash) (err error) {

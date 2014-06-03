@@ -5,8 +5,8 @@ import (
 )
 
 type Signature struct {
-	PublicKey		Key
-	SignedHash		Hash
+	PublicKey		*Key
+	SignedHash		*Hash
 }
 
 func (s *Signature) writeToHash(h hash.Hash) (err error) {
