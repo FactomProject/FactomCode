@@ -13,6 +13,7 @@ import (
 	"reflect"
 	"time"
 	"errors"
+	"sync"
 )
 
 var portNumber *int = flag.Int("p", 8083, "Set the port to listen on")
@@ -59,11 +60,30 @@ func load() {
 	}
 }
 
+var blockMutex = &sync.Mutex{}
+
 func main() {
 	load()
 	
+	ticker := time.NewTicker(time.Minute * 5)
+	defer func() {
+		ticker.Stop()
+	}()
+	go func() {
+		for _ = range ticker.C {
+			pushToBlockChainAndUpdate()
+		}
+	}()
+	
 	http.HandleFunc("/", serveRESTfulHTTP)
 	http.ListenAndServe(":" + strconv.Itoa(*portNumber), nil)
+}
+
+func pushToBlockChainAndUpdate() {
+	fmt.Println("Checking if should send current block")
+	blockMutex.Lock()
+	fmt.Println("Sending block, creating new block")
+	blockMutex.Unlock()
 }
 
 func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
@@ -112,7 +132,7 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		
-		resource, err = post("/" + strings.Join(path, "/"), blocks[len(blocks) - 1], form)
+		resource, err = post("/" + strings.Join(path, "/"), form)
 		
 	default:
 		err = createError(errorBadMethod, fmt.Sprintf(`The HTTP %s method is not supported`, method))
@@ -124,12 +144,7 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 
 var blockPtrType = reflect.TypeOf((*ncdata.Block)(nil)).Elem()
 
-func post(context string, resource interface{}, form url.Values) (interface{}, *restError) {
-	resourceType := reflect.ValueOf(resource).Elem().Type()
-	if blockPtrType != resourceType {
-		return nil, createError(errorBadMethod, fmt.Sprintf(`POST is not supported on type %s`, resourceType.String()))
-	}
-	
+func post(context string, form url.Values) (interface{}, *restError) {
 	newEntry := new(ncdata.PlainEntry)
 	format, data := form.Get("format"), form.Get("data")
 	
@@ -156,7 +171,10 @@ func post(context string, resource interface{}, form url.Values) (interface{}, *
 	
 	newEntry.TimeStamp = time.Now().Unix()
 	
-	err := resource.(*ncdata.Block).AddEntry(newEntry)
+	blockMutex.Lock()
+	err := blocks[len(blocks) - 1].AddEntry(newEntry)
+	blockMutex.Unlock()
+	
 	if err != nil {
 		return nil, createError(errorInternal, fmt.Sprintf(`Error while adding Entity to Block: %s`, err.Error()))
 	}
