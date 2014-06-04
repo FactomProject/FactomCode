@@ -6,9 +6,12 @@ import (
 	"net/url"
 	ncdata "NotaryChain/data"
 	"encoding/json"
+	"encoding/xml"
 	"strconv"
-	"strings"
 	"fmt"
+	"strings"
+	"reflect"
+	"time"
 	"errors"
 )
 
@@ -48,186 +51,183 @@ func load() {
 	if err := json.Unmarshal([]byte(source), &blocks); err != nil {
 		panic(err)
 	}
+	
+	for i := 0; i < len(blocks); i = i + 1 {
+		if uint64(i) != blocks[i].BlockID {
+			panic(errors.New("BlockID does not index"))
+		}
+	}
 }
 
 func main() {
 	load()
 	
-	http.HandleFunc("/", ServeRESTfulHTTP)
+	http.HandleFunc("/", serveRESTfulHTTP)
 	http.ListenAndServe(":" + strconv.Itoa(*portNumber), nil)
 }
 
-func ServeRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
-	path, _, accept, _, _ := Parse(r)
+func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
+	var resource interface{}
+	var data []byte
+	var err *restError
 	
-	fmt.Println(accept)
+	path, method, accept, form, err := parse(r)
 	
-	resource, _ := Find(path)
-	s, _ := json.Marshal(resource)
-	w.Write(s)
-}
-
-func Parse(r *http.Request) (path []string, method string, accept string, form url.Values, err error) {
-	url := strings.TrimSpace(r.URL.Path)
-	path = strings.Split(url, "/")
-	
-	pathlen := len(path)
-	lastpath := path[pathlen - 1:pathlen]
-	bits := strings.Split(lastpath[0], ".")
-	bitslen := len(bits)
-	
-	if len(bits) > 1 {
-		lastpath[0], bits = strings.Join(bits[:bitslen - 1], "."), bits[bitslen - 1:bitslen]
-	} else {
-		bits = make([]string, 0)
-	}
-	
-	if len(path[0]) == 0 {
-		path = path[1:]
-	}
-	
-	if len(path[len(path) - 1]) == 0 {
-		path = path[:len(path) - 1]
-	}
-	
-	method = r.Method
-	
-	for _, accept = range r.Header["Accept"] {
-		accept, err = ParseAccept(accept, bits)
-		if err == nil {
-			break
+	defer func() {
+		switch accept {
+		case "text":
+			w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+			
+		case "json":
+			w.Header().Set("Content-Type", "application/json; charset=utf-8")
+			
+		case "xml":
+			w.Header().Set("Content-Type", "application/xml; charset=utf-8")
+			
+		case "html":
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		}
-	}
 	
-	if err != nil {
+		if err != nil {
+			var r *restError
+			
+			data, r = marshal(err, accept)
+			if r != nil {
+				err = r
+			}
+			w.WriteHeader(err.HTTPCode)
+		}
+		
+		w.Write(data)
+		w.Write([]byte("\n\n"))
+	}()
+	
+	switch method {
+	case "GET":
+		resource, err = find(path)
+		
+	case "POST":
+		if len(path) != 1 {
+			err = createError(errorBadMethod, `POST can only be used in the root context: /v1`)
+			return
+		}
+		
+		resource, err = post("/" + strings.Join(path, "/"), blocks[len(blocks) - 1], form)
+		
+	default:
+		err = createError(errorBadMethod, fmt.Sprintf(`The HTTP %s method is not supported`, method))
 		return
 	}
 	
-	form = r.Form
-	
-	return
+	data, err = marshal(resource, accept)
 }
 
-func ParseAccept(accept string, ext []string) (string, error) {
-	switch accept {
-	case "text/plain":
-		if len(ext) == 1 && ext[0] != "txt" {
-			return ext[0], nil
+var blockPtrType = reflect.TypeOf((*ncdata.Block)(nil)).Elem()
+
+func post(context string, resource interface{}, form url.Values) (interface{}, *restError) {
+	resourceType := reflect.ValueOf(resource).Elem().Type()
+	if blockPtrType != resourceType {
+		return nil, createError(errorBadMethod, fmt.Sprintf(`POST is not supported on type %s`, resourceType.String()))
+	}
+	
+	newEntry := new(ncdata.PlainEntry)
+	format, data := form.Get("format"), form.Get("data")
+	
+	switch format {
+	case "", "json":
+		err := json.Unmarshal([]byte(data), newEntry)
+		if err != nil {
+			return nil, createError(errorJSONUnmarshal, err.Error())
 		}
-		return "text", nil
 		
-	case "application/json":
-		return "json", nil
-		
-	case "application/xml", "text/xml":
-		return "xml", nil
-		
-	case "text/html":
-		return "html", nil
+	case "xml":
+		err := xml.Unmarshal([]byte(data), newEntry)
+		if err != nil {
+			return nil, createError(errorXMLUnmarshal, err.Error())
+		}
+	
+	default:
+		return nil, createError(errorUnsupportedUnmarshal, fmt.Sprintf(`The format "%s" is not supported`, format))
 	}
 	
-	return "", errors.New("406")
-}
-
-func Find(path []string) (interface{}, error) {
-	if len(path) == 0 {
-		return nil, nil // missing version spec
+	if newEntry == nil {
+		return nil, createError(errorInternal, `Entity to be POSTed is nil`)
 	}
 	
-	ver, path := path[0], path[1:] // capture version spec
+	newEntry.TimeStamp = time.Now().Unix()
 	
-	if !strings.HasPrefix(ver, "v") {
-		return nil, nil // malformated version spec
-	}
-	
-	ver = strings.TrimPrefix(ver, "v")
-	
-	if ver == "1" {
-		return FindV1(path)
-	}
-	
-	return nil, nil // bad version spec
-}
-
-func FindV1(path []string) (interface{}, error) {
-	if len(path) == 0 {
-		return nil, nil // no request
-	}
-	
-	root, path := path[0], path[1:] // capture root spec
-	
-	if strings.ToLower(root) != "blocks" {
-		return nil, nil // bad root spec
-	}
-	
-	return FindV1InBlocks(path, blocks)
-}
-
-func FindV1InBlocks(path []string, blocks []*ncdata.Block) (interface{}, error) {
-	if len(path) == 0 {
-		return blocks, nil
-	}
-	
-	// capture root spec
-	_id, err := strconv.Atoi(path[0])
-	id := uint64(_id)
-	path = path[1:]
-	
+	err := resource.(*ncdata.Block).AddEntry(newEntry)
 	if err != nil {
-		return nil, err // some other error
+		return nil, createError(errorInternal, fmt.Sprintf(`Error while adding Entity to Block: %s`, err.Error()))
 	}
 	
-	if len(blocks) == 0 {
-		return nil, nil // 404
-	}
-	
-	idOffset := blocks[0].BlockID
-	
-	if id < idOffset {
-		return nil, nil // 404 
-	}
-	
-	id = id - idOffset
-	
-	if len(blocks) <= int(id) {
-		return nil, nil // 404
-	}
-	
-	return FindV1InBlock(path, blocks[id])
+	return newEntry, nil
 }
 
-func FindV1InBlock(path []string, block *ncdata.Block) (interface{}, error) {
-	if len(path) == 0 {
-		return block, nil
+func marshal(resource interface{}, accept string) (data []byte, r *restError) {
+	var err error
+	
+	switch accept {
+	case "text":
+		data, err = json.MarshalIndent(resource, "", "  ")
+		if err != nil {
+			r = createError(errorJSONMarshal, err.Error())
+			data, err = json.MarshalIndent(r, "", "  ")
+			if err != nil {
+				panic(err)
+			}
+		}
+		return
+		
+	case "json":
+		data, err = json.Marshal(resource)
+		if err != nil {
+			r = createError(errorJSONMarshal, err.Error())
+			data, err = json.Marshal(r)
+			if err != nil {
+				panic(err)
+			}
+		}
+		return
+		
+	case "xml":
+		data, err = xml.Marshal(resource)
+		if err != nil {
+			r = createError(errorXMLMarshal, err.Error())
+			data, err = xml.Marshal(r)
+			if err != nil {
+				panic(err)
+			}
+		}
+		return
+		
+	case "html":
+		data, r = marshal(resource, "json")
+		if r != nil {
+			return nil, r
+		}
+		data = []byte(fmt.Sprintf(`<script>
+			function tree(data) {
+			    if (typeof(data) == 'object') {
+			        document.write('<ul>');
+			        for (var i in data) {
+			            document.write('<li>' + i);
+			            tree(data[i]);
+			        }
+			        document.write('</ul>');
+			    } else {
+			        document.write(' => ' + data);
+			    }
+			}</script><body onload='tree(%s)'></body>`, data))
+		return
 	}
 	
-	root, path := path[0], path[1:] // capture root spec
-	
-	if strings.ToLower(root) != "entries" {
-		return nil, nil // bad root spec
-	}
-	
-	return FindV1InEntries(path, block.Entries)
-}
-
-func FindV1InEntries(path []string, entries []*ncdata.PlainEntry) (interface{}, error) {
-	if len(path) == 0 {
-		return entries, nil
-	}
-	
-	// capture root spec
-	id, err := strconv.Atoi(path[0])
-	path = path[1:]
-	
+	r  = createError(errorUnsupportedMarshal, fmt.Sprintf(`"%s" is an unsupported marshalling format`, accept))
+	data, err = json.Marshal(r)
 	if err != nil {
-		return nil, err // some other error
+		panic(err)
 	}
-	
-	if len(entries) <= id {
-		return nil, nil // 404
-	}
-	
-	return entries[id], nil
+	return
 }
 
 
