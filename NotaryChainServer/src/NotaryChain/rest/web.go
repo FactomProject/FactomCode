@@ -71,7 +71,7 @@ func main() {
 	}()
 	go func() {
 		for _ = range ticker.C {
-			pushToBlockChainAndUpdate()
+			notarize()
 		}
 	}()
 	
@@ -79,7 +79,7 @@ func main() {
 	http.ListenAndServe(":" + strconv.Itoa(*portNumber), nil)
 }
 
-func pushToBlockChainAndUpdate() {
+func notarize() {
 	fmt.Println("Checking if should send current block")
 	blockMutex.Lock()
 	fmt.Println("Sending block, creating new block")
