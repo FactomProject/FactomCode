@@ -3,10 +3,13 @@ package main
 import (
 	"flag"
 	"net/http"
+	"net/url"
 	ncdata "NotaryChain/data"
 	"encoding/json"
 	"strconv"
 	"strings"
+	"fmt"
+	"errors"
 )
 
 var portNumber *int = flag.Int("p", 8083, "Set the port to listen on")
@@ -55,19 +58,75 @@ func main() {
 }
 
 func ServeRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
-	path := r.URL.Path
-	path = strings.TrimSpace(path)
+	path, _, accept, _, _ := Parse(r)
 	
-	if strings.HasPrefix(path, "/") {
+	fmt.Println(accept)
+	
+	resource, _ := Find(path)
+	s, _ := json.Marshal(resource)
+	w.Write(s)
+}
+
+func Parse(r *http.Request) (path []string, method string, accept string, form url.Values, err error) {
+	url := strings.TrimSpace(r.URL.Path)
+	path = strings.Split(url, "/")
+	
+	pathlen := len(path)
+	lastpath := path[pathlen - 1:pathlen]
+	bits := strings.Split(lastpath[0], ".")
+	bitslen := len(bits)
+	
+	if len(bits) > 1 {
+		lastpath[0], bits = strings.Join(bits[:bitslen - 1], "."), bits[bitslen - 1:bitslen]
+	} else {
+		bits = make([]string, 0)
+	}
+	
+	if len(path[0]) == 0 {
 		path = path[1:]
 	}
-	if strings.HasSuffix(path, "/") {
+	
+	if len(path[len(path) - 1]) == 0 {
 		path = path[:len(path) - 1]
 	}
 	
-	resource, _ := Find(strings.Split(path, "/"))
-	s, _ := json.Marshal(resource)
-	w.Write(s)
+	method = r.Method
+	
+	for _, accept = range r.Header["Accept"] {
+		accept, err = ParseAccept(accept, bits)
+		if err == nil {
+			break
+		}
+	}
+	
+	if err != nil {
+		return
+	}
+	
+	form = r.Form
+	
+	return
+}
+
+func ParseAccept(accept string, ext []string) (string, error) {
+	switch accept {
+	case "text/plain":
+		if len(ext) == 1 && ext[0] != "txt" {
+			return ext[0], nil
+		}
+		return "text", nil
+		
+	case "application/json":
+		return "json", nil
+		
+	case "application/xml", "text/xml":
+		return "xml", nil
+		
+	case "text/html":
+		return "html", nil
+	}
+	
+	return "", errors.New("406")
 }
 
 func Find(path []string) (interface{}, error) {
