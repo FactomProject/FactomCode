@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"net/url"
 	ncdata "NotaryChain/data"
+	ncrest "NotaryChain/rest"
 	"encoding/json"
 	"encoding/xml"
-	"text/template"
 	"strconv"
 	"fmt"
 	"strings"
@@ -15,16 +15,14 @@ import (
 	"time"
 	"errors"
 	"sync"
-	"bytes"
 	"io/ioutil"
 )
 
 var portNumber *int = flag.Int("p", 8083, "Set the port to listen on")
-
 var blocks []*ncdata.Block
-var htmlTmpl *template.Template
+var blockMutex = &sync.Mutex{}
 
-func load() {
+func init() {
 	source, err := ioutil.ReadFile("test/rest/store.json")
 	if err != nil { panic(err) }
 	
@@ -37,12 +35,6 @@ func load() {
 	}
 	ncdata.UpdateNextBlockID(uint64(len(blocks)))
 	
-	htmlTmpl, err = template.ParseFiles("test/rest/html.gwp");
-	
-	if err != nil {
-		panic(err)
-	}
-	
 	ticker := time.NewTicker(time.Minute * 5)
 	defer func() {
 		ticker.Stop()
@@ -54,11 +46,7 @@ func load() {
 	}()
 }
 
-var blockMutex = &sync.Mutex{}
-
 func main() {
-	load()
-	
 	http.HandleFunc("/", serveRESTfulHTTP)
 	http.ListenAndServe(":" + strconv.Itoa(*portNumber), nil)
 }
@@ -73,7 +61,7 @@ func notarize() {
 func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 	var resource interface{}
 	var data []byte
-	var err *restError
+	var err *ncrest.Error
 	
 	path, method, accept, form, err := parse(r)
 	
@@ -93,9 +81,9 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	
 		if err != nil {
-			var r *restError
+			var r *ncrest.Error
 			
-			data, r = marshal(err, accept)
+			data, r = ncrest.Marshal(err, accept)
 			if r != nil {
 				err = r
 			}
@@ -112,23 +100,23 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 		
 	case "POST":
 		if len(path) != 1 {
-			err = createError(errorBadMethod, `POST can only be used in the root context: /v1`)
+			err = ncrest.CreateError(ncrest.ErrorBadMethod, `POST can only be used in the root context: /v1`)
 			return
 		}
 		
 		resource, err = post("/" + strings.Join(path, "/"), form)
 		
 	default:
-		err = createError(errorBadMethod, fmt.Sprintf(`The HTTP %s method is not supported`, method))
+		err = ncrest.CreateError(ncrest.ErrorBadMethod, fmt.Sprintf(`The HTTP %s method is not supported`, method))
 		return
 	}
 	
-	data, err = marshal(resource, accept)
+	data, err = ncrest.Marshal(resource, accept)
 }
 
 var blockPtrType = reflect.TypeOf((*ncdata.Block)(nil)).Elem()
 
-func post(context string, form url.Values) (interface{}, *restError) {
+func post(context string, form url.Values) (interface{}, *ncrest.Error) {
 	newEntry := new(ncdata.PlainEntry)
 	format, data := form.Get("format"), form.Get("data")
 	
@@ -136,21 +124,21 @@ func post(context string, form url.Values) (interface{}, *restError) {
 	case "", "json":
 		err := json.Unmarshal([]byte(data), newEntry)
 		if err != nil {
-			return nil, createError(errorJSONUnmarshal, err.Error())
+			return nil, ncrest.CreateError(ncrest.ErrorJSONUnmarshal, err.Error())
 		}
 		
 	case "xml":
 		err := xml.Unmarshal([]byte(data), newEntry)
 		if err != nil {
-			return nil, createError(errorXMLUnmarshal, err.Error())
+			return nil, ncrest.CreateError(ncrest.ErrorXMLUnmarshal, err.Error())
 		}
 	
 	default:
-		return nil, createError(errorUnsupportedUnmarshal, fmt.Sprintf(`The format "%s" is not supported`, format))
+		return nil, ncrest.CreateError(ncrest.ErrorUnsupportedUnmarshal, fmt.Sprintf(`The format "%s" is not supported`, format))
 	}
 	
 	if newEntry == nil {
-		return nil, createError(errorInternal, `Entity to be POSTed is nil`)
+		return nil, ncrest.CreateError(ncrest.ErrorInternal, `Entity to be POSTed is nil`)
 	}
 	
 	newEntry.TimeStamp = time.Now().Unix()
@@ -160,73 +148,8 @@ func post(context string, form url.Values) (interface{}, *restError) {
 	blockMutex.Unlock()
 	
 	if err != nil {
-		return nil, createError(errorInternal, fmt.Sprintf(`Error while adding Entity to Block: %s`, err.Error()))
+		return nil, ncrest.CreateError(ncrest.ErrorInternal, fmt.Sprintf(`Error while adding Entity to Block: %s`, err.Error()))
 	}
 	
 	return newEntry, nil
-}
-
-func marshal(resource interface{}, accept string) (data []byte, r *restError) {
-	var err error
-	
-	switch accept {
-	case "text":
-		data, err = json.MarshalIndent(resource, "", "  ")
-		if err != nil {
-			r = createError(errorJSONMarshal, err.Error())
-			data, err = json.MarshalIndent(r, "", "  ")
-			if err != nil {
-				panic(err)
-			}
-		}
-		return
-		
-	case "json":
-		data, err = json.Marshal(resource)
-		if err != nil {
-			r = createError(errorJSONMarshal, err.Error())
-			data, err = json.Marshal(r)
-			if err != nil {
-				panic(err)
-			}
-		}
-		return
-		
-	case "xml":
-		data, err = xml.Marshal(resource)
-		if err != nil {
-			r = createError(errorXMLMarshal, err.Error())
-			data, err = xml.Marshal(r)
-			if err != nil {
-				panic(err)
-			}
-		}
-		return
-		
-	case "html":
-		data, r = marshal(resource, "json")
-		if r != nil {
-			return nil, r
-		}
-		
-		var buf bytes.Buffer
-		err := htmlTmpl.Execute(&buf, string(data))
-		if err != nil {
-			r = createError(errorJSONMarshal, err.Error())
-			data, err = json.Marshal(r)
-			if err != nil {
-				panic(err)
-			}
-		}
-		
-		data = buf.Bytes()
-		return
-	}
-	
-	r  = createError(errorUnsupportedMarshal, fmt.Sprintf(`"%s" is an unsupported marshalling format`, accept))
-	data, err = json.Marshal(r)
-	if err != nil {
-		panic(err)
-	}
-	return
 }
