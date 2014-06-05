@@ -7,6 +7,7 @@ import (
 	ncdata "NotaryChain/data"
 	"encoding/json"
 	"encoding/xml"
+	"text/template"
 	"strconv"
 	"fmt"
 	"strings"
@@ -19,6 +20,7 @@ import (
 var portNumber *int = flag.Int("p", 8083, "Set the port to listen on")
 
 var blocks []*ncdata.Block
+var htmlTmpl *template.Template
 
 func load() {
 	source := `[
@@ -55,15 +57,15 @@ func load() {
 	
 	for i := 0; i < len(blocks); i = i + 1 {
 		if uint64(i) != blocks[i].BlockID {
-			panic(errors.New("BlockID does not index"))
+			panic(errors.New("BlockID does not equal index"))
 		}
 	}
-}
-
-var blockMutex = &sync.Mutex{}
-
-func main() {
-	load()
+	
+	htmlTmpl, err = template.ParseFiles("/Users/firelizzard/Documents/Programming/NotaryChain/NotaryChainServer/src/NotaryChain/rest/html.gwp");
+	
+	if err != nil {
+		panic(err)
+	}
 	
 	ticker := time.NewTicker(time.Minute * 5)
 	defer func() {
@@ -74,6 +76,12 @@ func main() {
 			notarize()
 		}
 	}()
+}
+
+var blockMutex = &sync.Mutex{}
+
+func main() {
+	load()
 	
 	http.HandleFunc("/", serveRESTfulHTTP)
 	http.ListenAndServe(":" + strconv.Itoa(*portNumber), nil)
@@ -224,19 +232,18 @@ func marshal(resource interface{}, accept string) (data []byte, r *restError) {
 		if r != nil {
 			return nil, r
 		}
-		data = []byte(fmt.Sprintf(`<script>
-			function tree(data) {
-			    if (typeof(data) == 'object') {
-			        document.write('<ul>');
-			        for (var i in data) {
-			            document.write('<li>' + i);
-			            tree(data[i]);
-			        }
-			        document.write('</ul>');
-			    } else {
-			        document.write(' => ' + data);
-			    }
-			}</script><body onload='tree(%s)'></body>`, data))
+		
+		var buf bytes.Buffer
+		err := htmlTmpl.Execute(&buf, string(data))
+		if err != nil {
+			r = createError(errorJSONMarshal, err.Error())
+			data, err = json.Marshal(r)
+			if err != nil {
+				panic(err)
+			}
+		}
+		
+		data = buf.Bytes()
 		return
 	}
 	
@@ -247,11 +254,3 @@ func marshal(resource interface{}, accept string) (data []byte, r *restError) {
 	}
 	return
 }
-
-
-
-
-
-
-
-
