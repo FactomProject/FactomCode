@@ -17,9 +17,9 @@ type Entry struct {
 
 type PlainEntry struct {
 	Entry
-	StructuredData	[]byte			`json:"structuredData"`	// The data (could be hashes) to record
-	Signatures		[]*Signature	`json:"signatures"`	// Optional signatures of the data
-	TimeStamp		int64			`json:"timeStamp"`	// Unix Time
+	StructuredData	[]byte			`json:"structuredData"`				// The data (could be hashes) to record
+	Signatures		[]*Signature	`json:"signatures" db:"-"`		// Optional signatures of the data
+	TimeStamp		int64			`json:"timeStamp"`					// Unix Time
 }
 
 func (e *Entry) Hash() (hash *Hash, err error) {

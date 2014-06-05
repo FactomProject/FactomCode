@@ -12,7 +12,7 @@ var nextBlockID uint64 = 0
 type Block struct {
 	BlockID			uint64			`json:"blockID"`
 	PreviousHash	*Hash			`json:"previousHash"`
-	Entries			[]*PlainEntry	`json:"entries"`
+	Entries			[]*PlainEntry	`json:"entries" db:"-"`
 	Salt			*Hash			`json:"salt"`
 }
 

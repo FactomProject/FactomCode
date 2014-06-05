@@ -15,14 +15,27 @@ import (
 	"time"
 	"errors"
 	"sync"
+	"bytes"
+	"database/sql"
+    _ "github.com/mattn/go-sqlite3"
 )
 
 var portNumber *int = flag.Int("p", 8083, "Set the port to listen on")
 
+var dbmap *ncdata.NcDbMap
 var blocks []*ncdata.Block
 var htmlTmpl *template.Template
 
 func load() {
+	db, err := sql.Open("sqlite3", "/Users/firelizzard/Documents/Programming/NotaryChain/NotaryChainServer/src/NotaryChain/rest/test.db")
+	if err != nil {
+		panic(err)
+	}
+	defer db.Close()
+	
+	dbmap = ncdata.InitGORP(db)
+	fmt.Println(dbmap.LoadBlocks())
+	
 	source := `[
 		{
 			"blockID": 0,
