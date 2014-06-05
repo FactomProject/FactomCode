@@ -25,7 +25,7 @@ var blocks []*ncdata.Block
 var htmlTmpl *template.Template
 
 func load() {
-	source, err := ioutil.ReadFile("/Users/firelizzard/Documents/Programming/NotaryChain/NotaryChainServer/src/NotaryChain/rest/store.json")
+	source, err := ioutil.ReadFile("test/rest/store.json")
 	if err != nil { panic(err) }
 	
 	if err := json.Unmarshal(source, &blocks); err != nil { panic(err) }
@@ -37,7 +37,7 @@ func load() {
 	}
 	ncdata.UpdateNextBlockID(uint64(len(blocks)))
 	
-	htmlTmpl, err = template.ParseFiles("/Users/firelizzard/Documents/Programming/NotaryChain/NotaryChainServer/src/NotaryChain/rest/html.gwp");
+	htmlTmpl, err = template.ParseFiles("test/rest/html.gwp");
 	
 	if err != nil {
 		panic(err)
