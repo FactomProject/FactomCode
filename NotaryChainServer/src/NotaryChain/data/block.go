@@ -16,6 +16,10 @@ type Block struct {
 	Salt			*Hash			`json:"salt"`
 }
 
+func UpdateNextBlockID(id uint64) {
+	nextBlockID = id
+}
+
 func CreateBlock(prev *Block, capacity uint) (b *Block, err error) {
 	if prev == nil && nextBlockID != 0 {
 		return nil, errors.New("Previous block cannot be nil")
