@@ -1,0 +1,25 @@
+[{
+	"blockID": 0,
+	"previousHash": null,
+	"entries": [],
+	"salt": {
+		"bytes": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+	}
+},
+{
+	"blockID": 1,
+	"previousHash": {
+		"bytes": "LDTOHfI7g4xavyp/ZDfMo9MGftUJ/yXxHfaxG1grUes="
+	},
+	"entries": [
+		{
+			"entryType": 0,
+			"structuredData": "EBESEw==",
+			"signatures": [],
+			"timeSamp": 0
+		}
+	],
+	"salt": {
+		"bytes": "HJ7OyQ4o0kYWUEGGNYeKXJHkn0dYbs918rDLuU6JcRI="
+	}
+}]
