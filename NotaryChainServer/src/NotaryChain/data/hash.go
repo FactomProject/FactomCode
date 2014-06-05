@@ -20,7 +20,14 @@ func CreateHash(sha hash.Hash) (h *Hash) {
 	return
 }
 
-func (h *Hash) writeToHash(sha hash.Hash) (err error) {
-	sha.Write(h.Bytes)
+func (h *Hash) MarshalBinary() (data []byte, err error) {
 	return
+}
+
+func (h *Hash) MarshalledSize() uint64 {
+	return 32
+}
+
+func (h *Hash) UnmarshalBinary(data []byte) error {
+	return nil
 }

@@ -8,7 +8,6 @@ import (
 )
 
 const (
-	BadKeyType		= -1
 	ECDSAPubKeyType	=  0
 	ECDSAPrivKeyType=  1
 	RSAPubKeyType	=  2
@@ -39,9 +38,53 @@ type RSAPrivKey struct {
 	rsa.PrivateKey
 }
 
-func (k *Key) writeToHash(h hash.Hash) (err error) {
+/*func (k *Key) UnmarshalBinary(data []byte) error {
+	s.KeyType, data = int8(data[0]), data[1:]
+	
 	return nil
 }
+
+func (k *ECDSAPubKey) unmarshalBinary(data []byte) error {
+	k.P, err := bigIntUnmarshal(data)
+	if err != nil { return }
+	
+	k.N, err := bigIntUnmarshal(data)
+	if err != nil { return }
+	
+	k.B, err := bigIntUnmarshal(data)
+	if err != nil { return }
+	
+	k.Gx, err := bigIntUnmarshal(data)
+	if err != nil { return }
+	
+	k.Gy, err := bigIntUnmarshal(data)
+	if err != nil { return }
+	
+	k.P, err := bigIntUnmarshal(data)
+	if err != nil { return }
+	
+	k.X, err := bigIntUnmarshal(data)
+	if err != nil { return }
+	
+	k.Y, err := bigIntUnmarshal(data)
+	if err != nil { return }
+}
+
+func (k *ECDSAPrivKey) unmarshalBinary(data []byte) error {
+	ECDSAPubKey{-1, k.PrivateKey.PublicKey}.unmarshalBinary(data)
+}
+
+func (k *RSAPubKey) unmarshalBinary(data []byte) error {
+	
+}
+
+func (k *RSAPrivKey) unmarshalBinary(data []byte) error {
+	
+}
+
+/*func (k *Key) writeToHash(h hash.Hash) (err error) {
+	return nil
+}*/
 
 func (k *ECDSAPubKey) writeToHash(h hash.Hash) (err error) {
 	if _, err = h.Write(elliptic.Marshal(k, k.X, k.Y)); err != nil {
@@ -64,4 +107,4 @@ func (k *ECDSAPrivKey) writeToHash(h hash.Hash) (err error) {
 	
 	_, err = h.Write(k.D.Bytes())
 	return err
-}
+}*/
