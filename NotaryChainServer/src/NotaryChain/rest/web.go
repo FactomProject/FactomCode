@@ -16,6 +16,7 @@ import (
 	"errors"
 	"sync"
 	"bytes"
+	"io/ioutil"
 )
 
 var portNumber *int = flag.Int("p", 8083, "Set the port to listen on")
@@ -24,45 +25,18 @@ var blocks []*ncdata.Block
 var htmlTmpl *template.Template
 
 func load() {
-	source := `[
-		{
-			"blockID": 0,
-			"previousHash": null,
-			"entries": [],
-			"salt": {
-				"bytes": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
-			}
-		},
-		{
-			"blockID": 1,
-			"previousHash": {
-				"bytes": "LDTOHfI7g4xavyp/ZDfMo9MGftUJ/yXxHfaxG1grUes="
-			},
-			"entries": [
-				{
-					"entryType": 0,
-					"structuredData": "EBESEw==",
-					"signatures": [],
-					"timeSamp": 0
-				}
-			],
-			"salt": {
-				"bytes": "HJ7OyQ4o0kYWUEGGNYeKXJHkn0dYbs918rDLuU6JcRI="
-			}
-		}
-	]`
+	source, err := ioutil.ReadFile("/Users/firelizzard/Documents/Programming/NotaryChain/NotaryChainServer/src/NotaryChain/rest/store.json")
+	if err != nil { panic(err) }
 	
-	if err := json.Unmarshal([]byte(source), &blocks); err != nil {
-		panic(err)
-	}
+	if err := json.Unmarshal(source, &blocks); err != nil { panic(err) }
 	
 	for i := 0; i < len(blocks); i = i + 1 {
 		if uint64(i) != blocks[i].BlockID {
 			panic(errors.New("BlockID does not equal index"))
 		}
 	}
+	ncdata.UpdateNextBlockID(uint64(len(blocks)))
 	
-	var err error
 	htmlTmpl, err = template.ParseFiles("/Users/firelizzard/Documents/Programming/NotaryChain/NotaryChainServer/src/NotaryChain/rest/html.gwp");
 	
 	if err != nil {
