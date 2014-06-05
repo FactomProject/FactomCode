@@ -5,11 +5,12 @@ import (
 	"net/url"
 	"strings"
 	ncdata "NotaryChain/data"
+	ncrest "NotaryChain/rest"
 	"strconv"
 	"fmt"
 )
 
-func parse(r *http.Request) (path []string, method string, accept string, form url.Values, err *restError) {
+func parse(r *http.Request) (path []string, method string, accept string, form url.Values, err *ncrest.Error) {
 	url := strings.TrimSpace(r.URL.Path)
 	path = strings.Split(url, "/")
 	
@@ -53,7 +54,7 @@ a:	for _, accept = range r.Header["Accept"] {
 	
 	e := r.ParseForm()
 	if e != nil {
-		err = createError(errorBadPOSTData, e.Error())
+		err = ncrest.CreateError(ncrest.ErrorBadPOSTData, e.Error())
 		return
 	}
 	
@@ -62,7 +63,7 @@ a:	for _, accept = range r.Header["Accept"] {
 	return
 }
 
-func parseAccept(accept string, ext []string) (string, *restError) {
+func parseAccept(accept string, ext []string) (string, *ncrest.Error) {
 	switch accept {
 	case "text/plain":
 		if len(ext) == 1 && ext[0] != "txt" {
@@ -80,18 +81,18 @@ func parseAccept(accept string, ext []string) (string, *restError) {
 		return "html", nil
 	}
 	
-	return "", createError(errorNotAcceptable, fmt.Sprintf("The specified resource cannot be returned as %s", accept))
+	return "", ncrest.CreateError(ncrest.ErrorNotAcceptable, fmt.Sprintf("The specified resource cannot be returned as %s", accept))
 }
 
-func find(path []string) (interface{}, *restError) {
+func find(path []string) (interface{}, *ncrest.Error) {
 	if len(path) == 0 {
-		return nil, createError(errorMissingVersionSpec, "")
+		return nil, ncrest.CreateError(ncrest.ErrorMissingVersionSpec, "")
 	}
 	
 	ver, path := path[0], path[1:] // capture version spec
 	
 	if !strings.HasPrefix(ver, "v") {
-		return nil, createError(errorMalformedVersionSpec, fmt.Sprintf(`The version specifier "%s" is malformed`, ver))
+		return nil, ncrest.CreateError(ncrest.ErrorMalformedVersionSpec, fmt.Sprintf(`The version specifier "%s" is malformed`, ver))
 	}
 	
 	ver = strings.TrimPrefix(ver, "v")
@@ -100,24 +101,24 @@ func find(path []string) (interface{}, *restError) {
 		return findV1("/v1", path)
 	}
 	
-	return nil, createError(errorBadVersionSpec, fmt.Sprintf(`The version specifier "v%s" does not refer to a supported version`, ver))
+	return nil, ncrest.CreateError(ncrest.ErrorBadVersionSpec, fmt.Sprintf(`The version specifier "v%s" does not refer to a supported version`, ver))
 }
 
-func findV1(context string, path []string) (interface{}, *restError) {
+func findV1(context string, path []string) (interface{}, *ncrest.Error) {
 	if len(path) == 0 {
-		return nil, createError(errorEmptyRequest, "")
+		return nil, ncrest.CreateError(ncrest.ErrorEmptyRequest, "")
 	}
 	
 	root, path := path[0], path[1:] // capture root spec
 	
 	if strings.ToLower(root) != "blocks" {
-		return nil, createError(errorBadElementSpec, fmt.Sprintf(`The element specifier "%s" is not valid in the context "%s"`, root, context))
+		return nil, ncrest.CreateError(ncrest.ErrorBadElementSpec, fmt.Sprintf(`The element specifier "%s" is not valid in the context "%s"`, root, context))
 	}
 	
 	return findV1InBlocks(context + "/" + root, path, blocks)
 }
 
-func findV1InBlocks(context string, path []string, blocks []*ncdata.Block) (interface{}, *restError) {
+func findV1InBlocks(context string, path []string, blocks []*ncdata.Block) (interface{}, *ncrest.Error) {
 	if len(path) == 0 {
 		return blocks, nil
 	}
@@ -129,29 +130,29 @@ func findV1InBlocks(context string, path []string, blocks []*ncdata.Block) (inte
 	path = path[1:]
 	
 	if err != nil {
-		return nil, createError(errorBadIdentifier, fmt.Sprintf(`The identifier "%s" is malformed: %s`, sid, err.Error()))
+		return nil, ncrest.CreateError(ncrest.ErrorBadIdentifier, fmt.Sprintf(`The identifier "%s" is malformed: %s`, sid, err.Error()))
 	}
 	
 	if len(blocks) == 0 {
-		return nil, createError(errorBlockNotFound, fmt.Sprintf(`The no blocks can be found in the context "%s"`, sid, context))
+		return nil, ncrest.CreateError(ncrest.ErrorBlockNotFound, fmt.Sprintf(`The no blocks can be found in the context "%s"`, sid, context))
 	}
 	
 	idOffset := blocks[0].BlockID
 	
 	if id < idOffset {
-		return nil, createError(errorBlockNotFound, fmt.Sprintf(`The block identified by "%s" cannot be found in the context "%s"`, sid, context))
+		return nil, ncrest.CreateError(ncrest.ErrorBlockNotFound, fmt.Sprintf(`The block identified by "%s" cannot be found in the context "%s"`, sid, context))
 	}
 	
 	id = id - idOffset
 	
 	if len(blocks) <= int(id) {
-		return nil, createError(errorBlockNotFound, fmt.Sprintf(`The block identified by "%s" cannot be found in the context "%s"`, sid, context))
+		return nil, ncrest.CreateError(ncrest.ErrorBlockNotFound, fmt.Sprintf(`The block identified by "%s" cannot be found in the context "%s"`, sid, context))
 	}
 	
 	return findV1InBlock(context + "/" + sid, path, blocks[id])
 }
 
-func findV1InBlock(context string, path []string, block *ncdata.Block) (interface{}, *restError) {
+func findV1InBlock(context string, path []string, block *ncdata.Block) (interface{}, *ncrest.Error) {
 	if len(path) == 0 {
 		return block, nil
 	}
@@ -165,7 +166,7 @@ func findV1InBlock(context string, path []string, block *ncdata.Block) (interfac
 	return findV1InEntries(context + "/" + root, path, block.Entries)
 }
 
-func findV1InEntries(context string, path []string, entries []*ncdata.PlainEntry) (interface{}, *restError) {
+func findV1InEntries(context string, path []string, entries []*ncdata.PlainEntry) (interface{}, *ncrest.Error) {
 	if len(path) == 0 {
 		return entries, nil
 	}
@@ -176,11 +177,11 @@ func findV1InEntries(context string, path []string, entries []*ncdata.PlainEntry
 	path = path[1:]
 	
 	if err != nil {
-		return nil, createError(errorBadIdentifier, fmt.Sprintf(`The identifier "%s" is malformed%s`, sid, err.Error()))
+		return nil, ncrest.CreateError(ncrest.ErrorBadIdentifier, fmt.Sprintf(`The identifier "%s" is malformed%s`, sid, err.Error()))
 	}
 	
 	if len(entries) <= id {
-		return nil, createError(errorEntryNotFound, fmt.Sprintf(`The entry identified by "%s" cannot be found in the context "%s"`, sid, context))
+		return nil, ncrest.CreateError(ncrest.ErrorEntryNotFound, fmt.Sprintf(`The entry identified by "%s" cannot be found in the context "%s"`, sid, context))
 	}
 	
 	return entries[id], nil
