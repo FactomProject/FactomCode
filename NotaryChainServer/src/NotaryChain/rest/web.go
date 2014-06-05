@@ -15,6 +15,7 @@ import (
 	"time"
 	"errors"
 	"sync"
+	"bytes"
 )
 
 var portNumber *int = flag.Int("p", 8083, "Set the port to listen on")
@@ -61,6 +62,7 @@ func load() {
 		}
 	}
 	
+	var err error
 	htmlTmpl, err = template.ParseFiles("/Users/firelizzard/Documents/Programming/NotaryChain/NotaryChainServer/src/NotaryChain/rest/html.gwp");
 	
 	if err != nil {
