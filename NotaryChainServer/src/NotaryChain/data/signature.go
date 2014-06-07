@@ -44,4 +44,4 @@ func (s *RSASignature) writeToHash(h hash.Hash) (err error) {
 	
 	_, err = h.Write(s.S)
 	return err
-}
+} 
