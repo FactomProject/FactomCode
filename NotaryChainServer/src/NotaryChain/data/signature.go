@@ -16,4 +16,4 @@ func (s *Signature) writeToHash(h hash.Hash) (err error) {
 	
 	err = s.SignedHash.writeToHash(h)
 	return err
-}
+} 
