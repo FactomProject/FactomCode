@@ -1,10 +1,14 @@
 package notarydata
 
 import (
+	"bytes"
+	"errors"
 	"hash"
+	
 	"crypto/rsa"
 	"crypto/ecdsa"
 	"crypto/elliptic"
+	"math/big"
 )
 
 const (
@@ -38,48 +42,173 @@ type RSAPrivKey struct {
 	rsa.PrivateKey
 }
 
-/*func (k *Key) UnmarshalBinary(data []byte) error {
-	s.KeyType, data = int8(data[0]), data[1:]
+func bigIntMarshalBinary(i *big.Int) (data []byte, err error) {
+	intd, err := i.GobEncode()
+	if err != nil { return }
+	
+	size := len(intd)
+	if size > 255 { return nil, errors.New("Big int too big") }
+	
+	data = make([]byte, size)
+	data[0] = byte(size)
+	copy(data[1:], intd)
+	return
+}
+
+func bigIntMarshalledSize(i *big.Int) uint64 {
+	intd, err := i.GobEncode()
+	if err != nil { return 0 }
+	
+	return uint64(len(intd))
+}
+
+func bigIntUnmarshalBinary(data []byte) (retd []byte, i *big.Int, err error) {
+	size := uint8(data[0])
+	
+	i = new(big.Int)
+	err = i.GobDecode(data[1:size+1])
+	retd = data[size+1:]
+	
+	return
+}
+
+func (k *Key) MarshalBinary() (data []byte, err error) {
+	return []byte{byte(k.KeyType)}, nil
+}
+
+func (k *ECDSAPubKey) MarshalBinary() (data []byte, err error) {
+	var buf bytes.Buffer
+	
+	data, err = k.Key.MarshalBinary()
+	if err != nil { return }
+	buf.Write(data)
+	
+	p := k.Params()
+	
+	data, err = bigIntMarshalBinary(p.P)
+	if err != nil { return }
+	buf.Write(data)
+	
+	data, err = bigIntMarshalBinary(p.N)
+	if err != nil { return }
+	buf.Write(data)
+	
+	data, err = bigIntMarshalBinary(p.B)
+	if err != nil { return }
+	buf.Write(data)
+	
+	data, err = bigIntMarshalBinary(p.Gx)
+	if err != nil { return }
+	buf.Write(data)
+	
+	data, err = bigIntMarshalBinary(p.Gy)
+	if err != nil { return }
+	buf.Write(data)
+	
+	data, err = bigIntMarshalBinary(k.X)
+	if err != nil { return }
+	buf.Write(data)
+	
+	data, err = bigIntMarshalBinary(k.Y)
+	if err != nil { return }
+	buf.Write(data)
+	
+	return buf.Bytes(), nil
+}
+
+func (k *ECDSAPrivKey) MarshalBinary() (data []byte, err error) {
+	var buf bytes.Buffer
+	
+	data, err = (&ECDSAPubKey{k.Key, k.PublicKey}).MarshalBinary()
+	if err != nil { return }
+	buf.Write(data)
+	
+	data, err = bigIntMarshalBinary(k.D)
+	if err != nil { return }
+	buf.Write(data)
+	
+	return buf.Bytes(), nil
+}
+
+func (k *Key) MarshalledSize() uint64 {
+	return 1 // KeyType int8
+}
+
+func (k *ECDSAPubKey) MarshalledSize() uint64 {
+	s := k.Key.MarshalledSize()
+	
+	p := k.Params()
+	s += bigIntMarshalledSize(p.P)
+	s += bigIntMarshalledSize(p.N)
+	s += bigIntMarshalledSize(p.B)
+	s += bigIntMarshalledSize(p.Gx)
+	s += bigIntMarshalledSize(p.Gy)
+	
+	s += bigIntMarshalledSize(k.X)
+	s += bigIntMarshalledSize(k.Y)
+	
+	return s
+}
+
+func (k *ECDSAPrivKey) MarshalledSize() uint64 {
+	s := (&ECDSAPubKey{k.Key, k.PublicKey}).MarshalledSize()
+	
+	s += bigIntMarshalledSize(k.D)
+	
+	return s
+}
+
+func (k *Key) UnmarshalBinary(data []byte) error {
+	k.KeyType = int8(data[0])
 	
 	return nil
 }
 
-func (k *ECDSAPubKey) unmarshalBinary(data []byte) error {
-	k.P, err := bigIntUnmarshal(data)
+func (k *ECDSAPubKey) UnmarshalBinary(data []byte) (err error) {
+	err = k.Key.UnmarshalBinary(data)
+	if err != nil { return }
+	data = data[1:]
+	
+	p := k.Params()
+	
+	data, p.P, err = bigIntUnmarshalBinary(data)
 	if err != nil { return }
 	
-	k.N, err := bigIntUnmarshal(data)
+	data, p.N, err = bigIntUnmarshalBinary(data)
 	if err != nil { return }
 	
-	k.B, err := bigIntUnmarshal(data)
+	data, p.B, err = bigIntUnmarshalBinary(data)
 	if err != nil { return }
 	
-	k.Gx, err := bigIntUnmarshal(data)
+	data, p.Gx, err = bigIntUnmarshalBinary(data)
 	if err != nil { return }
 	
-	k.Gy, err := bigIntUnmarshal(data)
+	data, p.Gy, err = bigIntUnmarshalBinary(data)
 	if err != nil { return }
 	
-	k.P, err := bigIntUnmarshal(data)
+	data, k.X, err = bigIntUnmarshalBinary(data)
 	if err != nil { return }
 	
-	k.X, err := bigIntUnmarshal(data)
+	data, k.Y, err = bigIntUnmarshalBinary(data)
 	if err != nil { return }
 	
-	k.Y, err := bigIntUnmarshal(data)
-	if err != nil { return }
+	return
 }
 
-func (k *ECDSAPrivKey) unmarshalBinary(data []byte) error {
-	ECDSAPubKey{-1, k.PrivateKey.PublicKey}.unmarshalBinary(data)
-}
-
-func (k *RSAPubKey) unmarshalBinary(data []byte) error {
+func (k *ECDSAPrivKey) UnmarshalBinary(data []byte) (err error) {
+	pub := new(ECDSAPubKey)
+	err = pub.UnmarshalBinary(data)
+	if err != nil { return }
 	
-}
-
-func (k *RSAPrivKey) unmarshalBinary(data []byte) error {
+	data = data[pub.MarshalledSize():]
 	
+	k.KeyType = pub.KeyType
+	k.PublicKey = pub.PublicKey
+	
+	data, k.D, err = bigIntUnmarshalBinary(data)
+	if err != nil { return }
+	
+	return
 }
 
 /*func (k *Key) writeToHash(h hash.Hash) (err error) {
