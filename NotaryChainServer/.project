@@ -6,10 +6,16 @@
 	</projects>
 	<buildSpec>
 		<buildCommand>
+<<<<<<< HEAD
 			<name>com.googlecode.goclipse.goBuilder</name>
 			<arguments>
 			</arguments>
 		</buildCommand>
+=======
+		    <name>com.googlecode.goclipse.goBuilder</name>
+		    <arguments></arguments>
+		 </buildCommand>
+>>>>>>> feature/signature
 	</buildSpec>
 	<natures>
 		<nature>goclipse.goNature</nature>
