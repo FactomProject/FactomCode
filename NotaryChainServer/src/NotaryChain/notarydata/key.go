@@ -1,4 +1,4 @@
-package data
+package notarydata
 
 import (
 	"hash"
@@ -107,4 +107,4 @@ func (k *ECDSAPrivKey) writeToHash(h hash.Hash) (err error) {
 	
 	_, err = h.Write(k.D.Bytes())
 	return err
-}*/
+}

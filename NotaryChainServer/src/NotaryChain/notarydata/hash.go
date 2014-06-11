@@ -1,4 +1,4 @@
-package data
+package notarydata
 
 import (
 	"hash"
@@ -25,7 +25,7 @@ func (h *Hash) MarshalBinary() (data []byte, err error) {
 }
 
 func (h *Hash) MarshalledSize() uint64 {
-	return 32
+	return uint64(len(h.Bytes))
 }
 
 func (h *Hash) UnmarshalBinary(data []byte) error {

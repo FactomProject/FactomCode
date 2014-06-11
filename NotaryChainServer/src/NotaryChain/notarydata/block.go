@@ -1,4 +1,4 @@
-package data
+package notarydata
 
 import (
 	"errors"
