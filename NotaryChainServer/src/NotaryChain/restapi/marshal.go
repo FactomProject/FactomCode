@@ -1,23 +1,29 @@
-package rest
+package restapi
 
 import (
+	"bytes"
+	"fmt"
+	
 	"encoding/json"
 	"encoding/xml"
-	"fmt"
-	"bytes"
 	"text/template"
+	
+	"github.com/firelizzard18/dynrsrc"
 )
 
 var htmlTmpl *template.Template
 
-func init() {
-	var err error
-	
-	htmlTmpl, err = template.ParseFiles("test/rest/html.gwp");
-	
-	if err != nil {
-		panic(err)
-	}
+func StartStatic() (err error) {
+	htmlTmpl, err = template.ParseFiles("app/rest/html.gwp");
+	return
+}
+
+func StartDynamic(readEH func(err error)) error {
+	return dynrsrc.CreateDynamicResource("app/rest/html.gwp", func(data []byte) {
+		var err error
+		htmlTmpl, err = template.New("html").Parse(string(data))
+		if err != nil { readEH(err) }
+	})
 }
 
 func Marshal(resource interface{}, accept string) (data []byte, r *Error) {
