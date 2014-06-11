@@ -1,12 +1,5 @@
-<html>
-	<head>
-		<title>Edit Entry as JSON - NotaryChain Client</title>
-	</head>
-	<body>
 		<form method="post" action="/">
 			<input type="hidden" name="format" value="json" />
 			<textarea name="data">{{.}}</textarea><br />
 			<input type="submit" name="submit" value="Save" />
 		</form>
-	</body>
-</html>
