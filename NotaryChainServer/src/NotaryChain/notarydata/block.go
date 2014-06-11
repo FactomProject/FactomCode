@@ -1,10 +1,10 @@
 package notarydata
 
 import (
-	"errors"
-	"crypto/sha256"
-	"encoding/binary"
 	"bytes"
+	"errors"
+	
+	"encoding/binary"
 )
 
 var nextBlockID uint64 = 0
@@ -39,6 +39,21 @@ func (b *Block) MarshalBinary() (data []byte, err error) {
 	buf.Write(data)
 	
 	return buf.Bytes(), err
+}
+
+func (b *Block) MarshalledSize() uint64 {
+	var size uint64 = 0
+	
+	size += 8 // BlockID uint64
+	size += b.PreviousHash.MarshalledSize()
+	size += 8 // len(Entries) uint64
+	size += b.Salt.MarshalledSize()
+	
+	for _, entry := range b.Entries {
+		size += entry.MarshalledSize()
+	}
+	
+	return 0
 }
 
 func (b *Block) UnmarshalBinary(data []byte) error {
@@ -80,38 +95,21 @@ func CreateBlock(prev *Block, capacity uint) (b *Block, err error) {
 	b.Salt = EmptyHash()
 	
 	if prev != nil {
-		b.PreviousHash, err = prev.Hash()
+		b.PreviousHash, err = CreateHash(prev)
 	}
 	
 	return b, err
 }
 
 func (b *Block) AddEntry(e *PlainEntry) (err error) {
+	h, err := CreateHash(e)
+	if err != nil { return }
+	
+	s, err := CreateHash(b.Salt, h)
+	if err != nil { return }
+	
 	b.Entries = append(b.Entries, e)
+	b.Salt = s
 	
-	var eh *Hash
-	eh, err = e.Hash();
-	if err != nil { return err }
-	
-	sha := sha256.New()
-	
-	data, _ := b.Salt.MarshalBinary()
-	sha.Write(data)
-	
-	data, _ = eh.MarshalBinary()
-	sha.Write(data)
-	
-	b.Salt = CreateHash(sha)
-	
-	return
-}
-
-func (b *Block) Hash() (hash *Hash, err error) {
-	sha := sha256.New()
-	
-	data, _ := b.MarshalBinary()
-	sha.Write(data)
-	
-	hash = CreateHash(sha)
 	return
 }

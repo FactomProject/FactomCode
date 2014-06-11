@@ -1,79 +1,69 @@
 package notarydata
 
 import (
-	"hash"
+	"bytes"
+	"errors"
+	
 	"math/big"
 )
 
-const (
-	ECDSAKeyType = 1
-	RSAKeyType = 2
-)
-
-type Signature struct {
-	KeyType			int8
-	PublicKey		*Key			`json:"key"`
+type Signature interface {
+	Key
 }
 
-type ECDSASignature struct {
-	Signature
-	R, S			*big.Int
-}
-
-type RSASignature struct {
-	Signature
-	S				[]byte
-}
-
-func (s *Signature) MarshalBinary() (data []byte, err error) {
+func UnmarshalBinarySignature(data []byte) (s Signature, err error) {
+	switch int(data[0]) {
+	case ECDSAPubKeyType:
+		s = new(ECDSASignature)
+		
+	default:
+		return nil, errors.New("Bad key type")
+	}
+	
+	err = s.UnmarshalBinary(data)
 	return
 }
 
-func (s *Signature) MarshalledSize() uint64 {
-	return 0
+type ECDSASignature struct {
+	ECDSAPubKey
+	R, S			*big.Int
 }
 
-func (s *Signature) UnmarshalBinary(data []byte) error {
-	//s.KeyType = 
+func (s *ECDSASignature) MarshalBinary() (data []byte, err error) {
+	var buf bytes.Buffer
 	
-	return nil
+	data, err = s.ECDSAPubKey.MarshalBinary()
+	if err != nil { return }
+	buf.Write(data)
+	
+	data, err = bigIntMarshalBinary(s.R)
+	if err != nil { return }
+	buf.Write(data)
+	
+	data, err = bigIntMarshalBinary(s.S)
+	if err != nil { return }
+	buf.Write(data)
+	
+	return buf.Bytes(), nil
 }
 
-func (s *ECDSASignature) UnmarshalBinary(data []byte) error {
+func (s *ECDSASignature) MarshalledSize() uint64 {
+	size := s.ECDSAPubKey.MarshalledSize()
 	
+	size += bigIntMarshalledSize(s.R)
+	size += bigIntMarshalledSize(s.S)
 	
-	return nil
+	return size
 }
 
-func (s *RSASignature) UnmarshalBinary(data []byte) error {
+func (s *ECDSASignature) UnmarshalBinary(data []byte) (err error) {
+	err = s.ECDSAPubKey.UnmarshalBinary(data)
+	if err != nil { return }
+	data = data[s.ECDSAPubKey.MarshalledSize():]
 	
+	data, s.R, err = bigIntUnmarshalBinary(data)
+	if err != nil { return }
 	
-	return nil
-}
-
-func (s *Signature) writeToHash(h hash.Hash) (err error) {
-	//err = s.PublicKey.writeToHash(h)
-	return err
-}
-
-func (s *ECDSASignature) writeToHash(h hash.Hash) (err error) {
-	if err = s.Signature.writeToHash(h); err != nil {
-		return err
-	}
-	
-	if _, err = h.Write(s.R.Bytes()); err != nil {
-		return err
-	}
-	
-	_, err = h.Write(s.S.Bytes())
-	return err
-}
-
-func (s *RSASignature) writeToHash(h hash.Hash) (err error) {
-	if err = s.Signature.writeToHash(h); err != nil {
-		return err
-	}
-	
-	_, err = h.Write(s.S)
-	return err
+	data, s.S, err = bigIntUnmarshalBinary(data)
+	return
 }

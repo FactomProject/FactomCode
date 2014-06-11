@@ -1,9 +1,7 @@
 package notarydata
 
 import (
-	"hash"
 	"encoding/binary"
-	"crypto/sha256"
 	"bytes"
 )
 
@@ -19,7 +17,7 @@ type Entry struct {
 type PlainEntry struct {
 	Entry
 	StructuredData	[]byte			`json:"structuredData"`	// The data (could be hashes) to record
-	Signatures		[]*Signature	`json:"signatures"`	// Optional signatures of the data
+	Signatures		[]Signature		`json:"signatures"`	// Optional signatures of the data
 	TimeStamp		int64			`json:"timeStamp"`	// Unix Time
 }
 
@@ -35,7 +33,8 @@ func (e *PlainEntry) MarshalBinary() (data []byte, err error) {
 	count := uint64(len(e.Signatures))
 	binary.Write(&buf, binary.BigEndian, count)
 	for i := uint64(0); i < count; i = i + 1 {
-		data, _ := e.Signatures[i].MarshalBinary()
+		data, err = e.Signatures[i].MarshalBinary()
+		if err != nil { return }
 		buf.Write(data)
 	}
 	
@@ -60,7 +59,7 @@ func (e *PlainEntry) MarshalledSize() uint64 {
 	return size
 }
 
-func (e *PlainEntry) UnmarshalBinary(data []byte) error {
+func (e *PlainEntry) UnmarshalBinary(data []byte) (err error) {
 	e.EntryType, data = int8(data[0]), data[0:]
 	
 	sdlen, data := binary.BigEndian.Uint64(data[0:4]), data[4:]
@@ -68,42 +67,14 @@ func (e *PlainEntry) UnmarshalBinary(data []byte) error {
 	copy(e.StructuredData, data)
 	
 	count, data := binary.BigEndian.Uint64(data[0:4]), data[4:]
-	e.Signatures = make([]*Signature, 0, count)
+	e.Signatures = make([]Signature, 0, count)
 	for i := uint64(0); i < count; i = i + 1 {
-		e.Signatures[0] = new(Signature)
-		e.Signatures[0].UnmarshalBinary(data)
+		e.Signatures[0], err = UnmarshalBinarySignature(data)
+		if err != nil { return }
 		data = data[e.Signatures[0].MarshalledSize():]
 	}
 	
 	e.TimeStamp = int64(binary.BigEndian.Uint64(data[0:4]))
 	
 	return nil
-}
-
-func (e *PlainEntry) writeToHash(h hash.Hash) (err error) {
-	if _, err = h.Write(e.StructuredData); err != nil {
-		return err
-	}
-	
-	for _,s := range e.Signatures {
-		if err = s.writeToHash(h); err != nil {
-			return err
-		}
-	}
-	
-	buf := make([]byte, 8)
-	binary.BigEndian.PutUint64(buf, uint64(e.TimeStamp))
-	
-	_, err = h.Write(buf)
-	return err
-}
-
-func (e *PlainEntry) Hash() (hash *Hash, err error) {
-	sha := sha256.New()
-	
-	data, _ := e.MarshalBinary()
-	sha.Write(data)
-	
-	hash = CreateHash(sha)
-	return
 }
