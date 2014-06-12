@@ -69,6 +69,8 @@ func init() {
 }
 
 func main() {
+	flag.Parse()
+	
 	defer func() {
 		tickers[0].Stop()
 		tickers[1].Stop()
