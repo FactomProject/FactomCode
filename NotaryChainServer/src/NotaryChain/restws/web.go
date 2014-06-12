@@ -150,6 +150,10 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
+	if err != nil {
+		resource = err
+	}
+	
 	data, err = restapi.Marshal(resource, accept)
 }
 
