@@ -1,0 +1,90 @@
+@import url(https://fonts.googleapis.com/css?family=Arvo:400,700,400italic);
+@import 'reset.css';
+
+body {
+	background: hsl(0, 0%, 95%);
+	font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+div.wrapper {
+	width: 70em;
+}
+
+header {
+	position: fixed;
+	background: hsl(0, 0%, 40%);
+	float: left;
+	padding: 1em;
+	color: white;
+	border-radius: 0 4px 4px 0;
+	top: 2em;
+	width: 13em;
+}
+
+section {
+	position: relative;
+	top: 2em;
+	float: right;
+	padding: 1em;
+	width: 50em;
+}
+
+h1 {
+	font-size: 30px;
+}
+
+h2 {
+	font-size: 26px;
+}
+
+h3 {
+	font-size: 22px;
+}
+
+h4 {
+	font-size: 19px;
+}
+
+h5 {
+	font-size: 14px;
+}
+
+h6 {
+	font-size: 12px;
+}
+
+h1, h2, h3, h4, h5, h6 {
+	font-family: Arvo, inherit;
+}
+
+header a {
+	text-decoration: none;
+	color: inherit;
+}
+
+header ul {
+	list-style: none;
+}
+
+header li {
+	margin: .25em 0;
+}
+
+header p {
+	margin: 1.5em 0
+}
+
+header li a, header li div {
+	padding: .3em .3em .3em .8em;
+	border-radius: 4px;
+}
+
+header li a {
+	display: block;
+	background: hsl(0, 0%, 60%);
+}
+
+header li div {
+	color: hsl(0, 0%, 30%);
+	background: hsl(0, 0%, 80%);
+}

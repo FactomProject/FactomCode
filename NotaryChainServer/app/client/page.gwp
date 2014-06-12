@@ -2,6 +2,7 @@
 <html>
 	<head>
 		<title>{{.Title}} - NotaryChain Client</title>
+		<link rel="stylesheet" type="text/css" href="/style.css" />
 		<script>
 			function tree(data) {
 		    	var string
@@ -23,7 +24,9 @@
 		</script>
 	</head>
 	<body>
-		<header>{{template .HeaderTmpl .}}</header>
-		<section>{{template .ContentTmpl .}}</section>
+		<div class="wrapper">
+			<header>{{template "header.md" .}}</header>
+			<section>{{tmplref .ContentTmpl .}}</section>
+		</div>
 	</body>
 </html>
