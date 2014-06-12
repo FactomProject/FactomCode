@@ -69,6 +69,8 @@ func init() {
 }
 
 func main() {
+	flag.Parse()
+	
 	defer func() {
 		tickers[0].Stop()
 		tickers[1].Stop()
@@ -148,6 +150,10 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 	default:
 		err = restapi.CreateError(restapi.ErrorBadMethod, fmt.Sprintf(`The HTTP %s method is not supported`, method))
 		return
+	}
+	
+	if err != nil {
+		resource = err
 	}
 	
 	data, err = restapi.Marshal(resource, accept)
