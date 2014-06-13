@@ -1,7 +1,7 @@
-package rest
+package restapi
 
 import (
-
+	"fmt"
 )
 
 const (
@@ -23,6 +23,7 @@ const (
 	ErrorXMLUnmarshal = 15
 	ErrorUnsupportedUnmarshal = 16
 	ErrorBadPOSTData = 17
+	ErrorTemplateError = 18
 )
 
 type Error struct {
@@ -35,7 +36,7 @@ type Error struct {
 }
 
 func (r *Error) Error() string {
-	return r.Description
+	return fmt.Sprint(r.Name, "\n", r.Description, "\n", r.Message)
 }
 
 func CreateError(code uint, message string) *Error {
@@ -103,6 +104,9 @@ func retreiveErrorParameters(code uint) (int, string, string, string) {
 		
 	case ErrorBadPOSTData:
 		return 400, "Bad POST Data", "The body of the POST request is malformed", ""
+		
+	case ErrorTemplateError:
+		return 500, "Template Error", "A template error occured", ""
 	}
 	
 	return 500, "Unknown Error", "An unknown error occured", ""

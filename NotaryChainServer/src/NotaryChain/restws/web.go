@@ -1,52 +1,83 @@
 package main 
 
 import (
+	"errors"
 	"flag"
-	"net/http"
-	"net/url"
-	ncdata "NotaryChain/data"
-	ncrest "NotaryChain/rest"
-	"encoding/json"
-	"encoding/xml"
-	"strconv"
 	"fmt"
-	"strings"
 	"reflect"
 	"time"
-	"errors"
+	"strconv"
+	"strings"
 	"sync"
+	
+	"encoding/json"
+	"encoding/xml"
 	"io/ioutil"
+	"net/http"
+	"net/url"
+	
+	"github.com/firelizzard18/dynrsrc"
+	
+	"NotaryChain/notarydata"
+	"NotaryChain/restapi"
 )
 
 var portNumber *int = flag.Int("p", 8083, "Set the port to listen on")
-var blocks []*ncdata.Block
+var blocks []*notarydata.Block
 var blockMutex = &sync.Mutex{}
+var tickers [2]*time.Ticker
+
+func watchError(err error) {
+	panic(err)
+}
+
+func readError(err error) {
+	fmt.Println("error: ", err)
+}
 
 func init() {
-	source, err := ioutil.ReadFile("test/rest/store.json")
+	dynrsrc.Start(watchError, readError)
+	restapi.StartDynamic(readError)
+	
+	source, err := ioutil.ReadFile("app/rest/store.json")
 	if err != nil { panic(err) }
 	
-	if err := json.Unmarshal(source, &blocks); err != nil { panic(err) }
+	err = json.Unmarshal(source, &blocks)
+	if err != nil { panic(err) }
 	
 	for i := 0; i < len(blocks); i = i + 1 {
 		if uint64(i) != blocks[i].BlockID {
 			panic(errors.New("BlockID does not equal index"))
 		}
 	}
-	ncdata.UpdateNextBlockID(uint64(len(blocks)))
+	notarydata.UpdateNextBlockID(uint64(len(blocks)))
 	
-	ticker := time.NewTicker(time.Minute * 5)
-	defer func() {
-		ticker.Stop()
-	}()
+	tickers[0] = time.NewTicker(time.Minute * 5)
+	tickers[1] = time.NewTicker(time.Hour)
+	
 	go func() {
-		for _ = range ticker.C {
+		for _ = range tickers[0].C {
 			notarize()
+		}
+	}()
+	
+	go func() {
+		for _ = range tickers[1].C {
+			save()
 		}
 	}()
 }
 
 func main() {
+	flag.Parse()
+	
+	defer func() {
+		tickers[0].Stop()
+		tickers[1].Stop()
+		save()
+		dynrsrc.Stop()
+	}()
+	
 	http.HandleFunc("/", serveRESTfulHTTP)
 	http.ListenAndServe(":" + strconv.Itoa(*portNumber), nil)
 }
@@ -58,10 +89,20 @@ func notarize() {
 	blockMutex.Unlock()
 }
 
+func save() {
+	blockMutex.Lock()
+	data, err := json.Marshal(blocks)
+	blockMutex.Unlock()
+	if err != nil { panic(err) }
+	
+	err = ioutil.WriteFile("app/rest/store.json", data, 0644)
+	if err != nil { panic(err) }
+}
+
 func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 	var resource interface{}
 	var data []byte
-	var err *ncrest.Error
+	var err *restapi.Error
 	
 	path, method, accept, form, err := parse(r)
 	
@@ -81,9 +122,9 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	
 		if err != nil {
-			var r *ncrest.Error
+			var r *restapi.Error
 			
-			data, r = ncrest.Marshal(err, accept)
+			data, r = restapi.Marshal(err, accept)
 			if r != nil {
 				err = r
 			}
@@ -100,45 +141,49 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 		
 	case "POST":
 		if len(path) != 1 {
-			err = ncrest.CreateError(ncrest.ErrorBadMethod, `POST can only be used in the root context: /v1`)
+			err = restapi.CreateError(restapi.ErrorBadMethod, `POST can only be used in the root context: /v1`)
 			return
 		}
 		
 		resource, err = post("/" + strings.Join(path, "/"), form)
 		
 	default:
-		err = ncrest.CreateError(ncrest.ErrorBadMethod, fmt.Sprintf(`The HTTP %s method is not supported`, method))
+		err = restapi.CreateError(restapi.ErrorBadMethod, fmt.Sprintf(`The HTTP %s method is not supported`, method))
 		return
 	}
 	
-	data, err = ncrest.Marshal(resource, accept)
+	if err != nil {
+		resource = err
+	}
+	
+	data, err = restapi.Marshal(resource, accept)
 }
 
-var blockPtrType = reflect.TypeOf((*ncdata.Block)(nil)).Elem()
+var blockPtrType = reflect.TypeOf((*notarydata.Block)(nil)).Elem()
 
-func post(context string, form url.Values) (interface{}, *ncrest.Error) {
-	newEntry := new(ncdata.PlainEntry)
+func post(context string, form url.Values) (interface{}, *restapi.Error) {
+	newEntry := new(notarydata.PlainEntry)
 	format, data := form.Get("format"), form.Get("data")
 	
 	switch format {
 	case "", "json":
 		err := json.Unmarshal([]byte(data), newEntry)
 		if err != nil {
-			return nil, ncrest.CreateError(ncrest.ErrorJSONUnmarshal, err.Error())
+			return nil, restapi.CreateError(restapi.ErrorJSONUnmarshal, err.Error())
 		}
 		
 	case "xml":
 		err := xml.Unmarshal([]byte(data), newEntry)
 		if err != nil {
-			return nil, ncrest.CreateError(ncrest.ErrorXMLUnmarshal, err.Error())
+			return nil, restapi.CreateError(restapi.ErrorXMLUnmarshal, err.Error())
 		}
 	
 	default:
-		return nil, ncrest.CreateError(ncrest.ErrorUnsupportedUnmarshal, fmt.Sprintf(`The format "%s" is not supported`, format))
+		return nil, restapi.CreateError(restapi.ErrorUnsupportedUnmarshal, fmt.Sprintf(`The format "%s" is not supported`, format))
 	}
 	
 	if newEntry == nil {
-		return nil, ncrest.CreateError(ncrest.ErrorInternal, `Entity to be POSTed is nil`)
+		return nil, restapi.CreateError(restapi.ErrorInternal, `Entity to be POSTed is nil`)
 	}
 	
 	newEntry.TimeStamp = time.Now().Unix()
@@ -148,7 +193,7 @@ func post(context string, form url.Values) (interface{}, *ncrest.Error) {
 	blockMutex.Unlock()
 	
 	if err != nil {
-		return nil, ncrest.CreateError(ncrest.ErrorInternal, fmt.Sprintf(`Error while adding Entity to Block: %s`, err.Error()))
+		return nil, restapi.CreateError(restapi.ErrorInternal, fmt.Sprintf(`Error while adding Entity to Block: %s`, err.Error()))
 	}
 	
 	return newEntry, nil
