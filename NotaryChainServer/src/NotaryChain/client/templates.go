@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
-	"time"
 	
 	"encoding/base64"
 	"io/ioutil"
@@ -142,7 +141,7 @@ func templateGetEntry(idx int) (map[string]interface{}, error) {
 		"ID": idx,
 		"Type": entry.TypeName(),
 		"Signatures": signatures,
-		"TimeStamp": time.Unix(entry.TimeStamp(), 0),
+		"TimeStamp": entry.RealTime(),
 		"Data": entry.Data(),
 	}, nil
 }
