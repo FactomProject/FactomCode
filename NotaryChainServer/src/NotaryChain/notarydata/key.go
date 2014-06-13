@@ -3,11 +3,13 @@ package notarydata
 import (
 	"bytes"
 	"errors"
+	"io"
 	
 	"crypto/ecdsa"
 )
 
 const (
+	BadKeyType		= -1
 	ECDSAPubKeyType	=  0
 	ECDSAPrivKeyType=  1
 	RSAPubKeyType	=  2
@@ -17,6 +19,54 @@ const (
 type Key interface {
 	BinaryMarshallable
 	KeyType()		int8
+}
+
+type PublicKey interface {
+	Key
+	Verify(data []byte, sig Signature) bool
+}
+
+type PrivateKey interface {
+	PublicKey
+	Sign(rand io.Reader, data []byte) (Signature, error)
+}
+
+func KeyTypeName(keyType int8) string {
+	switch keyType {
+	case ECDSAPubKeyType:
+		return "ECDSA Public"
+		
+	case ECDSAPrivKeyType:
+		return "ECDSA Private"
+		
+	case RSAPubKeyType:
+		return "RSA Public"
+		
+	case RSAPrivKeyType:
+		return "RSA Private"
+		
+	default:
+		return "Unknown"
+	}
+}
+
+func KeyTypeCode(keyType string) int8 {
+	switch keyType {
+	case "ECDSA Public":
+		return ECDSAPubKeyType
+		
+	case "ECDSA Private":
+		return ECDSAPrivKeyType
+		
+	case "RSA Public":
+		return RSAPubKeyType
+		
+	case "RSA Private":
+		return RSAPrivKeyType
+		
+	default:
+		return BadKeyType
+	}
 }
 
 func UnmarshalBinaryKey(data []byte) (k Key, err error) {

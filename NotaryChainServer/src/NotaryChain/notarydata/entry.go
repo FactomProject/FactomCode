@@ -14,6 +14,29 @@ type Entry struct {
 	EntryType		int8			`json:"entryType"`
 }
 
+func EntryTypeName(entryType int8) string {
+	switch entryType {
+	case EmptyEntryType:
+		return "Empty"
+	
+	case PlainEntryType:
+		return "Plain"
+		
+	default:
+		return "Unknown"
+	}
+}
+
+func EntryTypeCode(entryType string) int8 {
+	switch entryType {
+	case "Plain":
+		return PlainEntryType
+		
+	default:
+		return EmptyEntryType
+	}
+}
+
 type PlainEntry struct {
 	Entry
 	StructuredData	[]byte			`json:"structuredData"`	// The data (could be hashes) to record
