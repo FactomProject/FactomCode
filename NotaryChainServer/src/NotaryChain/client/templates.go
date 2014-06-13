@@ -16,7 +16,7 @@ import (
 	"github.com/firelizzard18/blackfriday"
 	"github.com/firelizzard18/dynrsrc"
 	
-	"NotaryChain/notarydata"
+	"NotaryChain/notaryapi"
 )
 
 var mdrdr blackfriday.Renderer
@@ -130,20 +130,20 @@ func templateGetEntry(idx int) (map[string]interface{}, error) {
 	
 	entry := getEntry(idx)
 	
-	count := len(entry.Signatures)
+	count := len(entry.Signatures())
 	signatures := make([][]byte, count)
 	for i := 0; i < count; i++ {
-		hash, err := notarydata.CreateHash(entry.Signatures[i].Key())
+		hash, err := notaryapi.CreateHash(entry.Signatures()[i].Key())
 		if err != nil { return nil, err }
 		signatures[i] = hash.Bytes
 	}
 	
 	return map[string]interface{}{
 		"ID": idx,
-		"Type": notarydata.EntryTypeName(entry.EntryType),
+		"Type": entry.TypeName(),
 		"Signatures": signatures,
-		"TimeStamp": time.Unix(entry.TimeStamp, 0),
-		"Data": entry.StructuredData,
+		"TimeStamp": time.Unix(entry.TimeStamp(), 0),
+		"Data": entry.Data(),
 	}, nil
 }
 
@@ -171,12 +171,12 @@ func templateGetKey(idx int) (map[string]interface{}, error) {
 	}
 	
 	key := getKey(idx)
-	hash, err := notarydata.CreateHash(key)
+	hash, err := notaryapi.CreateHash(key)
 	if err != nil { return nil, err }
 	
 	return map[string]interface{}{
 		"ID": idx,
-		"Type": notarydata.KeyTypeName(key.KeyType()),
+		"Type": notaryapi.KeyTypeName(key.KeyType()),
 		"Hash": hash.Bytes,
 	}, nil
 }

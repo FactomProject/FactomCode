@@ -7,7 +7,7 @@ import (
 	
 	"github.com/hoisie/web"
 	
-	"NotaryChain/restapi"
+	"NotaryChain/notaryapi"
 )
 
 var server = web.NewServer()
@@ -25,14 +25,14 @@ func serve_init() {
 	server.Get(`/keys/(\d+)(?:/(\w+))?`, handleKey)
 }
 
-func safeWrite(ctx *web.Context, code int, data map[string]interface{}) *restapi.Error {
+func safeWrite(ctx *web.Context, code int, data map[string]interface{}) *notaryapi.Error {
 	var buf bytes.Buffer
 	
 	data["EntryCount"] = getEntryCount()
 	data["KeyCount"] = getEntryCount()
 	
 	err := mainTmpl.Execute(&buf, data)
-	if err != nil { return restapi.CreateError(restapi.ErrorTemplateError, err.Error()) }
+	if err != nil { return notaryapi.CreateError(notaryapi.ErrorTemplateError, err.Error()) }
 	
 	ctx.WriteHeader(code)
 	ctx.Write(buf.Bytes())
@@ -73,8 +73,7 @@ func handleEntry(ctx *web.Context, id string, action string, aid string) {
 	
 	if action == "rmsig" && templateIsValidEntryId(id) {
 		entry := getEntry(idx)
-		if 0 <= aidx && aidx < len(entry.Signatures) {
-			unsignEntry(idx, aidx)
+		if entry.Unsign(aidx) {
 			ctx.Header().Add("Location", fmt.Sprint("/entries/", idx))
 			ctx.WriteHeader(303)
 			return
@@ -133,8 +132,8 @@ func handleKey(ctx *web.Context, id string, action string) {
 }
 
 
-func handleError(ctx *web.Context, err *restapi.Error) {
-	data, r := restapi.Marshal(err, "json")
+func handleError(ctx *web.Context, err *notaryapi.Error) {
+	data, r := notaryapi.Marshal(err, "json")
 	if r != nil { err = r }
 	
 	err = safeWrite(ctx, err.HTTPCode, map[string]interface{} {
