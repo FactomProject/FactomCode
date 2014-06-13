@@ -1,7 +1,7 @@
 package restapi
 
 import (
-
+	"fmt"
 )
 
 const (
@@ -36,7 +36,7 @@ type Error struct {
 }
 
 func (r *Error) Error() string {
-	return r.Description
+	return fmt.Sprint(r.Name, "\n", r.Description, "\n", r.Message)
 }
 
 func CreateError(code uint, message string) *Error {
