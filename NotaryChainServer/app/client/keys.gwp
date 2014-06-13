@@ -1,0 +1,4 @@
+<h1>Keys</h1>
+<ul>
+	{{range mkrng keyCount}}{{with key .}}<li><div><a href="/keys/{{.ID}}">Key {{.ID}} ({{.Type}}): {{enc64 .Hash}}</a></div></li>{{end}}{{end}}
+</ul>

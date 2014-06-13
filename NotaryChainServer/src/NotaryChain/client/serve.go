@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"strconv"
 	
 	"github.com/hoisie/web"
 	
@@ -17,10 +18,11 @@ func serve_init() {
 	server.Get(`/(?:home)?`, handleHome)
 	server.Get(`/entries/?`, handleEntries)
 	server.Post(`/entries/?`, handleEntriesPost)
-	server.Get(`/entries/(\d+)`, handleEntry)
+	server.Get(`/entries/(\d+)(?:/(\w+))?`, handleEntry)
 	server.Get(`/keys/?`, handleKeys)
+	
 	server.Post(`/keys/?`, handleKeysPost)
-	server.Get(`/keys/(\d+)`, handleKey)
+	server.Get(`/keys/(\d+)(?:/(\w+))?`, handleKey)
 }
 
 func safeWrite(ctx *web.Context, code int, data map[string]interface{}) *restapi.Error {
@@ -52,7 +54,7 @@ func handleEntries(ctx *web.Context) {
 	err := safeWrite(ctx, 200, map[string]interface{} {
 		"Title": "Entries",
 		"ContentTmpl": "entries.gwp",
-		"EntryID": "",
+		"AddEntry": true,
 	})
 	if err != nil {
 		handleError(ctx, err)
@@ -63,15 +65,27 @@ func handleEntriesPost(ctx *web.Context) {
 	handleEntries(ctx)
 }
 
-func handleEntry(ctx *web.Context, id string) {
-	err := safeWrite(ctx, 200, map[string]interface{} {
-		"Title": fmt.Sprint("Entry ", id),
+func handleEntry(ctx *web.Context, id string, action string) {
+	var title string
+	
+	idx, err := strconv.Atoi(id)
+	
+	if err == nil {
+		title = fmt.Sprint("Entry ", idx)
+	} else {
+		title = "Entry not found"
+		idx = -1
+	}
+	
+	r := safeWrite(ctx, 200, map[string]interface{} {
+		"Title": title,
 		"ContentTmpl": "entry.gwp",
-		"ContentWith": "",
-		"EntryID": id,
+		"EntryID": idx,
+		"Edit": action == "edit",
+		"ShowEntries": true,
 	})
-	if err != nil {
-		handleError(ctx, err)
+	if r != nil {
+		handleError(ctx, r)
 	}
 }
 
@@ -79,7 +93,7 @@ func handleKeys(ctx *web.Context) {
 	err := safeWrite(ctx, 200, map[string]interface{} {
 		"Title": "Keys",
 		"ContentTmpl": "keys.gwp",
-		"KeyID": "",
+		"AddKey": true,
 	})
 	if err != nil {
 		handleError(ctx, err)
@@ -90,15 +104,27 @@ func handleKeysPost(ctx *web.Context) {
 	handleKeys(ctx)
 }
 
-func handleKey(ctx *web.Context, id string) {
-	err := safeWrite(ctx, 200, map[string]interface{} {
-		"Title": fmt.Sprint("Key ", id),
+func handleKey(ctx *web.Context, id string, action string) {
+	var title string
+	
+	idx, err := strconv.Atoi(id)
+	
+	if err == nil {
+		title = fmt.Sprint("Key ", idx)
+	} else {
+		title = "Key not found"
+		idx = -1
+	}
+	
+	r := safeWrite(ctx, 200, map[string]interface{} {
+		"Title": title,
 		"ContentTmpl": "key.gwp",
-		"ContentWith": "",
-		"KeyID": id,
+		"EntryID": idx,
+		"Edit": action == "edit",
+		"ShowKeys": true,
 	})
-	if err != nil {
-		handleError(ctx, err)
+	if r != nil {
+		handleError(ctx, r)
 	}
 }
 

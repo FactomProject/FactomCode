@@ -1,0 +1,10 @@
+{{if isValidKeyID .KeyID}}
+	{{with key .KeyID}}
+		<div class="data key">
+			<h2>Key {{.ID}} ({{.Type}})</h2>
+			<p>Hash: {{enc64 .Hash}}</p>
+		</div>
+	{{end}}
+{{else}}
+	Key not found
+{{end}}

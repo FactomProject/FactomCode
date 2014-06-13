@@ -9,26 +9,32 @@ Distributed notary services
     {{end}}
   * {{if eq .Title "Entries"}}
       <div>Entries</div>
-    {{else if .EntryID}}
-      <div>Entry</div>
-      {{if $sel := .EntryID}}
-        <select onselect="false" onchange="window.location='/entries/'+this.item(this.selectedIndex).innerHTML">
-          {{range mkrng entryCount}}<option{{if eq $sel .}} selected="selected"{{end}}>{{.}}</option>{{end}}
-        </select>
-      {{end}}
+    {{else if isNil .EntryID | not}}
+      [Entry](/entries)
     {{else}}
       [Entries](/entries)
     {{end}}
+    {{if .AddEntry}}<a href="/entries/add"><div class="plus">+</div></a>{{end}}
+	{{if .ShowEntries}}
+      {{$sel := .EntryID}}
+	  <select onchange="window.location='/entries/'+this.item(this.selectedIndex).innerHTML">
+	    {{if isValidEntryID .EntryID | not}}<option selected="selected"></option>{{end}}
+	    {{range mkrng entryCount}}<option{{if eq $sel .}} selected="selected"{{end}}>{{.}}</option>{{end}}
+	  </select>
+	{{end}}
   * {{if eq .Title "Keys"}}
       <div>Keys</div>
-    {{else if .KeyID}}
-      <div>Key</div>
-      {{if $sel := .KeyID}}
-        <select onselect="false" onchange="window.location='/keys/'+this.item(this.selectedIndex).innerHTML">
-          {{range mkrng keyCount}}<option{{if eq $sel .}} selected="selected"{{end}}>{{.}}</option>{{end}}
-        </select>
-      {{end}}
+    {{else if isNil .KeyID | not}}
+      [Key](/keys)
     {{else}}
       [Keys](/keys)
+    {{end}}
+    {{if .AddKey}}<a href="/keys/add"><div class="plus">+</div></a>{{end}}
+    {{if .ShowKeys}}
+      {{$sel := .KeyID}}
+      <select onchange="window.location='/keys/'+this.item(this.selectedIndex).innerHTML">
+	    {{if isValidKeyID .KeyID | not}}<option selected="selected"></option>{{end}}
+        {{range mkrng keyCount}}<option{{if eq $sel .}} selected="selected"{{end}}>{{.}}</option>{{end}}
+      </select>
     {{end}}
   * [Help](http://client.notarychains.com/help)

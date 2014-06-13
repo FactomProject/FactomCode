@@ -1,1 +1,38 @@
-{{template "data-entry.gwp" entry .EntryID}}
+{{if isValidEntryID .EntryID}}
+	{{$edit := .Edit}}
+	{{with entry .EntryID}}
+		<form method="post" action="/entries">
+			<input type="hidden" name="id" value="{{.ID}}" />
+			<div class="data entry">
+				<h1>
+					Entry {{.ID}} ({{.Type}})
+					{{if $edit}}
+						<input class="button" type="submit" value="Done" />
+					{{else}}
+						<a class="button" href="/entries/{{.ID}}/edit">Edit</a>
+					{{end}}
+				</h1>
+				<div class="signatures">
+					{{if len .Signatures | gt 0}}
+						<h4>Signed by keys:</h4>
+						<ul>
+							{{range .Signatures}}<li>{{enc64 .}}</li>{{end}}
+						</ul>
+					{{else}}
+						Unsigned
+					{{end}}
+				</div>
+				<div class="data">
+					{{if $edit}}
+						<textarea name="data">{{enc64 .Data}}</textarea>
+					{{else}}
+						<p>{{enc64 .Data}}</p>
+					{{end}}
+				</div>
+				<div class="timestamp">Last edited on {{.TimeStamp}}</div>
+			</div>
+		</form>
+	{{end}}
+{{else}}
+	Entry not found
+{{end}}

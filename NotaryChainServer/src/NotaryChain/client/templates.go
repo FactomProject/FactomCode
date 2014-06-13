@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"reflect"
 	"strconv"
 	"time"
 	
@@ -50,11 +51,17 @@ func buildTemplateTree() (main *template.Template, err error) {
 	funcmap := template.FuncMap{
 		"tmplref": templateRef,
 		"enc64": templateEncode64,
+		"isValidEntryID": templateIsValidEntryId,
 		"entry": templateGetEntry,
+		"isValidKeyID": templateIsValidEntryId,
 		"key": templateGetKey,
 		"entryCount": getEntryCount,
 		"keyCount": getKeyCount,
 		"mkrng": templateMakeRange,
+		"atoi": func(str string) (int, error) { return strconv.Atoi(str) },
+		"itoa": func(num int) string { return strconv.Itoa(num) },
+		"isNil": func(val interface{}) bool { switch val.(type) { case nil: return true }; return false },
+		"len": func(val interface{}) int { return reflect.ValueOf(val).Len() },
 	}
 	
 	main, err = template.New("main").Funcs(funcmap).Parse(`{{template "page.gwp" .}}`)
@@ -98,41 +105,69 @@ func templateEncode64(data []byte) string {
 	return base64.StdEncoding.EncodeToString(data)
 }
 
-func templateGetEntry(id string) (map[string]interface{}, error) {
-	idx, err := strconv.Atoi(id)
-	if err != nil { return nil, err }
+func templateIsValidEntryId(id interface{}) bool {
+	switch id.(type) {
+	case int:
+		num := int(reflect.ValueOf(id).Int())
+		if num < 0 || num >= getEntryCount() {
+			return false
+		}
+		return true
 	
+	default:
+		return false
+	}
+}
+
+func templateGetEntry(idx int) (map[string]interface{}, error) {
 	if idx >= getEntryCount() {
 		return nil, errors.New(fmt.Sprint("Index ", idx, " out of bounds for entry array"))
 	}
 	
 	entry := getEntry(idx)
 	
+	count := len(entry.Signatures)
+	signatures := make([][]byte, count)
+	for i := 0; i < count; i++ {
+		hash, err := notarydata.CreateHash(entry.Signatures[i].Key())
+		if err != nil { return nil, err }
+		signatures[i] = hash.Bytes
+	}
+	
 	return map[string]interface{}{
 		"ID": idx,
-		"Type": "Plain",
-		"SigCount": len(entry.Signatures),
+		"Type": notarydata.EntryTypeName(entry.EntryType),
+		"Signatures": signatures,
 		"TimeStamp": time.Unix(entry.TimeStamp, 0),
 		"Data": entry.StructuredData,
 	}, nil
 }
 
-func templateGetKey(id string) (*notarydata.ECDSAPrivKey, error) {
-	idx, err := strconv.Atoi(id)
-	if err != nil { return nil, err }
-	
+func templateIsValidKeyId(id interface{}) bool {
+	return false
+}
+
+func templateGetKey(idx int) (map[string]interface{}, error) {
 	if idx >= getKeyCount() {
 		return nil, errors.New(fmt.Sprint("Index ", idx, " out of bounds for key array"))
 	}
 	
-	return getKey(idx), nil
+	key := getKey(idx)
+	hash, err := notarydata.CreateHash(key)
+	if err != nil { return nil, err }
+	
+	return map[string]interface{}{
+		"ID": idx,
+		"Type": notarydata.KeyTypeName(key.KeyType()),
+		"Hash": hash.Bytes,
+	}, nil
 }
 
-func templateMakeRange(cnt int) (rng []string) {
-	rng = make([]string, cnt)
+func templateMakeRange(cnt int) (rng []int) {
+	rng = make([]int, cnt)
 	
 	for i := 0; i < cnt; i++ {
-		rng[i] = strconv.Itoa(i)
+		rng[i] = i
 	}
 	
 	return rng

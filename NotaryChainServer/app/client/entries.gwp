@@ -1,0 +1,4 @@
+<h1>Entries</h1>
+<ul>
+	{{range mkrng entryCount}}{{with entry .}}<li><div><a href="/entries/{{.ID}}">Entry {{.ID}} ({{.Type}})</a></div></li>{{end}}{{end}}
+</ul>
