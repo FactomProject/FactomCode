@@ -68,6 +68,7 @@ header ul {
 
 header li {
 	margin: .25em 0;
+	position: relative;
 }
 
 header p {
@@ -87,4 +88,17 @@ header li a {
 header li div {
 	color: hsl(0, 0%, 30%);
 	background: hsl(0, 0%, 80%);
+}
+
+header li select {
+	color: hsl(0, 0%, 30%);
+	background: hsl(0, 0%, 80%);
+	border: none;
+	font-family: inherit;
+	font-size: inherit;
+	height: 1.7em;
+	position: absolute;
+	top: 0;
+	right: -2px;
+	outline: none;
 }

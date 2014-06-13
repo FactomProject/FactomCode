@@ -26,7 +26,7 @@
 	<body>
 		<div class="wrapper">
 			<header>{{template "header.md" .}}</header>
-			<section>{{tmplref .ContentTmpl .}}</section>
+			<section>{{if .ContentWith}}{{tmplref .ContentTmpl .ContentWith}}{{else}}{{tmplref .ContentTmpl .}}{{end}}</section>
 		</div>
 	</body>
 </html>
