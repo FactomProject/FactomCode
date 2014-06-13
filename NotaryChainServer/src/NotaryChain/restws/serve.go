@@ -165,7 +165,7 @@ func findV1InBlock(context string, path []string, block *notaryapi.Block) (inter
 	return findV1InEntries(context + "/" + root, path, block.Entries)
 }
 
-func findV1InEntries(context string, path []string, entries []*notaryapi.PlainEntry) (interface{}, *notaryapi.Error) {
+func findV1InEntries(context string, path []string, entries []notaryapi.Entry) (interface{}, *notaryapi.Error) {
 	if len(path) == 0 {
 		return entries, nil
 	}
