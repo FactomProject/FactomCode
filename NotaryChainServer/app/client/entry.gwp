@@ -1,6 +1,7 @@
 {{if isValidEntryID .EntryID}}
 	{{$edit := .Edit}}
 	{{with entry .EntryID}}
+		{{$edit := len .Signatures | eq 0 | and $edit }}
 		<form method="post" action="/entries">
 			<input type="hidden" name="id" value="{{.ID}}" />
 			<div class="data entry">
@@ -8,7 +9,7 @@
 					Entry {{.ID}} ({{.Type}})
 					{{if $edit}}
 						<input class="button" type="submit" value="Done" />
-					{{else}}
+					{{else if len .Signatures | eq 0}}
 						<a class="button" href="/entries/{{.ID}}/edit">Edit</a>
 					{{end}}
 				</h1>
@@ -16,7 +17,7 @@
 					{{if len .Signatures | gt 0}}
 						<h4>Signed by keys:</h4>
 						<ul>
-							{{range .Signatures}}<li>{{enc64 .}}</li>{{end}}
+							{{range $idx, $hash := .Signatures}}<li>{{enc64 $hash}} <a href="/entities/{{.ID}}/rmsig/{{$idx}}">(delete)</a></li>{{end}}
 						</ul>
 					{{else}}
 						Unsigned

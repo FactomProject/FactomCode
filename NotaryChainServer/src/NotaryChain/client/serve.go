@@ -18,7 +18,7 @@ func serve_init() {
 	server.Get(`/(?:home)?`, handleHome)
 	server.Get(`/entries/?`, handleEntries)
 	server.Post(`/entries/?`, handleEntriesPost)
-	server.Get(`/entries/(\d+)(?:/(\w+))?`, handleEntry)
+	server.Get(`/entries/(\d+)(?:/(\w+)(?:/(\d+))?)?`, handleEntry)
 	server.Get(`/keys/?`, handleKeys)
 	
 	server.Post(`/keys/?`, handleKeysPost)
@@ -65,20 +65,24 @@ func handleEntriesPost(ctx *web.Context) {
 	handleEntries(ctx)
 }
 
-func handleEntry(ctx *web.Context, id string, action string) {
-	var title string
-	
+func handleEntry(ctx *web.Context, id string, action string, aid string) {
 	idx, err := strconv.Atoi(id)
+	if err != nil  { idx = -1 }
 	
-	if err == nil {
-		title = fmt.Sprint("Entry ", idx)
-	} else {
-		title = "Entry not found"
-		idx = -1
+	aidx, _ := strconv.Atoi(aid)
+	
+	if action == "rmsig" && templateIsValidEntryId(id) {
+		entry := getEntry(idx)
+		if 0 <= aidx && aidx < len(entry.Signatures) {
+			unsignEntry(idx, aidx)
+			ctx.Header().Add("Location", fmt.Sprint("/entries/", idx))
+			ctx.WriteHeader(303)
+			return
+		}
 	}
 	
 	r := safeWrite(ctx, 200, map[string]interface{} {
-		"Title": title,
+		"Title": fmt.Sprint("Entry ", idx),
 		"ContentTmpl": "entry.gwp",
 		"EntryID": idx,
 		"Edit": action == "edit",

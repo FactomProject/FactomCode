@@ -37,3 +37,19 @@ func getKeyCount() int {
 func getKey(id int) *notarydata.ECDSAPrivKey {
 	return keys[id]
 }
+
+func unsignEntry(eid, sid int) notarydata.Signature {
+	if eid < 0 || sid < 0 || eid >= getEntryCount() {
+		return nil
+	}
+	
+	entry := getEntry(eid)
+	
+	if sid >= len(entry.Signatures) {
+		return nil
+	}
+	
+	sig := entry.Signatures[sid]
+	entry.Signatures = append(entry.Signatures[:sid], entry.Signatures[sid+1:]...)
+	return sig
+}

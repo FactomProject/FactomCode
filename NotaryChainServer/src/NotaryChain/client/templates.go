@@ -109,10 +109,14 @@ func templateIsValidEntryId(id interface{}) bool {
 	switch id.(type) {
 	case int:
 		num := int(reflect.ValueOf(id).Int())
-		if num < 0 || num >= getEntryCount() {
-			return false
-		}
+		if num < 0 || num >= getEntryCount() { return false }
 		return true
+		
+	case string:
+		str := reflect.ValueOf(id).String()
+		num, err := strconv.Atoi(str)
+		if err != nil { return false }
+		return templateIsValidEntryId(num)
 	
 	default:
 		return false
@@ -144,7 +148,21 @@ func templateGetEntry(idx int) (map[string]interface{}, error) {
 }
 
 func templateIsValidKeyId(id interface{}) bool {
-	return false
+	switch id.(type) {
+	case int:
+		num := int(reflect.ValueOf(id).Int())
+		if num < 0 || num >= getKeyCount() { return false }
+		return true
+		
+	case string:
+		str := reflect.ValueOf(id).String()
+		num, err := strconv.Atoi(str)
+		if err != nil { return false }
+		return templateIsValidKeyId(num)
+	
+	default:
+		return false
+	}
 }
 
 func templateGetKey(idx int) (map[string]interface{}, error) {
