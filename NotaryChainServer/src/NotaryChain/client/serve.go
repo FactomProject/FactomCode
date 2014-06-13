@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strconv"
 	
+	"encoding/base64"
+	
 	"github.com/hoisie/web"
 	
 	"NotaryChain/notaryapi"
@@ -15,14 +17,15 @@ var server = web.NewServer()
 func serve_init() {
 	server.Config.StaticDir = fmt.Sprint(*appDir, "/static")
 	
+	server.Get(`/failed`, handleFailed)
 	server.Get(`/(?:home)?`, handleHome)
 	server.Get(`/entries/?`, handleEntries)
-	server.Post(`/entries/?`, handleEntriesPost)
+	server.Get(`/entries/add`, handleAddEntry)
 	server.Get(`/entries/(\d+)(?:/(\w+)(?:/(\d+))?)?`, handleEntry)
 	server.Get(`/keys/?`, handleKeys)
-	
-	server.Post(`/keys/?`, handleKeysPost)
 	server.Get(`/keys/(\d+)(?:/(\w+))?`, handleKey)
+	
+	server.Post(`/entries/?`, handleEntriesPost)
 }
 
 func safeWrite(ctx *web.Context, code int, data map[string]interface{}) *notaryapi.Error {
@@ -61,8 +64,8 @@ func handleEntries(ctx *web.Context) {
 	}
 }
 
-func handleEntriesPost(ctx *web.Context) {
-	handleEntries(ctx)
+func handleAddEntry(ctx *web.Context) {
+	
 }
 
 func handleEntry(ctx *web.Context, id string, action string, aid string) {
@@ -103,10 +106,6 @@ func handleKeys(ctx *web.Context) {
 	}
 }
 
-func handleKeysPost(ctx *web.Context) {
-	handleKeys(ctx)
-}
-
 func handleKey(ctx *web.Context, id string, action string) {
 	var title string
 	
@@ -131,6 +130,42 @@ func handleKey(ctx *web.Context, id string, action string) {
 	}
 }
 
+func handleEntriesPost(ctx *web.Context) {
+	var abortMessage, abortReturn string
+	
+	defer func() {
+		if abortMessage != "" && abortReturn != "" {
+			ctx.Header().Add("Location", fmt.Sprint("/failed?message=", abortMessage, "&return=", abortReturn))
+			ctx.WriteHeader(303)
+		}
+	}()
+	
+	switch ctx.Params["action"] {
+	case "editDataEntry":
+		id := ctx.Params["id"]
+		idx, err := strconv.Atoi(id)
+		if err != nil {
+			abortMessage = fmt.Sprint("Failed to edit data entry data: error parsing id: ", err.Error())
+			abortReturn = fmt.Sprint("/entries")
+			return
+		}
+		if !templateIsValidEntryId(idx) {
+			abortMessage = fmt.Sprint("Failed to edit data entry data: bad id: ", id)
+			abortReturn = fmt.Sprint("/entries")
+			return
+		}
+		
+		entry := getEntry(idx)
+		data, err := base64.StdEncoding.DecodeString(ctx.Params["data"])
+		if err != nil {
+			abortMessage = fmt.Sprint("Failed to edit data entry data: error parsing data: ", err.Error())
+			abortReturn = fmt.Sprint("/entries/", id)
+			return
+		}
+		
+		entry.UpdateData(data)
+	}
+}
 
 func handleError(ctx *web.Context, err *notaryapi.Error) {
 	data, r := notaryapi.Marshal(err, "json")
@@ -143,22 +178,21 @@ func handleError(ctx *web.Context, err *notaryapi.Error) {
 		"ContentTmpl": "error.gwp",
 	})
 	if err != nil {
-		handleFail(ctx, err)
+		str := fmt.Sprintf(`<!DOCTYPE html>
+	<html>
+		<head>
+			<title>Server Failure</title>
+		</head>
+		<body>
+			Something is seriously broken.
+			<pre>%s</pre>
+		</body>
+	</html>`, err.Error())
+		
+		ctx.WriteHeader(500)
+		ctx.Write([]byte(str))
 	}
 }
 
-func handleFail(ctx *web.Context, err error) {
-	str := fmt.Sprintf(`<!DOCTYPE html>
-<html>
-	<head>
-		<title>Server Failure</title>
-	</head>
-	<body>
-		Something is seriously broken.
-		<pre>%s</pre>
-	</body>
-</html>`, err.Error())
-	
-	ctx.WriteHeader(500)
-	ctx.Write([]byte(str))
+func handleFailed(ctx *web.Context) {
 }
