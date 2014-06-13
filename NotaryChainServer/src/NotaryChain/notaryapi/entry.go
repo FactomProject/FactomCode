@@ -16,7 +16,8 @@ const (
 
 type Entry interface {
 	BinaryMarshallable
-	EntryType() int8
+	Type() int8
+	TypeName() string
 	Data() []byte
 	TimeStamp() int64
 	StampTime()
@@ -75,8 +76,12 @@ func makeBasicEntry() basicEntry {
 	return e
 }
 
-func (e *basicEntry) EntryType() int8 {
+func (e *basicEntry) Type() int8 {
 	return BadEntryType
+}
+
+func (e *basicEntry) TypeName() string {
+	return EntryTypeName(e.Type())
 }
 
 func (e *basicEntry) Data() []byte {
@@ -94,7 +99,7 @@ func (e *basicEntry) StampTime() {
 func (e *basicEntry) MarshalBinary() ([]byte, error) {
 	var buf bytes.Buffer
 	
-	buf.Write([]byte{byte(e.EntryType())})
+	buf.Write([]byte{byte(e.Type())})
 	
 	data := e.Data()
 	count := uint64(len(data))
