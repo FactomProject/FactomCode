@@ -18,12 +18,11 @@ import (
 	
 	"github.com/firelizzard18/dynrsrc"
 	
-	"NotaryChain/notarydata"
-	"NotaryChain/restapi"
+	"NotaryChain/notaryapi"
 )
 
 var portNumber *int = flag.Int("p", 8083, "Set the port to listen on")
-var blocks []*notarydata.Block
+var blocks []*notaryapi.Block
 var blockMutex = &sync.Mutex{}
 var tickers [2]*time.Ticker
 
@@ -37,7 +36,7 @@ func readError(err error) {
 
 func init() {
 	dynrsrc.Start(watchError, readError)
-	restapi.StartDynamic(readError)
+	notaryapi.StartDynamic(readError)
 	
 	source, err := ioutil.ReadFile("app/rest/store.json")
 	if err != nil { panic(err) }
@@ -50,7 +49,7 @@ func init() {
 			panic(errors.New("BlockID does not equal index"))
 		}
 	}
-	notarydata.UpdateNextBlockID(uint64(len(blocks)))
+	notaryapi.UpdateNextBlockID(uint64(len(blocks)))
 	
 	tickers[0] = time.NewTicker(time.Minute * 5)
 	tickers[1] = time.NewTicker(time.Hour)
@@ -102,7 +101,7 @@ func save() {
 func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 	var resource interface{}
 	var data []byte
-	var err *restapi.Error
+	var err *notaryapi.Error
 	
 	path, method, accept, form, err := parse(r)
 	
@@ -122,9 +121,9 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	
 		if err != nil {
-			var r *restapi.Error
+			var r *notaryapi.Error
 			
-			data, r = restapi.Marshal(err, accept)
+			data, r = notaryapi.Marshal(err, accept)
 			if r != nil {
 				err = r
 			}
@@ -141,14 +140,14 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 		
 	case "POST":
 		if len(path) != 1 {
-			err = restapi.CreateError(restapi.ErrorBadMethod, `POST can only be used in the root context: /v1`)
+			err = notaryapi.CreateError(notaryapi.ErrorBadMethod, `POST can only be used in the root context: /v1`)
 			return
 		}
 		
 		resource, err = post("/" + strings.Join(path, "/"), form)
 		
 	default:
-		err = restapi.CreateError(restapi.ErrorBadMethod, fmt.Sprintf(`The HTTP %s method is not supported`, method))
+		err = notaryapi.CreateError(notaryapi.ErrorBadMethod, fmt.Sprintf(`The HTTP %s method is not supported`, method))
 		return
 	}
 	
@@ -156,34 +155,34 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 		resource = err
 	}
 	
-	data, err = restapi.Marshal(resource, accept)
+	data, err = notaryapi.Marshal(resource, accept)
 }
 
-var blockPtrType = reflect.TypeOf((*notarydata.Block)(nil)).Elem()
+var blockPtrType = reflect.TypeOf((*notaryapi.Block)(nil)).Elem()
 
-func post(context string, form url.Values) (interface{}, *restapi.Error) {
-	newEntry := new(notarydata.PlainEntry)
+func post(context string, form url.Values) (interface{}, *notaryapi.Error) {
+	newEntry := new(notaryapi.PlainEntry)
 	format, data := form.Get("format"), form.Get("data")
 	
 	switch format {
 	case "", "json":
 		err := json.Unmarshal([]byte(data), newEntry)
 		if err != nil {
-			return nil, restapi.CreateError(restapi.ErrorJSONUnmarshal, err.Error())
+			return nil, notaryapi.CreateError(notaryapi.ErrorJSONUnmarshal, err.Error())
 		}
 		
 	case "xml":
 		err := xml.Unmarshal([]byte(data), newEntry)
 		if err != nil {
-			return nil, restapi.CreateError(restapi.ErrorXMLUnmarshal, err.Error())
+			return nil, notaryapi.CreateError(notaryapi.ErrorXMLUnmarshal, err.Error())
 		}
 	
 	default:
-		return nil, restapi.CreateError(restapi.ErrorUnsupportedUnmarshal, fmt.Sprintf(`The format "%s" is not supported`, format))
+		return nil, notaryapi.CreateError(notaryapi.ErrorUnsupportedUnmarshal, fmt.Sprintf(`The format "%s" is not supported`, format))
 	}
 	
 	if newEntry == nil {
-		return nil, restapi.CreateError(restapi.ErrorInternal, `Entity to be POSTed is nil`)
+		return nil, notaryapi.CreateError(notaryapi.ErrorInternal, `Entity to be POSTed is nil`)
 	}
 	
 	newEntry.TimeStamp = time.Now().Unix()
@@ -193,7 +192,7 @@ func post(context string, form url.Values) (interface{}, *restapi.Error) {
 	blockMutex.Unlock()
 	
 	if err != nil {
-		return nil, restapi.CreateError(restapi.ErrorInternal, fmt.Sprintf(`Error while adding Entity to Block: %s`, err.Error()))
+		return nil, notaryapi.CreateError(notaryapi.ErrorInternal, fmt.Sprintf(`Error while adding Entity to Block: %s`, err.Error()))
 	}
 	
 	return newEntry, nil
