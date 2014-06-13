@@ -245,6 +245,10 @@ func (e *DataEntry) Data() []byte {
 	return e.data
 }
 
+func (e *DataEntry) UpdateData(data []byte) {
+	e.data = data
+}
+
 func (e *DataEntry) UnmarshalBinary(data []byte) error {
 	err := e.basicSignedEntry.UnmarshalBinary(data)
 	if err != nil { return err }
