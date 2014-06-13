@@ -20,6 +20,7 @@ type Entry interface {
 	TypeName() string
 	Data() []byte
 	TimeStamp() int64
+	RealTime() time.Time
 	StampTime()
 }
 
@@ -90,6 +91,10 @@ func (e *basicEntry) Data() []byte {
 
 func (e *basicEntry) TimeStamp() int64 {
 	return e.timeStamp
+}
+
+func (e *basicEntry) RealTime() time.Time {
+	return time.Unix(e.TimeStamp(), 0)
 }
 
 func (e *basicEntry) StampTime() {
