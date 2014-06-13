@@ -10,6 +10,7 @@ import (
 type Signature interface {
 	Key
 	HashMethod() string
+	Key() Key
 }
 
 func UnmarshalBinarySignature(data []byte) (s Signature, err error) {
@@ -32,6 +33,10 @@ type ECDSASignature struct {
 
 func (s *ECDSASignature) HashMethod() string {
 	return "SHA256"
+}
+
+func (s *ECDSASignature) Key() Key {
+	return &s.ECDSAPubKey
 }
 
 func (s *ECDSASignature) MarshalBinary() (data []byte, err error) {
