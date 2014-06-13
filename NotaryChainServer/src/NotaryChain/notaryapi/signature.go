@@ -1,4 +1,4 @@
-package notarydata
+package notaryapi
 
 import (
 	"bytes"
@@ -19,7 +19,7 @@ func UnmarshalBinarySignature(data []byte) (s Signature, err error) {
 		s = new(ECDSASignature)
 		
 	default:
-		return nil, errors.New("Bad key type")
+		return nil, errors.New("Bad signature type")
 	}
 	
 	err = s.UnmarshalBinary(data)

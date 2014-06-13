@@ -1,4 +1,4 @@
-package notarydata
+package notaryapi
 
 import (
 	"bytes"

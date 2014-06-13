@@ -1,4 +1,4 @@
-package notarydata
+package notaryapi
 
 import (
 	"bytes"
@@ -12,7 +12,7 @@ var nextBlockID uint64 = 0
 type Block struct {
 	BlockID			uint64			`json:"blockID"`
 	PreviousHash	*Hash			`json:"previousHash"`
-	Entries			[]*PlainEntry	`json:"entries"`
+	Entries			[]Entry			`json:"entries"`
 	Salt			*Hash			`json:"salt"`
 }
 
@@ -56,7 +56,7 @@ func (b *Block) MarshalledSize() uint64 {
 	return 0
 }
 
-func (b *Block) UnmarshalBinary(data []byte) error {
+func (b *Block) UnmarshalBinary(data []byte) (err error) {
 	b.BlockID, data = binary.BigEndian.Uint64(data[0:4]), data[4:]
 	
 	b.PreviousHash = new(Hash)
@@ -64,11 +64,11 @@ func (b *Block) UnmarshalBinary(data []byte) error {
 	data = data[b.PreviousHash.MarshalledSize():]
 	
 	count, data := binary.BigEndian.Uint64(data[0:4]), data[4:]
-	b.Entries = make([]*PlainEntry, 0, count)
+	b.Entries = make([]Entry, count)
 	for i := uint64(0); i < count; i = i + 1 {
-		b.Entries[0] = new(PlainEntry)
-		b.Entries[0].UnmarshalBinary(data)
-		data = data[b.Entries[0].MarshalledSize():]
+		b.Entries[i], err = UnmarshalBinaryEntry(data)
+		if err != nil { return }
+		data = data[b.Entries[i].MarshalledSize():]
 	}
 	
 	b.Salt = new(Hash)
@@ -90,7 +90,7 @@ func CreateBlock(prev *Block, capacity uint) (b *Block, err error) {
 	b.BlockID = nextBlockID
 	nextBlockID++
 	
-	b.Entries = make([]*PlainEntry, 0, capacity)
+	b.Entries = make([]Entry, 0, capacity)
 	
 	b.Salt = EmptyHash()
 	
@@ -101,7 +101,7 @@ func CreateBlock(prev *Block, capacity uint) (b *Block, err error) {
 	return b, err
 }
 
-func (b *Block) AddEntry(e *PlainEntry) (err error) {
+func (b *Block) AddEntry(e Entry) (err error) {
 	h, err := CreateHash(e)
 	if err != nil { return }
 	
