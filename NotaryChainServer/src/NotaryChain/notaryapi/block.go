@@ -5,19 +5,57 @@ import (
 	"errors"
 	
 	"encoding/binary"
+	
+	"github.com/firelizzard18/gocoding"
 )
 
 var nextBlockID uint64 = 0
 
 type Block struct {
-	BlockID			uint64			`json:"blockID"`
-	PreviousHash	*Hash			`json:"previousHash"`
-	Entries			[]Entry			`json:"entries"`
-	Salt			*Hash			`json:"salt"`
+	BlockID uint64
+	PreviousHash *Hash
+	Entries []Entry
+	Salt *Hash
 }
 
 func UpdateNextBlockID(id uint64) {
 	nextBlockID = id
+}
+
+func CreateBlock(prev *Block, capacity uint) (b *Block, err error) {
+	if prev == nil && nextBlockID != 0 {
+		return nil, errors.New("Previous block cannot be nil")
+	} else if prev != nil && nextBlockID == 0 {
+		return nil, errors.New("Origin block cannot have a parent block")
+	}
+	
+	b = new(Block)
+	
+	b.BlockID = nextBlockID
+	nextBlockID++
+	
+	b.Entries = make([]Entry, 0, capacity)
+	
+	b.Salt = EmptyHash()
+	
+	if prev != nil {
+		b.PreviousHash, err = CreateHash(prev)
+	}
+	
+	return b, err
+}
+
+func (b *Block) AddEntry(e Entry) (err error) {
+	h, err := CreateHash(e)
+	if err != nil { return }
+	
+	s, err := CreateHash(b.Salt, h)
+	if err != nil { return }
+	
+	b.Entries = append(b.Entries, e)
+	b.Salt = s
+	
+	return
 }
 
 func (b *Block) MarshalBinary() (data []byte, err error) {
@@ -78,38 +116,11 @@ func (b *Block) UnmarshalBinary(data []byte) (err error) {
 	return nil
 }
 
-func CreateBlock(prev *Block, capacity uint) (b *Block, err error) {
-	if prev == nil && nextBlockID != 0 {
-		return nil, errors.New("Previous block cannot be nil")
-	} else if prev != nil && nextBlockID == 0 {
-		return nil, errors.New("Origin block cannot have a parent block")
+func (b *Block) MarshallableFields() []gocoding.Field {
+	return []gocoding.Field{
+		gocoding.MakeField("blockID", b.BlockID, nil),
+		gocoding.MakeField("previousHash", b.PreviousHash, nil),
+		gocoding.MakeField("entries", b.Entries, nil),
+		gocoding.MakeField("salt", b.Salt, nil), 
 	}
-	
-	b = new(Block)
-	
-	b.BlockID = nextBlockID
-	nextBlockID++
-	
-	b.Entries = make([]Entry, 0, capacity)
-	
-	b.Salt = EmptyHash()
-	
-	if prev != nil {
-		b.PreviousHash, err = CreateHash(prev)
-	}
-	
-	return b, err
-}
-
-func (b *Block) AddEntry(e Entry) (err error) {
-	h, err := CreateHash(e)
-	if err != nil { return }
-	
-	s, err := CreateHash(b.Salt, h)
-	if err != nil { return }
-	
-	b.Entries = append(b.Entries, e)
-	b.Salt = s
-	
-	return
 }

@@ -6,7 +6,10 @@ import (
 	"io"
 	"time"
 	
+	"encoding/base64"
 	"encoding/binary"
+	
+	"github.com/firelizzard18/gocoding"
 )
 
 const (
@@ -15,11 +18,12 @@ const (
 )
 
 type Entry interface {
-	BinaryMarshallable
 	Type() int8
-	TypeName() string
 	Data() []byte
 	TimeStamp() int64
+	
+	BinaryMarshallable
+	TypeName() string
 	RealTime() time.Time
 	StampTime()
 }
@@ -27,6 +31,7 @@ type Entry interface {
 type SignedEntry interface {
 	Entry
 	Signatures() []Signature
+	
 	Sign(rand io.Reader, k PrivateKey) error
 	Verify(k PublicKey, s int) bool
 	Unsign(s int) bool
@@ -137,6 +142,12 @@ func (e *basicEntry) UnmarshalBinary(data []byte) (err error) {
 	return nil
 }
 
+func (e *basicEntry) MarshallableFields() []gocoding.Field {
+	return []gocoding.Field{
+		gocoding.MakeField("type", e.TypeName, nil),
+		gocoding.MakeField("timeStamp", e.RealTime, nil), 
+	}
+}
 /* ----- ----- ----- ----- ----- */
 
 type basicSignedEntry struct {
@@ -224,6 +235,11 @@ func (e *basicSignedEntry) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
+func (e *basicSignedEntry) MarshallableFields() []gocoding.Field {
+	return append(e.basicEntry.MarshallableFields(),
+		gocoding.MakeField("signatures", e.Signatures, nil))
+}
+
 /* ----- ----- ----- ----- ----- */
 
 type DataEntry struct {
@@ -245,6 +261,10 @@ func (e *DataEntry) Data() []byte {
 	return e.data
 }
 
+func (e *DataEntry) DataBase64() string {
+	return base64.StdEncoding.EncodeToString(e.Data())
+}
+
 func (e *DataEntry) UpdateData(data []byte) {
 	e.data = data
 }
@@ -257,4 +277,9 @@ func (e *DataEntry) UnmarshalBinary(data []byte) error {
 	e.data, data = data[:count], data[count:] // let someone else parse the data
 	
 	return nil
+}
+
+func (e *DataEntry) MarshallableFields() []gocoding.Field {
+	return append(e.basicSignedEntry.MarshallableFields(),
+		gocoding.MakeField("data", e.DataBase64, nil))
 }
