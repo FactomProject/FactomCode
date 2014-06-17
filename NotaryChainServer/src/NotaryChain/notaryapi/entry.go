@@ -144,7 +144,7 @@ func (e *basicEntry) UnmarshalBinary(data []byte) (err error) {
 
 func (e *basicEntry) MarshallableFields() []gocoding.Field {
 	return []gocoding.Field{
-		gocoding.MakeField("type", e.TypeName, nil),
+		gocoding.MakeField("type", func () string { return e.TypeName() }, nil),
 		gocoding.MakeField("timeStamp", e.RealTime, nil), 
 	}
 }
