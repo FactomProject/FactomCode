@@ -1,13 +1,14 @@
 package notaryapi
 
 import (
-	"bytes"
-	"errors"
+	//"bytes"
+	//"errors"
 	"io"
+	"reflect"
 	"time"
 	
 	"encoding/base64"
-	"encoding/binary"
+	//"encoding/binary"
 	
 	"github.com/firelizzard18/gocoding"
 )
@@ -22,9 +23,7 @@ type Entry interface {
 	Data() []byte
 	TimeStamp() int64
 	
-	BinaryMarshallable
-	TypeName() string
-	RealTime() time.Time
+	//BinaryMarshallable
 	StampTime()
 }
 
@@ -57,7 +56,7 @@ func EntryTypeCode(entryType string) int8 {
 	}
 }
 
-func UnmarshalBinaryEntry(data []byte) (e Entry, err error) {
+/*func UnmarshalBinaryEntry(data []byte) (e Entry, err error) {
 	switch int(data[0]) {
 	case DataEntryType:
 		e = new(DataEntry)
@@ -68,7 +67,7 @@ func UnmarshalBinaryEntry(data []byte) (e Entry, err error) {
 	
 	err = e.UnmarshalBinary(data)
 	return
-}
+}*/
 
 /* ----- ----- ----- ----- ----- */
 
@@ -82,31 +81,16 @@ func makeBasicEntry() basicEntry {
 	return e
 }
 
-func (e *basicEntry) Type() int8 {
-	return BadEntryType
-}
-
-func (e *basicEntry) TypeName() string {
-	return EntryTypeName(e.Type())
-}
-
-func (e *basicEntry) Data() []byte {
-	return []byte{}
-}
 
 func (e *basicEntry) TimeStamp() int64 {
 	return e.timeStamp
-}
-
-func (e *basicEntry) RealTime() time.Time {
-	return time.Unix(e.TimeStamp(), 0)
 }
 
 func (e *basicEntry) StampTime() {
 	e.timeStamp = time.Now().Unix()
 }
 
-func (e *basicEntry) MarshalBinary() ([]byte, error) {
+/*func (e *basicEntry) MarshalBinary() ([]byte, error) {
 	var buf bytes.Buffer
 	
 	buf.Write([]byte{byte(e.Type())})
@@ -142,12 +126,12 @@ func (e *basicEntry) UnmarshalBinary(data []byte) (err error) {
 	return nil
 }
 
-func (e *basicEntry) MarshallableFields() []gocoding.Field {
+/*func (e *basicEntry) MarshallableFields() []gocoding.Field {
 	return []gocoding.Field{
 		gocoding.MakeField("type", func () string { return e.TypeName() }, nil),
 		gocoding.MakeField("timeStamp", e.RealTime, nil), 
 	}
-}
+}*/
 /* ----- ----- ----- ----- ----- */
 
 type basicSignedEntry struct {
@@ -189,7 +173,7 @@ func (e *basicSignedEntry) Unsign(s int) bool {
 	return true
 }
 
-func (e *basicSignedEntry) MarshalBinary() ([]byte, error) {
+/*func (e *basicSignedEntry) MarshalBinary() ([]byte, error) {
 	var buf bytes.Buffer
 	
 	data, err := e.basicEntry.MarshalBinary()
@@ -235,10 +219,10 @@ func (e *basicSignedEntry) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
-func (e *basicSignedEntry) MarshallableFields() []gocoding.Field {
+/*func (e *basicSignedEntry) MarshallableFields() []gocoding.Field {
 	return append(e.basicEntry.MarshallableFields(),
 		gocoding.MakeField("signatures", e.Signatures, nil))
-}
+}*/
 
 /* ----- ----- ----- ----- ----- */
 
@@ -252,7 +236,7 @@ func MakeDataEntry() DataEntry {
 	return e
 }
 
-func (e *DataEntry) EntryType() int8 {
+func (e *DataEntry) Type() int8 {
 	return DataEntryType
 }
 
@@ -269,7 +253,7 @@ func (e *DataEntry) UpdateData(data []byte) {
 	e.data = data
 }
 
-func (e *DataEntry) UnmarshalBinary(data []byte) error {
+/*func (e *DataEntry) UnmarshalBinary(data []byte) error {
 	err := e.basicSignedEntry.UnmarshalBinary(data)
 	if err != nil { return err }
 	
@@ -277,9 +261,18 @@ func (e *DataEntry) UnmarshalBinary(data []byte) error {
 	e.data, data = data[:count], data[count:] // let someone else parse the data
 	
 	return nil
-}
+}*/
 
-func (e *DataEntry) MarshallableFields() []gocoding.Field {
-	return append(e.basicSignedEntry.MarshallableFields(),
-		gocoding.MakeField("data", e.DataBase64, nil))
+func (e *DataEntry) Encoding(marshaller gocoding.Marshaller, theType reflect.Type) gocoding.Encoder {
+	return func(scratch [64]byte, renderer gocoding.Renderer, value reflect.Value) {
+		e := value.Interface().(*DataEntry)
+		
+		renderer.StartStruct()
+		
+		renderer.StartElement(`Type`)
+		marshaller.MarshalObject(EntryTypeName(e.Type()))
+		renderer.StopElement(`Type`)
+		
+		renderer.StopStruct()
+	}
 }

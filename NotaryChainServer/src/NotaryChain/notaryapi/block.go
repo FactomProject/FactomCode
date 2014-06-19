@@ -6,7 +6,7 @@ import (
 	
 	"encoding/binary"
 	
-	"github.com/firelizzard18/gocoding"
+	//"github.com/firelizzard18/gocoding"
 )
 
 var nextBlockID uint64 = 0
@@ -116,11 +116,11 @@ func (b *Block) UnmarshalBinary(data []byte) (err error) {
 	return nil
 }
 
-func (b *Block) MarshallableFields() []gocoding.Field {
+/*func (b *Block) MarshallableFields() []gocoding.Field {
 	return []gocoding.Field{
 		gocoding.MakeField("blockID", b.BlockID, nil),
 		gocoding.MakeField("previousHash", b.PreviousHash, nil),
 		gocoding.MakeField("entries", b.Entries, nil),
 		gocoding.MakeField("salt", b.Salt, nil), 
 	}
-}
+}*/

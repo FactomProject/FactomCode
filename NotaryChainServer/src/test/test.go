@@ -1,7 +1,7 @@
 package main 
 
 import (
-	"fmt"
+	"os"
 	
 	"crypto/ecdsa"
 	"crypto/elliptic"
@@ -9,7 +9,7 @@ import (
 	
 	"NotaryChain/notaryapi"
 	
-	"github.com/firelizzard18/gocoding"
+	"github.com/firelizzard18/gocoding/json"
 )
 
 func main() {
@@ -27,12 +27,8 @@ func main() {
 	
 	block.AddEntry(&entry)
 	
-	data, err := gocoding.Marshal(/*func (v interface{}) ([]byte, error) {
-		return json.MarshalIndent(v, "\t", "")
-	}, */block)
-	if err != nil { panic(err) }
+	marshaller := json.NewMarshaller(os.Stdout)
 	
-	fmt.Println(string(data))
-	fmt.Println(block.Entries[0])
+	err = marshaller.Marshal(block)
+	if err != nil { panic(err) }
 }
-
