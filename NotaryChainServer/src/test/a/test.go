@@ -1,15 +1,14 @@
 package main 
 
 import (
-	"os"
+	"fmt"
 	
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"io/ioutil"
 	
 	"NotaryChain/notaryapi"
-	
-	"github.com/firelizzard18/gocoding/json"
 )
 
 func main() {
@@ -33,8 +32,11 @@ func main() {
 	
 	blocks[1].AddEntry(entry)
 	
-	marshaller := json.NewMarshaller(os.Stdout)
-	
-	err = marshaller.Marshal(blocks)
-	if err != nil { panic(err) }
+	for i, block := range blocks {
+		data, err := block.MarshalBinary()
+		if err != nil { panic(err) }
+		
+		err = ioutil.WriteFile(fmt.Sprintf(`app/rest/store.%d.block`, i), data, 0777)
+		if err != nil { panic(err) }
+	}
 }
