@@ -1,6 +1,7 @@
 package main 
 
 import (
+	"bytes"
 	"errors"
 	"flag"
 	"fmt"
@@ -15,6 +16,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"path/filepath"
 	
 	"github.com/firelizzard18/dynrsrc"
 	
@@ -34,15 +36,42 @@ func readError(err error) {
 	fmt.Println("error: ", err)
 }
 
-func init() {
-	dynrsrc.Start(watchError, readError)
-	notaryapi.StartDynamic(readError)
-	
+func initWithJSON() {
 	source, err := ioutil.ReadFile("app/rest/store.json")
 	if err != nil { panic(err) }
 	
 	err = json.Unmarshal(source, &blocks)
 	if err != nil { panic(err) }
+}
+
+func initWithBinary() {
+	matches, err := filepath.Glob("app/rest/store.*.block")
+	if err != nil { panic(err) }
+	
+	blocks = make([]*notaryapi.Block, len(matches))
+	
+	for _, match := range matches {
+		num, err := strconv.Atoi(match[15:len(match)-6])
+		if err != nil { panic(err) }
+		
+		data, err := ioutil.ReadFile(match)
+		if err != nil { panic(err) }
+		
+		block := new(notaryapi.Block)
+		err = block.UnmarshalBinary(data)
+		if err != nil { panic(err) }
+		
+		blocks[num] = block
+	}
+}
+
+func init() {
+	dynrsrc.Start(watchError, readError)
+	notaryapi.StartDynamic(readError)
+	
+	initWithBinary()
+	
+	fmt.Println("Loaded", len(blocks), "blocks")
 	
 	for i := 0; i < len(blocks); i = i + 1 {
 		if uint64(i) != blocks[i].BlockID {
@@ -89,6 +118,10 @@ func notarize() {
 }
 
 func save() {
+	
+}
+
+func saveJSON() {
 	blockMutex.Lock()
 	data, err := json.Marshal(blocks)
 	blockMutex.Unlock()
@@ -98,10 +131,20 @@ func save() {
 	if err != nil { panic(err) }
 }
 
+func saveBinary() {
+	for i, block := range blocks {
+		data, err := block.MarshalBinary()
+		if err != nil { panic(err) }
+		
+		err = ioutil.WriteFile(fmt.Sprintf(`app/rest/store.%d.block`, i), data, 0777)
+		if err != nil { panic(err) }
+	}
+}
+
 func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 	var resource interface{}
-	var data []byte
 	var err *notaryapi.Error
+	var buf bytes.Buffer
 	
 	path, method, accept, form, err := parse(r)
 	
@@ -123,14 +166,15 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			var r *notaryapi.Error
 			
-			data, r = notaryapi.Marshal(err, accept)
+			buf.Reset()
+			r = notaryapi.Marshal(err, accept, &buf)
 			if r != nil {
 				err = r
 			}
 			w.WriteHeader(err.HTTPCode)
 		}
 		
-		w.Write(data)
+		buf.WriteTo(w)
 		w.Write([]byte("\n\n"))
 	}()
 	
@@ -155,7 +199,7 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 		resource = err
 	}
 	
-	data, err = notaryapi.Marshal(resource, accept)
+	err = notaryapi.Marshal(resource, accept, &buf)
 }
 
 var blockPtrType = reflect.TypeOf((*notaryapi.Block)(nil)).Elem()

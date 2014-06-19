@@ -168,13 +168,15 @@ func handleEntriesPost(ctx *web.Context) {
 }
 
 func handleError(ctx *web.Context, err *notaryapi.Error) {
-	data, r := notaryapi.Marshal(err, "json")
+	var buf bytes.Buffer
+	
+	r := notaryapi.Marshal(err, "json", &buf)
 	if r != nil { err = r }
 	
 	err = safeWrite(ctx, err.HTTPCode, map[string]interface{} {
 		"Title": "Error",
 		"HTTPCode": err.HTTPCode,
-		"Content": string(data),
+		"Content": buf.String(),
 		"ContentTmpl": "error.gwp",
 	})
 	if err != nil {

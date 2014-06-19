@@ -24,9 +24,8 @@ func main() {
 	err = blocks[1].UnmarshalBinary(data)
 	if err != nil { panic(err) }
 	
-	marshaller := json.NewMarshaller(os.Stdout)
+	marshaller := json.NewIndentedMarshaller(os.Stdout, "", "\t")
 	
 	err = marshaller.Marshal(blocks)
 	if err != nil { panic(err) }
 }
-

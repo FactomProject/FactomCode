@@ -9,15 +9,13 @@ import (
 	
 	"encoding/base64"
 	"encoding/binary"
-	
-	"github.com/firelizzard18/gocoding"
 )
 
 type EntryData interface {
 	Type() uint32
 	Version() uint32
 	Data() []byte
-	DataEncoding(gocoding.Marshaller, reflect.Type) gocoding.Encoder
+	EncodableFields() map[string]reflect.Value
 	UnmarshalBinary([]byte) error
 }
 
@@ -106,34 +104,19 @@ func (e *Entry) Unsign(s int) bool {
 	return true
 }
 
-func (e *Entry) Encoding(marshaller gocoding.Marshaller, theType reflect.Type) gocoding.Encoder {
-	dataEncoder := e.DataEncoding(marshaller, theType)
-	
-	return func(scratch [64]byte, renderer gocoding.Renderer, value reflect.Value) {
-		e := value.Interface().(*Entry)
-		
-		renderer.StartStruct()
-		
-		renderer.StartElement(`Type`)
-		marshaller.MarshalObject(e.Type())
-		renderer.StopElement(`Type`)
-		
-		renderer.StartElement(`Version`)
-		marshaller.MarshalObject(e.Version())
-		renderer.StopElement(`Version`)
-		
-		renderer.StartElement(`TimeStamp`)
-		marshaller.MarshalObject(e.TimeStamp())
-		renderer.StopElement(`TimeStamp`)
-		
-		dataEncoder(scratch, renderer, reflect.ValueOf(e.EntryData))
-		
-		renderer.StartElement(`Signatures`)
-		marshaller.MarshalObject(e.Signatures())
-		renderer.StopElement(`Signatures`)
-		
-		renderer.StopStruct()
+func (e *Entry) EncodableFields() map[string]reflect.Value {
+	fields := map[string]reflect.Value{
+		`Type`: reflect.ValueOf(e.Type()),
+		`Version`: reflect.ValueOf(e.Version()),
+		`TimeStamp`: reflect.ValueOf(e.TimeStamp()),
+		`Signatures`: reflect.ValueOf(e.Signatures()),
 	}
+	
+	for name, value := range e.EntryData.EncodableFields() {
+		fields[name] = value
+	}
+	
+	return fields
 }
 
 func (e *Entry) MarshalBinary() ([]byte, error) {
@@ -224,14 +207,8 @@ func (e *PlainData) Data() []byte {
 	return e.data
 }
 
-func (e *PlainData) DataEncoding(marshaller gocoding.Marshaller, theType reflect.Type) gocoding.Encoder {
-	return func(scratch [64]byte, renderer gocoding.Renderer, value reflect.Value) {
-		e := value.Interface().(*PlainData)
-		
-		renderer.StartElement(`Data`)
-		marshaller.MarshalObject(e.Data())
-		renderer.StopElement(`Data`)
-	}
+func (e *PlainData) EncodableFields() map[string]reflect.Value {
+	return map[string]reflect.Value{`Data`: reflect.ValueOf(e.Data())}
 }
 
 func (e *PlainData) UnmarshalBinary(data []byte) (err error) {
