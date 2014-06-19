@@ -43,3 +43,19 @@ func bigIntUnmarshalBinary(data []byte) (retd []byte, i *big.Int, err error) {
 	return
 }
 
+type simpleData struct {
+	data []byte
+}
+
+func (d *simpleData) MarshalBinary() ([]byte, error) {
+	return d.data, nil
+}
+
+func (d *simpleData) MarshalledSize() uint64 {
+	return uint64(len(d.data))
+}
+
+func (d *simpleData) UnmarshalBinary([]byte) error {
+	return errors.New("simpleData cannot be unmarshalled")
+}
+

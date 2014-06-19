@@ -161,7 +161,7 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 var blockPtrType = reflect.TypeOf((*notaryapi.Block)(nil)).Elem()
 
 func post(context string, form url.Values) (interface{}, *notaryapi.Error) {
-	newEntry := new(notaryapi.DataEntry)
+	newEntry := notaryapi.NewDataEntry([]byte{})
 	format, data := form.Get("format"), form.Get("data")
 	
 	switch format {

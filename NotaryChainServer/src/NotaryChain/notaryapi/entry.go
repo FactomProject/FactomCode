@@ -4,156 +4,79 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"reflect"
 	"time"
 	
+	"encoding/base64"
 	"encoding/binary"
+	
+	"github.com/firelizzard18/gocoding"
 )
+
+type EntryData interface {
+	Type() uint32
+	Version() uint32
+	Data() []byte
+	DataEncoding(gocoding.Marshaller, reflect.Type) gocoding.Encoder
+	UnmarshalBinary([]byte) error
+}
 
 const (
-	BadEntryType	= -1
-	DataEntryType	=  0
+	EmptyDataType = 0
+	PlainDataType = 1
 )
 
-type Entry interface {
-	BinaryMarshallable
-	Type() int8
-	TypeName() string
-	Data() []byte
-	TimeStamp() int64
-	RealTime() time.Time
-	StampTime()
-}
-
-type SignedEntry interface {
-	Entry
-	Signatures() []Signature
-	Sign(rand io.Reader, k PrivateKey) error
-	Verify(k PublicKey, s int) bool
-	Unsign(s int) bool
-}
-
-func EntryTypeName(entryType int8) string {
-	switch entryType {
-	case DataEntryType:
-		return "Data"
-		
-	default:
-		return "Unknown"
-	}
-}
-
-func EntryTypeCode(entryType string) int8 {
-	switch entryType {
-	case "Data":
-		return DataEntryType
-		
-	default:
-		return BadEntryType
-	}
-}
-
-func UnmarshalBinaryEntry(data []byte) (e Entry, err error) {
-	switch int(data[0]) {
-	case DataEntryType:
-		e = new(DataEntry)
-		
-	default:
-		return nil, errors.New("Bad entry type")
-	}
+func newEntryDataOfType(dataType uint32, version uint32) EntryData {
+	switch {
+	case dataType == PlainDataType && version == 0:
+		return new(PlainData)
 	
-	err = e.UnmarshalBinary(data)
-	return
+	default:
+		return nil
+	}
 }
 
 /* ----- ----- ----- ----- ----- */
 
-type basicEntry struct {
-	timeStamp int64
+type Entry struct {
+	EntryData
+	unixTime int64
+	signatures []Signature
+	
+	BinaryMarshallable
 }
 
-func makeBasicEntry() basicEntry {
-	e := basicEntry{}
+func NewEntry(data EntryData) *Entry {
+	e := &Entry{EntryData: data}
 	e.StampTime()
 	return e
 }
 
-func (e *basicEntry) Type() int8 {
-	return BadEntryType
+func (e *Entry) TimeStamp() int64 {
+	return e.unixTime
 }
 
-func (e *basicEntry) TypeName() string {
-	return EntryTypeName(e.Type())
+func (e *Entry) StampTime() {
+	e.unixTime = time.Now().Unix()
 }
 
-func (e *basicEntry) Data() []byte {
-	return []byte{}
+func (e *PlainData) DataBase64() string {
+	return base64.StdEncoding.EncodeToString(e.Data())
 }
 
-func (e *basicEntry) TimeStamp() int64 {
-	return e.timeStamp
-}
-
-func (e *basicEntry) RealTime() time.Time {
-	return time.Unix(e.TimeStamp(), 0)
-}
-
-func (e *basicEntry) StampTime() {
-	e.timeStamp = time.Now().Unix()
-}
-
-func (e *basicEntry) MarshalBinary() ([]byte, error) {
-	var buf bytes.Buffer
-	
-	buf.Write([]byte{byte(e.Type())})
-	
-	data := e.Data()
-	count := uint64(len(data))
-	binary.Write(&buf, binary.BigEndian, count)
-	buf.Write(data)
-	
-	binary.Write(&buf, binary.BigEndian, e.TimeStamp())
-	
-	return buf.Bytes(), nil
-}
-
-func (e *basicEntry) MarshalledSize() uint64 {
-	var size uint64 = 0
-	
-	size += 1 // EntryType() int8
-	size += 4 // len(Data()) uint64
-	size += uint64(len(e.Data()))
-	size += 4 // TimeStamp int64
-	
-	return size
-}
-
-func (e *basicEntry) UnmarshalBinary(data []byte) (err error) {
-	data = data[1:] // don't care about type
-	count, data := binary.BigEndian.Uint64(data[:4]), data[4:]
-	data = data[count:] // let someone else parse the data
-	
-	e.timeStamp = int64(binary.BigEndian.Uint64(data[:4]))
-	
-	return nil
-}
-
-/* ----- ----- ----- ----- ----- */
-
-type basicSignedEntry struct {
-	basicEntry
-	signatures []Signature
-}
-
-func makeBasicSignedEntry() basicSignedEntry {
-	e := basicSignedEntry{makeBasicEntry(), []Signature{}}
-	return e
-}
-
-func (e *basicSignedEntry) Signatures() []Signature {
+func (e *Entry) Signatures() []Signature {
 	return e.signatures
 }
 
-func (e *basicSignedEntry) Sign(rand io.Reader, k PrivateKey) error {
+func (e *Entry) IsSigned() bool {
+	if e.signatures == nil {
+		return false
+	}
+	
+	return len(e.signatures) > 0
+}
+
+func (e *Entry) Sign(rand io.Reader, k PrivateKey) error {
 	s, err := k.Sign(rand, e.Data())
 	if err != nil { return err }
 	
@@ -161,34 +84,73 @@ func (e *basicSignedEntry) Sign(rand io.Reader, k PrivateKey) error {
 	return nil
 }
 
-func (e *basicSignedEntry) Verify(k PublicKey, s int) bool {
-	if s < 0 || s >= len(e.signatures) {
+func (e *Entry) Verify(k PublicKey, s int) bool {
+	if e.signatures == nil || s < 0 || s >= len(e.signatures) {
 		return false
 	}
 	
 	return k.Verify(e.Data(), e.signatures[s])
 }
 
-func (e *basicSignedEntry) Unsign(s int) bool {
+func (e *Entry) Unsign(s int) bool {
 	if s < 0 || s >= len(e.signatures) {
 		return false
 	}
 	
 	e.signatures = append(e.signatures[:s], e.signatures[s+1:]...)
+	
+	if len(e.signatures) == 0 {
+		e.signatures = nil
+	}
+	
 	return true
 }
 
-func (e *basicSignedEntry) MarshalBinary() ([]byte, error) {
+func (e *Entry) Encoding(marshaller gocoding.Marshaller, theType reflect.Type) gocoding.Encoder {
+	dataEncoder := e.DataEncoding(marshaller, theType)
+	
+	return func(scratch [64]byte, renderer gocoding.Renderer, value reflect.Value) {
+		e := value.Interface().(*Entry)
+		
+		renderer.StartStruct()
+		
+		renderer.StartElement(`Type`)
+		marshaller.MarshalObject(e.Type())
+		renderer.StopElement(`Type`)
+		
+		renderer.StartElement(`Version`)
+		marshaller.MarshalObject(e.Version())
+		renderer.StopElement(`Version`)
+		
+		renderer.StartElement(`TimeStamp`)
+		marshaller.MarshalObject(e.TimeStamp())
+		renderer.StopElement(`TimeStamp`)
+		
+		dataEncoder(scratch, renderer, reflect.ValueOf(e.EntryData))
+		
+		renderer.StartElement(`Signatures`)
+		marshaller.MarshalObject(e.Signatures())
+		renderer.StopElement(`Signatures`)
+		
+		renderer.StopStruct()
+	}
+}
+
+func (e *Entry) MarshalBinary() ([]byte, error) {
 	var buf bytes.Buffer
 	
-	data, err := e.basicEntry.MarshalBinary()
-	if err != nil { return nil, err }
+	binary.Write(&buf, binary.BigEndian, e.Type())
+	binary.Write(&buf, binary.BigEndian, e.Version())
+	binary.Write(&buf, binary.BigEndian, e.TimeStamp())
+	
+	data := e.Data()
+	binary.Write(&buf, binary.BigEndian, uint64(len(data)))
 	buf.Write(data)
 	
 	count := uint64(len(e.signatures))
 	binary.Write(&buf, binary.BigEndian, count)
 	for _, sig := range e.Signatures() {
-		data, err = sig.MarshalBinary()
+		data, err := sig.MarshalBinary()
 		if err != nil { return nil, err }
 		buf.Write(data)
 	}
@@ -196,26 +158,38 @@ func (e *basicSignedEntry) MarshalBinary() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (e *basicSignedEntry) MarshalledSize() uint64 {
+func (e *Entry) MarshalledSize() uint64 {
 	var size uint64 = 0
 	
-	size += e.basicEntry.MarshalledSize()
-	size += 4 // len(Signatures()) uint64
-	for _, sig := range e.Signatures() {
-		size += sig.MarshalledSize()
-	}
+	size += 4 // Type() uint32
+	size += 4 // Version() uint32
+	size += 8 // TimeStamp() int64
+	size += 8 // len(Data()) uint64
+	size += uint64(len(e.Data()))
+	size += 8 // len(Signatures()) uint64
+	for _, sig := range e.Signatures() { size += sig.MarshalledSize() }
 	
 	return size
 }
 
-func (e *basicSignedEntry) UnmarshalBinary(data []byte) error {
-	err := e.basicEntry.UnmarshalBinary(data)
-	if err != nil { return err }
-	data = data[e.basicEntry.MarshalledSize():]
+func (e *Entry) UnmarshalBinary(data []byte) (err error) {
+	dataType,	data := binary.BigEndian.Uint32(data[:4]), data[4:]
+	version,	data := binary.BigEndian.Uint32(data[:4]), data[4:]
+	timeStamp,	data := binary.BigEndian.Uint64(data[:8]), data[8:]
+	dataCount,	data := binary.BigEndian.Uint64(data[:8]), data[8:]
+	entryData,	data := data[:dataCount], data[dataCount:]
+	sigCount,	data := binary.BigEndian.Uint64(data[:8]), data[8:]
 	
-	count, data := binary.BigEndian.Uint64(data[:4]), data[4:]
-	e.signatures = make([]Signature, count)
-	for i := uint64(0); i < count; i++ {
+	e.EntryData = newEntryDataOfType(dataType, version)
+	if e.EntryData == nil { return errors.New("Bad entry data type") }
+	
+	e.unixTime = int64(timeStamp)
+	
+	err = e.EntryData.UnmarshalBinary(entryData)
+	if err != nil { return }
+	
+	e.signatures = make([]Signature, sigCount)
+	for i := uint64(0); i < sigCount; i++ {
 		e.signatures[i], err = UnmarshalBinarySignature(data)
 		if err != nil { return err }
 		data = data[e.signatures[i].MarshalledSize():]
@@ -226,35 +200,37 @@ func (e *basicSignedEntry) UnmarshalBinary(data []byte) error {
 
 /* ----- ----- ----- ----- ----- */
 
-type DataEntry struct {
-	basicSignedEntry
+type PlainData struct {
 	data []byte
 }
 
-func MakeDataEntry() DataEntry {
-	e := DataEntry{makeBasicSignedEntry(), []byte{}}
-	return e
+func NewDataEntry(data []byte) *Entry {
+	return NewEntry(&PlainData{data})
 }
 
-func (e *DataEntry) EntryType() int8 {
-	return DataEntryType
+func (e *PlainData) Type() uint32 {
+	return PlainDataType
 }
 
+func (e *PlainData) Version() uint32 {
+	return 0
+}
 
-func (e *DataEntry) Data() []byte {
+func (e *PlainData) Data() []byte {
 	return e.data
 }
 
-func (e *DataEntry) UpdateData(data []byte) {
-	e.data = data
+func (e *PlainData) DataEncoding(marshaller gocoding.Marshaller, theType reflect.Type) gocoding.Encoder {
+	return func(scratch [64]byte, renderer gocoding.Renderer, value reflect.Value) {
+		e := value.Interface().(*PlainData)
+		
+		renderer.StartElement(`Data`)
+		marshaller.MarshalObject(e.Data())
+		renderer.StopElement(`Data`)
+	}
 }
 
-func (e *DataEntry) UnmarshalBinary(data []byte) error {
-	err := e.basicSignedEntry.UnmarshalBinary(data)
-	if err != nil { return err }
-	
-	count, data := binary.BigEndian.Uint64(data[:4]), data[4:]
-	e.data, data = data[:count], data[count:] // let someone else parse the data
-	
+func (e *PlainData) UnmarshalBinary(data []byte) (err error) {
+	e.data = data
 	return nil
 }

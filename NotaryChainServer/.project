@@ -3,6 +3,7 @@
 	<name>NotaryChainServer</name>
 	<comment></comment>
 	<projects>
+		<project>dev</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
