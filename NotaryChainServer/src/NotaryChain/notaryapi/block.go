@@ -38,7 +38,9 @@ func CreateBlock(prev *Block, capacity uint) (b *Block, err error) {
 	
 	b.Salt = EmptyHash()
 	
-	if prev != nil {
+	if prev == nil {
+		b.PreviousHash = EmptyHash()
+	} else {
 		b.PreviousHash, err = CreateHash(prev)
 	}
 	

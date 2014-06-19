@@ -13,7 +13,14 @@ import (
 )
 
 func main() {
-	block, err := notaryapi.CreateBlock(nil, 1)
+	var err error
+	
+	blocks := make([]*notaryapi.Block, 2)
+	
+	blocks[0], err = notaryapi.CreateBlock(nil, 0)
+	if err != nil { panic(err) }
+	
+	blocks[1], err = notaryapi.CreateBlock(blocks[0], 1)
 	if err != nil { panic(err) }
 	
 	entry := notaryapi.NewDataEntry([]byte{0x10,0x11,0x12,0x13})
@@ -24,10 +31,10 @@ func main() {
 	
 	entry.Sign(rand.Reader, key)
 	
-	block.AddEntry(entry)
+	blocks[1].AddEntry(entry)
 	
 	marshaller := json.NewMarshaller(os.Stdout)
 	
-	err = marshaller.Marshal(block)
+	err = marshaller.Marshal(blocks)
 	if err != nil { panic(err) }
 }
