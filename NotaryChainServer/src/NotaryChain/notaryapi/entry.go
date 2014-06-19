@@ -147,7 +147,7 @@ func (e *Entry) MarshalBinary() ([]byte, error) {
 	binary.Write(&buf, binary.BigEndian, uint64(len(data)))
 	buf.Write(data)
 	
-	count := uint64(len(e.signatures))
+	count := uint64(len(e.Signatures()))
 	binary.Write(&buf, binary.BigEndian, count)
 	for _, sig := range e.Signatures() {
 		data, err := sig.MarshalBinary()

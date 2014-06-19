@@ -8,6 +8,8 @@ import (
 	
 	"crypto/sha256"
 	"crypto/ecdsa"
+	"crypto/elliptic"
+	"encoding/binary"
 	
 	"github.com/firelizzard18/gocoding"
 )
@@ -139,6 +141,8 @@ func (k *ECDSAPubKey) MarshalBinary() (data []byte, err error) {
 	if err != nil { return }
 	buf.Write(data)
 	
+	binary.Write(&buf, binary.BigEndian, int64(p.BitSize))
+	
 	data, err = bigIntMarshalBinary(k.Key.X)
 	if err != nil { return }
 	buf.Write(data)
@@ -161,6 +165,7 @@ func (k *ECDSAPubKey) MarshalledSize() uint64 {
 	size += bigIntMarshalledSize(p.B)
 	size += bigIntMarshalledSize(p.Gx)
 	size += bigIntMarshalledSize(p.Gy)
+	size += 8 // p.BitSize int64
 	
 	size += bigIntMarshalledSize(k.Key.X)
 	size += bigIntMarshalledSize(k.Key.Y)
@@ -170,6 +175,9 @@ func (k *ECDSAPubKey) MarshalledSize() uint64 {
 
 func (k *ECDSAPubKey) UnmarshalBinary(data []byte) (err error) {
 	data = data[1:]
+	
+	k.Key = new(ecdsa.PublicKey)
+	k.Key.Curve = new(elliptic.CurveParams)
 	
 	p := k.Key.Params()
 	
@@ -187,6 +195,8 @@ func (k *ECDSAPubKey) UnmarshalBinary(data []byte) (err error) {
 	
 	data, p.Gy, err = bigIntUnmarshalBinary(data)
 	if err != nil { return }
+	
+	p.BitSize, data = int(binary.BigEndian.Uint64(data[:8])), data[8:]
 	
 	data, k.Key.X, err = bigIntUnmarshalBinary(data)
 	if err != nil { return }
@@ -262,13 +272,13 @@ func (k *ECDSAPrivKey) MarshalledSize() uint64 {
 }
 
 func (k *ECDSAPrivKey) UnmarshalBinary(data []byte) (err error) {
-	data = data[1:]
-	
 	pub := new(ECDSAPubKey)
 	err = pub.UnmarshalBinary(data)
 	if err != nil { return }
 	
 	data = data[pub.MarshalledSize():]
+	
+	k.Key = new(ecdsa.PrivateKey)
 	
 	k.Key.PublicKey = *pub.Key
 	
