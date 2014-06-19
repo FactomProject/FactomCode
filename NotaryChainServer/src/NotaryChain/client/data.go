@@ -7,7 +7,7 @@ import (
 	"NotaryChain/notaryapi"
 )
 
-var entries []*notaryapi.DataEntry
+var entries []*notaryapi.Entry
 var keys []*notaryapi.ECDSAPrivKey
 
 func init() {
@@ -19,14 +19,14 @@ func init() {
 	err = json.Unmarshal(source, &blocks)
 	if err != nil { panic(err) }
 	 
-	entries = []*notaryapi.DataEntry{blocks[1].Entries[0].(*notaryapi.DataEntry)}
+	entries = blocks[1].Entries
 }
 
 func getEntryCount() int {
 	return len(entries)
 }
 
-func getEntry(id int) *notaryapi.DataEntry {
+func getEntry(id int) *notaryapi.Entry {
 	return entries[id]
 }
 

@@ -139,9 +139,9 @@ func templateGetEntry(idx int) (map[string]interface{}, error) {
 	
 	return map[string]interface{}{
 		"ID": idx,
-		"Type": entry.TypeName(),
+		"Type": entry.Type(),
 		"Signatures": signatures,
-		"TimeStamp": entry.RealTime(),
+		"TimeStamp": entry.TimeStamp(),
 		"Data": entry.Data(),
 	}, nil
 }

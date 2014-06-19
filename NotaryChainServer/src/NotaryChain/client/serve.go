@@ -163,7 +163,7 @@ func handleEntriesPost(ctx *web.Context) {
 			return
 		}
 		
-		entry.UpdateData(data)
+		entry.EntryData = notaryapi.NewPlainData(data)
 	}
 }
 

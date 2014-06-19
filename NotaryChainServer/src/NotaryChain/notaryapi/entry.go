@@ -204,8 +204,12 @@ type PlainData struct {
 	data []byte
 }
 
+func NewPlainData(data []byte) *PlainData {
+	return &PlainData{data}
+}
+
 func NewDataEntry(data []byte) *Entry {
-	return NewEntry(&PlainData{data})
+	return NewEntry(NewPlainData(data))
 }
 
 func (e *PlainData) Type() uint32 {
