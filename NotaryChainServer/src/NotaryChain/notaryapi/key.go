@@ -4,9 +4,12 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"reflect"
 	
 	"crypto/sha256"
 	"crypto/ecdsa"
+	
+	"github.com/firelizzard18/gocoding"
 )
 
 const (
@@ -192,6 +195,28 @@ func (k *ECDSAPubKey) UnmarshalBinary(data []byte) (err error) {
 	return
 }
 
+func (e *ECDSAPubKey) Encoding(marshaller gocoding.Marshaller, theType reflect.Type) gocoding.Encoder {
+	return func(scratch [64]byte, renderer gocoding.Renderer, value reflect.Value) {
+		e := value.Interface().(*ECDSAPubKey)
+		
+		renderer.StartStruct()
+		
+		renderer.StartElement(`X`)
+		marshaller.MarshalObject(e.Key.X)
+		renderer.StopElement(`X`)
+		
+		renderer.StartElement(`Y`)
+		marshaller.MarshalObject(e.Key.Y)
+		renderer.StopElement(`Y`)
+		
+		renderer.StartElement(`Curve`)
+		marshaller.MarshalObject(e.Key.Params())
+		renderer.StopElement(`Curve`)
+		
+		renderer.StopStruct()
+	}
+}
+
 type ECDSAPrivKey struct {
 	Key *ecdsa.PrivateKey
 }
@@ -249,4 +274,30 @@ func (k *ECDSAPrivKey) UnmarshalBinary(data []byte) (err error) {
 	
 	data, k.Key.D, err = bigIntUnmarshalBinary(data)
 	return
+}
+
+func (e *ECDSAPrivKey) Encoding(marshaller gocoding.Marshaller, theType reflect.Type) gocoding.Encoder {
+	return func(scratch [64]byte, renderer gocoding.Renderer, value reflect.Value) {
+		e := value.Interface().(*ECDSAPrivKey)
+		
+		renderer.StartStruct()
+		
+		renderer.StartElement(`X`)
+		marshaller.MarshalObject(e.Key.X)
+		renderer.StopElement(`X`)
+		
+		renderer.StartElement(`Y`)
+		marshaller.MarshalObject(e.Key.Y)
+		renderer.StopElement(`Y`)
+		
+		renderer.StartElement(`D`)
+		marshaller.MarshalObject(e.Key.D)
+		renderer.StopElement(`D`)
+		
+		renderer.StartElement(`Curve`)
+		marshaller.MarshalObject(e.Key.Params())
+		renderer.StopElement(`Curve`)
+		
+		renderer.StopStruct()
+	}
 }

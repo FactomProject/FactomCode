@@ -14,7 +14,7 @@ var nextBlockID uint64 = 0
 type Block struct {
 	BlockID uint64
 	PreviousHash *Hash
-	Entries []Entry
+	Entries []*Entry
 	Salt *Hash
 }
 
@@ -34,7 +34,7 @@ func CreateBlock(prev *Block, capacity uint) (b *Block, err error) {
 	b.BlockID = nextBlockID
 	nextBlockID++
 	
-	b.Entries = make([]Entry, 0, capacity)
+	b.Entries = make([]*Entry, 0, capacity)
 	
 	b.Salt = EmptyHash()
 	
@@ -45,7 +45,7 @@ func CreateBlock(prev *Block, capacity uint) (b *Block, err error) {
 	return b, err
 }
 
-func (b *Block) AddEntry(e Entry) (err error) {
+func (b *Block) AddEntry(e *Entry) (err error) {
 	h, err := CreateHash(e)
 	if err != nil { return }
 	
@@ -95,16 +95,17 @@ func (b *Block) MarshalledSize() uint64 {
 }
 
 func (b *Block) UnmarshalBinary(data []byte) (err error) {
-	b.BlockID, data = binary.BigEndian.Uint64(data[0:4]), data[4:]
+	b.BlockID, data = binary.BigEndian.Uint64(data[0:8]), data[8:]
 	
 	b.PreviousHash = new(Hash)
 	b.PreviousHash.UnmarshalBinary(data)
 	data = data[b.PreviousHash.MarshalledSize():]
 	
-	count, data := binary.BigEndian.Uint64(data[0:4]), data[4:]
-	b.Entries = make([]Entry, count)
+	count, data := binary.BigEndian.Uint64(data[0:8]), data[8:]
+	b.Entries = make([]*Entry, count)
 	for i := uint64(0); i < count; i = i + 1 {
-		b.Entries[i], err = UnmarshalBinaryEntry(data)
+		b.Entries[i] = new(Entry)
+		err = b.Entries[i].UnmarshalBinary(data)
 		if err != nil { return }
 		data = data[b.Entries[i].MarshalledSize():]
 	}
