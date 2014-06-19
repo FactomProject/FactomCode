@@ -1,10 +1,13 @@
-package notarydata
+package notaryapi
 
 import (
 	"bytes"
 	"errors"
+	"reflect"
 	
 	"math/big"
+	
+	"github.com/firelizzard18/gocoding"
 )
 
 type Signature interface {
@@ -19,7 +22,7 @@ func UnmarshalBinarySignature(data []byte) (s Signature, err error) {
 		s = new(ECDSASignature)
 		
 	default:
-		return nil, errors.New("Bad key type")
+		return nil, errors.New("Bad signature type")
 	}
 	
 	err = s.UnmarshalBinary(data)
@@ -76,4 +79,30 @@ func (s *ECDSASignature) UnmarshalBinary(data []byte) (err error) {
 	
 	data, s.S, err = bigIntUnmarshalBinary(data)
 	return
+}
+
+func (e *ECDSASignature) Encoding(marshaller gocoding.Marshaller, theType reflect.Type) gocoding.Encoder {
+	return func(scratch [64]byte, renderer gocoding.Renderer, value reflect.Value) {
+		e := value.Interface().(*ECDSASignature)
+		
+		renderer.StartStruct()
+		
+		renderer.StartElement(`Key`)
+		marshaller.MarshalObject(&e.ECDSAPubKey)
+		renderer.StopElement(`Key`)
+		
+		renderer.StartElement(`HashMethod`)
+		marshaller.MarshalObject(e.HashMethod())
+		renderer.StopElement(`HashMethod`)
+		
+		renderer.StartElement(`R`)
+		marshaller.MarshalObject(e.R)
+		renderer.StopElement(`R`)
+		
+		renderer.StartElement(`S`)
+		marshaller.MarshalObject(e.S)
+		renderer.StopElement(`S`)
+		
+		renderer.StopStruct()
+	}
 }

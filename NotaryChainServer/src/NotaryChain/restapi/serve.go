@@ -4,13 +4,12 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	"NotaryChain/notarydata"
-	"NotaryChain/restapi"
+	"NotaryChain/notaryapi"
 	"strconv"
 	"fmt"
 )
 
-func parse(r *http.Request) (path []string, method string, accept string, form url.Values, err *restapi.Error) {
+func parse(r *http.Request) (path []string, method string, accept string, form url.Values, err *notaryapi.Error) {
 	url := strings.TrimSpace(r.URL.Path)
 	path = strings.Split(url, "/")
 	
@@ -54,7 +53,7 @@ a:	for _, accept = range r.Header["Accept"] {
 	
 	e := r.ParseForm()
 	if e != nil {
-		err = restapi.CreateError(restapi.ErrorBadPOSTData, e.Error())
+		err = notaryapi.CreateError(notaryapi.ErrorBadPOSTData, e.Error())
 		return
 	}
 	
@@ -63,7 +62,7 @@ a:	for _, accept = range r.Header["Accept"] {
 	return
 }
 
-func parseAccept(accept string, ext []string) (string, *restapi.Error) {
+func parseAccept(accept string, ext []string) (string, *notaryapi.Error) {
 	switch accept {
 	case "text/plain":
 		if len(ext) == 1 && ext[0] != "txt" {
@@ -81,18 +80,18 @@ func parseAccept(accept string, ext []string) (string, *restapi.Error) {
 		return "html", nil
 	}
 	
-	return "", restapi.CreateError(restapi.ErrorNotAcceptable, fmt.Sprintf("The specified resource cannot be returned as %s", accept))
+	return "", notaryapi.CreateError(notaryapi.ErrorNotAcceptable, fmt.Sprintf("The specified resource cannot be returned as %s", accept))
 }
 
-func find(path []string) (interface{}, *restapi.Error) {
+func find(path []string) (interface{}, *notaryapi.Error) {
 	if len(path) == 0 {
-		return nil, restapi.CreateError(restapi.ErrorMissingVersionSpec, "")
+		return nil, notaryapi.CreateError(notaryapi.ErrorMissingVersionSpec, "")
 	}
 	
 	ver, path := path[0], path[1:] // capture version spec
 	
 	if !strings.HasPrefix(ver, "v") {
-		return nil, restapi.CreateError(restapi.ErrorMalformedVersionSpec, fmt.Sprintf(`The version specifier "%s" is malformed`, ver))
+		return nil, notaryapi.CreateError(notaryapi.ErrorMalformedVersionSpec, fmt.Sprintf(`The version specifier "%s" is malformed`, ver))
 	}
 	
 	ver = strings.TrimPrefix(ver, "v")
@@ -101,24 +100,24 @@ func find(path []string) (interface{}, *restapi.Error) {
 		return findV1("/v1", path)
 	}
 	
-	return nil, restapi.CreateError(restapi.ErrorBadVersionSpec, fmt.Sprintf(`The version specifier "v%s" does not refer to a supported version`, ver))
+	return nil, notaryapi.CreateError(notaryapi.ErrorBadVersionSpec, fmt.Sprintf(`The version specifier "v%s" does not refer to a supported version`, ver))
 }
 
-func findV1(context string, path []string) (interface{}, *restapi.Error) {
+func findV1(context string, path []string) (interface{}, *notaryapi.Error) {
 	if len(path) == 0 {
-		return nil, restapi.CreateError(restapi.ErrorEmptyRequest, "")
+		return nil, notaryapi.CreateError(notaryapi.ErrorEmptyRequest, "")
 	}
 	
 	root, path := path[0], path[1:] // capture root spec
 	
 	if strings.ToLower(root) != "blocks" {
-		return nil, restapi.CreateError(restapi.ErrorBadElementSpec, fmt.Sprintf(`The element specifier "%s" is not valid in the context "%s"`, root, context))
+		return nil, notaryapi.CreateError(notaryapi.ErrorBadElementSpec, fmt.Sprintf(`The element specifier "%s" is not valid in the context "%s"`, root, context))
 	}
 	
 	return findV1InBlocks(context + "/" + root, path, blocks)
 }
 
-func findV1InBlocks(context string, path []string, blocks []*notarydata.Block) (interface{}, *restapi.Error) {
+func findV1InBlocks(context string, path []string, blocks []*notaryapi.Block) (interface{}, *notaryapi.Error) {
 	if len(path) == 0 {
 		return blocks, nil
 	}
@@ -130,29 +129,29 @@ func findV1InBlocks(context string, path []string, blocks []*notarydata.Block) (
 	path = path[1:]
 	
 	if err != nil {
-		return nil, restapi.CreateError(restapi.ErrorBadIdentifier, fmt.Sprintf(`The identifier "%s" is malformed: %s`, sid, err.Error()))
+		return nil, notaryapi.CreateError(notaryapi.ErrorBadIdentifier, fmt.Sprintf(`The identifier "%s" is malformed: %s`, sid, err.Error()))
 	}
 	
 	if len(blocks) == 0 {
-		return nil, restapi.CreateError(restapi.ErrorBlockNotFound, fmt.Sprintf(`The no blocks can be found in the context "%s"`, sid, context))
+		return nil, notaryapi.CreateError(notaryapi.ErrorBlockNotFound, fmt.Sprintf(`The no blocks can be found in the context "%s"`, sid, context))
 	}
 	
 	idOffset := blocks[0].BlockID
 	
 	if id < idOffset {
-		return nil, restapi.CreateError(restapi.ErrorBlockNotFound, fmt.Sprintf(`The block identified by "%s" cannot be found in the context "%s"`, sid, context))
+		return nil, notaryapi.CreateError(notaryapi.ErrorBlockNotFound, fmt.Sprintf(`The block identified by "%s" cannot be found in the context "%s"`, sid, context))
 	}
 	
 	id = id - idOffset
 	
 	if len(blocks) <= int(id) {
-		return nil, restapi.CreateError(restapi.ErrorBlockNotFound, fmt.Sprintf(`The block identified by "%s" cannot be found in the context "%s"`, sid, context))
+		return nil, notaryapi.CreateError(notaryapi.ErrorBlockNotFound, fmt.Sprintf(`The block identified by "%s" cannot be found in the context "%s"`, sid, context))
 	}
 	
 	return findV1InBlock(context + "/" + sid, path, blocks[id])
 }
 
-func findV1InBlock(context string, path []string, block *notarydata.Block) (interface{}, *restapi.Error) {
+func findV1InBlock(context string, path []string, block *notaryapi.Block) (interface{}, *notaryapi.Error) {
 	if len(path) == 0 {
 		return block, nil
 	}
@@ -166,7 +165,7 @@ func findV1InBlock(context string, path []string, block *notarydata.Block) (inte
 	return findV1InEntries(context + "/" + root, path, block.Entries)
 }
 
-func findV1InEntries(context string, path []string, entries []*notarydata.PlainEntry) (interface{}, *restapi.Error) {
+func findV1InEntries(context string, path []string, entries []*notaryapi.Entry) (interface{}, *notaryapi.Error) {
 	if len(path) == 0 {
 		return entries, nil
 	}
@@ -177,11 +176,11 @@ func findV1InEntries(context string, path []string, entries []*notarydata.PlainE
 	path = path[1:]
 	
 	if err != nil {
-		return nil, restapi.CreateError(restapi.ErrorBadIdentifier, fmt.Sprintf(`The identifier "%s" is malformed%s`, sid, err.Error()))
+		return nil, notaryapi.CreateError(notaryapi.ErrorBadIdentifier, fmt.Sprintf(`The identifier "%s" is malformed%s`, sid, err.Error()))
 	}
 	
 	if len(entries) <= id {
-		return nil, restapi.CreateError(restapi.ErrorEntryNotFound, fmt.Sprintf(`The entry identified by "%s" cannot be found in the context "%s"`, sid, context))
+		return nil, notaryapi.CreateError(notaryapi.ErrorEntryNotFound, fmt.Sprintf(`The entry identified by "%s" cannot be found in the context "%s"`, sid, context))
 	}
 	
 	return entries[id], nil

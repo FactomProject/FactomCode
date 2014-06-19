@@ -1,11 +1,15 @@
-package notarydata
+package notaryapi
 
 import (
 	"bytes"
 	"errors"
 	"io"
+	"reflect"
 	
+	"crypto/sha256"
 	"crypto/ecdsa"
+	
+	"github.com/firelizzard18/gocoding"
 )
 
 const (
@@ -86,11 +90,26 @@ func UnmarshalBinaryKey(data []byte) (k Key, err error) {
 }
 
 type ECDSAPubKey struct {
-	ecdsa.PublicKey
+	Key *ecdsa.PublicKey
 }
 
 func (k *ECDSAPubKey) KeyType() int8 {
 	return ECDSAPubKeyType
+}
+
+func (k *ECDSAPubKey) Verify(data []byte, sig Signature) bool {
+	if sig.HashMethod() != "SHA256" {
+		return false
+	}
+	
+	if sig.KeyType() != k.KeyType() {
+		return false
+	}
+	
+	esig := sig.(*ECDSASignature)
+	
+	hash := sha256.Sum256(data)
+	return ecdsa.Verify(k.Key, hash[:], esig.R, esig.S)
 }
 
 func (k *ECDSAPubKey) MarshalBinary() (data []byte, err error) {
@@ -98,7 +117,7 @@ func (k *ECDSAPubKey) MarshalBinary() (data []byte, err error) {
 	
 	buf.Write([]byte{byte(ECDSAPubKeyType)})
 	
-	p := k.Params()
+	p := k.Key.Params()
 	
 	data, err = bigIntMarshalBinary(p.P)
 	if err != nil { return }
@@ -120,11 +139,11 @@ func (k *ECDSAPubKey) MarshalBinary() (data []byte, err error) {
 	if err != nil { return }
 	buf.Write(data)
 	
-	data, err = bigIntMarshalBinary(k.X)
+	data, err = bigIntMarshalBinary(k.Key.X)
 	if err != nil { return }
 	buf.Write(data)
 	
-	data, err = bigIntMarshalBinary(k.Y)
+	data, err = bigIntMarshalBinary(k.Key.Y)
 	if err != nil { return }
 	buf.Write(data)
 	
@@ -136,15 +155,15 @@ func (k *ECDSAPubKey) MarshalledSize() uint64 {
 	
 	size += 1
 	
-	p := k.Params()
+	p := k.Key.Params()
 	size += bigIntMarshalledSize(p.P)
 	size += bigIntMarshalledSize(p.N)
 	size += bigIntMarshalledSize(p.B)
 	size += bigIntMarshalledSize(p.Gx)
 	size += bigIntMarshalledSize(p.Gy)
 	
-	size += bigIntMarshalledSize(k.X)
-	size += bigIntMarshalledSize(k.Y)
+	size += bigIntMarshalledSize(k.Key.X)
+	size += bigIntMarshalledSize(k.Key.Y)
 	
 	return size
 }
@@ -152,7 +171,7 @@ func (k *ECDSAPubKey) MarshalledSize() uint64 {
 func (k *ECDSAPubKey) UnmarshalBinary(data []byte) (err error) {
 	data = data[1:]
 	
-	p := k.Params()
+	p := k.Key.Params()
 	
 	data, p.P, err = bigIntUnmarshalBinary(data)
 	if err != nil { return }
@@ -169,30 +188,65 @@ func (k *ECDSAPubKey) UnmarshalBinary(data []byte) (err error) {
 	data, p.Gy, err = bigIntUnmarshalBinary(data)
 	if err != nil { return }
 	
-	data, k.X, err = bigIntUnmarshalBinary(data)
+	data, k.Key.X, err = bigIntUnmarshalBinary(data)
 	if err != nil { return }
 	
-	data, k.Y, err = bigIntUnmarshalBinary(data)
+	data, k.Key.Y, err = bigIntUnmarshalBinary(data)
 	return
 }
 
+func (e *ECDSAPubKey) Encoding(marshaller gocoding.Marshaller, theType reflect.Type) gocoding.Encoder {
+	return func(scratch [64]byte, renderer gocoding.Renderer, value reflect.Value) {
+		e := value.Interface().(*ECDSAPubKey)
+		
+		renderer.StartStruct()
+		
+		renderer.StartElement(`X`)
+		marshaller.MarshalObject(e.Key.X)
+		renderer.StopElement(`X`)
+		
+		renderer.StartElement(`Y`)
+		marshaller.MarshalObject(e.Key.Y)
+		renderer.StopElement(`Y`)
+		
+		renderer.StartElement(`Curve`)
+		marshaller.MarshalObject(e.Key.Params())
+		renderer.StopElement(`Curve`)
+		
+		renderer.StopStruct()
+	}
+}
+
 type ECDSAPrivKey struct {
-	ecdsa.PrivateKey
+	Key *ecdsa.PrivateKey
 }
 
 func (k *ECDSAPrivKey) KeyType() int8 {
 	return ECDSAPrivKeyType
 }
 
+func (k *ECDSAPrivKey) Sign(rand io.Reader, data []byte) (Signature, error) {
+	hash := sha256.Sum256(data)
+	r, s, err := ecdsa.Sign(rand, k.Key, hash[:])
+	if err != nil { return nil, err }
+	
+	return &ECDSASignature{ECDSAPubKey{&k.Key.PublicKey}, r, s}, nil
+}
+
+func (k *ECDSAPrivKey) Verify(data []byte, sig Signature) bool {
+	pub := &ECDSAPubKey{&k.Key.PublicKey}
+	return pub.Verify(data, sig)
+}
+
 func (k *ECDSAPrivKey) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
 	
-	data, err = (&ECDSAPubKey{k.PublicKey}).MarshalBinary()
+	data, err = (&ECDSAPubKey{&k.Key.PublicKey}).MarshalBinary()
 	if err != nil { return }
 	data[0] = byte(ECDSAPrivKeyType)
 	buf.Write(data)
 	
-	data, err = bigIntMarshalBinary(k.D)
+	data, err = bigIntMarshalBinary(k.Key.D)
 	if err != nil { return }
 	buf.Write(data)
 	
@@ -200,9 +254,9 @@ func (k *ECDSAPrivKey) MarshalBinary() (data []byte, err error) {
 }
 
 func (k *ECDSAPrivKey) MarshalledSize() uint64 {
-	s := (&ECDSAPubKey{k.PublicKey}).MarshalledSize()
+	s := (&ECDSAPubKey{&k.Key.PublicKey}).MarshalledSize()
 	
-	s += bigIntMarshalledSize(k.D)
+	s += bigIntMarshalledSize(k.Key.D)
 	
 	return s
 }
@@ -216,8 +270,34 @@ func (k *ECDSAPrivKey) UnmarshalBinary(data []byte) (err error) {
 	
 	data = data[pub.MarshalledSize():]
 	
-	k.PublicKey = pub.PublicKey
+	k.Key.PublicKey = *pub.Key
 	
-	data, k.D, err = bigIntUnmarshalBinary(data)
+	data, k.Key.D, err = bigIntUnmarshalBinary(data)
 	return
+}
+
+func (e *ECDSAPrivKey) Encoding(marshaller gocoding.Marshaller, theType reflect.Type) gocoding.Encoder {
+	return func(scratch [64]byte, renderer gocoding.Renderer, value reflect.Value) {
+		e := value.Interface().(*ECDSAPrivKey)
+		
+		renderer.StartStruct()
+		
+		renderer.StartElement(`X`)
+		marshaller.MarshalObject(e.Key.X)
+		renderer.StopElement(`X`)
+		
+		renderer.StartElement(`Y`)
+		marshaller.MarshalObject(e.Key.Y)
+		renderer.StopElement(`Y`)
+		
+		renderer.StartElement(`D`)
+		marshaller.MarshalObject(e.Key.D)
+		renderer.StopElement(`D`)
+		
+		renderer.StartElement(`Curve`)
+		marshaller.MarshalObject(e.Key.Params())
+		renderer.StopElement(`Curve`)
+		
+		renderer.StopStruct()
+	}
 }

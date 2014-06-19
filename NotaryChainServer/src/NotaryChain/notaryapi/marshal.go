@@ -1,4 +1,4 @@
-package restapi
+package notaryapi
 
 import (
 	"bytes"
