@@ -3,12 +3,14 @@ package notaryapi
 import (
 	"bytes"
 	"fmt"
+	"io"
 	
-	"encoding/json"
 	"encoding/xml"
 	"text/template"
 	
 	"github.com/firelizzard18/dynrsrc"
+	"github.com/firelizzard18/gocoding"
+	"github.com/firelizzard18/gocoding/json"
 )
 
 var htmlTmpl *template.Template
@@ -26,15 +28,18 @@ func StartDynamic(readEH func(err error)) error {
 	})
 }
 
-func Marshal(resource interface{}, accept string) (data []byte, r *Error) {
+var marshaller = gocoding.NewMarshaller(json.JSONEncoding, nil)
+
+func Marshal(resource interface{}, accept string, writer io.Writer) (r *Error) {
 	var err error
 	
 	switch accept {
 	case "text":
-		data, err = json.MarshalIndent(resource, "", "  ")
+		marshaller.SetRenderer(json.RenderIndentedJSON(writer, "", "  "))
+		err = marshaller.Marshal(resource)
 		if err != nil {
 			r = CreateError(ErrorJSONMarshal, err.Error())
-			data, err = json.MarshalIndent(r, "", "  ")
+			err = marshaller.Marshal(r)
 			if err != nil {
 				panic(err)
 			}
@@ -42,10 +47,11 @@ func Marshal(resource interface{}, accept string) (data []byte, r *Error) {
 		return
 		
 	case "json":
-		data, err = json.Marshal(resource)
+		marshaller.SetRenderer(json.RenderJSON(writer))
+		err = marshaller.Marshal(resource)
 		if err != nil {
 			r = CreateError(ErrorJSONMarshal, err.Error())
-			data, err = json.Marshal(r)
+			err = marshaller.Marshal(r)
 			if err != nil {
 				panic(err)
 			}
@@ -53,7 +59,7 @@ func Marshal(resource interface{}, accept string) (data []byte, r *Error) {
 		return
 		
 	case "xml":
-		data, err = xml.Marshal(resource)
+		data, err := xml.Marshal(resource)
 		if err != nil {
 			r = CreateError(ErrorXMLMarshal, err.Error())
 			data, err = xml.Marshal(r)
@@ -61,30 +67,35 @@ func Marshal(resource interface{}, accept string) (data []byte, r *Error) {
 				panic(err)
 			}
 		}
+		writer.Write(data)
 		return
 		
 	case "html":
-		data, r = Marshal(resource, "json")
+		var buf bytes.Buffer
+		r = Marshal(resource, "json", &buf)
 		if r != nil {
-			return nil, r
+			return r
 		}
 		
-		var buf bytes.Buffer
-		err := htmlTmpl.Execute(&buf, string(data))
+		str := buf.String()
+		buf.Reset()
+		err := htmlTmpl.Execute(&buf, str)
 		if err != nil {
 			r = CreateError(ErrorJSONMarshal, err.Error())
-			data, err = json.Marshal(r)
+			marshaller.SetRenderer(json.RenderJSON(writer))
+			err = marshaller.Marshal(r)
 			if err != nil {
 				panic(err)
 			}
 		}
 		
-		data = buf.Bytes()
+		buf.WriteTo(writer)
 		return
 	}
 	
 	r  = CreateError(ErrorUnsupportedMarshal, fmt.Sprintf(`"%s" is an unsupported marshalling format`, accept))
-	data, err = json.Marshal(r)
+	marshaller.SetRenderer(json.RenderJSON(writer))
+	err = marshaller.Marshal(r)
 	if err != nil {
 		panic(err)
 	}

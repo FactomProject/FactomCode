@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>{{.Title}} - NotaryChain Client</title>
+		<link rel="stylesheet" type="text/css" href="/style.css" />
+		<script>
+			function tree(data) {
+		    	var string
+			    if (typeof(data) == "object") {
+			    	string = "<ul>";
+			        for (var i in data) {
+			        	string += "<li>" + i + tree(data[i]);
+			        }
+			        string += "</ul>";
+			    } else {
+			    	string = " => " + data;
+			    }
+		    	return string
+			}
+			
+			{{if .OnLoad}} window.onload = function() {
+				{{.OnLoad}}
+			} {{end}}
+		</script>
+	</head>
+	<body>
+		<div class="wrapper">
+			<header>{{template "header.md" .}}</header>
+			<section>{{if .ContentWith}}{{tmplref .ContentTmpl .ContentWith}}{{else}}{{tmplref .ContentTmpl .}}{{end}}</section>
+		</div>
+	</body>
+</html>

@@ -18,9 +18,9 @@ func bigIntMarshalBinary(i *big.Int) (data []byte, err error) {
 	if err != nil { return }
 	
 	size := len(intd)
-	if size > 255 { return nil, errors.New("Big int too big") }
+	if size > 255 { return nil, errors.New("Big int is too big") }
 	
-	data = make([]byte, size)
+	data = make([]byte, size+1)
 	data[0] = byte(size)
 	copy(data[1:], intd)
 	return
@@ -30,15 +30,14 @@ func bigIntMarshalledSize(i *big.Int) uint64 {
 	intd, err := i.GobEncode()
 	if err != nil { return 0 }
 	
-	return uint64(len(intd))
+	return uint64(1 + len(intd))
 }
 
 func bigIntUnmarshalBinary(data []byte) (retd []byte, i *big.Int, err error) {
-	size := uint8(data[0])
+	size, data := uint8(data[0]), data[1:]
 	
 	i = new(big.Int)
-	err = i.GobDecode(data[1:size+1])
-	retd = data[size+1:]
+	err, retd = i.GobDecode(data[:size]), data[size:]
 	
 	return
 }

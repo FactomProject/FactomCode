@@ -1,0 +1,40 @@
+{{if isValidEntryID .EntryID}}
+	{{$edit := .Edit}}
+	{{with entry .EntryID}}
+		{{$edit := len .Signatures | eq 0 | and $edit }}
+		<form method="post" action="/entries">
+			<input type="hidden" name="id" value="{{.ID}}" />
+			<input type="hidden" name="action" value="editDataEntry" />
+			<div class="data entry">
+				<h1>
+					Entry {{.ID}} ({{.Type}})
+					{{if $edit}}
+						<input class="button" type="submit" value="Done" />
+					{{else if len .Signatures | eq 0}}
+						<a class="button" href="/entries/{{.ID}}/edit">Edit</a>
+					{{end}}
+				</h1>
+				<div class="signatures">
+					{{if len .Signatures | gt 0}}
+						<h4>Signed by keys:</h4>
+						<ul>
+							{{range $idx, $hash := .Signatures}}<li>{{enc64 $hash}} <a href="/entities/{{.ID}}/rmsig/{{$idx}}">(delete)</a></li>{{end}}
+						</ul>
+					{{else}}
+						Unsigned
+					{{end}}
+				</div>
+				<div class="data">
+					{{if $edit}}
+						<textarea name="data">{{enc64 .Data}}</textarea>
+					{{else}}
+						<p>{{enc64 .Data}}</p>
+					{{end}}
+				</div>
+				<div class="timestamp">Last edited on {{.TimeStamp}}</div>
+			</div>
+		</form>
+	{{end}}
+{{else}}
+	Entry not found
+{{end}}
