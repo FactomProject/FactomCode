@@ -23,7 +23,7 @@ import (
 	"NotaryChain/notaryapi"
 )
 
-var portNumber *int = flag.Int("p", 8083, "Set the port to listen on")
+var portNumber = flag.Int("p", 8083, "Set the port to listen on")
 var blocks []*notaryapi.Block
 var blockMutex = &sync.Mutex{}
 var tickers [2]*time.Ticker
