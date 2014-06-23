@@ -5,7 +5,7 @@
 		<form method="post" action="/entries">
 			<input type="hidden" name="id" value="{{.ID}}" />
 			<input type="hidden" name="action" value="editDataEntry" />
-			<div class="data entry">
+			<div class="entry">
 				<h1>
 					Entry {{.ID}} ({{.Type}})
 					{{if $edit}}
@@ -14,23 +14,28 @@
 						<a class="button" href="/entries/{{.ID}}/edit">Edit</a>
 					{{end}}
 				</h1>
+				<hr />
 				<div class="signatures">
-					{{if len .Signatures | gt 0}}
+					{{if len .Signatures | lt 0}}
+						{{ $id := .ID }}
 						<h4>Signed by keys:</h4>
 						<ul>
-							{{range $idx, $hash := .Signatures}}<li>{{enc64 $hash}} <a href="/entities/{{.ID}}/rmsig/{{$idx}}">(delete)</a></li>{{end}}
+							{{range $idx, $hash := .Signatures}}<li>{{enc64 $hash}} <a href="/entities/{{$id}}/rmsig/{{$idx}}">(delete)</a></li>{{end}}
 						</ul>
 					{{else}}
 						Unsigned
 					{{end}}
 				</div>
+				<hr />
 				<div class="data">
+					<h4>Data:</h4>
 					{{if $edit}}
 						<textarea name="data">{{enc64 .Data}}</textarea>
 					{{else}}
 						<p>{{enc64 .Data}}</p>
 					{{end}}
 				</div>
+				<hr />
 				<div class="timestamp">Last edited on {{.TimeStamp}}</div>
 			</div>
 		</form>

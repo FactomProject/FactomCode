@@ -60,7 +60,9 @@ func buildTemplateTree() (main *template.Template, err error) {
 		"atoi": func(str string) (int, error) { return strconv.Atoi(str) },
 		"itoa": func(num int) string { return strconv.Itoa(num) },
 		"isNil": func(val interface{}) bool { switch val.(type) { case nil: return true }; return false },
-		"len": func(val interface{}) int { return reflect.ValueOf(val).Len() },
+		"len": func(val interface{}) int {
+			return reflect.ValueOf(val).Len()
+		},
 	}
 	
 	main, err = template.New("main").Funcs(funcmap).Parse(`{{template "page.gwp" .}}`)
@@ -139,9 +141,9 @@ func templateGetEntry(idx int) (map[string]interface{}, error) {
 	
 	return map[string]interface{}{
 		"ID": idx,
-		"Type": entry.Type(),
+		"Type": entry.TypeName(),
 		"Signatures": signatures,
-		"TimeStamp": entry.TimeStamp(),
+		"TimeStamp": entry.RealTime(),
 		"Data": entry.Data(),
 	}, nil
 }

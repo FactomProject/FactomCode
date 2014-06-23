@@ -13,6 +13,7 @@ import (
 
 type EntryData interface {
 	Type() uint32
+	TypeName() string
 	Version() uint32
 	Data() []byte
 	EncodableFields() map[string]reflect.Value
@@ -52,6 +53,10 @@ func NewEntry(data EntryData) *Entry {
 
 func (e *Entry) TimeStamp() int64 {
 	return e.unixTime
+}
+
+func (e *Entry) RealTime() time.Time {
+	return time.Unix(e.unixTime, 0)
 }
 
 func (e *Entry) StampTime() {
@@ -197,6 +202,10 @@ func NewDataEntry(data []byte) *Entry {
 
 func (e *PlainData) Type() uint32 {
 	return PlainDataType
+}
+
+func (e *PlainData) TypeName() string {
+	return "Plain Data"
 }
 
 func (e *PlainData) Version() uint32 {
