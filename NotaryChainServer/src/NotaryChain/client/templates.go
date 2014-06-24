@@ -263,6 +263,8 @@ main:
 		keyIDs[i] = keyIndex
 		i++
 	}
+	keyIDs = keyIDs[:i]
+	fmt.Println("Keys:", keyIDs)
 	
 	return keyIDs, nil
 }

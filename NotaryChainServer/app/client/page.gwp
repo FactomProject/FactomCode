@@ -18,9 +18,15 @@
 		    	return string
 			}
 			
-			{{if .OnLoad}} window.onload = function() {
-				{{.OnLoad}}
-			} {{end}}
+			window.onload = function() {
+				ksel = document.getElementById('key_select')
+				ksel.selectedIndex = ksel.dataset.keyId
+
+				esel = document.getElementById('entry_select')
+				esel.selectedIndex = esel.dataset.entryId
+				
+				{{unnil .OnLoad ""}}
+			}
 		</script>
 	</head>
 	<body>
