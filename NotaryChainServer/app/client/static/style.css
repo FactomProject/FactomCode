@@ -114,9 +114,20 @@ header li>div+a {
 	width: 1em;
 }
 
+header li>svg {
+	position: absolute;
+	top: .5em;
+	right: .25em;
+}
+
 header div.plus {
 	position: relative;
 	top: -1px;
+}
+
+.error {
+	border: 1px solid hsl(0, 70%, 70%);
+	border-radius: 6px;
 }
 
 .button {
@@ -145,14 +156,23 @@ textarea {
 	list-style-position: inside;
 }
 
-.entry {
+.entry, .key {
 	border: 1px solid hsl(0, 0%, 70%);
 	border-radius: 6px;
 	padding: .25em;
 	margin: .1em;
 }
 
-.entry>hr {
+.entry select {
+	color: hsl(0, 0%, 30%);
+	background: hsl(0, 0%, 80%);
+	/* border: none; */
+	font-family: inherit;
+	font-size: inherit;
+	/* outline: none; */
+}
+
+hr {
 	border: none;
 	background: hsl(0, 0%, 70%);
 	height: 1px;

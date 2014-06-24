@@ -7,7 +7,7 @@ import (
 )
 
 var entries []*notaryapi.Entry
-var keys []*notaryapi.ECDSAPrivKey
+var keys []notaryapi.Key
 
 func init() {
 	data, err := ioutil.ReadFile("app/rest/store.1.block")
@@ -32,6 +32,10 @@ func getKeyCount() int {
 	return len(keys)
 }
 
-func getKey(id int) *notaryapi.ECDSAPrivKey {
+func getKey(id int) notaryapi.Key {
 	return keys[id]
+}
+
+func addKey(key notaryapi.Key) {
+	keys = append(keys, key)
 }

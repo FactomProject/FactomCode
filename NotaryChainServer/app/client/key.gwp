@@ -1,10 +1,19 @@
 {{if isValidKeyID .KeyID}}
+	{{$error := .Error}}
 	{{with key .KeyID}}
-		<div class="data key">
+		<div class="key">
 			<h2>Key {{.ID}} ({{.Type}})</h2>
 			<p>Hash: {{enc64 .Hash}}</p>
+			{{if $error}}
+				<hr />
+				<div class="error">{{$error}}</div>
+			{{end}}
 		</div>
 	{{end}}
 {{else}}
-	Key not found
+	<div class="error">Key not found</div>
+	{{if .Error}}
+		<hr />
+		<div class="error">{{.Error}}</div>
+	{{end}}
 {{end}}

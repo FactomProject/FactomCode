@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 	
+	"crypto/rand"
 	"encoding/base64"
 	
 	"github.com/hoisie/web"
@@ -20,12 +21,14 @@ func serve_init() {
 	server.Get(`/failed`, handleFailed)
 	server.Get(`/(?:home)?`, handleHome)
 	server.Get(`/entries/?`, handleEntries)
-	server.Get(`/entries/add`, handleAddEntry)
-	server.Get(`/entries/(\d+)(?:/(\w+)(?:/(\d+))?)?`, handleEntry)
+	server.Get(`/entries/(?:add|\+)`, handleAddEntry)
+	server.Get(`/entries/([^/]+)(?:/([^/]+)(?:/([^/]+))?)?`, handleEntry)
 	server.Get(`/keys/?`, handleKeys)
-	server.Get(`/keys/(\d+)(?:/(\w+))?`, handleKey)
+	server.Get(`/keys/(?:add|\+)`, handleAddKey)
+	server.Get(`/keys/([^/]+)(?:/([^/]+))?`, handleKey)
 	
 	server.Post(`/entries/?`, handleEntriesPost)
+	server.Post(`/keys/?`, handleKeysPost)
 }
 
 func safeWrite(ctx *web.Context, code int, data map[string]interface{}) *notaryapi.Error {
@@ -68,30 +71,42 @@ func handleAddEntry(ctx *web.Context) {
 	
 }
 
-func handleEntry(ctx *web.Context, id string, action string, aid string) {
-	idx, err := strconv.Atoi(id)
-	if err != nil  { idx = -1 }
+func handleEntry(ctx *web.Context, entry_id_str string, action string, action_id_str string) {
+	var err error
+	var title, error_str string
+	var entry_id int
 	
-	aidx, _ := strconv.Atoi(aid)
-	
-	if action == "rmsig" && templateIsValidEntryId(id) {
-		entry := getEntry(idx)
-		if entry.Unsign(aidx) {
-			ctx.Header().Add("Location", fmt.Sprint("/entries/", idx))
-			ctx.WriteHeader(303)
-			return
+	defer func(){
+		r := safeWrite(ctx, 200, map[string]interface{} {
+			"Title": title,
+			"ContentTmpl": "entry.gwp",
+			"EntryID": entry_id,
+			"Error": error_str,
+			"Mode": action,
+			"ShowEntries": true,
+		})
+		if r != nil {
+			handleError(ctx, r)
 		}
+	}()
+	
+	entry_id, err = strconv.Atoi(entry_id_str)
+	
+	if err != nil  {
+		error_str = fmt.Sprintf("Bad entry id: %s", err.Error())
+		entry_id = -1
+		title = "Entry not found"
+		return
+	} else {
+		title = fmt.Sprint("Entry ", entry_id)
 	}
 	
-	r := safeWrite(ctx, 200, map[string]interface{} {
-		"Title": fmt.Sprint("Entry ", idx),
-		"ContentTmpl": "entry.gwp",
-		"EntryID": idx,
-		"Edit": action == "edit",
-		"ShowEntries": true,
-	})
-	if r != nil {
-		handleError(ctx, r)
+	switch {
+	case action == "" || action == "edit" || action == "sign":
+		return
+		
+	default:
+		error_str = fmt.Sprintf("Unknown action: %s", action)
 	}
 }
 
@@ -106,27 +121,52 @@ func handleKeys(ctx *web.Context) {
 	}
 }
 
-func handleKey(ctx *web.Context, id string, action string) {
-	var title string
+func handleAddKey(ctx *web.Context) {
+	err := safeWrite(ctx, 200, map[string]interface{} {
+		"Title": "Add Key",
+		"ContentTmpl": "addkey.gwp",
+	})
+	if err != nil {
+		handleError(ctx, err)
+	}
+}
+
+func handleKey(ctx *web.Context, key_id_str string, action string) {
+	var err error
+	var title, error_str string
+	var key_id int
 	
-	idx, err := strconv.Atoi(id)
+	defer func() {
+		r := safeWrite(ctx, 200, map[string]interface{} {
+			"Title": title,
+			"ContentTmpl": "key.gwp",
+			"KeyID": key_id,
+			"Edit": action == "edit",
+			"Error": error_str,
+			"ShowKeys": true,
+		})
+		if r != nil {
+			handleError(ctx, r)
+		}
+	}()
 	
-	if err == nil {
-		title = fmt.Sprint("Key ", idx)
-	} else {
+	key_id, err = strconv.Atoi(key_id_str)
+	
+	if err != nil  {
+		error_str = fmt.Sprintf("Bad key id: %s", err.Error())
+		key_id = -1
 		title = "Key not found"
-		idx = -1
+		return
+	} else {
+		title = fmt.Sprint("Key ", key_id)
 	}
 	
-	r := safeWrite(ctx, 200, map[string]interface{} {
-		"Title": title,
-		"ContentTmpl": "key.gwp",
-		"EntryID": idx,
-		"Edit": action == "edit",
-		"ShowKeys": true,
-	})
-	if r != nil {
-		handleError(ctx, r)
+	switch {
+	case action == "" || action == "edit":
+		return
+	
+	default:
+		error_str = fmt.Sprintf("Unknown action: %s", action)
 	}
 }
 
@@ -137,21 +177,23 @@ func handleEntriesPost(ctx *web.Context) {
 		if abortMessage != "" && abortReturn != "" {
 			ctx.Header().Add("Location", fmt.Sprint("/failed?message=", abortMessage, "&return=", abortReturn))
 			ctx.WriteHeader(303)
+		} else if abortReturn != "" {
+			ctx.Header().Add("Location", abortReturn)
+			ctx.WriteHeader(303)
 		}
 	}()
 	
-	switch ctx.Params["action"] {
+	switch action := ctx.Params["action"]; action {
 	case "editDataEntry":
 		id := ctx.Params["id"]
+		abortReturn = fmt.Sprint("/entries/", id)
 		idx, err := strconv.Atoi(id)
 		if err != nil {
 			abortMessage = fmt.Sprint("Failed to edit data entry data: error parsing id: ", err.Error())
-			abortReturn = fmt.Sprint("/entries")
 			return
 		}
 		if !templateIsValidEntryId(idx) {
 			abortMessage = fmt.Sprint("Failed to edit data entry data: bad id: ", id)
-			abortReturn = fmt.Sprint("/entries")
 			return
 		}
 		
@@ -159,11 +201,123 @@ func handleEntriesPost(ctx *web.Context) {
 		data, err := base64.StdEncoding.DecodeString(ctx.Params["data"])
 		if err != nil {
 			abortMessage = fmt.Sprint("Failed to edit data entry data: error parsing data: ", err.Error())
-			abortReturn = fmt.Sprint("/entries/", id)
 			return
 		}
 		
 		entry.EntryData = notaryapi.NewPlainData(data)
+	
+	case "rmEntrySig":
+		entry_id_str := ctx.Params["id"]
+		abortReturn = fmt.Sprint("/entries/", entry_id_str)
+		entry_id, err := strconv.Atoi(entry_id_str)
+		if err != nil {
+			abortMessage = fmt.Sprint("Failed to remove entry signature: error parsing entry id: ", err.Error())
+			return
+		}
+		if !templateIsValidEntryId(entry_id) {
+			abortMessage = fmt.Sprint("Failed to remove entry signature: bad entry id: ", entry_id_str)
+			return
+		}
+		entry := getEntry(entry_id)
+		
+		sig_id_str := ctx.Params["sig_id"]
+		sig_id, err := strconv.Atoi(sig_id_str)
+		if err != nil {
+			abortMessage = fmt.Sprint("Failed to remove entry signature: error parsing signature id: ", err.Error())
+			return
+		}
+		if sig_id >= len(entry.Signatures()){
+			abortMessage = fmt.Sprint("Failed to remove entry signature: bad entry signature id: ", sig_id_str)
+			break
+		}
+		
+		if entry.Unsign(sig_id) {
+			ctx.Header().Add("Location", abortReturn)
+			ctx.WriteHeader(303)
+		} else {
+			abortMessage = fmt.Sprint("Failed to remove entry signature #", sig_id)
+		}
+		
+	case "signEntry":
+		entry_id_str := ctx.Params["id"]
+		abortReturn = fmt.Sprint("/entries/", entry_id_str)
+		entry_id, err := strconv.Atoi(entry_id_str)
+		if err != nil {
+			abortMessage = fmt.Sprint("Failed to sign entry: error parsing entry id: ", err.Error())
+			return
+		}
+		if !templateIsValidEntryId(entry_id) {
+			abortMessage = fmt.Sprint("Failed to sign entry: bad entry id: ", entry_id_str)
+			return
+		}
+		entry := getEntry(entry_id)
+		
+		key_id_str := ctx.Params["key"]
+		key_id, err := strconv.Atoi(key_id_str)
+		if err != nil {
+			abortMessage = fmt.Sprint("Failed to sign entry: error parsing key id: ", err.Error())
+			return
+		}
+		if !templateIsValidEntryId(entry_id) {
+			abortMessage = fmt.Sprint("Failed to sign entry: bad key id: ", key_id_str)
+			return
+		}
+		var key notaryapi.PrivateKey
+		var ok bool
+		_key := getKey(key_id)
+		if key, ok = _key.(notaryapi.PrivateKey); !ok {
+			abortMessage = fmt.Sprint("Failed to sign entry: key with id ", key_id_str, " is not a private key")
+			return
+		}
+		
+		err = entry.Sign(rand.Reader, key)
+		if err != nil {
+			abortMessage = fmt.Sprint("Failed to sign entry: error while signing: ", err.Error())
+			return
+		}
+		
+	default:
+		abortReturn = fmt.Sprint("/entries")
+		abortMessage = fmt.Sprint("Unknown action: ", action)
+	}
+}
+
+func handleKeysPost(ctx *web.Context) {
+	var abortMessage, abortReturn string
+	
+	defer func() {
+		if abortMessage != "" && abortReturn != "" {
+			ctx.Header().Add("Location", fmt.Sprint("/failed?message=", abortMessage, "&return=", abortReturn))
+			ctx.WriteHeader(303)
+		}
+	}()
+	
+	switch ctx.Params["action"] {
+	case "genKey":
+		sid := ctx.Params["algorithm"]
+		id, err := strconv.Atoi(sid)
+		if err != nil {
+			abortMessage = fmt.Sprint("Failed to generate key: error parsing algorithm id: ", err.Error())
+			abortReturn = fmt.Sprint("/keys/add")
+			return
+		}
+		
+		key, err := notaryapi.GenerateKeyPair(int8(id), rand.Reader)
+		if err != nil {
+			abortMessage = fmt.Sprint("Failed to generate key: error generating key: ", err.Error())
+			abortReturn = fmt.Sprint("/keys/add")
+			return
+		}
+		if key == nil {
+			abortMessage = fmt.Sprint("Failed to generate key: unsupported algorithm id: ", id)
+			abortReturn = fmt.Sprint("/keys/add")
+			return
+		}
+		
+		addKey(key)
+		
+		ctx.Header().Add("Location", fmt.Sprint("/keys/", getKeyCount()-1))
+		ctx.WriteHeader(303)
 	}
 }
 
@@ -197,4 +351,13 @@ func handleError(ctx *web.Context, err *notaryapi.Error) {
 }
 
 func handleFailed(ctx *web.Context) {
+	r := safeWrite(ctx, 200, map[string]interface{} {
+		"Title": "Failure",
+		"ContentTmpl": "failed.md",
+		"Message": ctx.Params["message"],
+		"Return": ctx.Params["return"],
+	})
+	if r != nil {
+		handleError(ctx, r)
+	}
 }

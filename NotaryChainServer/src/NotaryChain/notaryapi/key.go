@@ -7,6 +7,7 @@ import (
 	"reflect"
 	
 	"crypto/sha256"
+//	"crypto/rsa"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"encoding/binary"
@@ -25,6 +26,7 @@ const (
 type Key interface {
 	BinaryMarshallable
 	KeyType()		int8
+	Public() PublicKey
 }
 
 type PublicKey interface {
@@ -91,12 +93,33 @@ func UnmarshalBinaryKey(data []byte) (k Key, err error) {
 	return
 }
 
+func GenerateKeyPair(keyType int8, rand io.Reader) (key PrivateKey, err error) {
+	switch keyType {
+	case ECDSAPrivKeyType:
+		var _key *ecdsa.PrivateKey
+		_key, err = ecdsa.GenerateKey(elliptic.P256(), rand)
+		if err != nil { return }
+		key = &ECDSAPrivKey{_key}
+		
+//	case RSAPrivKeyType:
+//		var _key *rsa.PrivateKey
+//		_key, err = rsa.GenerateKey(rand, 1024)
+//		if err != nil { return }
+//		key = &RSAPrivKey{_key}
+	}
+	return
+}
+
 type ECDSAPubKey struct {
 	Key *ecdsa.PublicKey
 }
 
 func (k *ECDSAPubKey) KeyType() int8 {
 	return ECDSAPubKeyType
+}
+
+func (k *ECDSAPubKey) Public() PublicKey {
+	return k
 }
 
 func (k *ECDSAPubKey) Verify(data []byte, sig Signature) bool {
@@ -235,23 +258,31 @@ func (k *ECDSAPrivKey) KeyType() int8 {
 	return ECDSAPrivKeyType
 }
 
+func (k *ECDSAPrivKey) public() ECDSAPubKey {
+	return ECDSAPubKey{&k.Key.PublicKey}
+}
+
+func (k *ECDSAPrivKey) Public() PublicKey {
+	pub := k.public()
+	return &pub
+}
+
 func (k *ECDSAPrivKey) Sign(rand io.Reader, data []byte) (Signature, error) {
 	hash := sha256.Sum256(data)
 	r, s, err := ecdsa.Sign(rand, k.Key, hash[:])
 	if err != nil { return nil, err }
 	
-	return &ECDSASignature{ECDSAPubKey{&k.Key.PublicKey}, r, s}, nil
+	return &ECDSASignature{k.public(), r, s}, nil
 }
 
 func (k *ECDSAPrivKey) Verify(data []byte, sig Signature) bool {
-	pub := &ECDSAPubKey{&k.Key.PublicKey}
-	return pub.Verify(data, sig)
+	return k.Public().Verify(data, sig)
 }
 
 func (k *ECDSAPrivKey) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
 	
-	data, err = (&ECDSAPubKey{&k.Key.PublicKey}).MarshalBinary()
+	data, err = k.Public().MarshalBinary()
 	if err != nil { return }
 	data[0] = byte(ECDSAPrivKeyType)
 	buf.Write(data)
@@ -264,7 +295,7 @@ func (k *ECDSAPrivKey) MarshalBinary() (data []byte, err error) {
 }
 
 func (k *ECDSAPrivKey) MarshalledSize() uint64 {
-	s := (&ECDSAPubKey{&k.Key.PublicKey}).MarshalledSize()
+	s := k.Public().MarshalledSize()
 	
 	s += bigIntMarshalledSize(k.Key.D)
 	

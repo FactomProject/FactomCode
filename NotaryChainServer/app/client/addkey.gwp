@@ -1,0 +1,11 @@
+<h1>Generate Key</h1>
+<label for="algorithm">Algorithm: </label>
+<select name="algorithm" form="genform">
+	<option selected="true" value="1">ECDSA</option>
+	<option value="3">RSA</option>
+</select>
+<br />
+<form id="genform" method="post" action="/keys">
+	<input type="hidden" name="action" value="genKey" />
+	<input type="submit" value="Generate" />
+</form>
