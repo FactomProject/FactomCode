@@ -2,21 +2,19 @@ package main
 
 import (
 	"bytes"
-	"fmt"
-	"strconv"
-	
 	"crypto/rand"
 	"encoding/base64"
-	
+	"fmt"
+	"github.com/firelizzard18/gobundle"
 	"github.com/hoisie/web"
-	
 	"NotaryChain/notaryapi"
+	"strconv"
 )
 
 var server = web.NewServer()
 
 func serve_init() {
-	server.Config.StaticDir = fmt.Sprint(*appDir, "/static")
+	server.Config.StaticDir = gobundle.DataFile("/static")
 	
 	server.Get(`/failed`, handleFailed)
 	server.Get(`/(?:home)?`, handleHome)

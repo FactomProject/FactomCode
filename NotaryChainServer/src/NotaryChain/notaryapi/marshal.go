@@ -15,13 +15,13 @@ import (
 
 var htmlTmpl *template.Template
 
-func StartStatic() (err error) {
-	htmlTmpl, err = template.ParseFiles("app/rest/html.gwp");
+func StartStatic(path string) (err error) {
+	htmlTmpl, err = template.ParseFiles(path);
 	return
 }
 
-func StartDynamic(readEH func(err error)) error {
-	return dynrsrc.CreateDynamicResource("app/rest/html.gwp", func(data []byte) {
+func StartDynamic(path string, readEH func(err error)) error {
+	return dynrsrc.CreateDynamicResource(path, func(data []byte) {
 		var err error
 		htmlTmpl, err = template.New("html").Parse(string(data))
 		if err != nil { readEH(err) }

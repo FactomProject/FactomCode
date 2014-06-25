@@ -19,6 +19,7 @@ import (
 	"path/filepath"
 	
 	"github.com/firelizzard18/dynrsrc"
+	"github.com/firelizzard18/gobundle"
 	
 	"NotaryChain/notaryapi"
 )
@@ -37,7 +38,7 @@ func readError(err error) {
 }
 
 func initWithJSON() {
-	source, err := ioutil.ReadFile("app/rest/store.json")
+	source, err := ioutil.ReadFile(gobundle.DataFile("store.json"))
 	if err != nil { panic(err) }
 	
 	err = json.Unmarshal(source, &blocks)
@@ -45,15 +46,13 @@ func initWithJSON() {
 }
 
 func initWithBinary() {
-	matches, err := filepath.Glob("app/rest/store.*.block")
+	matches, err := filepath.Glob(gobundle.DataFile("store.*.block"))
 	if err != nil { panic(err) }
 	
 	blocks = make([]*notaryapi.Block, len(matches))
 	
+	num := 0
 	for _, match := range matches {
-		num, err := strconv.Atoi(match[15:len(match)-6])
-		if err != nil { panic(err) }
-		
 		data, err := ioutil.ReadFile(match)
 		if err != nil { panic(err) }
 		
@@ -62,12 +61,16 @@ func initWithBinary() {
 		if err != nil { panic(err) }
 		
 		blocks[num] = block
+		num++
 	}
 }
 
 func init() {
+	gobundle.Setup.Application.Name = "NotaryChains/restapi"
+	gobundle.Init()
+	
 	dynrsrc.Start(watchError, readError)
-	notaryapi.StartDynamic(readError)
+	notaryapi.StartDynamic(gobundle.DataFile("html.gwp"), readError)
 	
 	initWithBinary()
 	

@@ -4,13 +4,14 @@ import (
 	"io/ioutil"
 	
 	"NotaryChain/notaryapi"
+	"github.com/firelizzard18/gobundle"
 )
 
 var entries []*notaryapi.Entry
 var keys []notaryapi.Key
 
-func init() {
-	data, err := ioutil.ReadFile("app/rest/store.1.block")
+func load() {
+	data, err := ioutil.ReadFile(gobundle.DataFile("store.1.block"))
 	if err != nil { panic(err) }
 	
 	block := new(notaryapi.Block)

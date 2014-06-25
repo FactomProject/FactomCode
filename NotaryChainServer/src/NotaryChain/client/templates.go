@@ -2,20 +2,18 @@ package main
 
 import (
 	"bytes"
+	"encoding/base64"
 	"errors"
 	"fmt"
-	"reflect"
-	"strconv"
-	
-	"encoding/base64"
-	"io/ioutil"
-	"path/filepath"
-	"text/template"
-	
 	"github.com/firelizzard18/blackfriday"
 	"github.com/firelizzard18/dynrsrc"
-	
+	"github.com/firelizzard18/gobundle"
+	"io/ioutil"
 	"NotaryChain/notaryapi"
+	"path/filepath"
+	"reflect"
+	"strconv"
+	"text/template"
 )
 
 var mdrdr blackfriday.Renderer
@@ -37,7 +35,7 @@ func templates_init() {
 	htmlFlags |= blackfriday.HTML_SMARTYPANTS_LATEX_DASHES
 	mdrdr = blackfriday.HtmlRenderer(htmlFlags, "", "")
 	
-	err := dynrsrc.CreateDynamicResource(*appDir, func([]byte) {
+	err := dynrsrc.CreateDynamicResource(*gobundle.Setup.Directories.Data, func([]byte) {
 		t, err := buildTemplateTree()
 		if err != nil { readError(err) }
 		
@@ -71,10 +69,10 @@ func buildTemplateTree() (main *template.Template, err error) {
 	main, err = template.New("main").Funcs(funcmap).Parse(`{{template "page.gwp" .}}`)
 	if err != nil { return }
 	
-	_, err = main.ParseGlob(fmt.Sprint(*appDir, "/*.gwp"))
+	_, err = main.ParseGlob(gobundle.DataFile("/*.gwp"))
 	if err != nil { return }
 	
-	matches, err := filepath.Glob(fmt.Sprint(*appDir, "/*.md"))
+	matches, err := filepath.Glob(gobundle.DataFile("/*.md"))
 	if err != nil { return }
 	
 	err = parseMarkdownTemplates(main, matches...)
@@ -268,10 +266,3 @@ main:
 	
 	return keyIDs, nil
 }
-
-
-
-
-
-
-

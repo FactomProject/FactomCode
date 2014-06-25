@@ -3,12 +3,11 @@ package main
 import (
 	"flag"
 	"fmt"
-	
 	"github.com/firelizzard18/dynrsrc"
+	"github.com/firelizzard18/gobundle"
 )
 
 var portNumber = flag.Int("p", 8087, "Set the port to listen on")
-var appDir = flag.String("C", "app/client", "Set the app directory")
 
 func watchError(err error) {
 	panic(err)
@@ -19,11 +18,13 @@ func readError(err error) {
 }
 
 func init() {
+	gobundle.Setup.Application.Name = "NotaryChains/client"
+	gobundle.Init()
+	
 	err := dynrsrc.Start(watchError, readError)
 	if err != nil { panic(err) }
 	
-	flag.Parse()
-	
+	load()
 	templates_init()
 	serve_init()
 }
