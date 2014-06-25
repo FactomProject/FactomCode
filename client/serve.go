@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"github.com/firelizzard18/gobundle"
 	"github.com/hoisie/web"
-	"NotaryChain/notaryapi"
+	"github.com/NotaryChains/NotaryChainCode/notaryapi"
 	"strconv"
 )
 

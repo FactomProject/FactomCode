@@ -2,26 +2,23 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
+	"encoding/xml"
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/firelizzard18/dynrsrc"
+	"github.com/firelizzard18/gobundle"
+	"github.com/NotaryChains/NotaryChainCode/notaryapi"
+	"io/ioutil"
+	"net/http"
+	"net/url"
+	"path/filepath"
 	"reflect"
 	"time"
 	"strconv"
 	"strings"
 	"sync"
-	
-	"encoding/json"
-	"encoding/xml"
-	"io/ioutil"
-	"net/http"
-	"net/url"
-	"path/filepath"
-	
-	"github.com/firelizzard18/dynrsrc"
-	"github.com/firelizzard18/gobundle"
-	
-	"NotaryChain/notaryapi"
 )
 
 var portNumber = flag.Int("p", 8083, "Set the port to listen on")

@@ -1,14 +1,12 @@
 package main 
 
 import (
-	"fmt"
-	
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"fmt"
+	"github.com/NotaryChains/NotaryChainCode/notaryapi"
 	"io/ioutil"
-	
-	"NotaryChain/notaryapi"
 )
 
 func main() {

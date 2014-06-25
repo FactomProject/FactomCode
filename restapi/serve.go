@@ -1,10 +1,10 @@
 package main
 
 import (
+	"github.com/NotaryChains/NotaryChainCode/notaryapi"
 	"net/http"
 	"net/url"
 	"strings"
-	"NotaryChain/notaryapi"
 	"strconv"
 	"fmt"
 )

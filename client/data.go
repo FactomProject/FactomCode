@@ -1,10 +1,9 @@
 package main
 
 import (
-	"io/ioutil"
-	
-	"NotaryChain/notaryapi"
+	"github.com/NotaryChains/NotaryChainCode/notaryapi"
 	"github.com/firelizzard18/gobundle"
+	"io/ioutil"
 )
 
 var entries []*notaryapi.Entry

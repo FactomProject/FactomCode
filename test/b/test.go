@@ -1,12 +1,10 @@
 package main 
 
 import (
-	"os"
-	
-	"NotaryChain/notaryapi"
-	"io/ioutil"
-	
+	"github.com/NotaryChains/NotaryChainCode/notaryapi"
 	"github.com/firelizzard18/gocoding/json"
+	"io/ioutil"
+	"os"
 )
 
 func main() {
