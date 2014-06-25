@@ -235,15 +235,15 @@ func (e *ECDSAPubKey) Encoding(marshaller gocoding.Marshaller, theType reflect.T
 		renderer.StartStruct()
 		
 		renderer.StartElement(`X`)
-		marshaller.MarshalObject(e.Key.X)
+		marshaller.MarshalObject(renderer, e.Key.X)
 		renderer.StopElement(`X`)
 		
 		renderer.StartElement(`Y`)
-		marshaller.MarshalObject(e.Key.Y)
+		marshaller.MarshalObject(renderer, e.Key.Y)
 		renderer.StopElement(`Y`)
 		
 		renderer.StartElement(`Curve`)
-		marshaller.MarshalObject(e.Key.Params())
+		marshaller.MarshalObject(renderer, e.Key.Params())
 		renderer.StopElement(`Curve`)
 		
 		renderer.StopStruct()
@@ -324,19 +324,19 @@ func (e *ECDSAPrivKey) Encoding(marshaller gocoding.Marshaller, theType reflect.
 		renderer.StartStruct()
 		
 		renderer.StartElement(`X`)
-		marshaller.MarshalObject(e.Key.X)
+		marshaller.MarshalObject(renderer, e.Key.X)
 		renderer.StopElement(`X`)
 		
 		renderer.StartElement(`Y`)
-		marshaller.MarshalObject(e.Key.Y)
+		marshaller.MarshalObject(renderer, e.Key.Y)
 		renderer.StopElement(`Y`)
 		
 		renderer.StartElement(`D`)
-		marshaller.MarshalObject(e.Key.D)
+		marshaller.MarshalObject(renderer, e.Key.D)
 		renderer.StopElement(`D`)
 		
 		renderer.StartElement(`Curve`)
-		marshaller.MarshalObject(e.Key.Params())
+		marshaller.MarshalObject(renderer, e.Key.Params())
 		renderer.StopElement(`Curve`)
 		
 		renderer.StopStruct()

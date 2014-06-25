@@ -9,6 +9,10 @@ import (
 var entries []*notaryapi.Entry
 var keys []notaryapi.Key
 
+var Settings = struct {Server string} {
+	"localhost:8083",
+}
+
 func load() {
 	data, err := ioutil.ReadFile(gobundle.DataFile("store.1.block"))
 	if err != nil { panic(err) }

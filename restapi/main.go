@@ -167,7 +167,7 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 			var r *notaryapi.Error
 			
 			buf.Reset()
-			r = notaryapi.Marshal(err, accept, &buf)
+			r = notaryapi.Marshal(err, accept, &buf, false)
 			if r != nil {
 				err = r
 			}
@@ -199,7 +199,16 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 		resource = err
 	}
 	
-	err = notaryapi.Marshal(resource, accept, &buf)
+	alt := false
+	for _, s := range form["byref"] {
+		b, err := strconv.ParseBool(s)
+		if err == nil {
+			alt = b
+			break
+		}
+	}
+	
+	err = notaryapi.Marshal(resource, accept, &buf, alt)
 }
 
 var blockPtrType = reflect.TypeOf((*notaryapi.Block)(nil)).Elem()

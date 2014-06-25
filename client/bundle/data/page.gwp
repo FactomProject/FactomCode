@@ -20,9 +20,11 @@
 			
 			window.onload = function() {
 				ksel = document.getElementById('key_select')
+				ksel.remove(0)
 				ksel.selectedIndex = ksel.dataset.keyId
 
 				esel = document.getElementById('entry_select')
+				esel.remove(0)
 				esel.selectedIndex = esel.dataset.entryId
 				
 				{{unnil .OnLoad ""}}
