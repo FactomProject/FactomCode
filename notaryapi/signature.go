@@ -88,19 +88,19 @@ func (e *ECDSASignature) Encoding(marshaller gocoding.Marshaller, theType reflec
 		renderer.StartStruct()
 		
 		renderer.StartElement(`Key`)
-		marshaller.MarshalObject(&e.ECDSAPubKey)
+		marshaller.MarshalObject(renderer, &e.ECDSAPubKey)
 		renderer.StopElement(`Key`)
 		
 		renderer.StartElement(`HashMethod`)
-		marshaller.MarshalObject(e.HashMethod())
+		marshaller.MarshalObject(renderer, e.HashMethod())
 		renderer.StopElement(`HashMethod`)
 		
 		renderer.StartElement(`R`)
-		marshaller.MarshalObject(e.R)
+		marshaller.MarshalObject(renderer, e.R)
 		renderer.StopElement(`R`)
 		
 		renderer.StartElement(`S`)
-		marshaller.MarshalObject(e.S)
+		marshaller.MarshalObject(renderer, e.S)
 		renderer.StopElement(`S`)
 		
 		renderer.StopStruct()

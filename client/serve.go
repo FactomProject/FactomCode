@@ -16,17 +16,21 @@ var server = web.NewServer()
 func serve_init() {
 	server.Config.StaticDir = gobundle.DataFile("/static")
 	
-	server.Get(`/failed`, handleFailed)
 	server.Get(`/(?:home)?`, handleHome)
 	server.Get(`/entries/?`, handleEntries)
-	server.Get(`/entries/(?:add|\+)`, handleAddEntry)
-	server.Get(`/entries/([^/]+)(?:/([^/]+)(?:/([^/]+))?)?`, handleEntry)
 	server.Get(`/keys/?`, handleKeys)
-	server.Get(`/keys/(?:add|\+)`, handleAddKey)
-	server.Get(`/keys/([^/]+)(?:/([^/]+))?`, handleKey)
+	server.Get(`/explore((?:/(?:\w|\d)+)+)?`, handleExplore)
+	server.Get(`/settings/?`, handleSettings)
+	server.Get(`/failed`, handleFailed)
 	
 	server.Post(`/entries/?`, handleEntriesPost)
 	server.Post(`/keys/?`, handleKeysPost)
+	server.Post(`/settings/?`, handleSettingsPost)
+	
+	server.Get(`/entries/(?:add|\+)`, handleAddEntry)
+	server.Get(`/entries/([^/]+)(?:/([^/]+)(?:/([^/]+))?)?`, handleEntry)
+	server.Get(`/keys/(?:add|\+)`, handleAddKey)
+	server.Get(`/keys/([^/]+)(?:/([^/]+))?`, handleKey)
 }
 
 func safeWrite(ctx *web.Context, code int, data map[string]interface{}) *notaryapi.Error {
@@ -44,128 +48,67 @@ func safeWrite(ctx *web.Context, code int, data map[string]interface{}) *notarya
 	return nil
 }
 
-func handleHome(ctx *web.Context) {
-	err := safeWrite(ctx, 200, map[string]interface{} {
-		"Title": "Home",
-		"ContentTmpl": "home.md",
-	})
+func safeWrite200(ctx *web.Context, data map[string]interface{}) {
+	err := safeWrite(ctx, 200, data)
 	if err != nil {
 		handleError(ctx, err)
 	}
 }
 
+func handleHome(ctx *web.Context) {
+	safeWrite200(ctx, map[string]interface{} {
+		"Title": "Home",
+		"ContentTmpl": "home.md",
+	})
+}
+
 func handleEntries(ctx *web.Context) {
-	err := safeWrite(ctx, 200, map[string]interface{} {
+	safeWrite200(ctx, map[string]interface{} {
 		"Title": "Entries",
 		"ContentTmpl": "entries.gwp",
 		"AddEntry": true,
 	})
-	if err != nil {
-		handleError(ctx, err)
-	}
 }
 
-func handleAddEntry(ctx *web.Context) {
-	
-}
-
-func handleEntry(ctx *web.Context, entry_id_str string, action string, action_id_str string) {
-	var err error
-	var title, error_str string
-	var entry_id int
-	
-	defer func(){
-		r := safeWrite(ctx, 200, map[string]interface{} {
-			"Title": title,
-			"ContentTmpl": "entry.gwp",
-			"EntryID": entry_id,
-			"Error": error_str,
-			"Mode": action,
-			"ShowEntries": true,
+func handleExplore(ctx *web.Context, rest string) {
+	if rest == "" || rest == "/" {
+		safeWrite200(ctx, map[string]interface{} {
+			"Title": "Explore",
+			"ContentTmpl": "exploreintro.md",
 		})
-		if r != nil {
-			handleError(ctx, r)
-		}
-	}()
-	
-	entry_id, err = strconv.Atoi(entry_id_str)
-	
-	if err != nil  {
-		error_str = fmt.Sprintf("Bad entry id: %s", err.Error())
-		entry_id = -1
-		title = "Entry not found"
 		return
-	} else {
-		title = fmt.Sprint("Entry ", entry_id)
 	}
 	
-	switch {
-	case action == "" || action == "edit" || action == "sign":
-		return
-		
-	default:
-		error_str = fmt.Sprintf("Unknown action: %s", action)
-	}
+	safeWrite200(ctx, map[string]interface{} {
+		"Title": "Explore",
+		"ContentTmpl": "explore.md",
+		"Data": fmt.Sprintf(`<iframe sandbox="allow-scripts" seamless src="http://%s/v1/blocks%s">Notary server content</iframe>`, Settings.Server, rest),
+	})
+}
+
+func handleSettings(ctx *web.Context) {
+	safeWrite200(ctx, map[string]interface{} {
+		"Title": "Settings",
+		"ContentTmpl": "settings.gwp",
+		"Server": Settings.Server,
+	})
 }
 
 func handleKeys(ctx *web.Context) {
-	err := safeWrite(ctx, 200, map[string]interface{} {
+	safeWrite200(ctx, map[string]interface{} {
 		"Title": "Keys",
 		"ContentTmpl": "keys.gwp",
 		"AddKey": true,
 	})
-	if err != nil {
-		handleError(ctx, err)
-	}
 }
 
-func handleAddKey(ctx *web.Context) {
-	err := safeWrite(ctx, 200, map[string]interface{} {
-		"Title": "Add Key",
-		"ContentTmpl": "addkey.gwp",
+func handleFailed(ctx *web.Context) {
+	safeWrite200(ctx, map[string]interface{} {
+		"Title": "Failure",
+		"ContentTmpl": "failed.md",
+		"Message": ctx.Params["message"],
+		"Return": ctx.Params["return"],
 	})
-	if err != nil {
-		handleError(ctx, err)
-	}
-}
-
-func handleKey(ctx *web.Context, key_id_str string, action string) {
-	var err error
-	var title, error_str string
-	var key_id int
-	
-	defer func() {
-		r := safeWrite(ctx, 200, map[string]interface{} {
-			"Title": title,
-			"ContentTmpl": "key.gwp",
-			"KeyID": key_id,
-			"Edit": action == "edit",
-			"Error": error_str,
-			"ShowKeys": true,
-		})
-		if r != nil {
-			handleError(ctx, r)
-		}
-	}()
-	
-	key_id, err = strconv.Atoi(key_id_str)
-	
-	if err != nil  {
-		error_str = fmt.Sprintf("Bad key id: %s", err.Error())
-		key_id = -1
-		title = "Key not found"
-		return
-	} else {
-		title = fmt.Sprint("Key ", key_id)
-	}
-	
-	switch {
-	case action == "" || action == "edit":
-		return
-	
-	default:
-		error_str = fmt.Sprintf("Unknown action: %s", action)
-	}
 }
 
 func handleEntriesPost(ctx *web.Context) {
@@ -319,10 +262,108 @@ func handleKeysPost(ctx *web.Context) {
 	}
 }
 
+func handleSettingsPost(ctx *web.Context) {
+	Settings.Server = ctx.Params["server"]
+	
+	handleSettings(ctx)
+}
+
+func handleAddEntry(ctx *web.Context) {
+	safeWrite200(ctx, map[string]interface{} {
+		"Title": "Add Entry",
+		"ContentTmpl": "addentry.gwp",
+	})
+}
+
+func handleEntry(ctx *web.Context, entry_id_str string, action string, action_id_str string) {
+	var err error
+	var title, error_str string
+	var entry_id int
+	
+	defer func(){
+		r := safeWrite(ctx, 200, map[string]interface{} {
+			"Title": title,
+			"ContentTmpl": "entry.gwp",
+			"EntryID": entry_id,
+			"Error": error_str,
+			"Mode": action,
+			"ShowEntries": true,
+		})
+		if r != nil {
+			handleError(ctx, r)
+		}
+	}()
+	
+	entry_id, err = strconv.Atoi(entry_id_str)
+	
+	if err != nil  {
+		error_str = fmt.Sprintf("Bad entry id: %s", err.Error())
+		entry_id = -1
+		title = "Entry not found"
+		return
+	} else {
+		title = fmt.Sprint("Entry ", entry_id)
+	}
+	
+	switch {
+	case action == "" || action == "edit" || action == "sign":
+		return
+		
+	default:
+		error_str = fmt.Sprintf("Unknown action: %s", action)
+	}
+}
+
+func handleAddKey(ctx *web.Context) {
+	safeWrite200(ctx, map[string]interface{} {
+		"Title": "Add Key",
+		"ContentTmpl": "addkey.gwp",
+	})
+}
+
+func handleKey(ctx *web.Context, key_id_str string, action string) {
+	var err error
+	var title, error_str string
+	var key_id int
+	
+	defer func() {
+		r := safeWrite(ctx, 200, map[string]interface{} {
+			"Title": title,
+			"ContentTmpl": "key.gwp",
+			"KeyID": key_id,
+			"Edit": action == "edit",
+			"Error": error_str,
+			"ShowKeys": true,
+		})
+		if r != nil {
+			handleError(ctx, r)
+		}
+	}()
+	
+	key_id, err = strconv.Atoi(key_id_str)
+	
+	if err != nil  {
+		error_str = fmt.Sprintf("Bad key id: %s", err.Error())
+		key_id = -1
+		title = "Key not found"
+		return
+	} else {
+		title = fmt.Sprint("Key ", key_id)
+	}
+	
+	switch {
+	case action == "" || action == "edit":
+		return
+	
+	default:
+		error_str = fmt.Sprintf("Unknown action: %s", action)
+	}
+}
+
 func handleError(ctx *web.Context, err *notaryapi.Error) {
 	var buf bytes.Buffer
 	
-	r := notaryapi.Marshal(err, "json", &buf)
+	r := notaryapi.Marshal(err, "json", &buf, false)
 	if r != nil { err = r }
 	
 	err = safeWrite(ctx, err.HTTPCode, map[string]interface{} {
@@ -345,17 +386,5 @@ func handleError(ctx *web.Context, err *notaryapi.Error) {
 		
 		ctx.WriteHeader(500)
 		ctx.Write([]byte(str))
-	}
-}
-
-func handleFailed(ctx *web.Context) {
-	r := safeWrite(ctx, 200, map[string]interface{} {
-		"Title": "Failure",
-		"ContentTmpl": "failed.md",
-		"Message": ctx.Params["message"],
-		"Return": ctx.Params["return"],
-	})
-	if r != nil {
-		handleError(ctx, r)
 	}
 }
