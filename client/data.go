@@ -133,7 +133,7 @@ func getActiveEntryIDs() []int {
 	ids := make([]int, getEntryCount())
 	i := 0
 	for id, entry := range entries {
-		if entry.Submitted != nil || entry.Submitted.Host == "" {
+		if entry.Submitted != nil && entry.Submitted.Host != "" {
 			continue
 		}
 		
@@ -153,12 +153,16 @@ func getEntrySubmission(id int) *Submission {
 
 func flagSubmitEntry(id int) {
 	entries[id].Submitted = &Submission{Host: Settings.Server}
+	storeEntry(id)
 }
 
-func addEntry(entry *notaryapi.Entry) {
+func addEntry(entry *notaryapi.Entry) (last int) {
 	entries[Settings.NextEntryID] = &FlaggedEntry{Entry: entry}
+	last = Settings.NextEntryID
 	storeEntry(Settings.NextEntryID)
 	Settings.NextEntryID++
+	saveSettings()
+	return
 }
 
 func storeEntry(id int) {

@@ -217,7 +217,6 @@ func handleEntriesPost(ctx *web.Context) {
 		resp.Body.Close()
 		
 		flagSubmitEntry(idx)
-		storeEntry(idx)
 		
 	
 	case "rmEntrySig":
