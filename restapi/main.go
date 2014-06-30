@@ -2,13 +2,14 @@ package main
 
 import (
 	"bytes"
-	"encoding/json"
 	"encoding/xml"
 	"errors"
 	"flag"
 	"fmt"
 	"github.com/firelizzard18/dynrsrc"
 	"github.com/firelizzard18/gobundle"
+	"github.com/firelizzard18/gocoding"
+	"github.com/firelizzard18/gocoding/json"
 	"github.com/NotaryChains/NotaryChainCode/notaryapi"
 	"io/ioutil"
 	"net/http"
@@ -32,14 +33,6 @@ func watchError(err error) {
 
 func readError(err error) {
 	fmt.Println("error: ", err)
-}
-
-func initWithJSON() {
-	source, err := ioutil.ReadFile(gobundle.DataFile("store.json"))
-	if err != nil { panic(err) }
-	
-	err = json.Unmarshal(source, &blocks)
-	if err != nil { panic(err) }
 }
 
 func initWithBinary() {
@@ -107,32 +100,25 @@ func main() {
 	}()
 	
 	http.HandleFunc("/", serveRESTfulHTTP)
-	http.ListenAndServe(":" + strconv.Itoa(*portNumber), nil)
+	err := http.ListenAndServe(":" + strconv.Itoa(*portNumber), nil)
+	if err != nil { panic(err) }
 }
 
 func notarize() {
-	fmt.Println("Checking if should send current block")
+//	fmt.Println("Checking if should send current block")
 	blockMutex.Lock()
-	fmt.Println("Sending block, creating new block")
+//	fmt.Println("Sending block, creating new block")
 	blockMutex.Unlock()
 }
 
 func save() {
+	bcp := make([]*notaryapi.Block, len(blocks))
 	
-}
-
-func saveJSON() {
 	blockMutex.Lock()
-	data, err := json.Marshal(blocks)
+	copy(bcp, blocks)
 	blockMutex.Unlock()
-	if err != nil { panic(err) }
 	
-	err = ioutil.WriteFile("app/rest/store.json", data, 0644)
-	if err != nil { panic(err) }
-}
-
-func saveBinary() {
-	for i, block := range blocks {
+	for i, block := range bcp {
 		data, err := block.MarshalBinary()
 		if err != nil { panic(err) }
 		
@@ -219,7 +205,8 @@ func post(context string, form url.Values) (interface{}, *notaryapi.Error) {
 	
 	switch format {
 	case "", "json":
-		err := json.Unmarshal([]byte(data), newEntry)
+		reader := gocoding.ReadString(data)
+		err := json.Unmarshal(reader, newEntry)
 		if err != nil {
 			return nil, notaryapi.CreateError(notaryapi.ErrorJSONUnmarshal, err.Error())
 		}

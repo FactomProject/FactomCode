@@ -17,6 +17,7 @@ type EntryData interface {
 	Version() uint32
 	Data() []byte
 	EncodableFields() map[string]reflect.Value
+	DecodableFields() map[string]reflect.Value
 	UnmarshalBinary([]byte) error
 }
 
@@ -124,6 +125,23 @@ func (e *Entry) EncodableFields() map[string]reflect.Value {
 	return fields
 }
 
+func (e *Entry) DecodableFields() map[string]reflect.Value {
+	fields := map[string]reflect.Value{
+//		`Type`: reflect.ValueOf(e.Type()),
+//		`Version`: reflect.ValueOf(e.Version()),
+		`TimeStamp`: reflect.ValueOf(&e.unixTime),
+		`Signatures`: reflect.ValueOf(&e.signatures),
+	}
+	
+	e.EntryData = &PlainData{}
+	
+	for name, value := range e.EntryData.DecodableFields() {
+		fields[name] = value
+	}
+	
+	return fields
+}
+
 func (e *Entry) MarshalBinary() ([]byte, error) {
 	var buf bytes.Buffer
 	
@@ -218,6 +236,10 @@ func (e *PlainData) Data() []byte {
 
 func (e *PlainData) EncodableFields() map[string]reflect.Value {
 	return map[string]reflect.Value{`Data`: reflect.ValueOf(e.Data())}
+}
+
+func (e *PlainData) DecodableFields() map[string]reflect.Value {
+	return map[string]reflect.Value{`Data`: reflect.ValueOf(&e.data)}
 }
 
 func (e *PlainData) UnmarshalBinary(data []byte) (err error) {

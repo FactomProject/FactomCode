@@ -13,10 +13,10 @@
 	},
 	"entries": [
 		{
-			"entryType": 0,
-			"structuredData": "EBESEw==",
+			"type": 0,
+			"data": "EBESEw==",
 			"signatures": [],
-			"timeSamp": 0
+			"timeStamp": 0
 		}
 	],
 	"salt": {

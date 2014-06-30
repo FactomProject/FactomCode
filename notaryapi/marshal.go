@@ -1,14 +1,15 @@
 package notaryapi
 
 import (
-	"bytes"
 	"encoding/xml"
 	"fmt"
 	"github.com/firelizzard18/dynrsrc"
 	"github.com/firelizzard18/gocoding"
+	"github.com/firelizzard18/gocoding/html"
 	"github.com/firelizzard18/gocoding/json"
 	"io"
 	"reflect"
+	"strconv"
 	"text/template"
 )
 
@@ -32,9 +33,11 @@ var M = struct {Main, Alt gocoding.Marshaller}{
 	json.NewMarshaller(),
 }
 
+var hashEncoder = M.Alt.FindEncoder(reflect.TypeOf(new(Hash)))
+
 func init() {
 	M.Alt.CacheEncoder(reflect.TypeOf(new(Block)), AltBlockEncoder)
-//	M.Alt.CacheEncoder(reflect.TypeOf(new(Entry)), AltEntryEncoder)
+	M.Alt.CacheEncoder(reflect.TypeOf(new(Entry)), AltEntryEncoder)
 }
 
 func AltBlockEncoder(scratch [64]byte, renderer gocoding.Renderer, value reflect.Value) {
@@ -64,16 +67,32 @@ func AltBlockEncoder(scratch [64]byte, renderer gocoding.Renderer, value reflect
 func AltEntryEncoder(scratch [64]byte, renderer gocoding.Renderer, value reflect.Value) {
 	entry := value.Interface().(*Entry)
 	
+	renderer.StartStruct()
+	
 	for name, value := range entry.EncodableFields() {
-		if name == "Signatures" { continue }
 		renderer.StartElement(name)
-		M.Alt.MarshalValue(renderer, value)
+		
+		if name == "Signatures" {
+			renderer.StartArray()
+			
+			for idx, sig := range entry.Signatures() {
+				num := strconv.Itoa(idx)
+				
+				renderer.StartElement(num)
+				hash, err := CreateHash(sig.Key())
+				if err != nil { renderer.Error(gocoding.ErrorPrint("Encoding", "Error creating hash: ", err.Error())) }
+				
+				hashEncoder(scratch, renderer, reflect.ValueOf(hash))
+				renderer.StopElement(num)
+			}
+			
+			renderer.StopArray()
+		} else {
+			M.Alt.MarshalValue(renderer, value)
+		}
+		
 		renderer.StopElement(name)
 	}
-	
-	renderer.StartElement("NumSignatures")
-	M.Alt.MarshalObject(renderer, entry.Signatures())
-	renderer.StopElement("NumSignatures")
 	
 	renderer.StopStruct()
 }
@@ -91,10 +110,10 @@ func Marshal(resource interface{}, accept string, writer io.Writer, alt bool) (r
 	
 	switch accept {
 	case "text":
-		renderer = json.RenderIndentedJSON(writer, "", "  ")
+		renderer = json.RenderIndented(writer, "", "  ")
 		
 	case "json":
-		renderer = json.RenderJSON(writer)
+		renderer = json.Render(writer)
 		
 	case "xml":
 		data, err := xml.Marshal(resource)
@@ -109,29 +128,11 @@ func Marshal(resource interface{}, accept string, writer io.Writer, alt bool) (r
 		return
 		
 	case "html":
-		var buf bytes.Buffer
-		r = Marshal(resource, "json", &buf, alt)
-		if r != nil {
-			return r
-		}
-		
-		str := buf.String()
-		buf.Reset()
-		err := htmlTmpl.Execute(&buf, str)
-		if err != nil {
-			r = CreateError(ErrorJSONMarshal, err.Error())
-			err = marshaller.Marshal(json.RenderJSON(writer), r)
-			if err != nil {
-				panic(err)
-			}
-		}
-		
-		buf.WriteTo(writer)
-		return
+		renderer = html.Render(writer)
 		
 	default:
 		resource  = CreateError(ErrorUnsupportedMarshal, fmt.Sprintf(`"%s" is an unsupported marshalling format`, accept))
-		renderer = json.RenderJSON(writer)
+		renderer = json.Render(writer)
 	}
 	
 	err = marshaller.Marshal(renderer, resource)

@@ -24,6 +24,9 @@ const (
 	ErrorUnsupportedUnmarshal = 16
 	ErrorBadPOSTData = 17
 	ErrorTemplateError = 18
+	ErrorHTTPNewRequestFailure = 19
+	ErrorHTTPDoRequestFailure = 20
+	ErrorHTMLMarshal = 21
 )
 
 type Error struct {
@@ -107,6 +110,15 @@ func retreiveErrorParameters(code uint) (int, string, string, string) {
 		
 	case ErrorTemplateError:
 		return 500, "Template Error", "A template error occured", ""
+		
+	case ErrorHTTPNewRequestFailure:
+		return 500, "HTTP Request Failure", "Failed to create an HTTP request", ""
+		
+	case ErrorHTTPDoRequestFailure:
+		return 500, "HTTP Request Failure", "Error while executing an HTTP request", ""
+		
+	case ErrorHTMLMarshal:
+		return 500, "HTML Marshal", "An error occured marshalling into HTML", ""
 	}
 	
 	return 500, "Unknown Error", "An unknown error occured", ""

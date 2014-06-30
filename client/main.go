@@ -24,7 +24,8 @@ func init() {
 	err := dynrsrc.Start(watchError, readError)
 	if err != nil { panic(err) }
 	
-	load()
+	loadStore()
+	loadSettings()
 	templates_init()
 	serve_init()
 }

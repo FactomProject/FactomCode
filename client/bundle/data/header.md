@@ -14,7 +14,7 @@ Distributed notary services
     {{end}}
     <select id="entry_select" data-entry-id="{{unnil .EntryID -1}}" onchange="window.location='/entries/'+this.item(this.selectedIndex).innerHTML">
       <option selected></option>
-      {{range mkrng entryCount}}<option>{{.}}</option>{{end}}
+      {{range activeEntryIDs}}<option>{{.}}</option>{{end}}
       <option>+</option>
     </select>
   * {{if eq .Title "Keys"}}
@@ -24,7 +24,7 @@ Distributed notary services
     {{end}}
     <select id="key_select" data-key-id="{{unnil .KeyID -1}}" onchange="window.location='/keys/'+this.item(this.selectedIndex).innerHTML">
       <option selected></option>
-      {{range mkrng keyCount}}<option>{{.}}</option>{{end}}
+      {{range keyIDs}}<option>{{.}}</option>{{end}}
       <option>+</option>
     </select>
   * {{if eq .Title "Explore"}}
