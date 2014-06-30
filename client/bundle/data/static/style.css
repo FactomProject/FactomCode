@@ -152,8 +152,12 @@ textarea {
 	padding: .5em;
 }
 
-.signatures {
-	list-style-position: inside;
+section li {
+	margin-left: 2em;
+}
+
+ol.array > li.element > span {
+	display: none;
 }
 
 .entry, .key {

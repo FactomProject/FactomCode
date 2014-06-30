@@ -3,6 +3,8 @@ package notaryapi
 import (
 	"bytes"
 	"crypto/sha256"
+	"github.com/firelizzard18/gocoding"
+	"reflect"
 )
 
 type Hash struct {
@@ -47,4 +49,21 @@ func (h *Hash) UnmarshalBinary(data []byte) error {
 	copy(h.Bytes, data)
 	
 	return nil
+}
+
+func (h *Hash) Encoding(marshaller gocoding.Marshaller, theType reflect.Type) gocoding.Encoder {
+	return func(scratch [64]byte, renderer gocoding.Renderer, value reflect.Value) {
+		hash := value.Interface().(*Hash)
+		marshaller.MarshalObject(renderer, hash.Bytes)
+	}
+}
+
+func (h *Hash) Decoding(unmarshaller gocoding.Unmarshaller, theType reflect.Type) gocoding.Decoder {
+	return func(scratch [64]byte, scanner gocoding.Scanner, value reflect.Value) {
+		if value.IsNil() {
+			value.Set(reflect.ValueOf(new(Hash)))
+		}
+		hash := value.Interface().(*Hash)
+		unmarshaller.UnmarshalObject(scanner, &hash.Bytes)
+	}
 }

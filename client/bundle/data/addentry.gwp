@@ -1,0 +1,10 @@
+<h1>New Entry</h1>
+<label for="datatype">Data Type: </label>
+<select name="datatype" form="genform">
+	<option selected="true" value="1">Plain/Raw</option>
+</select>
+<br />
+<form id="genform" method="post" action="/entries">
+	<input type="hidden" name="action" value="genEntry" />
+	<input type="submit" value="Create" />
+</form>

@@ -3,11 +3,14 @@ package main
 import (
 	"bytes"
 	"crypto/rand"
-	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"github.com/firelizzard18/gobundle"
+	"github.com/firelizzard18/gocoding"
 	"github.com/hoisie/web"
 	"github.com/NotaryChains/NotaryChainCode/notaryapi"
+	"net/http"
+	"net/url"
 	"strconv"
 )
 
@@ -79,10 +82,37 @@ func handleExplore(ctx *web.Context, rest string) {
 		return
 	}
 	
+	url := fmt.Sprintf(`http://%s/v1/blocks%s?byref=true`, Settings.Server, rest)
+	
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil { handleError(ctx, notaryapi.CreateError(notaryapi.ErrorHTTPNewRequestFailure, err.Error())); return }
+	
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil { handleError(ctx, notaryapi.CreateError(notaryapi.ErrorHTTPDoRequestFailure, err.Error())); return }
+	
+	data := &map[string]interface{} {}
+	err = safeUnmarshal(gocoding.Read(resp.Body, 1024), data)
+	resp.Body.Close()
+	if err != nil { handleError(ctx, notaryapi.CreateError(notaryapi.ErrorJSONUnmarshal, err.Error())); return }
+	
+	if num, ok := (*data)["NumEntries"]; ok {
+		links := make([]*link, num.(int64))
+		for i := int64(0); i < num.(int64); i++ {
+			links[i] = &link{fmt.Sprintf(`Entry %d`, i), fmt.Sprintf(`/explore%s/entries/%d`, rest, i)}
+		}
+		(*data)["Entries"] = links
+		delete(*data, "NumEntries")
+	}
+	
+	buf := new(bytes.Buffer); //buf.ReadFrom(resp.Body)
+	err = safeMarshalHTML(buf, data)
+	if err != nil { handleError(ctx, notaryapi.CreateError(notaryapi.ErrorHTMLMarshal, err.Error())); return }
+	
 	safeWrite200(ctx, map[string]interface{} {
 		"Title": "Explore",
 		"ContentTmpl": "explore.md",
-		"Data": fmt.Sprintf(`<iframe sandbox="allow-scripts" seamless src="http://%s/v1/blocks%s">Notary server content</iframe>`, Settings.Server, rest),
+		"Data": buf.String(),
 	})
 }
 
@@ -139,13 +169,56 @@ func handleEntriesPost(ctx *web.Context) {
 		}
 		
 		entry := getEntry(idx)
-		data, err := base64.StdEncoding.DecodeString(ctx.Params["data"])
+		data, err := hex.DecodeString(ctx.Params["data"])
 		if err != nil {
 			abortMessage = fmt.Sprint("Failed to edit data entry data: error parsing data: ", err.Error())
 			return
 		}
 		
 		entry.EntryData = notaryapi.NewPlainData(data)
+		
+		storeEntry(idx)
+		
+	case "submitEntry":
+		id := ctx.Params["id"]
+		abortReturn = fmt.Sprint("/entries/", id)
+		idx, err := strconv.Atoi(id)
+		if err != nil {
+			abortMessage = fmt.Sprint("Failed to submit entry: error parsing id: ", err.Error())
+			return
+		}
+		if !templateIsValidEntryId(idx) {
+			abortMessage = fmt.Sprint("Failed to submit entry: bad id: ", id)
+			return
+		}
+//		if sub := getEntrySubmission(idx); sub != nil {
+//			abortMessage = fmt.Sprint("Failed to submit entry: entry has already been submitted to ", sub.Host)
+//			return
+//		}
+		
+		entry := getEntry(idx)
+		buf := new(bytes.Buffer)
+		err = safeMarshal(buf, entry)
+		if err != nil {
+			abortMessage = fmt.Sprint("Failed to submit entry: entry could not be marshalled: ", err.Error())
+			return
+		}
+		
+		server := fmt.Sprintf(`http://%s/v1`, Settings.Server)
+		data := url.Values{}
+		data.Set("format", "json")
+		data.Set("data", buf.String())
+		
+		resp, err := http.PostForm(server, data)
+		if err != nil {
+			abortMessage = fmt.Sprint("An error occured while submitting the entry (entry may have been accepted by the server but was not locally flagged as such): ", err.Error())
+			return
+		}
+		resp.Body.Close()
+		
+		flagSubmitEntry(idx)
+		storeEntry(idx)
+		
 	
 	case "rmEntrySig":
 		entry_id_str := ctx.Params["id"]
@@ -178,6 +251,8 @@ func handleEntriesPost(ctx *web.Context) {
 		} else {
 			abortMessage = fmt.Sprint("Failed to remove entry signature #", sig_id)
 		}
+		
+		storeEntry(entry_id)
 		
 	case "signEntry":
 		entry_id_str := ctx.Params["id"]
@@ -217,6 +292,28 @@ func handleEntriesPost(ctx *web.Context) {
 			return
 		}
 		
+		storeEntry(entry_id)
+		
+	case "genEntry":
+		abortReturn = fmt.Sprint("/entries/add")
+		
+		sid := ctx.Params["datatype"]
+		id, err := strconv.Atoi(sid)
+		if err != nil {
+			abortMessage = fmt.Sprint("Failed to generate entry: error data type: ", err.Error())
+			return
+		}
+		if id != notaryapi.PlainDataType {
+			abortMessage = fmt.Sprint("Failed to generate entry: unsupported data type: ", id)
+			return
+		}
+		
+		entry := notaryapi.NewDataEntry([]byte{})
+		addEntry(entry)
+		
+		ctx.Header().Add("Location", fmt.Sprintf("/entries/%d", Settings.NextEntryID-1))
+		ctx.WriteHeader(303)
+		
 	default:
 		abortReturn = fmt.Sprint("/entries")
 		abortMessage = fmt.Sprint("Unknown action: ", action)
@@ -235,36 +332,35 @@ func handleKeysPost(ctx *web.Context) {
 	
 	switch ctx.Params["action"] {
 	case "genKey":
+		abortReturn = fmt.Sprint("/keys/add")
+		
 		sid := ctx.Params["algorithm"]
 		id, err := strconv.Atoi(sid)
 		if err != nil {
 			abortMessage = fmt.Sprint("Failed to generate key: error parsing algorithm id: ", err.Error())
-			abortReturn = fmt.Sprint("/keys/add")
 			return
 		}
 		
 		key, err := notaryapi.GenerateKeyPair(int8(id), rand.Reader)
 		if err != nil {
 			abortMessage = fmt.Sprint("Failed to generate key: error generating key: ", err.Error())
-			abortReturn = fmt.Sprint("/keys/add")
 			return
 		}
 		if key == nil {
 			abortMessage = fmt.Sprint("Failed to generate key: unsupported algorithm id: ", id)
-			abortReturn = fmt.Sprint("/keys/add")
 			return
 		}
 		
 		addKey(key)
 		
-		ctx.Header().Add("Location", fmt.Sprint("/keys/", getKeyCount()-1))
+		ctx.Header().Add("Location", fmt.Sprintf("/keys/%d", Settings.NextKeyID-1))
 		ctx.WriteHeader(303)
 	}
 }
 
 func handleSettingsPost(ctx *web.Context) {
 	Settings.Server = ctx.Params["server"]
-	
+	saveSettings()
 	handleSettings(ctx)
 }
 
@@ -277,13 +373,19 @@ func handleAddEntry(ctx *web.Context) {
 
 func handleEntry(ctx *web.Context, entry_id_str string, action string, action_id_str string) {
 	var err error
-	var title, error_str string
+	var title, error_str, tmpl string
 	var entry_id int
 	
 	defer func(){
+		if action == "submit" {
+			tmpl = "entrysubmit.gwp"
+		} else {
+			tmpl = "entry.gwp"
+		}
+		
 		r := safeWrite(ctx, 200, map[string]interface{} {
 			"Title": title,
-			"ContentTmpl": "entry.gwp",
+			"ContentTmpl": tmpl,
 			"EntryID": entry_id,
 			"Error": error_str,
 			"Mode": action,
@@ -305,8 +407,8 @@ func handleEntry(ctx *web.Context, entry_id_str string, action string, action_id
 		title = fmt.Sprint("Entry ", entry_id)
 	}
 	
-	switch {
-	case action == "" || action == "edit" || action == "sign":
+	switch action {
+	case "", "edit", "sign", "submit":
 		return
 		
 	default:

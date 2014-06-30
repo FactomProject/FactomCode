@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"github.com/firelizzard18/blackfriday"
@@ -48,17 +49,16 @@ func buildTemplateTree() (main *template.Template, err error) {
 	funcmap := template.FuncMap{
 		"tmplref": templateRef,
 		"enc64": templateEncode64,
+		"enchex": templateEncodeHex,
 		"isValidEntryID": templateIsValidEntryId,
+		"isEntrySubmitted": func (idx int) bool { sub := getEntrySubmission(idx); return sub != nil && sub.Host != "" },
 		"entry": templateGetEntry,
 		"isValidKeyID": templateIsValidKeyId,
-//		"asHash": templateAsHash,
-		"key": templateGetKey,
-		"entryCount": getEntryCount,
-//		"isEntrySignedByKey": templateIsEntrySignedByKey,
-//		"isEntrySignedByKeyHash": templateIsEntrySignedByKeyHash,
-		"keysExceptEntrySigs": templateKeysExceptEntrySigs,
+		"activeEntryIDs": getActiveEntryIDs,
+		"keyIDs": getKeyIDs,
 		"keyCount": getKeyCount,
-		"mkrng": templateMakeRange,
+		"key": templateGetKey,
+		"keysExceptEntrySigs": templateKeysExceptEntrySigs,
 		"atoi": func(str string) (int, error) { return strconv.Atoi(str) },
 		"itoa": func(num int) string { return strconv.Itoa(num) },
 		"isNil": func(val interface{}) bool { switch val.(type) { case nil: return true }; return false },
@@ -105,6 +105,10 @@ func templateRef(name string, data interface{}) (string, error) {
 
 func templateEncode64(data []byte) string {
 	return base64.StdEncoding.EncodeToString(data)
+}
+
+func templateEncodeHex(data []byte) string {
+	return hex.EncodeToString(data)
 }
 
 func templateIsValidEntryId(id interface{}) bool {

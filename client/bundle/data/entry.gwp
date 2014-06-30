@@ -1,9 +1,10 @@
 {{if isValidEntryID .EntryID}}
-	{{$mode := or .Mode ""}}
+	{{$mode := unnil .Mode ""}}
 	{{$error := .Error}}
 	{{with entry .EntryID}}
-		{{$edit := and $mode (eq $mode "edit") (eq 0 (len .Signatures)) }}
-		{{$sign := and $mode (eq $mode "sign") (gt keyCount 0)}}
+		{{$subd := isEntrySubmitted .ID}}
+		{{$edit := and $mode (eq $mode "edit") (eq 0 (len .Signatures)) (not $subd)}}
+		{{$sign := and $mode (eq $mode "sign") (gt keyCount 0) (not $subd)}}
 		{{if $edit}}
 			<form id="editEntryForm" method="post" action="/entries">
 				<input type="hidden" name="id" value="{{.ID}}" />
@@ -32,6 +33,7 @@
 				{{else}}
 					{{if eq 0 (len .Signatures)}}<a class="button" href="/entries/{{.ID}}/edit">Edit</a>{{end}}
 					{{if gt keyCount 0}}<a class="button" href="/entries/{{.ID}}/sign">Sign</a>{{end}}
+					<a class="button" href="/entries/{{.ID}}/submit">Send</a>
 				{{end}}
 			</h1>
 			<hr />
@@ -74,9 +76,9 @@
 			<div class="data">
 				<h4>Data:</h4>
 				{{if $edit}}
-					<textarea name="data" form="editEntryForm">{{enc64 .Data}}</textarea>
+					<textarea name="data" form="editEntryForm">{{enchex .Data}}</textarea>
 				{{else}}
-					<p>{{enc64 .Data}}</p>
+					<p>{{enchex .Data}}</p>
 				{{end}}
 			</div>
 			<hr />
