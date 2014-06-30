@@ -79,6 +79,8 @@ func safeUnmarshal(reader gocoding.SliceableRuneReader, obj interface{}) error {
 }
 
 func loadStore() {
+	keys = make(map[int]notaryapi.Key)
+
 	err := os.MkdirAll(gobundle.ConfigFile("store"), 0755)
 	if err != nil { panic(err) }
 	
