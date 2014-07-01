@@ -74,7 +74,7 @@ func safeMarshalHTML(writer io.Writer, obj interface{}) error {
 
 func safeUnmarshal(reader gocoding.SliceableRuneReader, obj interface{}) error {
 	scanner := json.Scan(reader)
-	scanner.SetRecoverHandler(safeRecover)
+	scanner.SetRecoverHandler(EXPLODE)
 	return unmarshaller.Unmarshal(scanner, obj)
 }
 

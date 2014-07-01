@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"encoding/base64"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"github.com/firelizzard18/blackfriday"
@@ -48,22 +47,24 @@ func templates_init() {
 func buildTemplateTree() (main *template.Template, err error) {
 	funcmap := template.FuncMap{
 		"tmplref": templateRef,
-		"enc64": templateEncode64,
-		"enchex": templateEncodeHex,
-		"isValidEntryID": templateIsValidEntryId,
-		"isEntrySubmitted": func (idx int) bool { sub := getEntrySubmission(idx); return sub != nil && sub.Host != "" },
-		"entry": templateGetEntry,
-		"isValidKeyID": templateIsValidKeyId,
-		"activeEntryIDs": getActiveEntryIDs,
-		"keyIDs": getKeyIDs,
-		"keyCount": getKeyCount,
-		"key": templateGetKey,
-		"keysExceptEntrySigs": templateKeysExceptEntrySigs,
+		"enc64": base64.StdEncoding.EncodeToString,
 		"atoi": func(str string) (int, error) { return strconv.Atoi(str) },
 		"itoa": func(num int) string { return strconv.Itoa(num) },
 		"isNil": func(val interface{}) bool { switch val.(type) { case nil: return true }; return false },
 		"len": func(val interface{}) int { return reflect.ValueOf(val).Len() },
 		"unnil": func(val interface{}, alt interface{}) interface{} { switch val.(type) { case nil: return alt }; return val },
+		
+		"entry": templateGetEntry,
+		"activeEntryIDs": getActiveEntryIDs,
+		"isValidEntryID": templateIsValidEntryId,
+		"isEntrySubmitted": func (idx int) bool { sub := getEntrySubmission(idx); return sub != nil && sub.Host != "" },
+		
+		"key": templateGetKey,
+		"keyIDs": getKeyIDs,
+		"keyCount": getKeyCount,
+		"isValidKeyID": templateIsValidKeyId,
+		
+		"keysExceptEntrySigs": templateKeysExceptEntrySigs,
 	}
 	
 	main, err = template.New("main").Funcs(funcmap).Parse(`{{template "page.gwp" .}}`)
@@ -103,12 +104,43 @@ func templateRef(name string, data interface{}) (string, error) {
 	return string(buf.Bytes()), nil
 }
 
-func templateEncode64(data []byte) string {
-	return base64.StdEncoding.EncodeToString(data)
-}
-
-func templateEncodeHex(data []byte) string {
-	return hex.EncodeToString(data)
+func templateGetEntry(idx int) (map[string]interface{}, error) {
+	fentry, ok := entries[idx]
+	if !ok {
+		return nil, errors.New(fmt.Sprint("No entry at index", idx))
+	}
+	entry := fentry.Entry
+	
+	count := len(entry.Signatures())
+	signatures := make([]map[string]interface{}, count)
+	for i := 0; i < count; i++ {
+		hash, err := notaryapi.CreateHash(entry.Signatures()[i].Key())
+		if err != nil { return nil, err }
+		
+		j := -1
+		for id, key := range keys{
+			key, err := notaryapi.CreateHash(key.Public())
+			if err != nil { return nil, err }
+			if bytes.Compare(key.Bytes, hash.Bytes) == 0 {
+				j = id
+				break
+			}
+		}
+		
+		signatures[i] = map[string]interface{} {
+			"KeyID": j,
+			"Hash": hash.Bytes,
+		}
+	}
+	
+	return map[string]interface{}{
+		"ID": idx,
+		"Type": entry.TypeName(),
+		"Signatures": signatures,
+		"TimeStamp": entry.RealTime(),
+		"Data": entry.EncodeToString(),
+		"Submitted": fentry.Submitted,
+	}, nil
 }
 
 func templateIsValidEntryId(id interface{}) bool {
@@ -129,46 +161,19 @@ func templateIsValidEntryId(id interface{}) bool {
 	}
 }
 
-func templateGetEntry(idx int) (map[string]interface{}, error) {
-	fentry, ok := entries[idx]
+func templateGetKey(idx int) (map[string]interface{}, error) {
+	key, ok := keys[idx]
 	if !ok {
-		return nil, errors.New(fmt.Sprint("No entry at index", idx))
+		return nil, errors.New(fmt.Sprint("No key at index", idx))
 	}
-	entry := fentry.Entry
 	
-	count := len(entry.Signatures())
-	signatures := make([]map[string]interface{}, count)
-	for i := 0; i < count; i++ {
-		hash, err := notaryapi.CreateHash(entry.Signatures()[i].Key())
-		if err != nil { return nil, err }
-		
-		keyCount := getKeyCount()
-		var j int
-		for j = 0; j < keyCount; j++ {
-			key, err := notaryapi.CreateHash(getKey(j).Public())
-			if err != nil { return nil, err }
-			if bytes.Compare(key.Bytes, hash.Bytes) == 0 {
-				break
-			}
-		}
-		
-		if j == keyCount {
-			j = -1
-		}
-		
-		signatures[i] = map[string]interface{} {
-			"KeyID": j,
-			"Hash": hash.Bytes,
-		}
-	}
+	hash, err := notaryapi.CreateHash(key.Public())
+	if err != nil { return nil, err }
 	
 	return map[string]interface{}{
 		"ID": idx,
-		"Type": entry.TypeName(),
-		"Signatures": signatures,
-		"TimeStamp": entry.RealTime(),
-		"Data": entry.Data(),
-		"Submitted": fentry.Submitted,
+		"Type": notaryapi.KeyTypeName(key.KeyType()),
+		"Hash": hash.Bytes,
 	}, nil
 }
 
@@ -190,55 +195,6 @@ func templateIsValidKeyId(id interface{}) bool {
 	}
 }
 
-func templateGetKey(idx int) (map[string]interface{}, error) {
-	if idx >= getKeyCount() {
-		return nil, errors.New(fmt.Sprint("Index ", idx, " out of bounds for key array"))
-	}
-	
-	key := getKey(idx)
-	
-	hash, err := notaryapi.CreateHash(key.Public())
-	if err != nil { return nil, err }
-	
-	return map[string]interface{}{
-		"ID": idx,
-		"Type": notaryapi.KeyTypeName(key.KeyType()),
-		"Hash": hash.Bytes,
-	}, nil
-}
-
-func templateMakeRange(cnt int) (rng []int) {
-	rng = make([]int, cnt)
-	
-	for i := 0; i < cnt; i++ {
-		rng[i] = i
-	}
-	
-	return rng
-}
-
-//func templateIsEntrySignedByKey(entry_id, key_id int) (bool, error) {
-//	hash, err := notaryapi.CreateHash(getKey(key_id))
-//	if err != nil { return false, err }
-//	return templateIsEntrySignedByKeyHash(entry_id, hash)
-//}
-//
-//func templateIsEntrySignedByKeyHash(entry_id int, hash *notaryapi.Hash) (bool, error) {
-//	for _, sig := range getEntry(entry_id).Signatures() {
-//		shash, err := notaryapi.CreateHash(sig.Key())
-//		if err != nil { return false, err }
-//		
-//		if shash == hash {
-//			return true, nil
-//		}
-//	}
-//	return false, nil
-//}
-//
-//func templateAsHash(data []byte) *notaryapi.Hash {
-//	return &notaryapi.Hash{data}
-//}
-
 func templateKeysExceptEntrySigs(entry_id int) (keyIDs []int, err error) {
 	sigs := getEntry(entry_id).Signatures()
 	sigHashes := make([]*notaryapi.Hash, len(sigs))
@@ -247,15 +203,14 @@ func templateKeysExceptEntrySigs(entry_id int) (keyIDs []int, err error) {
 		if err != nil { return nil, err }
 	}
 	
-	keyCount := getKeyCount()
-	keyHashes := make([]*notaryapi.Hash, keyCount)
-	for i := 0; i < keyCount; i++ {
-		keyHashes[i], err = notaryapi.CreateHash(getKey(i).Public())
+	keyHashes := make(map[int]*notaryapi.Hash)
+	for id, key := range keys {
+		keyHashes[id], err = notaryapi.CreateHash(key.Public())
 		if err != nil { return nil, err }
 	}
 	
 	i := 0
-	keyIDs = make([]int, keyCount)
+	keyIDs = make([]int, len(keyHashes))
 main:
 	for keyIndex, keyHash := range keyHashes {
 		for _, sigHash := range sigHashes {
@@ -267,7 +222,6 @@ main:
 		i++
 	}
 	keyIDs = keyIDs[:i]
-	fmt.Println("Keys:", keyIDs)
 	
 	return keyIDs, nil
 }

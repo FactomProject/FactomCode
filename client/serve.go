@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"crypto/rand"
-	"encoding/hex"
 	"fmt"
 	"github.com/firelizzard18/gobundle"
 	"github.com/firelizzard18/gocoding"
@@ -169,13 +168,11 @@ func handleEntriesPost(ctx *web.Context) {
 		}
 		
 		entry := getEntry(idx)
-		data, err := hex.DecodeString(ctx.Params["data"])
+		err = entry.DecodeFromString(ctx.Params["data"])
 		if err != nil {
 			abortMessage = fmt.Sprint("Failed to edit data entry data: error parsing data: ", err.Error())
 			return
 		}
-		
-		entry.EntryData = notaryapi.NewPlainData(data)
 		
 		storeEntry(idx)
 		
@@ -302,12 +299,12 @@ func handleEntriesPost(ctx *web.Context) {
 			abortMessage = fmt.Sprint("Failed to generate entry: error data type: ", err.Error())
 			return
 		}
-		if id != notaryapi.PlainDataType {
+		
+		entry := notaryapi.NewEntryOfType(notaryapi.EntryDataType(id))
+		if entry == nil {
 			abortMessage = fmt.Sprint("Failed to generate entry: unsupported data type: ", id)
 			return
 		}
-		
-		entry := notaryapi.NewDataEntry([]byte{})
 		addEntry(entry)
 		
 		ctx.Header().Add("Location", fmt.Sprintf("/entries/%d", Settings.NextEntryID-1))

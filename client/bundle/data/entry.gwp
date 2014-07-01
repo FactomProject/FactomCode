@@ -76,9 +76,9 @@
 			<div class="data">
 				<h4>Data:</h4>
 				{{if $edit}}
-					<textarea name="data" form="editEntryForm">{{enchex .Data}}</textarea>
+					<textarea name="data" form="editEntryForm">{{.Data}}</textarea>
 				{{else}}
-					<p>{{enchex .Data}}</p>
+					<p>{{.Data}}</p>
 				{{end}}
 			</div>
 			<hr />

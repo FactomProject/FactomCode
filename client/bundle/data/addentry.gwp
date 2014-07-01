@@ -2,6 +2,7 @@
 <label for="datatype">Data Type: </label>
 <select name="datatype" form="genform">
 	<option selected="true" value="1">Plain/Raw</option>
+	<option selected="true" value="2">UTF8</option>
 </select>
 <br />
 <form id="genform" method="post" action="/entries">
