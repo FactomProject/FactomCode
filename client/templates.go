@@ -115,8 +115,8 @@ func templateIsValidEntryId(id interface{}) bool {
 	switch id.(type) {
 	case int:
 		num := int(reflect.ValueOf(id).Int())
-		if num < 0 || num >= getEntryCount() { return false }
-		return true
+		_, ok := entries[num]
+		return ok
 		
 	case string:
 		str := reflect.ValueOf(id).String()
@@ -130,11 +130,11 @@ func templateIsValidEntryId(id interface{}) bool {
 }
 
 func templateGetEntry(idx int) (map[string]interface{}, error) {
-	if idx >= getEntryCount() {
-		return nil, errors.New(fmt.Sprint("Index ", idx, " out of bounds for entry array"))
+	fentry, ok := entries[idx]
+	if !ok {
+		return nil, errors.New(fmt.Sprint("No entry at index", idx))
 	}
-	
-	entry := getEntry(idx)
+	entry := fentry.Entry
 	
 	count := len(entry.Signatures())
 	signatures := make([]map[string]interface{}, count)
@@ -168,6 +168,7 @@ func templateGetEntry(idx int) (map[string]interface{}, error) {
 		"Signatures": signatures,
 		"TimeStamp": entry.RealTime(),
 		"Data": entry.Data(),
+		"Submitted": fentry.Submitted,
 	}, nil
 }
 
@@ -175,8 +176,8 @@ func templateIsValidKeyId(id interface{}) bool {
 	switch id.(type) {
 	case int:
 		num := int(reflect.ValueOf(id).Int())
-		if num < 0 || num >= getKeyCount() { return false }
-		return true
+		_, ok := keys[num]
+		return ok
 		
 	case string:
 		str := reflect.ValueOf(id).String()

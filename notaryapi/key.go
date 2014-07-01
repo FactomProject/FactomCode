@@ -11,6 +11,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"encoding/binary"
+	"math/big"
 	
 	"github.com/firelizzard18/gocoding"
 )
@@ -250,6 +251,27 @@ func (e *ECDSAPubKey) Encoding(marshaller gocoding.Marshaller, theType reflect.T
 	}
 }
 
+func (e *ECDSAPubKey) DecodableFields() map[string]reflect.Value {
+	e.Key = new(ecdsa.PublicKey)
+	e.Key.X = new(big.Int)
+	e.Key.Y = new(big.Int)
+	p := new(elliptic.CurveParams)
+	e.Key.Curve = p
+	p.B = new(big.Int)
+	p.Gx = new(big.Int)
+	p.Gy = new(big.Int)
+	p.N = new(big.Int)
+	p.P = new(big.Int)
+	
+	fields := map[string]reflect.Value{
+		`X`: reflect.ValueOf(e.Key.X),
+		`Y`: reflect.ValueOf(e.Key.Y),
+		`Curve`: reflect.ValueOf(e.Key.Curve),
+	}
+	
+	return fields
+}
+
 type ECDSAPrivKey struct {
 	Key *ecdsa.PrivateKey
 }
@@ -341,4 +363,27 @@ func (e *ECDSAPrivKey) Encoding(marshaller gocoding.Marshaller, theType reflect.
 		
 		renderer.StopStruct()
 	}
+}
+
+func (e *ECDSAPrivKey) DecodableFields() map[string]reflect.Value {
+	e.Key = new(ecdsa.PrivateKey)
+	e.Key.X = new(big.Int)
+	e.Key.Y = new(big.Int)
+	e.Key.D = new(big.Int)
+	p := new(elliptic.CurveParams)
+	e.Key.Curve = p
+	p.B = new(big.Int)
+	p.Gx = new(big.Int)
+	p.Gy = new(big.Int)
+	p.N = new(big.Int)
+	p.P = new(big.Int)
+	
+	fields := map[string]reflect.Value{
+		`X`: reflect.ValueOf(e.Key.X),
+		`Y`: reflect.ValueOf(e.Key.Y),
+		`D`: reflect.ValueOf(e.Key.D),
+		`Curve`: reflect.ValueOf(e.Key.Curve),
+	}
+	
+	return fields
 }
