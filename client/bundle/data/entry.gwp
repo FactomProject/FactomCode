@@ -31,8 +31,8 @@
 					<input class="button" type="submit" value="Sign" form="signEntryForm" />
 					<a class="button" href="/entries/{{.ID}}">Cancel</a>
 				{{else}}
-					{{if eq 0 (len .Signatures)}}<a class="button" href="/entries/{{.ID}}/edit">Edit</a>{{end}}
-					{{if gt keyCount 0}}<a class="button" href="/entries/{{.ID}}/sign">Sign</a>{{end}}
+					{{if and (eq 0 (len .Signatures)) (not $subd)}}<a class="button" href="/entries/{{.ID}}/edit">Edit</a>{{end}}
+					{{if and (gt keyCount 0) (not $subd)}}<a class="button" href="/entries/{{.ID}}/sign">Sign</a>{{end}}
 					<a class="button" href="/entries/{{.ID}}/submit">Send</a>
 				{{end}}
 			</h1>

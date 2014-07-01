@@ -1,13 +1,105 @@
 package main
 
 import (
+	"bytes"
+	"encoding/xml"
+	"flag"
+	"fmt"
+	"github.com/firelizzard18/gocoding"
 	"github.com/NotaryChains/NotaryChainCode/notaryapi"
 	"net/http"
 	"net/url"
+	"reflect"
 	"strings"
 	"strconv"
-	"fmt"
 )
+
+var portNumber = flag.Int("p", 8083, "Set the port to listen on")
+
+func serve_init() {
+	http.HandleFunc("/", serveRESTfulHTTP)
+}
+
+func serve_main() {
+	err := http.ListenAndServe(fmt.Sprintf(":%d", *portNumber), nil)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func serve_fini() {
+	
+}
+
+func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
+	var resource interface{}
+	var err *notaryapi.Error
+	var buf bytes.Buffer
+
+	path, method, accept, form, err := parse(r)
+
+	defer func() {
+		switch accept {
+		case "text":
+			w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+
+		case "json":
+			w.Header().Set("Content-Type", "application/json; charset=utf-8")
+
+		case "xml":
+			w.Header().Set("Content-Type", "application/xml; charset=utf-8")
+
+		case "html":
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		}
+
+		if err != nil {
+			var r *notaryapi.Error
+
+			buf.Reset()
+			r = notaryapi.Marshal(err, accept, &buf, false)
+			if r != nil {
+				err = r
+			}
+			w.WriteHeader(err.HTTPCode)
+		}
+
+		buf.WriteTo(w)
+		w.Write([]byte("\n\n"))
+	}()
+
+	switch method {
+	case "GET":
+		resource, err = find(path)
+
+	case "POST":
+		if len(path) != 1 {
+			err = notaryapi.CreateError(notaryapi.ErrorBadMethod, `POST can only be used in the root context: /v1`)
+			return
+		}
+
+		resource, err = post("/"+strings.Join(path, "/"), form)
+
+	default:
+		err = notaryapi.CreateError(notaryapi.ErrorBadMethod, fmt.Sprintf(`The HTTP %s method is not supported`, method))
+		return
+	}
+
+	if err != nil {
+		resource = err
+	}
+
+	alt := false
+	for _, s := range form["byref"] {
+		b, err := strconv.ParseBool(s)
+		if err == nil {
+			alt = b
+			break
+		}
+	}
+
+	err = notaryapi.Marshal(resource, accept, &buf, alt)
+}
 
 func parse(r *http.Request) (path []string, method string, accept string, form url.Values, err *notaryapi.Error) {
 	url := strings.TrimSpace(r.URL.Path)
@@ -83,105 +175,43 @@ func parseAccept(accept string, ext []string) (string, *notaryapi.Error) {
 	return "", notaryapi.CreateError(notaryapi.ErrorNotAcceptable, fmt.Sprintf("The specified resource cannot be returned as %s", accept))
 }
 
-func find(path []string) (interface{}, *notaryapi.Error) {
-	if len(path) == 0 {
-		return nil, notaryapi.CreateError(notaryapi.ErrorMissingVersionSpec, "")
-	}
-	
-	ver, path := path[0], path[1:] // capture version spec
-	
-	if !strings.HasPrefix(ver, "v") {
-		return nil, notaryapi.CreateError(notaryapi.ErrorMalformedVersionSpec, fmt.Sprintf(`The version specifier "%s" is malformed`, ver))
-	}
-	
-	ver = strings.TrimPrefix(ver, "v")
-	
-	if ver == "1" {
-		return findV1("/v1", path)
-	}
-	
-	return nil, notaryapi.CreateError(notaryapi.ErrorBadVersionSpec, fmt.Sprintf(`The version specifier "v%s" does not refer to a supported version`, ver))
-}
+var blockPtrType = reflect.TypeOf((*notaryapi.Block)(nil)).Elem()
 
-func findV1(context string, path []string) (interface{}, *notaryapi.Error) {
-	if len(path) == 0 {
-		return nil, notaryapi.CreateError(notaryapi.ErrorEmptyRequest, "")
-	}
-	
-	root, path := path[0], path[1:] // capture root spec
-	
-	if strings.ToLower(root) != "blocks" {
-		return nil, notaryapi.CreateError(notaryapi.ErrorBadElementSpec, fmt.Sprintf(`The element specifier "%s" is not valid in the context "%s"`, root, context))
-	}
-	
-	return findV1InBlocks(context + "/" + root, path, blocks)
-}
+func post(context string, form url.Values) (interface{}, *notaryapi.Error) {
+	newEntry := new(notaryapi.Entry)
+	format, data := form.Get("format"), form.Get("data")
 
-func findV1InBlocks(context string, path []string, blocks []*notaryapi.Block) (interface{}, *notaryapi.Error) {
-	if len(path) == 0 {
-		return blocks, nil
+	switch format {
+	case "", "json":
+		reader := gocoding.ReadString(data)
+		err := notaryapi.UnmarshalJSON(reader, newEntry)
+		if err != nil {
+			return nil, notaryapi.CreateError(notaryapi.ErrorJSONUnmarshal, err.Error())
+		}
+
+	case "xml":
+		err := xml.Unmarshal([]byte(data), newEntry)
+		if err != nil {
+			return nil, notaryapi.CreateError(notaryapi.ErrorXMLUnmarshal, err.Error())
+		}
+
+	default:
+		return nil, notaryapi.CreateError(notaryapi.ErrorUnsupportedUnmarshal, fmt.Sprintf(`The format "%s" is not supported`, format))
 	}
-	
-	// capture root spec
-	sid := path[0]
-	iid, err := strconv.Atoi(sid)
-	id := uint64(iid)
-	path = path[1:]
-	
+
+	if newEntry == nil {
+		return nil, notaryapi.CreateError(notaryapi.ErrorInternal, `Entity to be POSTed is nil`)
+	}
+
+	newEntry.StampTime()
+
+	blockMutex.Lock()
+	err := blocks[len(blocks)-1].AddEntry(newEntry)
+	blockMutex.Unlock()
+
 	if err != nil {
-		return nil, notaryapi.CreateError(notaryapi.ErrorBadIdentifier, fmt.Sprintf(`The identifier "%s" is malformed: %s`, sid, err.Error()))
+		return nil, notaryapi.CreateError(notaryapi.ErrorInternal, fmt.Sprintf(`Error while adding Entity to Block: %s`, err.Error()))
 	}
-	
-	if len(blocks) == 0 {
-		return nil, notaryapi.CreateError(notaryapi.ErrorBlockNotFound, fmt.Sprintf(`The no blocks can be found in the context "%s"`, sid, context))
-	}
-	
-	idOffset := blocks[0].BlockID
-	
-	if id < idOffset {
-		return nil, notaryapi.CreateError(notaryapi.ErrorBlockNotFound, fmt.Sprintf(`The block identified by "%s" cannot be found in the context "%s"`, sid, context))
-	}
-	
-	id = id - idOffset
-	
-	if len(blocks) <= int(id) {
-		return nil, notaryapi.CreateError(notaryapi.ErrorBlockNotFound, fmt.Sprintf(`The block identified by "%s" cannot be found in the context "%s"`, sid, context))
-	}
-	
-	return findV1InBlock(context + "/" + sid, path, blocks[id])
-}
 
-func findV1InBlock(context string, path []string, block *notaryapi.Block) (interface{}, *notaryapi.Error) {
-	if len(path) == 0 {
-		return block, nil
-	}
-	
-	root, path := path[0], path[1:] // capture root spec
-	
-	if strings.ToLower(root) != "entries" {
-		return nil, nil // bad root spec
-	}
-	
-	return findV1InEntries(context + "/" + root, path, block.Entries)
-}
-
-func findV1InEntries(context string, path []string, entries []*notaryapi.Entry) (interface{}, *notaryapi.Error) {
-	if len(path) == 0 {
-		return entries, nil
-	}
-	
-	// capture root spec
-	sid := path[0]
-	id, err := strconv.Atoi(path[0])
-	path = path[1:]
-	
-	if err != nil {
-		return nil, notaryapi.CreateError(notaryapi.ErrorBadIdentifier, fmt.Sprintf(`The identifier "%s" is malformed%s`, sid, err.Error()))
-	}
-	
-	if len(entries) <= id {
-		return nil, notaryapi.CreateError(notaryapi.ErrorEntryNotFound, fmt.Sprintf(`The entry identified by "%s" cannot be found in the context "%s"`, sid, context))
-	}
-	
-	return entries[id], nil
+	return newEntry, nil
 }

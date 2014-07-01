@@ -9,10 +9,66 @@ import (
 	"github.com/conformal/btcutil"
 	"github.com/conformal/btcwire"
 	"github.com/conformal/btcrpcclient"
+	"io/ioutil"
 	"log"
+	"path/filepath"
 	"strings"
 	"time"
 )
+
+var balance int64
+var currentAddr *btcutil.Address
+var client *btcrpcclient.Client
+
+func btc_init() {
+	cadr, err := btcutil.DecodeAddress("mjx5q1BwAfgtJ1UPFoRXucphaM9k1dtzbf", activeNet.Params)
+	
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+	
+	currentAddr = &cadr
+
+	// Only override the handlers for notifications you care about.
+	// Also note most of the handlers will only be called if you register
+	// for notifications.  See the documentation of the btcrpcclient
+	// NotificationHandlers type for more details about each handler.
+	ntfnHandlers := btcrpcclient.NotificationHandlers{
+		OnAccountBalance: func(account string, balance btcutil.Amount, confirmed bool) {
+		     go newBalance(account, balance, confirmed)
+	    },
+
+		OnBlockConnected: func(hash *btcwire.ShaHash, height int32) {
+			go newBlock(hash, height)
+		},
+	}
+	
+	// Connect to local btcwallet RPC server using websockets.
+	certHomeDir := btcutil.AppDataDir("btcwallet", false)
+	certs, err := ioutil.ReadFile(filepath.Join(certHomeDir, "rpc.cert"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	connCfg := &btcrpcclient.ConnConfig{
+		Host:         "localhost:18332",
+		Endpoint:     "ws",
+		User:         "testuser",
+		Pass:         "notarychain",
+		Certificates: certs,
+	}
+	
+	client, err = btcrpcclient.New(connCfg, &ntfnHandlers)
+	
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+}
+
+func btc_fini() {
+	shutdown(client)
+}
 
 // Enodes up to 30 bytes into a 33 byte Bitcoin public key.
 // Returns the public key.  The format is as follows:
@@ -162,13 +218,13 @@ func recordHash(lastHash []byte) (txhash *btcwire.ShaHash) {
 		log.Print("Reported Error: ", err1, err2)
 		return
 	}
-	/*
+	//*
 		log.Print("Amount at the address:  ", amount)
 		log.Print("Change after the trans: ", change)
 		log.Print("Amount to send:         ", send)
 		log.Print("Send+Change+fee:        ", send+change+fee)
 		log.Print("unspent: ",unspent)
-	*/
+	//*/
 
 	adrs := make(map[btcutil.Address]btcutil.Amount)
 	adrs[multiAddr] = send
@@ -241,10 +297,9 @@ func newBlock(hash *btcwire.ShaHash, height int32) {
 	blockMutex.Unlock()
 
 	blkhash, _ := notaryapi.CreateHash(block)
-	hashdata := blkhash.Bytes
 
-	txhash := recordHash(hashdata)
-    log.Print("Recorded ",hashdata," in transaction hash:\n",txhash)
+	txhash := recordHash(blkhash.Bytes)
+    log.Printf("Recorded %s in transaction hash:\n %s", blkhash.Bytes, txhash.String())
 }
 
 
