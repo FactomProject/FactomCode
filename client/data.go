@@ -45,7 +45,7 @@ var Settings = &struct {
 func init() {
 	marshaller = json.NewMarshaller()
 	marshallerHTML = html.NewMarshaller()
-	unmarshaller = json.NewUnmarshaller()
+	unmarshaller = notaryapi.NewJSONUnmarshaller()
 }
 
 func safeRecover(obj interface{}) error {

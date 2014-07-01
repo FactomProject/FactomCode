@@ -2,9 +2,22 @@ package notaryapi
 
 import (
 	"github.com/firelizzard18/gocoding"
+	"github.com/firelizzard18/gocoding/json"
 	"reflect"
 	"strings"
 )
+
+func NewUnmarshaller(decoding gocoding.Decoding) gocoding.Unmarshaller {
+	return gocoding.NewUnmarshaller(NewDecoding(decoding))
+}
+
+func NewJSONUnmarshaller() gocoding.Unmarshaller {
+	return NewUnmarshaller(json.Decoding)
+}
+
+func UnmarshalJSON(reader gocoding.SliceableRuneReader, obj interface{}) error {
+	return NewJSONUnmarshaller().Unmarshal(json.Scan(reader), obj)
+}
 
 var signatureType = reflect.TypeOf(new(Signature)).Elem()
 
