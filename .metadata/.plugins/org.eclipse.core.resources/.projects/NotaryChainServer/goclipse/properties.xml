@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
-<properties>
-<comment>NotaryChainServer properties</comment>
-<entry key="com.googlecode.goclipse.environment.bin.output.folders">bin</entry>
-<entry key="com.googlecode.goclipse.environment.pkg.output.folders">pkg/linux_amd64</entry>
-<entry key="com.googlecode.goclipse.environment.source.folders">src;</entry>
-</properties>
