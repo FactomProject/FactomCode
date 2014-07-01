@@ -220,7 +220,7 @@ func newBlock(hash *btcwire.ShaHash, height int32) {
 		return
 	}
 	waiting = true
-	//log.Printf("Block connected: %v (%d)", hash, height)
+	log.Printf("Block connected: %v (%d)", hash, height)
 
 	time.Sleep(time.Minute * 5)
 
@@ -231,6 +231,7 @@ func newBlock(hash *btcwire.ShaHash, height int32) {
 	// wait until it's full
 	for len(block.Entries) < 5 {
 		time.Sleep(time.Minute)
+		log.Print("waiting for entries... have ",len(block.Entries))
 	}
 
 	// add a new block for new entries to be added to
@@ -242,8 +243,8 @@ func newBlock(hash *btcwire.ShaHash, height int32) {
 	blkhash, _ := notaryapi.CreateHash(block)
 	hashdata := blkhash.Bytes
 
-	recordHash(hashdata)
-
+	txhash := recordHash(hashdata)
+    log.Print("Recorded ",hashdata," in transaction hash:\n",txhash)
 }
 
 
