@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"reflect"
+	"strings"
 	
 	"math/big"
 	
@@ -15,6 +16,12 @@ type Signature interface {
 	HashMethod() string
 	Key() Key
 }
+
+const (
+	BadSignatureType = 0
+	ECDSASignatureType = 1
+	RSASignatureType = 2
+)
 
 func UnmarshalBinarySignature(data []byte) (s Signature, err error) {
 	switch int(data[0]) {
@@ -87,6 +94,10 @@ func (e *ECDSASignature) Encoding(marshaller gocoding.Marshaller, theType reflec
 		
 		renderer.StartStruct()
 		
+		renderer.StartElement(`Type`)
+		marshaller.MarshalObject(renderer, ECDSASignatureType)
+		renderer.StopElement(`Type`)
+		
 		renderer.StartElement(`Key`)
 		marshaller.MarshalObject(renderer, &e.ECDSAPubKey)
 		renderer.StopElement(`Key`)
@@ -104,5 +115,51 @@ func (e *ECDSASignature) Encoding(marshaller gocoding.Marshaller, theType reflec
 		renderer.StopElement(`S`)
 		
 		renderer.StopStruct()
+	}
+}
+
+func (e *ECDSASignature) ElementDecoding(unmarshaller gocoding.Unmarshaller, theType reflect.Type) gocoding.Decoder {
+	return func(scratch [64]byte, scanner gocoding.Scanner, value reflect.Value) {
+		e := value.Interface().(*ECDSASignature)
+		e.R = new(big.Int)
+		e.S = new(big.Int)
+		
+		for {
+			// get the next code, check for the end
+			code := scanner.Continue()
+			if code.Matches(gocoding.ScannedStructEnd, gocoding.ScannedMapEnd) { break }
+			
+			// check for key begin
+			if code != gocoding.ScannedKeyBegin {
+				// this will generate an appropriate error message
+				gocoding.PeekCheck(scanner, gocoding.ScannedKeyBegin, gocoding.ScannedStructEnd, gocoding.ScannedMapEnd)
+				return
+			}
+			
+			// get the key
+			key := scanner.NextValue()
+			if key.Kind() != reflect.String {
+				scanner.Error(gocoding.ErrorPrint("Decoding", "Invalid key type %s", key.Type().String()))
+			}
+			
+			field := reflect.Value{}
+			switch strings.ToLower(key.String()) {
+			case `key`:
+				field = reflect.ValueOf(&e.ECDSAPubKey)
+				
+			case `r`:
+				field = reflect.ValueOf(&e.R)
+				
+			case `s`:
+				field = reflect.ValueOf(&e.S)
+			}
+			
+			scanner.Continue()
+			if !field.IsValid() {
+				scanner.NextValue()
+			} else {
+				unmarshaller.UnmarshalValue(scanner, field)
+			}
+		}
 	}
 }
