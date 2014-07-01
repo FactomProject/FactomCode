@@ -24,6 +24,7 @@ You need to install the following projects.  They each document how to do so, th
 * https://github.com/conformal/btcwallet
 * https://github.com/conformal/btcutil
 
+Then install our projects via:
 
-go get github.com/NotaryChains/NotaryChainCode/restapi
-go get github.com/NotaryChains/NotaryChainCode/client
+* go get github.com/NotaryChains/NotaryChainCode/restapi
+* go get github.com/NotaryChains/NotaryChainCode/client
