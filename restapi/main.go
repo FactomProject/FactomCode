@@ -13,7 +13,6 @@ import (
 	"github.com/firelizzard18/dynrsrc"
 	"github.com/firelizzard18/gobundle"
 	"github.com/firelizzard18/gocoding"
-	"github.com/firelizzard18/gocoding/json"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -258,7 +257,7 @@ func post(context string, form url.Values) (interface{}, *notaryapi.Error) {
 	switch format {
 	case "", "json":
 		reader := gocoding.ReadString(data)
-		err := json.Unmarshal(reader, newEntry)
+		err := notaryapi.UnmarshalJSON(reader, newEntry)
 		if err != nil {
 			return nil, notaryapi.CreateError(notaryapi.ErrorJSONUnmarshal, err.Error())
 		}
