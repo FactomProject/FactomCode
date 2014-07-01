@@ -16,13 +16,7 @@ Install
 
 You need to install the following projects.  They each document how to do so, though most are simple "go get" calls.
 
-* https://github.com/conformal/btcd  
-* https://github.com/conformal/btcrpcclient
-* https://github.com/conformal/btcjson
-* https://github.com/conformal/btcwallet
-* https://github.com/conformal/btcwire
-* https://github.com/conformal/btcwallet
-* https://github.com/conformal/btcutil
+* https://github.com/conformal/btcgui
 
 Then install our projects via:
 
