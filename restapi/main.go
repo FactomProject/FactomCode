@@ -100,7 +100,7 @@ func init() {
 
 func main() {
 
-	cadr, err := btcutil.DecodeAddress("mtmkwxRDToguqs6q9dX526wq8xxh8TCbGB", activeNet.Params)
+	cadr, err := btcutil.DecodeAddress("mjx5q1BwAfgtJ1UPFoRXucphaM9k1dtzbf", activeNet.Params)
 
 	currentAddr = &cadr
 

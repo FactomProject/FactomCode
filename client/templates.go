@@ -56,8 +56,11 @@ func buildTemplateTree() (main *template.Template, err error) {
 		
 		"entry": templateGetEntry,
 		"activeEntryIDs": getActiveEntryIDs,
+		"pendingEntryIDs": getPendingEntryIDs,
+		"confirmedEntryIDs": getConfirmedEntryIDs,
 		"isValidEntryID": templateIsValidEntryId,
 		"isEntrySubmitted": func (idx int) bool { sub := getEntrySubmission(idx); return sub != nil && sub.Host != "" },
+		"entrySubmission": getEntrySubmission,
 		
 		"key": templateGetKey,
 		"keyIDs": getKeyIDs,

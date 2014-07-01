@@ -23,7 +23,7 @@
 		{{end}}
 		<div class="entry">
 			<h1>
-				Entry {{.ID}} ({{.Type}})
+				Entry {{.ID}} ({{.Type}}{{if $subd}}, Submitted{{end}})
 				{{if $edit}}
 					<input class="button" type="submit" value="Done" form="editEntryForm" />
 					<a class="button" href="/entries/{{.ID}}">Cancel</a>
@@ -63,8 +63,10 @@
 								{{else}}
 									<a href="/keys/{{$sig.KeyID}}">{{enc64 $sig.Hash}}</a>
 								{{end}}
-								<input type="hidden" name="sig_id" value="{{$idx}}" form="rmEntrySigForm" />
-								<input type="submit" value="delete" form="rmEntrySigForm" class="button" />
+								{{if not $subd}}
+									<input type="hidden" name="sig_id" value="{{$idx}}" form="rmEntrySigForm" />
+									<input type="submit" value="delete" form="rmEntrySigForm" class="button" />
+								{{end}}
 							</li>{{end}}
 						</ul>
 					{{else}}
@@ -81,6 +83,13 @@
 					<p>{{.Data}}</p>
 				{{end}}
 			</div>
+			{{if $subd}}{{with entrySubmission .ID}}
+				<hr />
+				<div class="submitted">
+					<h4>Submitted to:</h4>
+					<span>{{.Host}} {{if .Confirmed}}(Confirmed){{else}}(Unconfirmed){{end}}</span>
+				</div>
+			{{end}}{{end}}
 			<hr />
 			<div class="timestamp">Last edited on {{.TimeStamp}}</div>
 		</div>

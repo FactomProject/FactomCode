@@ -145,6 +145,34 @@ func getActiveEntryIDs() []int {
 	return ids[:i]
 }
 
+func getPendingEntryIDs() []int {
+	ids := make([]int, getEntryCount())
+	i := 0
+	for id, entry := range entries {
+		if entry.Submitted == nil || entry.Submitted.Host == "" || entry.Submitted.Confirmed {
+			continue
+		}
+		
+		ids[i] = id
+		i++
+	}
+	return ids[:i]
+}
+
+func getConfirmedEntryIDs() []int {
+	ids := make([]int, getEntryCount())
+	i := 0
+	for id, entry := range entries {
+		if entry.Submitted == nil || entry.Submitted.Host == "" || !entry.Submitted.Confirmed {
+			continue
+		}
+		
+		ids[i] = id
+		i++
+	}
+	return ids[:i]
+}
+
 func getEntry(id int) *notaryapi.Entry {
 	return entries[id].Entry
 }
