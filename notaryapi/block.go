@@ -18,6 +18,13 @@ type Block struct {
 	Salt *Hash
 }
 
+type EntryBlock struct {
+	BlockID uint64
+	PreviousHash *Hash
+	Entries []*Entry
+	Salt *Hash
+}
+
 func UpdateNextBlockID(id uint64) {
 	nextBlockID = id
 }

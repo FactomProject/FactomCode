@@ -18,6 +18,9 @@ type EntryData interface {
 	TypeName() string
 	Version() EntryDataVersion
 	Data() []byte
+	DataHash() *Hash
+	//ChainType() Hash
+	//EntryHash() Hash
 	
 	EncodeToString() string
 	DecodeFromString(string) error
@@ -307,7 +310,7 @@ func (e *Entry) UnmarshalBinary(data []byte) (err error) {
 	if e.EntryData == nil { return errors.New("Bad entry data type") }
 	
 	e.unixTime = int64(timeStamp)
-	
+	//needs to be fixed ??
 	err = e.EntryData.UnmarshalBinary(entryData)
 	if err != nil { return }
 	
@@ -363,6 +366,16 @@ func (e *plainData) EncodeToString() string {
 	return hex.EncodeToString(e.Data())
 }
 
+func (e *plainData) DataHash() *Hash {
+	if e.Data == nil{
+		return EmptyHash()
+	}
+	sData := new (simpleData)
+	sData.data = e.Data()
+	hash, _ := CreateHash(sData)
+	return hash
+}
+
 func (e *plainData) DecodeFromString(str string) error {
 	str = whitesp.ReplaceAllString(str, "")
 	if len(str) % 2 == 1 {
@@ -407,7 +420,8 @@ func (e *plainData) FieldDecoding(unmarshaller gocoding.Unmarshaller, name strin
 }
 
 func (e *plainData) UnmarshalBinary(data []byte) (err error) {
-	e.data = data
+	// needs to be fixed later ??
+//	e.data = data
 	return nil
 }
 

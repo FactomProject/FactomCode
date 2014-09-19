@@ -18,7 +18,7 @@ func readError(err error) {
 }
 
 func init() {
-	gobundle.Setup.Application.Name = "NotaryChains/client"
+	gobundle.Setup.Application.Name = "Factom/client"
 	gobundle.Init()
 	
 	err := dynrsrc.Start(watchError, readError)

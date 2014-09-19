@@ -8,7 +8,7 @@ import (
 	"github.com/firelizzard18/gocoding"
 	"github.com/firelizzard18/gocoding/json"
 	"github.com/firelizzard18/gocoding/html"
-	"github.com/NotaryChains/NotaryChainCode/notaryapi"
+	"github.com/FactomProject/FactomCode/notaryapi"
 	"io"
 	"io/ioutil"
 	"os"

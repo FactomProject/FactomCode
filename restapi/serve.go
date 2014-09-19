@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/NotaryChains/NotaryChainCode/notaryapi"
+	"github.com/FactomProject/FactomCode/notaryapi"
 	"net/http"
 	"net/url"
 	"strings"

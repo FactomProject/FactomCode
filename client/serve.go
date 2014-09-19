@@ -7,7 +7,7 @@ import (
 	"github.com/firelizzard18/gobundle"
 	"github.com/firelizzard18/gocoding"
 	"github.com/hoisie/web"
-	"github.com/NotaryChains/NotaryChainCode/notaryapi"
+	"github.com/FactomProject/FactomCode/notaryapi"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -239,7 +239,7 @@ func handleEntriesPost(ctx *web.Context) {
 		if sig_id >= len(entry.Signatures()){
 			abortMessage = fmt.Sprint("Failed to remove entry signature: bad entry signature id: ", sig_id_str)
 			break
-		}
+		} 
 		
 		if entry.Unsign(sig_id) {
 			ctx.Header().Add("Location", abortReturn)

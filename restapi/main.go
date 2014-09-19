@@ -6,7 +6,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/NotaryChains/NotaryChainCode/notaryapi"
+	"github.com/FactomProject/FactomCode/notaryapi"
 	"github.com/conformal/btcrpcclient"
 	"github.com/conformal/btcutil"
 	"github.com/conformal/btcwire"
@@ -23,6 +23,9 @@ import (
 	"sync"
 	"time"
 	"log"
+	
+	"github.com/FactomProject/FactomCode/database"	
+	"github.com/FactomProject/FactomCode/database/ldb"	
 )
 
 var client *btcrpcclient.Client
@@ -33,6 +36,10 @@ var portNumber = flag.Int("p", 8083, "Set the port to listen on")
 var blocks []*notaryapi.Block
 var blockMutex = &sync.Mutex{}
 var tickers [2]*time.Ticker
+
+// database
+var dbpath = "/tmp/ldb"
+var db database.Db
 
 func watchError(err error) {
 	panic(err)
@@ -71,7 +78,20 @@ func initWithBinary() {
 func init() {
 	gobundle.Setup.Application.Name = "NotaryChains/restapi"
 	gobundle.Init()
-
+	
+	//init db
+	var err error
+	db, err = ldb.OpenLevelDB(dbpath, false)
+	
+	if db == nil{
+		db, err = ldb.OpenLevelDB(dbpath, true)
+	}
+	if err!=nil{
+		panic(err)
+	} else{
+		log.Println("Database started from: " + dbpath)
+	}
+	
 	dynrsrc.Start(watchError, readError)
 	notaryapi.StartDynamic(gobundle.DataFile("html.gwp"), readError)
 
@@ -99,6 +119,9 @@ func init() {
 
 
 func main() {
+
+
+	
 
 	cadr, err := btcutil.DecodeAddress("mjx5q1BwAfgtJ1UPFoRXucphaM9k1dtzbf", activeNet.Params)
 
@@ -149,6 +172,7 @@ func main() {
 		tickers[1].Stop()
 		save()
 		dynrsrc.Stop()
+		db.Close()
 	}()
 
 	http.HandleFunc("/", serveRESTfulHTTP)
@@ -277,6 +301,32 @@ func post(context string, form url.Values) (interface{}, *notaryapi.Error) {
 	}
 
 	newEntry.StampTime()
+	
+	//--------------------
+
+	
+	if db !=nil{
+		
+		entryBinary, _ := newEntry.MarshalBinary()
+		
+		hash, _ := notaryapi.CreateHash(newEntry)
+		
+		db.InsertEntry( hash, entryBinary)
+		
+		entry,_ := db.FetchEntryByHash(hash)
+		
+		log.Println(hash.Bytes)
+		log.Println( time.Unix(entry.TimeStamp(), 0).Format(time.RFC3339))
+		
+		 
+	} else{
+
+		panic("db is null!")
+		
+	}
+	
+	
+	//-----------------
 
 	blockMutex.Lock()
 	err := blocks[len(blocks)-1].AddEntry(newEntry)

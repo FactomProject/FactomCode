@@ -4,7 +4,7 @@ import (
 	//"github.com/conformal/btcrpcclient"
 	"encoding/hex"
 	"errors"
-	"github.com/NotaryChains/NotaryChainCode/notaryapi"
+	"github.com/FactomProject/FactomCode/notaryapi"
 	"github.com/conformal/btcjson"
 	"github.com/conformal/btcutil"
 	"github.com/conformal/btcwire"
@@ -12,7 +12,7 @@ import (
 	"log"
 	"strings"
 	"time"
-)
+) 
 
 // Enodes up to 30 bytes into a 33 byte Bitcoin public key.
 // Returns the public key.  The format is as follows:
