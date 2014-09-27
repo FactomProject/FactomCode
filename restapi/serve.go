@@ -162,10 +162,10 @@ func findV1InBlock(context string, path []string, block *notaryapi.Block) (inter
 		return nil, nil // bad root spec
 	}
 	
-	return findV1InEntries(context + "/" + root, path, block.Entries)
+	return findV1InEntries(context + "/" + root, path, block.EBEntries)
 }
 
-func findV1InEntries(context string, path []string, entries []*notaryapi.Entry) (interface{}, *notaryapi.Error) {
+func findV1InEntries(context string, path []string, entries []*notaryapi.EBEntry) (interface{}, *notaryapi.Error) {
 	if len(path) == 0 {
 		return entries, nil
 	}
