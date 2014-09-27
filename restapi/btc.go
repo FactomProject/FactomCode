@@ -29,7 +29,7 @@ var wif *btcutil.WIF
 
 // ByAmount defines the methods needed to satisify sort.Interface to
 // sort a slice of Utxos by their amount.
-type ByAmount []btcjson.ListUnspentResult	//[]txstore.Credit
+type ByAmount []btcjson.ListUnspentResult
 
 func (u ByAmount) Len() int           { return len(u) }
 func (u ByAmount) Less(i, j int) bool { return u[i].Amount < u[j].Amount }
