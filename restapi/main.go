@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"github.com/FactomProject/FactomCode/notaryapi"
 	"github.com/conformal/btcrpcclient"
-	"github.com/conformal/btcutil"
-	"github.com/conformal/btcwire"
+	//"github.com/conformal/btcutil"
+	//"github.com/conformal/btcwire"
 	"github.com/firelizzard18/dynrsrc"
 	"github.com/firelizzard18/gobundle"
 	"github.com/firelizzard18/gocoding"
@@ -29,7 +29,7 @@ import (
 )
 
 var client *btcrpcclient.Client
-var currentAddr *btcutil.Address
+//var currentAddr *btcutil.Address
 var balance int64
 
 var portNumber = flag.Int("p", 8083, "Set the port to listen on")
@@ -107,10 +107,19 @@ func init() {
 	notaryapi.UpdateNextBlockID(uint64(len(blocks)))
 
 	tickers[0] = time.NewTicker(time.Minute * 5)
-	tickers[1] = time.NewTicker(time.Hour)
+	//tickers[1] = time.NewTicker(time.Hour)
+	tickers[1] = time.NewTicker(time.Minute * 7) // for testing??
+
+	go func() {
+		for _ = range tickers[0].C {
+			fmt.Println("go tickers[0] - newBlock()")
+			newBlock()
+		}
+	}()
 
 	go func() {
 		for _ = range tickers[1].C {
+			fmt.Println("go tickers[1] - save()")
 			save()
 		}
 	}()
@@ -119,51 +128,18 @@ func init() {
 
 
 func main() {
-
-
 	
-
-	cadr, err := btcutil.DecodeAddress("mjx5q1BwAfgtJ1UPFoRXucphaM9k1dtzbf", activeNet.Params)
-
-	currentAddr = &cadr
-
-	// Only override the handlers for notifications you care about.
-	// Also note most of the handlers will only be called if you register
-	// for notifications.  See the documentation of the btcrpcclient
-	// NotificationHandlers type for more details about each handler.
-	ntfnHandlers := btcrpcclient.NotificationHandlers{
-		OnAccountBalance: func(account string, balance btcutil.Amount, confirmed bool) {
-		     go newBalance(account, balance, confirmed)
-	    },
-
-		OnBlockConnected: func(hash *btcwire.ShaHash, height int32) {
-			go newBlock(hash, height)
-		},
-	}
+	addrStr := "muhXX7mXoMZUBvGLCgfjuoY2n2mziYETYC"
 	
-	// Connect to local btcwallet RPC server using websockets.
-	certHomeDir := btcutil.AppDataDir("btcwallet", false)
-	certs, err := ioutil.ReadFile(filepath.Join(certHomeDir, "rpc.cert"))
+	err := initRPCClient()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("cannot init rpc client: %s", err)
 	}
-	connCfg := &btcrpcclient.ConnConfig{
-		Host:         "localhost:18332",
-		Endpoint:     "ws",
-		User:         "testuser",
-		Pass:         "notarychain",
-		Certificates: certs,
+	defer shutdown(client)
+	
+	if err := initWallet(addrStr); err != nil {
+		log.Fatalf("cannot init wallet: %s", err)
 	}
-	
-	client, err = btcrpcclient.New(connCfg, &ntfnHandlers)
-	
-	if err != nil {
-		log.Fatal(err)
-		return;
-	}else{
-        defer shutdown(client) 
-    }  		
-	
 	
 	flag.Parse()
 
@@ -195,7 +171,7 @@ func save() {
 			panic(err)
 		}
 
-		err = ioutil.WriteFile(fmt.Sprintf(`app/rest/store.%d.block`, i), data, 0777)
+		err = ioutil.WriteFile(fmt.Sprintf("/tmp/store/seed/store.%d.block", i), data, 0777)
 		if err != nil {
 			panic(err)
 		}
@@ -329,7 +305,7 @@ func post(context string, form url.Values) (interface{}, *notaryapi.Error) {
 	//-----------------
 
 	blockMutex.Lock()
-	err := blocks[len(blocks)-1].AddEntry(newEntry)
+	err := blocks[len(blocks)-1].AddEBEntry(newEntry)
 	blockMutex.Unlock()
 
 	if err != nil {
@@ -338,3 +314,5 @@ func post(context string, form url.Values) (interface{}, *notaryapi.Error) {
 
 	return newEntry, nil
 }
+
+
