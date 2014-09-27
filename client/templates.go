@@ -8,7 +8,7 @@ import (
 	"github.com/firelizzard18/blackfriday"
 	"github.com/firelizzard18/dynrsrc"
 	"github.com/firelizzard18/gobundle"
-	"github.com/NotaryChains/NotaryChainCode/notaryapi"
+	"github.com/FactomProject/FactomCode/notaryapi"
 	"io/ioutil"
 	"path/filepath"
 	"reflect"
