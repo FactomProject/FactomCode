@@ -14,17 +14,17 @@ var nextBlockID uint64 = 0
 type Block struct {
 	BlockID uint64
 	PreviousHash *Hash
-	Entries []*Entry
+	EBEntries []*EBEntry
 	Salt *Hash
 }
-
+/*
 type EntryBlock struct {
 	BlockID uint64
 	PreviousHash *Hash
-	Entries []*Entry
+	EBEntries []*EBEntry
 	Salt *Hash
 }
-
+*/
 func UpdateNextBlockID(id uint64) {
 	nextBlockID = id
 }
@@ -41,7 +41,7 @@ func CreateBlock(prev *Block, capacity uint) (b *Block, err error) {
 	b.BlockID = nextBlockID
 	nextBlockID++
 	
-	b.Entries = make([]*Entry, 0, capacity)
+	b.EBEntries = make([]*EBEntry, 0, capacity)
 	
 	b.Salt = EmptyHash()
 	
@@ -54,14 +54,16 @@ func CreateBlock(prev *Block, capacity uint) (b *Block, err error) {
 	return b, err
 }
 
-func (b *Block) AddEntry(e *Entry) (err error) {
+func (b *Block) AddEBEntry(e *Entry) (err error) {
 	h, err := CreateHash(e)
 	if err != nil { return }
 	
 	s, err := CreateHash(b.Salt, h)
 	if err != nil { return }
+	//?? UTF8DataType
+ 	ebEntry := NewEBEntry(h, UTF8DataType)	
 	
-	b.Entries = append(b.Entries, e)
+	b.EBEntries = append(b.EBEntries, ebEntry) 
 	b.Salt = s
 	
 	return
@@ -75,10 +77,10 @@ func (b *Block) MarshalBinary() (data []byte, err error) {
 	data, _ = b.PreviousHash.MarshalBinary()
 	buf.Write(data)
 	
-	count := uint64(len(b.Entries))
+	count := uint64(len(b.EBEntries))
 	binary.Write(&buf, binary.BigEndian, count)
 	for i := uint64(0); i < count; i = i + 1 {
-		data, _ := b.Entries[i].MarshalBinary()
+		data, _ := b.EBEntries[i].MarshalBinary()
 		buf.Write(data)
 	}
 	
@@ -96,8 +98,8 @@ func (b *Block) MarshalledSize() uint64 {
 	size += 8 // len(Entries) uint64
 	size += b.Salt.MarshalledSize()
 	
-	for _, entry := range b.Entries {
-		size += entry.MarshalledSize()
+	for _, ebentry := range b.EBEntries {
+		size += ebentry.MarshalledSize()
 	}
 	
 	return 0
@@ -111,12 +113,12 @@ func (b *Block) UnmarshalBinary(data []byte) (err error) {
 	data = data[b.PreviousHash.MarshalledSize():]
 	
 	count, data := binary.BigEndian.Uint64(data[0:8]), data[8:]
-	b.Entries = make([]*Entry, count)
+	b.EBEntries = make([]*EBEntry, count)
 	for i := uint64(0); i < count; i = i + 1 {
-		b.Entries[i] = new(Entry)
-		err = b.Entries[i].UnmarshalBinary(data)
+		b.EBEntries[i] = new(EBEntry)
+		err = b.EBEntries[i].UnmarshalBinary(data)
 		if err != nil { return }
-		data = data[b.Entries[i].MarshalledSize():]
+		data = data[b.EBEntries[i].MarshalledSize():]
 	}
 	
 	b.Salt = new(Hash)
