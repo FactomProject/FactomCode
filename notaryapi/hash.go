@@ -2,11 +2,15 @@ package notaryapi
 
 import (
 	"bytes"
+	"fmt"
 	"crypto/sha256"
 	"github.com/firelizzard18/gocoding"
 	"reflect"
 
 )
+
+// Size of array used to store sha hashes.  See ShaHash.
+const HashSize = 32
 
 type Hash struct {
 	Bytes 		[]byte			`json:"bytes"`
@@ -67,4 +71,28 @@ func (h *Hash) Decoding(unmarshaller gocoding.Unmarshaller, theType reflect.Type
 		hash := value.Interface().(*Hash)
 		unmarshaller.UnmarshalObject(scanner, &hash.Bytes)
 	}
+}
+
+// SetBytes sets the bytes which represent the hash.  An error is returned if
+// the number of bytes passed in is not HashSize.
+func (hash *Hash) SetBytes(newHash []byte) error {
+	nhlen := len(newHash)
+	if nhlen != HashSize {
+		return fmt.Errorf("invalid sha length of %v, want %v", nhlen,
+			HashSize)
+	}
+	//copy(hash[:], newHash[0:HashSize])
+	copy(hash.Bytes, newHash[0:HashSize])
+	return nil
+}
+
+// NewShaHash returns a new ShaHash from a byte slice.  An error is returned if
+// the number of bytes passed in is not HashSize.
+func NewHash(newHash []byte) (*Hash, error) {
+	var sh Hash
+	err := sh.SetBytes(newHash)
+	if err != nil {
+		return nil, err
+	}
+	return &sh, err
 }

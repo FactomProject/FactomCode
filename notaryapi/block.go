@@ -7,8 +7,6 @@ import (
 	"encoding/binary"
 	"sync"
 	"encoding/hex"
-	
-	//"github.com/firelizzard18/gocoding"
 )
 
 type Chain struct {
@@ -18,9 +16,6 @@ type Chain struct {
 	NextBlockID uint64	
 }
 
-
-
-
 type Block struct {
 	Chain *Chain
 	
@@ -29,18 +24,6 @@ type Block struct {
 	EBEntries []*EBEntry
 	Salt *Hash
 }
-/*
-type EntryBlock struct {
-	BlockID uint64
-	PreviousHash *Hash
-	EBEntries []*EBEntry
-	Salt *Hash
-}
-*/
-/*func UpdateNextBlockID(id uint64) {
-	nextBlockID = id
-}
-*/
 
 func EncodeChainID(chainID *[]byte) (string){
 	return hex.EncodeToString(*chainID)
@@ -71,9 +54,6 @@ func CreateBlock(chain *Chain, prev *Block, capacity uint) (b *Block, err error)
 	
 	return b, err
 }
-
-
-
 
 func (b *Block) AddEBEntry(e *Entry) (err error) {
 	h, err := CreateHash(e)
@@ -149,12 +129,3 @@ func (b *Block) UnmarshalBinary(data []byte) (err error) {
 	
 	return nil
 }
-
-/*func (b *Block) MarshallableFields() []gocoding.Field {
-	return []gocoding.Field{
-		gocoding.MakeField("blockID", b.BlockID, nil),
-		gocoding.MakeField("previousHash", b.PreviousHash, nil),
-		gocoding.MakeField("entries", b.Entries, nil),
-		gocoding.MakeField("salt", b.Salt, nil), 
-	}
-}*/

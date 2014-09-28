@@ -6,8 +6,6 @@ import (
 	
 	"encoding/binary"
 	"sync"
-	
-	//"github.com/firelizzard18/gocoding"
 )
 
 type FChain struct {
@@ -16,9 +14,6 @@ type FChain struct {
 	BlockMutex 	sync.Mutex	
 	NextBlockID uint64	
 }
-
-
-
 
 type FBlock struct {
 	Chain *FChain
