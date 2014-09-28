@@ -5,13 +5,25 @@ import (
 	"errors"
 	
 	"encoding/binary"
+	"sync"
+	"encoding/hex"
 	
 	//"github.com/firelizzard18/gocoding"
 )
 
-var nextBlockID uint64 = 0
+type Chain struct {
+	ChainID 	*[]byte
+	Blocks 		[]*Block
+	BlockMutex 	sync.Mutex	
+	NextBlockID uint64	
+}
+
+
+
 
 type Block struct {
+	Chain *Chain
+	
 	BlockID uint64
 	PreviousHash *Hash
 	EBEntries []*EBEntry
@@ -25,21 +37,27 @@ type EntryBlock struct {
 	Salt *Hash
 }
 */
-func UpdateNextBlockID(id uint64) {
+/*func UpdateNextBlockID(id uint64) {
 	nextBlockID = id
 }
+*/
 
-func CreateBlock(prev *Block, capacity uint) (b *Block, err error) {
-	if prev == nil && nextBlockID != 0 {
+func EncodeChainID(chainID *[]byte) (string){
+	return hex.EncodeToString(*chainID)
+}
+
+func CreateBlock(chain *Chain, prev *Block, capacity uint) (b *Block, err error) {
+	if prev == nil && chain.NextBlockID != 0 {
 		return nil, errors.New("Previous block cannot be nil")
-	} else if prev != nil && nextBlockID == 0 {
+	} else if prev != nil && chain.NextBlockID == 0 {
 		return nil, errors.New("Origin block cannot have a parent block")
 	}
 	
 	b = new(Block)
 	
-	b.BlockID = nextBlockID
-	nextBlockID++
+	b.BlockID = chain.NextBlockID
+	b.Chain = chain
+	chain.NextBlockID++
 	
 	b.EBEntries = make([]*EBEntry, 0, capacity)
 	
@@ -54,14 +72,18 @@ func CreateBlock(prev *Block, capacity uint) (b *Block, err error) {
 	return b, err
 }
 
+
+
+
 func (b *Block) AddEBEntry(e *Entry) (err error) {
 	h, err := CreateHash(e)
 	if err != nil { return }
 	
 	s, err := CreateHash(b.Salt, h)
 	if err != nil { return }
-	//?? UTF8DataType
- 	ebEntry := NewEBEntry(h, UTF8DataType)	
+
+
+ 	ebEntry := NewEBEntry(h, b.Chain.ChainID)	
 	
 	b.EBEntries = append(b.EBEntries, ebEntry) 
 	b.Salt = s

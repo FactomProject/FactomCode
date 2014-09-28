@@ -16,15 +16,17 @@ import (
 
 type EBEntry struct {
 	timeStamp int64
-	entryType EntryDataType
 	hash *Hash
+	
+	ChainID *[]byte // not marshalllized
+	status int8 //for future use??
 }
 
-func NewEBEntry(h *Hash, t EntryDataType) *EBEntry {
+func NewEBEntry(h *Hash, id *[]byte) *EBEntry {
 	e := &EBEntry{}
 	e.StampTime()
 	e.hash = h
-	e.entryType = t
+	e.ChainID = id
 	return e
 }
 
@@ -32,14 +34,29 @@ func (e *EBEntry) Hash() *Hash {
 	return e.hash
 }
 
+func (e *EBEntry) SetHash( binaryHash []byte)  {
+	h := new(Hash)
+	h.Bytes = binaryHash
+	e.hash = h
+}
+
 func (e *EBEntry) TimeStamp() int64 {
 	return e.timeStamp
 }
 
-func (e *EBEntry) Type() EntryDataType {
-	return e.entryType;
+
+func (e *EBEntry) GetBinaryTimeStamp() (binaryTimeStamp []byte)  {
+	b := make([]byte, 8)
+	binary.BigEndian.PutUint64(b, uint64(e.timeStamp)) //??
+	return b
+	
 }
 
+func (e *EBEntry) SetTimeStamp(binaryTime []byte)  {
+ 	
+ 	e.timeStamp = int64(binary.BigEndian.Uint64(binaryTime))	
+
+}
 
 func (e *EBEntry) RealTime() time.Time {
 	return time.Unix(e.timeStamp, 0)
@@ -51,7 +68,6 @@ func (e *EBEntry) StampTime() {
 
 func (e *EBEntry) EncodableFields() map[string]reflect.Value {
 	fields := map[string]reflect.Value{
-		`Type`: reflect.ValueOf(e.Type()),
 		`TimeStamp`: reflect.ValueOf(e.TimeStamp()),
 		`Hash`: reflect.ValueOf(e.Hash()),
 	}
@@ -116,12 +132,14 @@ func (e *EBEntry) Decoding(unmarshaller gocoding.Unmarshaller, theType reflect.T
 
 func (e *EBEntry) MarshalBinary() ([]byte, error) {
 	var buf bytes.Buffer
+
+	
+	binary.Write(&buf, binary.BigEndian, e.TimeStamp())
 	
 	data, _ := e.Hash().MarshalBinary()
 	buf.Write(data)
 	
-	binary.Write(&buf, binary.BigEndian, e.Type())
-	binary.Write(&buf, binary.BigEndian, e.TimeStamp())
+
 	
 	return buf.Bytes(), nil
 }
@@ -129,24 +147,23 @@ func (e *EBEntry) MarshalBinary() ([]byte, error) {
 func (e *EBEntry) MarshalledSize() uint64 {
 	var size uint64 = 0
 	
+	size += 8 // TimeStamp() int64	
 	size += e.Hash().MarshalledSize()
-	size += 4 // Type() uint32
-	size += 8 // TimeStamp() int64
+
 	
 	return size
 }
 
 func (e *EBEntry) UnmarshalBinary(data []byte) (err error) {
+
 	
+	timeStamp,	data := binary.BigEndian.Uint64(data[:8]), data[8:]
+	e.timeStamp = int64(timeStamp)
+		
 	e.hash = new(Hash)
 	e.hash.UnmarshalBinary(data)
-	data = data[e.hash.MarshalledSize():]
-	
-	dataType,	data := binary.BigEndian.Uint32(data[:4]), data[4:]
-	timeStamp,	data := binary.BigEndian.Uint64(data[:8]), data[8:]
-	
-	e.entryType = EntryDataType(dataType)
-	e.timeStamp = int64(timeStamp)
+
+
 	
 	return nil
 }

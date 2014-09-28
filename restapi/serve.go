@@ -82,7 +82,7 @@ func parseAccept(accept string, ext []string) (string, *notaryapi.Error) {
 	
 	return "", notaryapi.CreateError(notaryapi.ErrorNotAcceptable, fmt.Sprintf("The specified resource cannot be returned as %s", accept))
 }
-
+/*
 func find(path []string) (interface{}, *notaryapi.Error) {
 	if len(path) == 0 {
 		return nil, notaryapi.CreateError(notaryapi.ErrorMissingVersionSpec, "")
@@ -116,7 +116,7 @@ func findV1(context string, path []string) (interface{}, *notaryapi.Error) {
 	
 	return findV1InBlocks(context + "/" + root, path, blocks)
 }
-
+*/
 func findV1InBlocks(context string, path []string, blocks []*notaryapi.Block) (interface{}, *notaryapi.Error) {
 	if len(path) == 0 {
 		return blocks, nil

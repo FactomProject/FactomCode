@@ -36,8 +36,8 @@ type EntryDataVersion uint32
 const NoDataVersion EntryDataVersion = 0
 
 const (
-	EmptyDataType EntryDataType = iota
-	PlainDataType
+	EmptyDataType EntryDataType = iota 
+	PlainDataType 
 	UTF8DataType
 )
 
@@ -310,7 +310,7 @@ func (e *Entry) UnmarshalBinary(data []byte) (err error) {
 	if e.EntryData == nil { return errors.New("Bad entry data type") }
 	
 	e.unixTime = int64(timeStamp)
-	//needs to be fixed ??
+
 	err = e.EntryData.UnmarshalBinary(entryData)
 	if err != nil { return }
 	
@@ -420,8 +420,9 @@ func (e *plainData) FieldDecoding(unmarshaller gocoding.Unmarshaller, name strin
 }
 
 func (e *plainData) UnmarshalBinary(data []byte) (err error) {
-	// needs to be fixed later ??
-//	e.data = data
+
+	e.data = data
+
 	return nil
 }
 
