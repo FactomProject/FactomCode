@@ -420,7 +420,21 @@ func newFactomBlock(chain *notaryapi.FChain) {
     
 	waiting = false    //??
 	block.Sealed = true
-	log.Println("block" + strconv.FormatUint(block.BlockID, 10) +" created for factom chain: "  + notaryapi.EncodeChainID(chain.ChainID))	
+	log.Println("block" + strconv.FormatUint(block.BlockID, 10) +" created for factom chain: "  + notaryapi.EncodeChainID(chain.ChainID))
+	
+	blkhash, _ := notaryapi.CreateHash(block)
+	hashdata := blkhash.Bytes
+	
+	fmt.Printf("hashdata.len=%d", len(hashdata))
+	
+	//Send transaction to BTC network
+	txHash, err := SendRawTransactionToBTC(hashdata)
+	if err != nil {
+		log.Fatalf("cannot init rpc client: %s", err)
+	}
+    log.Print("Recorded ", hashdata, " in transaction hash:\n",txHash)
+	
+		
 }
 
 //
