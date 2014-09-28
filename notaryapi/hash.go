@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"github.com/firelizzard18/gocoding"
 	"reflect"
+
 )
 
 type Hash struct {

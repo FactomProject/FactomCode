@@ -24,20 +24,23 @@ const (
 
 // the "table" prefix
 const (
-	TBL_ENTRY     int8 = iota
+	TBL_ENTRY     uint8 = iota
 	TBL_ENTRY_QUEUE
-	TBL_DOCUMENT
 
-	TBL_EB_ENTRY
 	TBL_EB
 	TBL_EB_QUEUE
-	
-	TBL_FB_ENTRY
+
 	TBL_FB
 )
 
+// the process status in db
+const (
+	STATUS_IN_QUEUE     uint8 = iota
+	STATUS_PROCESSED
+)
+
 // chain type key prefix ??
-var currentChainType int32 = 1 
+var currentChainType uint32 = 1 
 
 
 type tTxInsertData struct {
@@ -115,7 +118,7 @@ func openDB(dbpath string, create bool) (pbdb database.Db, err error) {
 	if ferr == nil {
 		defer fi.Close()
 
-		ferr = binary.Read(fi, binary.LittleEndian, &dbversion)
+		ferr = binary.Read(fi, binary.BigEndian, &dbversion)
 		if ferr != nil {
 			dbversion = ^0
 		}
@@ -158,7 +161,7 @@ func openDB(dbpath string, create bool) (pbdb database.Db, err error) {
 			return
 		}
 		defer fo.Close()
-		err = binary.Write(fo, binary.LittleEndian, dbversion)
+		err = binary.Write(fo, binary.BigEndian, dbversion)
 		if err != nil {
 			return
 		}
@@ -221,50 +224,7 @@ func (db *LevelDb) lBatch() *leveldb.Batch {
 	return db.lbatch
 }
 
-func (db *LevelDb) processBatches() error {
-/*	var err error
 
-	if len(db.txUpdateMap) != 0 || len(db.txSpentUpdateMap) != 0 || db.lbatch != nil {
-		if db.lbatch == nil {
-			db.lbatch = new(leveldb.Batch)
-		}
-
-		defer db.lbatch.Reset()
-
-		for txSha, txU := range db.txUpdateMap {
-			key := shaTxToKey(&txSha)
-			if txU.delete {
-				//log.Tracef("deleting tx %v", txSha)
-				db.lbatch.Delete(key)
-			} else {
-				//log.Tracef("inserting tx %v", txSha)
-				txdat := db.formatTx(txU)
-				db.lbatch.Put(key, txdat)
-			}
-		}
-		for txSha, txSu := range db.txSpentUpdateMap {
-			key := shaSpentTxToKey(&txSha)
-			if txSu.delete {
-				//log.Tracef("deleting tx %v", txSha)
-				db.lbatch.Delete(key)
-			} else {
-				//log.Tracef("inserting tx %v", txSha)
-				txdat := db.formatTxFullySpent(txSu.txl)
-				db.lbatch.Put(key, txdat)
-			}
-		}
-
-		err = db.lDb.Write(db.lbatch, db.wo)
-		if err != nil {
-			log.Tracef("batch failed %v\n", err)
-			return err
-		}
-		db.txUpdateMap = map[btcwire.ShaHash]*txUpdateObj{}
-		db.txSpentUpdateMap = make(map[btcwire.ShaHash]*spentTxUpdate)
-	}
-*/
-	return nil
-}
 
 func (db *LevelDb) RollbackClose() error {
 	db.dbLock.Lock()

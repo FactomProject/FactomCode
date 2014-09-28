@@ -6,14 +6,13 @@ import (
 	
 	"encoding/binary"
 	"sync"
-	"encoding/hex"
 	
 	//"github.com/firelizzard18/gocoding"
 )
 
-type Chain struct {
+type FChain struct {
 	ChainID 	*[]byte
-	Blocks 		[]*Block
+	Blocks 		[]*FBlock
 	BlockMutex 	sync.Mutex	
 	NextBlockID uint64	
 }
@@ -21,45 +20,32 @@ type Chain struct {
 
 
 
-type Block struct {
-	Chain *Chain
+type FBlock struct {
+	Chain *FChain
 	
 	BlockID uint64
 	PreviousHash *Hash
-	EBEntries []*EBEntry
+	FBEntries []*FBEntry
 	Salt *Hash
-}
-/*
-type EntryBlock struct {
-	BlockID uint64
-	PreviousHash *Hash
-	EBEntries []*EBEntry
-	Salt *Hash
-}
-*/
-/*func UpdateNextBlockID(id uint64) {
-	nextBlockID = id
-}
-*/
-
-func EncodeChainID(chainID *[]byte) (string){
-	return hex.EncodeToString(*chainID)
+	
+	Sealed bool //?
 }
 
-func CreateBlock(chain *Chain, prev *Block, capacity uint) (b *Block, err error) {
+
+func CreateFBlock(chain *FChain, prev *FBlock, capacity uint) (b *FBlock, err error) {
 	if prev == nil && chain.NextBlockID != 0 {
 		return nil, errors.New("Previous block cannot be nil")
 	} else if prev != nil && chain.NextBlockID == 0 {
 		return nil, errors.New("Origin block cannot have a parent block")
 	}
 	
-	b = new(Block)
+	b = new(FBlock)
 	
 	b.BlockID = chain.NextBlockID
 	b.Chain = chain
 	chain.NextBlockID++
 	
-	b.EBEntries = make([]*EBEntry, 0, capacity)
+	b.FBEntries = make([]*FBEntry, 0, capacity)
 	
 	b.Salt = EmptyHash()
 	
@@ -72,10 +58,20 @@ func CreateBlock(chain *Chain, prev *Block, capacity uint) (b *Block, err error)
 	return b, err
 }
 
+// Add FBEntry from an Entry Block
+func (fchain *FChain) AddFBEntry(eb *Block) (err error) {
+	fBlock := fchain.Blocks[len(fchain.Blocks)-1]
+	hash, _ := CreateHash (eb) // redundent work??
+	
+	fbEntry := NewFBEntry(hash, eb.Chain.ChainID)
+	fBlock.AddFBEntry(fbEntry)
+	
+	return nil
+	
+	}
 
 
-
-func (b *Block) AddEBEntry(e *Entry) (err error) {
+func (b *FBlock) AddFBEntry(e *FBEntry) (err error) {
 	h, err := CreateHash(e)
 	if err != nil { return }
 	
@@ -83,15 +79,15 @@ func (b *Block) AddEBEntry(e *Entry) (err error) {
 	if err != nil { return }
 
 
- 	ebEntry := NewEBEntry(h, b.Chain.ChainID)	
+ 	fbEntry := NewFBEntry(h, b.Chain.ChainID)	
 	
-	b.EBEntries = append(b.EBEntries, ebEntry) 
+	b.FBEntries = append(b.FBEntries, fbEntry) 
 	b.Salt = s
 	
 	return
 }
 
-func (b *Block) MarshalBinary() (data []byte, err error) {
+func (b *FBlock) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
 	
 	binary.Write(&buf, binary.BigEndian, b.BlockID)
@@ -99,11 +95,15 @@ func (b *Block) MarshalBinary() (data []byte, err error) {
 	data, _ = b.PreviousHash.MarshalBinary()
 	buf.Write(data)
 	
-	count := uint64(len(b.EBEntries))
-	binary.Write(&buf, binary.BigEndian, count)
-	for i := uint64(0); i < count; i = i + 1 {
-		data, _ := b.EBEntries[i].MarshalBinary()
-		buf.Write(data)
+	if b.Sealed == true{
+		count := uint64(len(b.FBEntries))
+		binary.Write(&buf, binary.BigEndian, count)
+		for i := uint64(0); i < count; i = i + 1 {
+			data, _ := b.FBEntries[i].MarshalBinary()
+			buf.Write(data)
+		}
+	} else{
+		binary.Write(&buf, binary.BigEndian, uint64(0))
 	}
 	
 	data, _ = b.Salt.MarshalBinary()
@@ -112,7 +112,7 @@ func (b *Block) MarshalBinary() (data []byte, err error) {
 	return buf.Bytes(), err
 }
 
-func (b *Block) MarshalledSize() uint64 {
+func (b *FBlock) MarshalledSize() uint64 {
 	var size uint64 = 0
 	
 	size += 8 // BlockID uint64
@@ -120,14 +120,14 @@ func (b *Block) MarshalledSize() uint64 {
 	size += 8 // len(Entries) uint64
 	size += b.Salt.MarshalledSize()
 	
-	for _, ebentry := range b.EBEntries {
-		size += ebentry.MarshalledSize()
+	for _, fbentry := range b.FBEntries {
+		size += fbentry.MarshalledSize()
 	}
 	
-	return size
+	return 0
 }
 
-func (b *Block) UnmarshalBinary(data []byte) (err error) {
+func (b *FBlock) UnmarshalBinary(data []byte) (err error) {
 	b.BlockID, data = binary.BigEndian.Uint64(data[0:8]), data[8:]
 	
 	b.PreviousHash = new(Hash)
@@ -135,12 +135,12 @@ func (b *Block) UnmarshalBinary(data []byte) (err error) {
 	data = data[b.PreviousHash.MarshalledSize():]
 	
 	count, data := binary.BigEndian.Uint64(data[0:8]), data[8:]
-	b.EBEntries = make([]*EBEntry, count)
+	b.FBEntries = make([]*FBEntry, count)
 	for i := uint64(0); i < count; i = i + 1 {
-		b.EBEntries[i] = new(EBEntry)
-		err = b.EBEntries[i].UnmarshalBinary(data)
+		b.FBEntries[i] = new(FBEntry)
+		err = b.FBEntries[i].UnmarshalBinary(data)
 		if err != nil { return }
-		data = data[b.EBEntries[i].MarshalledSize():]
+		data = data[b.FBEntries[i].MarshalledSize():]
 	}
 	
 	b.Salt = new(Hash)
@@ -149,12 +149,3 @@ func (b *Block) UnmarshalBinary(data []byte) (err error) {
 	
 	return nil
 }
-
-/*func (b *Block) MarshallableFields() []gocoding.Field {
-	return []gocoding.Field{
-		gocoding.MakeField("blockID", b.BlockID, nil),
-		gocoding.MakeField("previousHash", b.PreviousHash, nil),
-		gocoding.MakeField("entries", b.Entries, nil),
-		gocoding.MakeField("salt", b.Salt, nil), 
-	}
-}*/
