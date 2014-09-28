@@ -3,14 +3,13 @@ package notaryapi
 import (
 	"bytes"
 	"encoding/binary"
-	//"encoding/hex"
-	//"errors"
-	"github.com/firelizzard18/gocoding"
-	//"io"
 	"reflect"
-	//"regexp"
 	"strings"
 	"time"
+
+	"github.com/firelizzard18/gocoding"
+
+	"github.com/conformal/btcwire"
 )
 
 
@@ -151,3 +150,12 @@ func (e *EBEntry) UnmarshalBinary(data []byte) (err error) {
 	return nil
 }
 
+// Sha generates the ShaHash name for the EBEntry.
+func (e *EBEntry) Sha() *btcwire.ShaHash {
+	//buf := bytes.NewBuffer(make([]byte, 0, msg.SerializeSize()))
+	byteArray, _ := e.MarshalBinary()
+	var sha btcwire.ShaHash
+	_ = sha.SetBytes(btcwire.DoubleSha256(byteArray))
+
+	return &sha
+}

@@ -102,7 +102,7 @@ func (b *Block) MarshalledSize() uint64 {
 		size += ebentry.MarshalledSize()
 	}
 	
-	return 0
+	return size
 }
 
 func (b *Block) UnmarshalBinary(data []byte) (err error) {
