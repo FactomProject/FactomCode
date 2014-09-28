@@ -23,8 +23,6 @@ import (
 	
 )
 
-//var client *btcrpcclient.Client
-//var currentAddr btcutil.Address
 var fee btcutil.Amount
 var wif *btcutil.WIF
 
@@ -38,17 +36,6 @@ func (u ByAmount) Swap(i, j int)      { u[i], u[j] = u[j], u[i] }
 
 
 func SendRawTransactionToBTC(hash []byte) (*btcwire.ShaHash, error) {
-	
-	//addrStr := "muhXX7mXoMZUBvGLCgfjuoY2n2mziYETYC"
-	
-	//if err := initRPCClient(); err != nil {
-		//return fmt.Errorf("cannot init rpc client: %s", err)
-	//}
-	//defer shutdown(client)
-	
-	//if err := initWallet(addrStr); err != nil {
-		//return fmt.Errorf("cannot init wallet: %s", err)
-	//}
 	
 	msgtx, err := createRawTransaction(hash)
 	if err != nil {
@@ -130,7 +117,6 @@ func createRawTransaction(hash []byte) (*btcwire.MsgTx, error) {
 }
 
 
-
 // For every unspent output given, add a new input to the given MsgTx. Only P2PKH outputs are
 // supported at this point.
 func addTxIn(msgtx *btcwire.MsgTx, outputs []btcjson.ListUnspentResult) error {
@@ -171,10 +157,6 @@ func addTxIn(msgtx *btcwire.MsgTx, outputs []btcjson.ListUnspentResult) error {
 func addTxOuts(msgtx *btcwire.MsgTx, change btcutil.Amount, hash []byte) error {
  
  	header := []byte{0x46, 0x61, 0x63, 0x74, 0x6f, 0x6d, 0x21, 0x21}	// Factom!!
-	//hash := []byte{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 
-	//			   0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 
-	//			   0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 
-	//			   0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}
 	hash = append(header, hash...)
 
 	
@@ -366,9 +348,7 @@ func newEntryBlock(chain *notaryapi.Chain) (block *notaryapi.Block){
 	// add a new block for new entries to be added to
 	chain.BlockMutex.Lock()
 	newblock, _ := notaryapi.CreateBlock(chain, block, 10)
-	newblock.Chain = chain
-	
-	
+//	newblock.Chain = chain	
 	chain.Blocks = append(chain.Blocks, newblock)
 	chain.BlockMutex.Unlock()
 	
