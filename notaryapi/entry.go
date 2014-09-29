@@ -13,6 +13,11 @@ import (
 	"time"
 )
 
+type BEntry interface {
+	ShaHash() *Hash
+}
+
+
 type EntryData interface {
 	Type() EntryDataType
 	TypeName() string

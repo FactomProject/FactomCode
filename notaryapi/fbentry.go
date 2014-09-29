@@ -164,3 +164,9 @@ func (e *FBEntry) UnmarshalBinary(data []byte) (err error) {
 	return nil
 }
 
+
+func (e *FBEntry) ShaHash() *Hash {
+	byteArray, _ := e.MarshalBinary()
+	return Sha(byteArray)
+}
+

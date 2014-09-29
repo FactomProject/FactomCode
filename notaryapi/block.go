@@ -3,6 +3,7 @@ package notaryapi
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	
 	"encoding/binary"
 	"sync"
@@ -19,9 +20,9 @@ type Chain struct {
 type Block struct {
 	Chain *Chain
 	
-	BlockID uint64
-	PreviousHash *Hash
+	Header *EBlockHeader
 	EBEntries []*EBEntry
+
 	Salt *Hash
 }
 
@@ -38,19 +39,21 @@ func CreateBlock(chain *Chain, prev *Block, capacity uint) (b *Block, err error)
 	
 	b = new(Block)
 	
-	b.BlockID = chain.NextBlockID
+	var prevHash *Hash
+	if prev == nil {
+		prevHash = EmptyHash()
+	} else {
+		prevHash, err = CreateHash(prev)
+	}
+	
+	b.Header = NewEBlockHeader(chain.NextBlockID, prevHash, EmptyHash())
+	
 	b.Chain = chain
 	chain.NextBlockID++
 	
 	b.EBEntries = make([]*EBEntry, 0, capacity)
 	
 	b.Salt = EmptyHash()
-	
-	if prev == nil {
-		b.PreviousHash = EmptyHash()
-	} else {
-		b.PreviousHash, err = CreateHash(prev)
-	}
 	
 	return b, err
 }
@@ -73,11 +76,23 @@ func (b *Block) AddEBEntry(e *Entry) (err error) {
 
 func (b *Block) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
+
+	hashes := make([]*Hash, len(b.EBEntries))
+	for i, entry := range b.EBEntries {
+		data, _ := entry.MarshalBinary()
+		hashes[i] = Sha(data)
+		fmt.Println("i=", i, ", hash=", hashes[i])
+	}
 	
-	binary.Write(&buf, binary.BigEndian, b.BlockID)
+	merkle := BuildMerkleTreeStore(hashes)
+	b.Header.MerkleRoot = merkle[len(merkle) - 1]
 	
-	data, _ = b.PreviousHash.MarshalBinary()
+	data, _ = b.Header.MarshalBinary()
 	buf.Write(data)
+	
+	//binary.Write(&buf, binary.BigEndian, b.BlockID)
+	//data, _ = b.PreviousHash.MarshalBinary()
+	//buf.Write(data)
 	
 	count := uint64(len(b.EBEntries))
 	binary.Write(&buf, binary.BigEndian, count)
@@ -95,8 +110,10 @@ func (b *Block) MarshalBinary() (data []byte, err error) {
 func (b *Block) MarshalledSize() uint64 {
 	var size uint64 = 0
 	
-	size += 8 // BlockID uint64
-	size += b.PreviousHash.MarshalledSize()
+	//size += 8 // BlockID uint64
+	//size += b.PreviousHash.MarshalledSize()
+	
+	size += b.Header.MarshalledSize()
 	size += 8 // len(Entries) uint64
 	size += b.Salt.MarshalledSize()
 	
@@ -104,17 +121,27 @@ func (b *Block) MarshalledSize() uint64 {
 		size += ebentry.MarshalledSize()
 	}
 	
+	fmt.Println("block.MarshalledSize=", size)
+	
 	return size
 }
 
 func (b *Block) UnmarshalBinary(data []byte) (err error) {
-	b.BlockID, data = binary.BigEndian.Uint64(data[0:8]), data[8:]
+	//b.BlockID, data = binary.BigEndian.Uint64(data[0:8]), data[8:]
 	
-	b.PreviousHash = new(Hash)
-	b.PreviousHash.UnmarshalBinary(data)
-	data = data[b.PreviousHash.MarshalledSize():]
+	//b.PreviousHash = new(Hash)
+	//b.PreviousHash.UnmarshalBinary(data)
+	//data = data[b.PreviousHash.MarshalledSize():]
+	
+	ebh := new(EBlockHeader)
+	ebh.UnmarshalBinary(data)
+	b.Header = ebh
+	
+	data = data[ebh.MarshalledSize():]
 	
 	count, data := binary.BigEndian.Uint64(data[0:8]), data[8:]
+	fmt.Println("block.entry.count=", count)
+	
 	b.EBEntries = make([]*EBEntry, count)
 	for i := uint64(0); i < count; i = i + 1 {
 		b.EBEntries[i] = new(EBEntry)

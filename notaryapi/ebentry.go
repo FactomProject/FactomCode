@@ -9,7 +9,7 @@ import (
 
 	"github.com/firelizzard18/gocoding"
 
-	"github.com/conformal/btcwire"
+	//"github.com/conformal/btcwire"
 )
 
 
@@ -167,6 +167,13 @@ func (e *EBEntry) UnmarshalBinary(data []byte) (err error) {
 	return nil
 }
 
+
+func (e *EBEntry) ShaHash() *Hash {
+	byteArray, _ := e.MarshalBinary()
+	return Sha(byteArray)
+}
+
+/*
 // Sha generates the ShaHash name for the EBEntry.
 func (e *EBEntry) Sha() *btcwire.ShaHash {
 	//buf := bytes.NewBuffer(make([]byte, 0, msg.SerializeSize()))
@@ -176,3 +183,4 @@ func (e *EBEntry) Sha() *btcwire.ShaHash {
 
 	return &sha
 }
+*/

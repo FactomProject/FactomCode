@@ -136,7 +136,7 @@ func findV1InBlocks(context string, path []string, blocks []*notaryapi.Block) (i
 		return nil, notaryapi.CreateError(notaryapi.ErrorBlockNotFound, fmt.Sprintf(`The no blocks can be found in the context "%s"`, sid, context))
 	}
 	
-	idOffset := blocks[0].BlockID
+	idOffset := blocks[0].Header.BlockID
 	
 	if id < idOffset {
 		return nil, notaryapi.CreateError(notaryapi.ErrorBlockNotFound, fmt.Sprintf(`The block identified by "%s" cannot be found in the context "%s"`, sid, context))

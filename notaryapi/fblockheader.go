@@ -7,7 +7,7 @@ import (
 	"encoding/binary"
 )
 
-const BlockVersion = 1 
+const FBlockVersion = 1 
 
 type FBlockHeader struct {
 	BlockID uint64
@@ -73,8 +73,8 @@ func (b *FBlockHeader) UnmarshalBinary(data []byte) (err error) {
 }
 
 
-func NewFBlockHeader(prevHash *Hash, merkleRootHash *Hash, count uint32,
-	version int32, blockId uint64) *FBlockHeader {
+func NewFBlockHeader(blockId uint64, prevHash *Hash, merkleRootHash *Hash, 
+	version int32, count uint32) *FBlockHeader {
 
 	return &FBlockHeader{
 		Version:    version,

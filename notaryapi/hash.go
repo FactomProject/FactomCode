@@ -73,6 +73,13 @@ func (h *Hash) Decoding(unmarshaller gocoding.Unmarshaller, theType reflect.Type
 	}
 }
 
+func (hash *Hash) GetBytes() []byte {
+	newHash := make([]byte, HashSize)
+	copy(newHash, hash.Bytes)
+
+	return newHash
+}
+
 // SetBytes sets the bytes which represent the hash.  An error is returned if
 // the number of bytes passed in is not HashSize.
 func (hash *Hash) SetBytes(newHash []byte) error {
@@ -95,4 +102,15 @@ func NewHash(newHash []byte) (*Hash, error) {
 		return nil, err
 	}
 	return &sh, err
+}
+
+
+
+func Sha(data []byte) (h *Hash) {
+	sha := sha256.New()
+	sha.Write(data)
+	
+	h = new(Hash)
+	h.Bytes = sha.Sum(nil)	
+	return
 }

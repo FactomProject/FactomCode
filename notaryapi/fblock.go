@@ -3,6 +3,7 @@ package notaryapi
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	
 	"encoding/binary"
 	"sync"
@@ -17,12 +18,11 @@ type FChain struct {
 
 type FBlock struct {
 	Chain *FChain
-	
-	BlockID uint64
-	PreviousHash *Hash
+
+	Header *FBlockHeader
 	FBEntries []*FBEntry
+
 	Salt *Hash
-	
 	Sealed bool //?
 }
 
@@ -36,19 +36,22 @@ func CreateFBlock(chain *FChain, prev *FBlock, capacity uint) (b *FBlock, err er
 	
 	b = new(FBlock)
 	
-	b.BlockID = chain.NextBlockID
+	var prevHash *Hash
+	if prev == nil {
+		prevHash = EmptyHash()
+	} else {
+		prevHash, err = CreateHash(prev)
+	}
+	
+	b.Header = NewFBlockHeader(chain.NextBlockID, prevHash, EmptyHash(), FBlockVersion, uint32(0))
+	
+	//b.BlockID = chain.NextBlockID
 	b.Chain = chain
 	chain.NextBlockID++
 	
 	b.FBEntries = make([]*FBEntry, 0, capacity)
 	
 	b.Salt = EmptyHash()
-	
-	if prev == nil {
-		b.PreviousHash = EmptyHash()
-	} else {
-		b.PreviousHash, err = CreateHash(prev)
-	}
 	
 	return b, err
 }
@@ -84,21 +87,37 @@ func (b *FBlock) AddFBEntry(e *FBEntry) (err error) {
 
 func (b *FBlock) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
+
+	hashes := make([]*Hash, len(b.FBEntries))
+	for i, entry := range b.FBEntries {
+		data, _ := entry.MarshalBinary()
+		hashes[i] = Sha(data)
+	}
 	
-	binary.Write(&buf, binary.BigEndian, b.BlockID)
+	merkle := BuildMerkleTreeStore(hashes)
+	//merkle := BuildMerkleTreeStore(b.FBEntries)
+	b.Header.MerkleRoot = merkle[len(merkle) - 1]
+
+	b.Header.EntryCount = uint32(len(b.FBEntries))
+	fmt.Println("fblock.count=", b.Header.EntryCount)
 	
-	data, _ = b.PreviousHash.MarshalBinary()
+	data, _ = b.Header.MarshalBinary()
 	buf.Write(data)
 	
+	//binary.Write(&buf, binary.BigEndian, b.BlockID)	
+	//data, _ = b.PreviousHash.MarshalBinary()
+	//buf.Write(data)
+	
 	if b.Sealed == true{
-		count := uint64(len(b.FBEntries))
-		binary.Write(&buf, binary.BigEndian, count)
-		for i := uint64(0); i < count; i = i + 1 {
+		count := uint32(len(b.FBEntries))
+		// need to get rid of count, duplicated with blockheader.entrycount
+		binary.Write(&buf, binary.BigEndian, count)	
+		for i := uint32(0); i < count; i = i + 1 {
 			data, _ := b.FBEntries[i].MarshalBinary()
 			buf.Write(data)
 		}
 	} else{
-		binary.Write(&buf, binary.BigEndian, uint64(0))
+		binary.Write(&buf, binary.BigEndian, uint32(0))
 	}
 	
 	data, _ = b.Salt.MarshalBinary()
@@ -110,9 +129,11 @@ func (b *FBlock) MarshalBinary() (data []byte, err error) {
 func (b *FBlock) MarshalledSize() uint64 {
 	var size uint64 = 0
 	
-	size += 8 // BlockID uint64
-	size += b.PreviousHash.MarshalledSize()
-	size += 8 // len(Entries) uint64
+	//size += 8 // BlockID uint64
+	//size += b.PreviousHash.MarshalledSize()
+	
+	size += b.Header.MarshalledSize()
+	size += 4 // len(Entries) uint32
 	size += b.Salt.MarshalledSize()
 	
 	for _, fbentry := range b.FBEntries {
@@ -123,15 +144,20 @@ func (b *FBlock) MarshalledSize() uint64 {
 }
 
 func (b *FBlock) UnmarshalBinary(data []byte) (err error) {
-	b.BlockID, data = binary.BigEndian.Uint64(data[0:8]), data[8:]
+	//b.BlockID, data = binary.BigEndian.Uint64(data[0:8]), data[8:]
 	
-	b.PreviousHash = new(Hash)
-	b.PreviousHash.UnmarshalBinary(data)
-	data = data[b.PreviousHash.MarshalledSize():]
+	//b.PreviousHash = new(Hash)
+	//b.PreviousHash.UnmarshalBinary(data)
+	//data = data[b.PreviousHash.MarshalledSize():]
 	
-	count, data := binary.BigEndian.Uint64(data[0:8]), data[8:]
+	fbh := new(FBlockHeader)
+	fbh.UnmarshalBinary(data)
+	b.Header = fbh
+	data = data[fbh.MarshalledSize():]
+	
+	count, data := binary.BigEndian.Uint32(data[0:4]), data[4:]
 	b.FBEntries = make([]*FBEntry, count)
-	for i := uint64(0); i < count; i = i + 1 {
+	for i := uint32(0); i < count; i = i + 1 {
 		b.FBEntries[i] = new(FBEntry)
 		err = b.FBEntries[i].UnmarshalBinary(data)
 		if err != nil { return }
