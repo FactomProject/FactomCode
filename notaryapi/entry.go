@@ -73,6 +73,7 @@ type Entry struct {
 	EntryData
 	unixTime int64
 	signatures []Signature
+	ChainID []byte //??
 	
 	BinaryMarshallable
 }

@@ -1,11 +1,17 @@
 <h1>New Entry</h1>
-<label for="datatype">Data Type: </label>
-<select name="datatype" form="genform">
-	<option selected="true" value="1">Plain/Raw</option>
-	<option selected="true" value="2">UTF8</option>
-</select>
 <br />
+<br />
+<label for="datatype">Submit your entry to: </label>
+
+
 <form id="genform" method="post" action="/entries">
+	<select name="chainid">
+		<option value="0100000000000000000000000000000000000000000000000000000000000000" selected>Chain 1</option>
+		<option value="0200000000000000000000000000000000000000000000000000000000000000">Chain 2</option>
+	</select>
+<br />
+<br />	
+	<input type="hidden" name="datatype" value="1" />
 	<input type="hidden" name="action" value="genEntry" />
 	<input type="submit" value="Create" />
 </form>

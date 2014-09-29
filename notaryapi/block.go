@@ -29,6 +29,10 @@ func EncodeChainID(chainID *[]byte) (string){
 	return hex.EncodeToString(*chainID)
 }
 
+func DecodeChainID(chainID *string) ([]byte, error){
+	return hex.DecodeString(*chainID)
+}
+
 func CreateBlock(chain *Chain, prev *Block, capacity uint) (b *Block, err error) {
 	if prev == nil && chain.NextBlockID != 0 {
 		return nil, errors.New("Previous block cannot be nil")

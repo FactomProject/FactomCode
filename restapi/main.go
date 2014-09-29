@@ -315,7 +315,7 @@ var blockPtrType = reflect.TypeOf((*notaryapi.Block)(nil)).Elem()
 
 func post(context string, form url.Values) (interface{}, *notaryapi.Error) {
 	newEntry := new(notaryapi.Entry)
-	format, data := form.Get("format"), form.Get("data")
+	format, data, chainid := form.Get("format"), form.Get("data"), form.Get("chainid")
 
 	switch format {
 	case "", "json":
@@ -341,17 +341,26 @@ func post(context string, form url.Values) (interface{}, *notaryapi.Error) {
 
 	newEntry.StampTime()
 	
+	
 	//--------------------
 
-	chainID := getChainID()
-	chain := chainMap[string(*chainID)]
+	chainID, err1 := notaryapi.DecodeChainID(&chainid) //need a validation method??
+	if err1 != nil{
+		return nil, notaryapi.CreateError(notaryapi.ErrorInternal, `Not able to decode chain id`) //ErrorInternal?
+	}
+	chain := chainMap[string(chainID)]
+	
+	if chain == nil{
+		return nil, notaryapi.CreateError(notaryapi.ErrorInternal, `This chain is not supported`) //ErrorInternal?
+	}
+	
 	if db !=nil{
 		
 		entryBinary, _ := newEntry.MarshalBinary()
 		
 		hash, _ := notaryapi.CreateHash(newEntry)
 		
-		db.InsertEntryAndQueue( hash, &entryBinary, newEntry, chainID)
+		db.InsertEntryAndQueue( hash, &entryBinary, newEntry, &chainID)
 		
 //		ebentries, _ := db.FetchEntriesFromQueue([]byte{byte(notaryapi.PlainDataType)}, []byte{byte(0)})	
 		
@@ -469,7 +478,7 @@ func initFChain() {
 //for testing--------------------------------------
 
 var chainIDs [][]byte
-var chainIDcounter int =1 
+/*var chainIDcounter int =1 
 func getChainID() (chainID *[]byte){
 	
 	i:= chainIDcounter % len(chainIDs) 
@@ -477,6 +486,7 @@ func getChainID() (chainID *[]byte){
 	return &chainIDs[i]
 	
 }
+*/
 //for testing
 func initChainIDs() {
 	chainMap = make(map[string]*notaryapi.Chain)

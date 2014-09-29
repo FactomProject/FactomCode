@@ -205,6 +205,7 @@ func handleEntriesPost(ctx *web.Context) {
 		data := url.Values{}
 		data.Set("format", "json")
 		data.Set("data", buf.String())
+		data.Set("chainid", notaryapi.EncodeChainID(&entry.ChainID))
 		
 		resp, err := http.PostForm(server, data)
 		if err != nil {
@@ -305,6 +306,18 @@ func handleEntriesPost(ctx *web.Context) {
 			abortMessage = fmt.Sprint("Failed to generate entry: unsupported data type: ", id)
 			return
 		}
+		
+		chainid := ctx.Params["chainid"]
+		binaryChainID, err := notaryapi.DecodeChainID(&chainid) 
+		if err != nil {
+			abortMessage = fmt.Sprint("Invalid chain id: ", chainid)
+			return
+		} else{
+			entry.ChainID = binaryChainID
+		}
+				
+				
+		
 		addEntry(entry)
 		
 		ctx.Header().Add("Location", fmt.Sprintf("/entries/%d", Settings.NextEntryID-1))

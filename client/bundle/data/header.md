@@ -1,6 +1,6 @@
-# NotaryChains
+# Factom
 
-Distributed notary services
+Reference Client
 
   * {{if eq .Title "Home"}}
       <div>Home</div>
