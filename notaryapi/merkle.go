@@ -3,8 +3,9 @@ package notaryapi
 
 import (
 	"math"
+	"fmt"
 
-	"github.com/conformal/btcwire"
+	//"github.com/conformal/btcwire"
 )
 
 // nextPowerOfTwo returns the next highest power of two from a given number if
@@ -24,28 +25,36 @@ func nextPowerOfTwo(n int) int {
 // HashMerkleBranches takes two hashes, treated as the left and right tree
 // nodes, and returns the hash of their concatenation.  This is a helper
 // function used to aid in the generation of a merkle tree.
-func HashMerkleBranches(left *btcwire.ShaHash, right *btcwire.ShaHash) *btcwire.ShaHash {
+func HashMerkleBranches(left *Hash, right *Hash) *Hash {
 	// Concatenate the left and right nodes.
-	var sha [btcwire.HashSize * 2]byte
-	copy(sha[:btcwire.HashSize], left.Bytes())
-	copy(sha[btcwire.HashSize:], right.Bytes())
+	var sha [HashSize * 2]byte
+	copy(sha[:HashSize], left.GetBytes())
+	copy(sha[HashSize:], right.GetBytes())
 
-	newSha, _ := btcwire.NewShaHash(btcwire.DoubleSha256(sha[:]))
+	byteArray, _ := NewByteArray(sha[:])
+	newSha, _ := CreateHash(byteArray)
 	return newSha
 }
 
 //func BuildMerkleTreeStore(transactions []*btcutil.Tx) []*btcwire.ShaHash {
-func BuildMerkleTreeStore(ebEntries []*EBEntry) []*btcwire.ShaHash {
+//func CreateHash(entities...BinaryMarshallable) (h *Hash, err error) {
+//func BuildMerkleTreeStore(entities...BinaryMarshallable) []*Hash {
+//func BuildMerkleTreeStore(entities...[]*BEntry) []*Hash {
+
+func BuildMerkleTreeStore(hashes []*Hash) []*Hash {
 	// Calculate how many entries are required to hold the binary merkle
 	// tree as a linear array and create an array of that size.
-	nextPoT := nextPowerOfTwo(len(ebEntries))
+	nextPoT := nextPowerOfTwo(len(hashes))
 	arraySize := nextPoT*2 - 1
-	merkles := make([]*btcwire.ShaHash, arraySize)
+	fmt.Println("hashes.len=", len(hashes), ", nextPoT=", nextPoT, ", array.size=", arraySize)
+
+	merkles := make([]*Hash, arraySize)
 
 	// Create the base transaction shas and populate the array with them.
-	for i, entry := range ebEntries {
-		merkles[i] = entry.Sha()
-	}
+	//for i, entity := range entities {
+		//merkles[i] = entity.ShaHash()
+	//}
+	copy(merkles[:len(hashes)], hashes[:])
 
 	// Start the array offset after the last transaction and adjusted to the
 	// next power of two.

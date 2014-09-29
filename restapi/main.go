@@ -84,12 +84,15 @@ func initWithBinary(chain *notaryapi.Chain) {
 	}
 	//need more work??
 	if len(chain.Blocks) == 0{
+		block, _ := notaryapi.CreateBlock(chain, nil, 10)
+		/*
 		block := new (notaryapi.Block)
 		block.BlockID = 0
 		block.PreviousHash = notaryapi.EmptyHash()
 		block.Salt = notaryapi.EmptyHash()
 		block.Chain = chain
-		chain.NextBlockID = 1
+		chain.NextBlockID = 1*/
+		
 		chain.Blocks = append(chain.Blocks, block)
 	}
 }
@@ -131,7 +134,7 @@ func init() {
 		fmt.Println("Loaded", len(chain.Blocks), "blocks for chain: " + notaryapi.EncodeChainID(chain.ChainID))
 	
 		for i := 0; i < len(chain.Blocks); i = i + 1 {
-			if uint64(i) != chain.Blocks[i].BlockID {
+			if uint64(i) != chain.Blocks[i].Header.BlockID {
 				panic(errors.New("BlockID does not equal index"))
 			}
 		}
@@ -146,7 +149,7 @@ func init() {
 
 	tickers[0] = time.NewTicker(time.Minute * 5)
 	//tickers[1] = time.NewTicker(time.Hour)
-	tickers[1] = time.NewTicker(time.Second * 29) // for testing??
+	tickers[1] = time.NewTicker(time.Minute * 3)	//.Second * 29) // for testing??
 
 	go func() {
 		for _ = range tickers[1].C {
@@ -220,6 +223,9 @@ func save(chain *notaryapi.Chain) {
 	chain.BlockMutex.Unlock()
 
 	for i, block := range bcp {
+		if len(block.EBEntries) == 0 {
+			continue
+		}
 		data, err := block.MarshalBinary()
 		if err != nil {
 			panic(err)
@@ -408,6 +414,9 @@ func saveFChain(chain *notaryapi.FChain) {
 	chain.BlockMutex.Unlock()
 
 	for i, block := range bcp {
+		if len(block.FBEntries) == 0 {
+			continue
+		}
 		data, err := block.MarshalBinary()
 		if err != nil {
 			panic(err)
@@ -460,13 +469,16 @@ func initFChain() {
 	}
 	//need more work??
 	if len(fchain.Blocks) == 0{
+		/*
 		block := new (notaryapi.FBlock)
 		block.BlockID = 0
 		block.Sealed = false
 		block.PreviousHash = notaryapi.EmptyHash()
 		block.Salt = notaryapi.EmptyHash()
 		block.Chain = fchain
-		fchain.NextBlockID = 1
+		fchain.NextBlockID = 1*/
+		
+		block, _ := notaryapi.CreateFBlock(fchain, nil, 10)
 		fchain.Blocks = append(fchain.Blocks, block)
 		
 	} else{

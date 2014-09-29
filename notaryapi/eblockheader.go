@@ -9,6 +9,7 @@ import (
 
 
 type EBlockHeader struct {
+//	ChainID []byte
 	BlockID uint64
 	PrevBlockHash *Hash
 	MerkleRoot *Hash
@@ -62,12 +63,11 @@ func (b *EBlockHeader) UnmarshalBinary(data []byte) (err error) {
 }
 
 
-func NewEBlockHeader(prevHash *Hash, merkleRootHash *Hash, 
-	blockId uint64) *EBlockHeader {
+func NewEBlockHeader(blockId uint64, prevHash *Hash, merkle *Hash) *EBlockHeader {
 
 	return &EBlockHeader{
 		PrevBlockHash:  prevHash,
-		MerkleRoot: merkleRootHash,
+		MerkleRoot: merkle,
 		TimeStamp:  time.Now().Unix(),
 		BlockID:    blockId,
 	}

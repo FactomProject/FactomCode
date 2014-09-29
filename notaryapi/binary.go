@@ -3,6 +3,9 @@ package notaryapi
 import (
 	"encoding"
 	"errors"
+	"bytes"
+	"encoding/binary"
+	//"encoding/hex"
 	
 	"math/big"
 )
@@ -58,3 +61,44 @@ func (d *simpleData) UnmarshalBinary([]byte) error {
 	return errors.New("simpleData cannot be unmarshalled")
 }
 
+
+type ByteArray []byte
+
+func (ba ByteArray) Bytes() []byte {
+	newArray := make([]byte, len(ba))
+	copy(newArray, ba[:])
+	return newArray
+}
+
+func (ba ByteArray) SetBytes(newArray []byte) error {
+	copy(ba[:], newArray[:])
+	return nil
+}
+
+func (ba ByteArray) MarshalBinary() ([]byte, error) {
+	var buf bytes.Buffer
+
+	binary.Write(&buf, binary.BigEndian, uint64(len(ba)))
+	buf.Write(ba)
+	return buf.Bytes(), nil
+}
+
+func (ba ByteArray) MarshalledSize() uint64 {
+	return uint64(len(ba) + 1)
+}
+
+func (ba ByteArray) UnmarshalBinary([]byte) error {
+	count, data := binary.BigEndian.Uint64(ba[0:8]), ba[8:]
+	//SetBytes(data[:count])
+	copy(ba[:], data[:count])
+	return nil
+}
+
+func NewByteArray(newHash []byte) (*ByteArray, error) {
+	var sh ByteArray
+	err := sh.SetBytes(newHash)
+	if err != nil {
+		return nil, err
+	}
+	return &sh, err
+}

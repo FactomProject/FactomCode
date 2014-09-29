@@ -23,8 +23,6 @@ import (
 	
 )
 
-//var client *btcrpcclient.Client
-//var currentAddr btcutil.Address
 var fee btcutil.Amount
 var wif *btcutil.WIF
 
@@ -38,17 +36,6 @@ func (u ByAmount) Swap(i, j int)      { u[i], u[j] = u[j], u[i] }
 
 
 func SendRawTransactionToBTC(hash []byte) (*btcwire.ShaHash, error) {
-	
-	//addrStr := "muhXX7mXoMZUBvGLCgfjuoY2n2mziYETYC"
-	
-	//if err := initRPCClient(); err != nil {
-		//return fmt.Errorf("cannot init rpc client: %s", err)
-	//}
-	//defer shutdown(client)
-	
-	//if err := initWallet(addrStr); err != nil {
-		//return fmt.Errorf("cannot init wallet: %s", err)
-	//}
 	
 	msgtx, err := createRawTransaction(hash)
 	if err != nil {
@@ -130,7 +117,6 @@ func createRawTransaction(hash []byte) (*btcwire.MsgTx, error) {
 }
 
 
-
 // For every unspent output given, add a new input to the given MsgTx. Only P2PKH outputs are
 // supported at this point.
 func addTxIn(msgtx *btcwire.MsgTx, outputs []btcjson.ListUnspentResult) error {
@@ -171,10 +157,6 @@ func addTxIn(msgtx *btcwire.MsgTx, outputs []btcjson.ListUnspentResult) error {
 func addTxOuts(msgtx *btcwire.MsgTx, change btcutil.Amount, hash []byte) error {
  
  	header := []byte{0x46, 0x61, 0x63, 0x74, 0x6f, 0x6d, 0x21, 0x21}	// Factom!!
-	//hash := []byte{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 
-	//			   0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 
-	//			   0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 
-	//			   0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}
 	hash = append(header, hash...)
 
 	
@@ -366,20 +348,13 @@ func newEntryBlock(chain *notaryapi.Chain) (block *notaryapi.Block){
 	// add a new block for new entries to be added to
 	chain.BlockMutex.Lock()
 	newblock, _ := notaryapi.CreateBlock(chain, block, 10)
-	newblock.Chain = chain
-	
-	
+//	newblock.Chain = chain	
 	chain.Blocks = append(chain.Blocks, newblock)
 	chain.BlockMutex.Unlock()
-	
-	//rework needed ??
-//	SendTransactionToBTC(hashdata)
-	//txhash := recordHash(hashdata)
-    //log.Print("Recorded ",hashdata," in transaction hash:\n",txhash)
     
 	waiting = false    //??
 	
-	log.Println("block" + strconv.FormatUint(block.BlockID, 10) +" created for chain: "  + notaryapi.EncodeChainID(chain.ChainID))	
+	log.Println("block" + strconv.FormatUint(block.Header.BlockID, 10) +" created for chain: "  + notaryapi.EncodeChainID(chain.ChainID))	
 	return block
 }
 
@@ -398,12 +373,6 @@ func newFactomBlock(chain *notaryapi.FChain) {
  		//log.Println("No Factom block created for chain ... because no new entry is found.")
  		return
  	}
- 
-
-	//blkhash, _ := notaryapi.CreateHash(block)
-//	hashdata := blkhash.Bytes
-	
-	//db.ProcessFBlockBatche(blkhash, block) //??
 
 	// add a new block for new entries to be added to
 	chain.BlockMutex.Lock()
@@ -413,14 +382,9 @@ func newFactomBlock(chain *notaryapi.FChain) {
 	chain.Blocks = append(chain.Blocks, newblock)
 	chain.BlockMutex.Unlock()
 	
-	//rework needed ??
-//	SendTransactionToBTC(hashdata)
-	//txhash := recordHash(hashdata)
-    //log.Print("Recorded ",hashdata," in transaction hash:\n",txhash)
-    
 	waiting = false    //??
 	block.Sealed = true
-	log.Println("block" + strconv.FormatUint(block.BlockID, 10) +" created for factom chain: "  + notaryapi.EncodeChainID(chain.ChainID))
+	log.Println("block" + strconv.FormatUint(block.Header.BlockID, 10) +" created for factom chain: "  + notaryapi.EncodeChainID(chain.ChainID))
 	
 	blkhash, _ := notaryapi.CreateHash(block)
 	hashdata := blkhash.Bytes
@@ -433,55 +397,4 @@ func newFactomBlock(chain *notaryapi.FChain) {
 		log.Fatalf("cannot init rpc client: %s", err)
 	}
     log.Print("Recorded ", hashdata, " in transaction hash:\n",txHash)
-	
-		
 }
-
-//
-// newBlock hashes the current LastHash into the Bitcoin Blockchain 5 minutes after
-// the previous block. (If a block is signed quicker than 5 minutes, then the second
-// block is ignored.)
-//
-//func newBlock(hash *btcwire.ShaHash, height int32) {
-/*
-func newBlock() {
-
-	if waiting {
-		return
-	}
-	waiting = true
-	 
-	//log.Printf("Block connected: %v (%d)", hash, height)
-
-	time.Sleep(time.Minute * 1)		//5)
-
-	// acquire the last block
-	//   no one else will change the blocks array, so we don't need to lock to safely acquire
-	block := blocks[len(blocks)-1]
-
-	// wait until it's full
-	for len(block.EBEntries) < 3 {
-		time.Sleep(time.Minute)
-		log.Print("waiting for entries... have ",len(block.EBEntries))
-	}
-
-	// add a new block for new entries to be added to
-	blockMutex.Lock()
-	newblock, _ := notaryapi.CreateBlock(block, 10)
-	blocks = append(blocks, newblock)
-	blockMutex.Unlock()
-
-	blkhash, _ := notaryapi.CreateHash(block)
-	hashdata := blkhash.Bytes
-	
-	fmt.Printf("hashdata.len=%d", len(hashdata))
-	
-	txHash, err := SendRawTransactionToBTC(hashdata)
-	if err != nil {
-		log.Fatalf("cannot init rpc client: %s", err)
-	}
-    log.Print("Recorded ", hashdata, " in transaction hash:\n",txHash)
-    
-	waiting = false    //??
-}
-*/
