@@ -3,7 +3,7 @@ package notaryapi
 
 import (
 	"math"
-	"fmt"
+//	"fmt"
 
 	//"github.com/conformal/btcwire"
 )
@@ -46,7 +46,7 @@ func BuildMerkleTreeStore(hashes []*Hash) []*Hash {
 	// tree as a linear array and create an array of that size.
 	nextPoT := nextPowerOfTwo(len(hashes))
 	arraySize := nextPoT*2 - 1
-	fmt.Println("hashes.len=", len(hashes), ", nextPoT=", nextPoT, ", array.size=", arraySize)
+//	fmt.Println("hashes.len=", len(hashes), ", nextPoT=", nextPoT, ", array.size=", arraySize)
 
 	merkles := make([]*Hash, arraySize)
 

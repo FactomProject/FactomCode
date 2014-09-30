@@ -3,7 +3,7 @@ package notaryapi
 import (
 	"bytes"
 	"errors"
-	"fmt"
+	//"fmt"
 	
 	"encoding/binary"
 	"sync"
@@ -17,13 +17,16 @@ type FChain struct {
 }
 
 type FBlock struct {
-	Chain *FChain
 
-	Header *FBlockHeader
+	//Marshalized
+	Header *FBlockHeader 
 	FBEntries []*FBEntry
 
+	//Not Marshalized
 	Salt *Hash
-	Sealed bool //?
+	Chain *FChain
+	IsSealed bool
+
 }
 
 
@@ -45,13 +48,14 @@ func CreateFBlock(chain *FChain, prev *FBlock, capacity uint) (b *FBlock, err er
 	
 	b.Header = NewFBlockHeader(chain.NextBlockID, prevHash, EmptyHash(), FBlockVersion, uint32(0))
 	
-	//b.BlockID = chain.NextBlockID
 	b.Chain = chain
-	chain.NextBlockID++
+
 	
 	b.FBEntries = make([]*FBEntry, 0, capacity)
 	
 	b.Salt = EmptyHash()
+	
+	b.IsSealed = false
 	
 	return b, err
 }
@@ -99,7 +103,7 @@ func (b *FBlock) MarshalBinary() (data []byte, err error) {
 	b.Header.MerkleRoot = merkle[len(merkle) - 1]
 
 	b.Header.EntryCount = uint32(len(b.FBEntries))
-	fmt.Println("fblock.count=", b.Header.EntryCount)
+	//fmt.Println("fblock.count=", b.Header.EntryCount)
 	
 	data, _ = b.Header.MarshalBinary()
 	buf.Write(data)
@@ -108,17 +112,15 @@ func (b *FBlock) MarshalBinary() (data []byte, err error) {
 	//data, _ = b.PreviousHash.MarshalBinary()
 	//buf.Write(data)
 	
-	if b.Sealed == true{
-		count := uint32(len(b.FBEntries))
-		// need to get rid of count, duplicated with blockheader.entrycount
-		binary.Write(&buf, binary.BigEndian, count)	
-		for i := uint32(0); i < count; i = i + 1 {
-			data, _ := b.FBEntries[i].MarshalBinary()
-			buf.Write(data)
-		}
-	} else{
-		binary.Write(&buf, binary.BigEndian, uint32(0))
+
+	count := uint32(len(b.FBEntries))
+	// need to get rid of count, duplicated with blockheader.entrycount
+	binary.Write(&buf, binary.BigEndian, count)	
+	for i := uint32(0); i < count; i = i + 1 {
+		data, _ := b.FBEntries[i].MarshalBinary()
+		buf.Write(data)
 	}
+
 	
 	data, _ = b.Salt.MarshalBinary()
 	buf.Write(data)

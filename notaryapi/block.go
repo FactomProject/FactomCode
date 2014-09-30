@@ -18,12 +18,15 @@ type Chain struct {
 }
 
 type Block struct {
-	Chain *Chain
-	
+
+	//Marshalized
 	Header *EBlockHeader
 	EBEntries []*EBEntry
 
+	//Not Marshalized
 	Salt *Hash
+	Chain *Chain	
+	IsSealed bool
 }
 
 func EncodeChainID(chainID *[]byte) (string){
@@ -53,11 +56,12 @@ func CreateBlock(chain *Chain, prev *Block, capacity uint) (b *Block, err error)
 	b.Header = NewEBlockHeader(chain.NextBlockID, prevHash, EmptyHash())
 	
 	b.Chain = chain
-	chain.NextBlockID++
 	
 	b.EBEntries = make([]*EBEntry, 0, capacity)
 	
 	b.Salt = EmptyHash()
+	
+	b.IsSealed = false
 	
 	return b, err
 }
@@ -85,7 +89,7 @@ func (b *Block) MarshalBinary() (data []byte, err error) {
 	for i, entry := range b.EBEntries {
 		data, _ := entry.MarshalBinary()
 		hashes[i] = Sha(data)
-		fmt.Println("i=", i, ", hash=", hashes[i])
+		//fmt.Println("i=", i, ", hash=", hashes[i])
 	}
 	
 	merkle := BuildMerkleTreeStore(hashes)
@@ -144,7 +148,7 @@ func (b *Block) UnmarshalBinary(data []byte) (err error) {
 	data = data[ebh.MarshalledSize():]
 	
 	count, data := binary.BigEndian.Uint64(data[0:8]), data[8:]
-	fmt.Println("block.entry.count=", count)
+	//fmt.Println("block.entry.count=", count)
 	
 	b.EBEntries = make([]*EBEntry, count)
 	for i := uint64(0); i < count; i = i + 1 {

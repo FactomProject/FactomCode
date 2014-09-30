@@ -9,7 +9,6 @@ import (
 	"github.com/FactomProject/FactomCode/notaryapi"
 	"github.com/conformal/btcrpcclient"
 	"github.com/conformal/btcutil"
-//	"github.com/conformal/btcwire"
 	"github.com/firelizzard18/dynrsrc"
 	"github.com/firelizzard18/gobundle"
 	"github.com/firelizzard18/gocoding"
@@ -24,7 +23,6 @@ import (
 	"time"
 	"log"
  
-	
 	"github.com/FactomProject/FactomCode/database"	
 	"github.com/FactomProject/FactomCode/database/ldb"	
 
@@ -79,21 +77,22 @@ func initWithBinary(chain *notaryapi.Chain) {
 			panic(err)
 		}
 		block.Chain = chain
+		block.IsSealed = true
 		chain.Blocks[num] = block
 		num++
 	}
-	//need more work??
-	if len(chain.Blocks) == 0{
-		block, _ := notaryapi.CreateBlock(chain, nil, 10)
-		/*
-		block := new (notaryapi.Block)
-		block.BlockID = 0
-		block.PreviousHash = notaryapi.EmptyHash()
-		block.Salt = notaryapi.EmptyHash()
-		block.Chain = chain
-		chain.NextBlockID = 1*/
+	
+	
 		
-		chain.Blocks = append(chain.Blocks, block)
+	//Create an empty block and append to the chain
+	if len(chain.Blocks) == 0{
+		chain.NextBlockID = 0		
+		newblock, _ := notaryapi.CreateBlock(chain, nil, 10)
+		chain.Blocks = append(chain.Blocks, newblock)	
+	} else{
+		chain.NextBlockID = uint64(len(chain.Blocks))			
+		newblock,_ := notaryapi.CreateBlock(chain, chain.Blocks[len(chain.Blocks)-1], 10)
+		chain.Blocks = append(chain.Blocks, newblock)
 	}
 }
 
@@ -138,7 +137,7 @@ func init() {
 				panic(errors.New("BlockID does not equal index"))
 			}
 		}
-		chain.NextBlockID = (uint64(len(chain.Blocks)))			
+	
 	}
 
 
@@ -148,8 +147,8 @@ func init() {
 
 
 	tickers[0] = time.NewTicker(time.Minute * 5)
-	//tickers[1] = time.NewTicker(time.Hour)
-	tickers[1] = time.NewTicker(time.Minute * 3)	//.Second * 29) // for testing??
+
+	tickers[1] = time.NewTicker(time.Second * 60) 
 
 	go func() {
 		for _ = range tickers[1].C {
@@ -188,7 +187,6 @@ func main() {
 	defer func() {
 		tickers[0].Stop()
 		tickers[1].Stop()
-	//	save()
 		dynrsrc.Stop()
 		db.Close()
 	}()
@@ -222,8 +220,12 @@ func save(chain *notaryapi.Chain) {
 	copy(bcp, chain.Blocks)
 	chain.BlockMutex.Unlock()
 
+	fmt.Print("len(chain.Blocks):")
+	fmt.Println(len(chain.Blocks))
+	
 	for i, block := range bcp {
-		if len(block.EBEntries) == 0 {
+		//the open block is not saved
+		if block.IsSealed == false {
 			continue
 		}
 		data, err := block.MarshalBinary()
@@ -347,8 +349,6 @@ func post(context string, form url.Values) (interface{}, *notaryapi.Error) {
 
 	newEntry.StampTime()
 	
-	
-	//--------------------
 
 	chainID, err1 := notaryapi.DecodeChainID(&chainid) //need a validation method??
 	if err1 != nil{
@@ -360,34 +360,17 @@ func post(context string, form url.Values) (interface{}, *notaryapi.Error) {
 		return nil, notaryapi.CreateError(notaryapi.ErrorInternal, `This chain is not supported`) //ErrorInternal?
 	}
 	
+	// store the new entry in db
 	if db !=nil{
-		
 		entryBinary, _ := newEntry.MarshalBinary()
 		
 		hash, _ := notaryapi.CreateHash(newEntry)
 		
 		db.InsertEntryAndQueue( hash, &entryBinary, newEntry, &chainID)
-		
-//		ebentries, _ := db.FetchEntriesFromQueue([]byte{byte(notaryapi.PlainDataType)}, []byte{byte(0)})	
-		
-//		fmt.Println ("len(ebentries): %v", len(ebentries))	
-		
-//		entry,_ := db.FetchEntryByHash(hash)
-		
-		log.Println(hash.Bytes)
-		log.Println( time.Unix(newEntry.TimeStamp(), 0).Format(time.RFC3339))
-		log.Println("typename: " + newEntry.EntryData.TypeName())
-		log.Println("datahash: %v", newEntry.EntryData.DataHash())
-		
-		 
+	 
 	} else{
-
 		panic("db is null!")
-		
 	}
-	
-	
-	//-----------------
 
 	chain.BlockMutex.Lock()
 	err := chain.Blocks[len(chain.Blocks)-1].AddEBEntry(newEntry)
@@ -403,7 +386,7 @@ func post(context string, form url.Values) (interface{}, *notaryapi.Error) {
 
 func saveFChain(chain *notaryapi.FChain) {
 	if len(chain.Blocks)==0{
-		log.Println("no blocks to save for chain: " + string (*chain.ChainID))
+		//log.Println("no blocks to save for chain: " + string (*chain.ChainID))
 		return
 	}
 	
@@ -414,9 +397,11 @@ func saveFChain(chain *notaryapi.FChain) {
 	chain.BlockMutex.Unlock()
 
 	for i, block := range bcp {
-		if len(block.FBEntries) == 0 {
+		//the open block is not saved
+		if block.IsSealed == false {
 			continue
 		}
+		
 		data, err := block.MarshalBinary()
 		if err != nil {
 			panic(err)
@@ -464,42 +449,29 @@ func initFChain() {
 			panic(err)
 		}
 		block.Chain = fchain
+		block.IsSealed = true
 		fchain.Blocks[num] = block
 		num++
 	}
-	//need more work??
+	//Create an empty block and append to the chain
 	if len(fchain.Blocks) == 0{
-		/*
-		block := new (notaryapi.FBlock)
-		block.BlockID = 0
-		block.Sealed = false
-		block.PreviousHash = notaryapi.EmptyHash()
-		block.Salt = notaryapi.EmptyHash()
-		block.Chain = fchain
-		fchain.NextBlockID = 1*/
-		
-		block, _ := notaryapi.CreateFBlock(fchain, nil, 10)
-		fchain.Blocks = append(fchain.Blocks, block)
+		fchain.NextBlockID = 0
+		newblock, _ := notaryapi.CreateFBlock(fchain, nil, 10)
+		fchain.Blocks = append(fchain.Blocks, newblock)
 		
 	} else{
-		fchain.Blocks[len(fchain.Blocks)-1].Sealed = false
-		fchain.NextBlockID = uint64(len(fchain.Blocks))
+		fchain.NextBlockID = uint64(len(fchain.Blocks))			
+		newblock,_ := notaryapi.CreateFBlock(fchain, fchain.Blocks[len(fchain.Blocks)-1], 10)	
+		fchain.Blocks = append(fchain.Blocks, newblock)		
 	}	
+		
+
 }
 
-//for testing--------------------------------------
+//for testing - to be moved into db-------------------------------------
 
 var chainIDs [][]byte
-/*var chainIDcounter int =1 
-func getChainID() (chainID *[]byte){
-	
-	i:= chainIDcounter % len(chainIDs) 
-	chainIDcounter = chainIDcounter+1
-	return &chainIDs[i]
-	
-}
-*/
-//for testing
+
 func initChainIDs() {
 	chainMap = make(map[string]*notaryapi.Chain)
 
@@ -518,3 +490,4 @@ func initChainIDs() {
 	chainMap[string(chainIDs[1])] = chain2	
 
 }
+//--------------------------------------------------------------------------
