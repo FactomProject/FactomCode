@@ -19,6 +19,7 @@ type EBEntry struct {
 	
 	ChainID *[]byte // not marshalllized
 	status int8 //for future use??
+
 }
 
 func NewEBEntry(h *Hash, id *[]byte) *EBEntry {
@@ -56,6 +57,13 @@ func (e *EBEntry) SetTimeStamp(binaryTime []byte)  {
  	e.timeStamp = int64(binary.BigEndian.Uint64(binaryTime))	
 
 }
+
+func (e *EBEntry) SetIntTimeStamp(ts int64)  {
+ 	
+ 	e.timeStamp = ts	
+
+}
+
 
 func (e *EBEntry) RealTime() time.Time {
 	return time.Unix(e.timeStamp, 0)

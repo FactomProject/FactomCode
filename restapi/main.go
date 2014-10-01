@@ -22,6 +22,7 @@ import (
 	"os"
 	"time"
 	"log"
+	"encoding/binary"
  
 	"github.com/FactomProject/FactomCode/database"	
 	"github.com/FactomProject/FactomCode/database/ldb"	
@@ -88,12 +89,21 @@ func initWithBinary(chain *notaryapi.Chain) {
 	if len(chain.Blocks) == 0{
 		chain.NextBlockID = 0		
 		newblock, _ := notaryapi.CreateBlock(chain, nil, 10)
+		
 		chain.Blocks = append(chain.Blocks, newblock)	
 	} else{
 		chain.NextBlockID = uint64(len(chain.Blocks))			
 		newblock,_ := notaryapi.CreateBlock(chain, chain.Blocks[len(chain.Blocks)-1], 10)
 		chain.Blocks = append(chain.Blocks, newblock)
 	}
+	
+	//Get the unprocessed entries in db for the past # of mins for the open block
+	binaryTimestamp := make([]byte, 8)
+	binary.BigEndian.PutUint64(binaryTimestamp, uint64(0))
+	if chain.Blocks[chain.NextBlockID].IsSealed == true {
+		panic ("chain.Blocks[chain.NextBlockID].IsSealed for chain:" + notaryapi.EncodeChainID(chain.ChainID))
+	}
+	chain.Blocks[chain.NextBlockID].EBEntries, _ = db.FetchEntriesFromQueue(chain.ChainID, &binaryTimestamp)		
 }
 
 func initDB() {
@@ -130,10 +140,13 @@ func init() {
 	for _, chain := range chainMap {
 		initWithBinary(chain)
 			
-		fmt.Println("Loaded", len(chain.Blocks), "blocks for chain: " + notaryapi.EncodeChainID(chain.ChainID))
+		fmt.Println("Loaded", len(chain.Blocks)-1, "blocks for chain: " + notaryapi.EncodeChainID(chain.ChainID))
 	
 		for i := 0; i < len(chain.Blocks); i = i + 1 {
 			if uint64(i) != chain.Blocks[i].Header.BlockID {
+				fmt.Println ("i:%v", i)
+				fmt.Println ("chain.Blocks[i].Header.BlockID:%v", chain.Blocks[i].Header.BlockID)
+				//bug to fix: store.10.block will come right after store.1.block
 				panic(errors.New("BlockID does not equal index"))
 			}
 		}
@@ -143,7 +156,7 @@ func init() {
 
 	// init FactomChain
 	initFChain()
-	fmt.Println("Loaded", len(fchain.Blocks), " Factom blocks for chain: "+ notaryapi.EncodeChainID(fchain.ChainID))
+	fmt.Println("Loaded", len(fchain.Blocks)-1, "Factom blocks for chain: "+ notaryapi.EncodeChainID(fchain.ChainID))
 
 
 	tickers[0] = time.NewTicker(time.Minute * 5)
@@ -220,8 +233,6 @@ func save(chain *notaryapi.Chain) {
 	copy(bcp, chain.Blocks)
 	chain.BlockMutex.Unlock()
 
-	fmt.Print("len(chain.Blocks):")
-	fmt.Println(len(chain.Blocks))
 	
 	for i, block := range bcp {
 		//the open block is not saved
@@ -242,7 +253,8 @@ func save(chain *notaryapi.Chain) {
 				log.Println(err)
 			}
 		}
-		err = ioutil.WriteFile(fmt.Sprintf("/tmp/store/seed/" + strChainID + "/store.%d.block", i), data, 0777)
+
+		err = ioutil.WriteFile(fmt.Sprintf("/tmp/store/seed/" + strChainID + "/store.%09d.block", i), data, 0777)
 		if err != nil {
 			panic(err)
 		}
@@ -416,7 +428,7 @@ func saveFChain(chain *notaryapi.FChain) {
 				log.Println(err)
 			}
 		}
-		err = ioutil.WriteFile(fmt.Sprintf("/tmp/store/seed/" + strChainID + "/store.%d.block", i), data, 0777)
+		err = ioutil.WriteFile(fmt.Sprintf("/tmp/store/seed/" + strChainID + "/store.%09d.block", i), data, 0777)
 		if err != nil {
 			panic(err)
 		}

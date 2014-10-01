@@ -330,18 +330,12 @@ func newEntryBlock(chain *notaryapi.Chain) (block *notaryapi.Block){
 	//   no one else will change the blocks array, so we don't need to lock to safely acquire
 	block = chain.Blocks[len(chain.Blocks)-1]
 
-/* to be moved to init
-	binaryTimestamp := make([]byte, 8)
-	binary.BigEndian.PutUint64(binaryTimestamp, uint64(0))
-	block.EBEntries, _ = db.FetchEntriesFromQueue(chain.ChainID, &binaryTimestamp)
-*/
  	if len(block.EBEntries) < 1{
- 		log.Println("No new entry found. No block created for chain: "  + notaryapi.EncodeChainID(chain.ChainID))
+ 		//log.Println("No new entry found. No block created for chain: "  + notaryapi.EncodeChainID(chain.ChainID))
  		return nil
  	}
 
 	blkhash, _ := notaryapi.CreateHash(block)
-//	hashdata := blkhash.Bytes
 	
 	db.ProcessEBlockBatche(blkhash, block)
 
@@ -349,9 +343,10 @@ func newEntryBlock(chain *notaryapi.Chain) (block *notaryapi.Block){
 	// add a new block for new entries to be added to
 	chain.BlockMutex.Lock()
 	block.IsSealed = true	
+	chain.NextBlockID++	
+	
 	newblock, _ := notaryapi.CreateBlock(chain, block, 10)
 	chain.Blocks = append(chain.Blocks, newblock)
-	chain.NextBlockID++
 	chain.BlockMutex.Unlock()
     
 	
@@ -374,15 +369,15 @@ func newFactomBlock(chain *notaryapi.FChain) {
  		//log.Println("No Factom block created for chain ... because no new entry is found.")
  		return
  	} 
-
-
 	
 	// add a new block for new entries to be added to
 	chain.BlockMutex.Lock()
 	block.IsSealed = true	
+	chain.NextBlockID++
+		
 	newblock, _ := notaryapi.CreateFBlock(chain, block, 10)
 	chain.Blocks = append(chain.Blocks, newblock)
-	chain.NextBlockID++
+
 	chain.BlockMutex.Unlock()
 	
 

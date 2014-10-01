@@ -47,12 +47,15 @@ func (db *LevelDb) ProcessEBlockBatche(eBlockHash *notaryapi.Hash, eblock *notar
 		db.lbatch.Put(qkey, []byte{byte(STATUS_IN_QUEUE)})
 */
 		for i:=0; i< len(eblock.EBEntries); i++  {
-			var ebEntry notaryapi.EBEntry = *eblock.EBEntries[i]
+			var ebEntry notaryapi.EBEntry = *eblock.EBEntries[i] 
 			var ebEntryKey [] byte = []byte{byte(TBL_ENTRY_QUEUE)} 		  			// Table Name (1 bytes)
-			ebEntryKey = append(ebEntryKey, *(eblock.Chain.ChainID) ...) 				// Chain id (32 bytes)
-			ebEntryKey = append(ebEntryKey, ebEntry.GetBinaryTimeStamp() ...) 		// Timestamp (8 bytes)
+			ebEntryKey = append(ebEntryKey, *(eblock.Chain.ChainID) ...) 			// Chain id (32 bytes)
+			ebEntryKey = append(ebEntryKey, ebEntry.GetBinaryTimeStamp() ...) 			// Timestamp (8 bytes)
 			ebEntryKey = append(ebEntryKey, ebEntry.Hash().Bytes ...) 				// Entry Hash (32 bytes)
 			db.lbatch.Put(ebEntryKey, []byte{byte(STATUS_PROCESSED)})
+			
+			log.Println("ebEntry.BinaryTimestamp:%v", ebEntry.GetBinaryTimeStamp())			
+			log.Println("put ebEntryKey:%v", ebEntryKey)
 			
 		}
 

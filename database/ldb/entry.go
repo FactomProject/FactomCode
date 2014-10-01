@@ -12,7 +12,6 @@ import (
 
 	"github.com/FactomProject/FactomCode/notaryapi"
 	"github.com/conformal/goleveldb/leveldb"	
-	"fmt"
 	"log"
 )
 
@@ -72,21 +71,16 @@ func (db *LevelDb) FetchEntriesFromQueue(chainID *[]byte, startTime *[]byte) (eb
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
-	var fromkey [] byte = []byte{byte(TBL_ENTRY_QUEUE)} 		  	// Table Name (1 bytes)
+	var fromkey [] byte = []byte{byte(TBL_ENTRY_QUEUE)} 		  		// Table Name (1 bytes)
 	fromkey = append(fromkey, *chainID ...) 							// Chain Type (32 bytes)
-	fromkey = append(fromkey, *startTime ...) 						// Timestamp  (8 bytes)
+	fromkey = append(fromkey, *startTime ...) 							// Timestamp  (8 bytes)
 
-	fmt.Println("fromkey:%v", fromkey)
-	fmt.Println("len(fromkey):%v", len(fromkey))
-	var tokey [] byte = []byte{byte(TBL_ENTRY_QUEUE)} 		  		// Table Name (4 bytes)
+	var tokey [] byte = []byte{byte(TBL_ENTRY_QUEUE)} 		  			// Table Name (4 bytes)
 	tokey = append(tokey, *chainID ...) 								// Chain Type (4 bytes)
 	
 	binaryTimestamp := make([]byte, 8)
 	binary.BigEndian.PutUint64(binaryTimestamp, uint64(time.Now().Unix()))	
-	tokey = append(tokey, binaryTimestamp ...) 						// Timestamp (8 bytes)
-
-	fmt.Println("tokey:%v", tokey)
-	fmt.Println("len(tokey):%v", len(tokey))
+	tokey = append(tokey, binaryTimestamp ...) 							// Timestamp (8 bytes)
 	
 	ebEntrySlice := make([]*notaryapi.EBEntry, 0, 10) 	
 	
@@ -94,23 +88,22 @@ func (db *LevelDb) FetchEntriesFromQueue(chainID *[]byte, startTime *[]byte) (eb
 	
 	for iter.Next() {		
 		if  bytes.Equal(iter.Value(), []byte{byte(STATUS_IN_QUEUE)}) {
-			key := iter.Key()
-			fmt.Println("len(key):%v", len(key))
+			key := make([]byte, len(iter.Key()))			
+			copy(key, iter.Key())
 			ebEntry := new (notaryapi.EBEntry)
 	
-			ebEntry.SetTimeStamp(key[33:41] )
+			ebEntry.SetTimeStamp(key[33:41])
 			ebEntry.SetHash(key[41:73])
-			ebEntrySlice = append(ebEntrySlice, ebEntry)
-			fmt.Println("ebEntry.TimeStamp:%v", ebEntry.TimeStamp)			
+			ebEntrySlice = append(ebEntrySlice, ebEntry)		
 		}
 
 	}
 	iter.Release()
 	err = iter.Error()
 	
-	fmt.Println("len(ebEntrySlice):%v", len(ebEntrySlice))
 	
 	return ebEntrySlice, nil
 }	
 
+	
 	
