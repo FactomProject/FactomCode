@@ -3,7 +3,6 @@ package notaryapi
 import (
 	"bytes"
 	"errors"
-	//"fmt"
 	
 	"encoding/binary"
 	"sync"
@@ -61,33 +60,23 @@ func CreateFBlock(chain *FChain, prev *FBlock, capacity uint) (b *FBlock, err er
 }
 
 // Add FBEntry from an Entry Block
-func (fchain *FChain) AddFBEntry(eb *Block) (err error) {
+func (fchain *FChain) AddFBEntry(eb *Block, hash *Hash) (err error) {
 	fBlock := fchain.Blocks[len(fchain.Blocks)-1]
-	hash, _ := CreateHash (eb) // redundent work??
 	
 	fbEntry := NewFBEntry(hash, eb.Chain.ChainID)
-	fBlock.AddFBEntry(fbEntry)
+	b := make([]byte, 8)
+	binary.BigEndian.PutUint64(b, uint64(eb.Header.TimeStamp)) 	
+	fbEntry.SetTimeStamp(b)
 	
+	
+	fchain.BlockMutex.Lock()
+	fBlock.FBEntries = append(fBlock.FBEntries, fbEntry) 
+	fchain.BlockMutex.Unlock()
+
 	return nil
 	
 	}
 
-
-func (b *FBlock) AddFBEntry(e *FBEntry) (err error) {
-	h, err := CreateHash(e)
-	if err != nil { return }
-	
-	s, err := CreateHash(b.Salt, h)
-	if err != nil { return }
-
-
- 	fbEntry := NewFBEntry(h, b.Chain.ChainID)	
-	
-	b.FBEntries = append(b.FBEntries, fbEntry) 
-	b.Salt = s
-	
-	return
-}
 
 func (b *FBlock) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer

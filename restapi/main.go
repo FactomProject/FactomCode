@@ -29,7 +29,6 @@ import (
 
 )
 
-
 var client *btcrpcclient.Client
 var currentAddr btcutil.Address
 var balance int64
@@ -103,7 +102,7 @@ func initWithBinary(chain *notaryapi.Chain) {
 	if chain.Blocks[chain.NextBlockID].IsSealed == true {
 		panic ("chain.Blocks[chain.NextBlockID].IsSealed for chain:" + notaryapi.EncodeChainID(chain.ChainID))
 	}
-	chain.Blocks[chain.NextBlockID].EBEntries, _ = db.FetchEntriesFromQueue(chain.ChainID, &binaryTimestamp)		
+	chain.Blocks[chain.NextBlockID].EBEntries, _ = db.FetchEBEntriesFromQueue(chain.ChainID, &binaryTimestamp)		
 }
 
 func initDB() {
@@ -166,9 +165,9 @@ func init() {
 	go func() {
 		for _ = range tickers[1].C {
 			for _, chain := range chainMap {
-				eblock := newEntryBlock(chain)
+				eblock, blkhash := newEntryBlock(chain)
 				if eblock != nil{
-					fchain.AddFBEntry(eblock)
+					fchain.AddFBEntry(eblock, blkhash)
 				}
 				save(chain)
 			}
@@ -476,7 +475,14 @@ func initFChain() {
 		newblock,_ := notaryapi.CreateFBlock(fchain, fchain.Blocks[len(fchain.Blocks)-1], 10)	
 		fchain.Blocks = append(fchain.Blocks, newblock)		
 	}	
-		
+	
+	//Get the unprocessed entries in db for the past # of mins for the open block
+	binaryTimestamp := make([]byte, 8)
+	binary.BigEndian.PutUint64(binaryTimestamp, uint64(0))
+	if fchain.Blocks[fchain.NextBlockID].IsSealed == true {
+		panic ("fchain.Blocks[fchain.NextBlockID].IsSealed for chain:" + notaryapi.EncodeChainID(fchain.ChainID))
+	}
+	fchain.Blocks[fchain.NextBlockID].FBEntries, _ = db.FetchFBEntriesFromQueue(&binaryTimestamp)			
 
 }
 

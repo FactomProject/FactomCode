@@ -2,13 +2,8 @@
 package ldb
 
 import (
-	"bytes"
+
 	"encoding/binary"
-	"time"
-//	"bytes"
-	
-//	"github.com/conformal/goleveldb/leveldb/iterator"
-	"github.com/conformal/goleveldb/leveldb/util"
 
 	"github.com/FactomProject/FactomCode/notaryapi"
 	"github.com/conformal/goleveldb/leveldb"	
@@ -65,45 +60,6 @@ func (db *LevelDb) FetchEntryByHash(entrySha *notaryapi.Hash) (entry *notaryapi.
 	
 	return entry, nil
 } 
-
-// FetchEntriesFromQueue gets all of the ebentries that have not been processed
-func (db *LevelDb) FetchEntriesFromQueue(chainID *[]byte, startTime *[]byte) (ebentries []*notaryapi.EBEntry, err error) {
-	db.dbLock.Lock()
-	defer db.dbLock.Unlock()
-
-	var fromkey [] byte = []byte{byte(TBL_ENTRY_QUEUE)} 		  		// Table Name (1 bytes)
-	fromkey = append(fromkey, *chainID ...) 							// Chain Type (32 bytes)
-	fromkey = append(fromkey, *startTime ...) 							// Timestamp  (8 bytes)
-
-	var tokey [] byte = []byte{byte(TBL_ENTRY_QUEUE)} 		  			// Table Name (4 bytes)
-	tokey = append(tokey, *chainID ...) 								// Chain Type (4 bytes)
-	
-	binaryTimestamp := make([]byte, 8)
-	binary.BigEndian.PutUint64(binaryTimestamp, uint64(time.Now().Unix()))	
-	tokey = append(tokey, binaryTimestamp ...) 							// Timestamp (8 bytes)
-	
-	ebEntrySlice := make([]*notaryapi.EBEntry, 0, 10) 	
-	
-	iter := db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
-	
-	for iter.Next() {		
-		if  bytes.Equal(iter.Value(), []byte{byte(STATUS_IN_QUEUE)}) {
-			key := make([]byte, len(iter.Key()))			
-			copy(key, iter.Key())
-			ebEntry := new (notaryapi.EBEntry)
-	
-			ebEntry.SetTimeStamp(key[33:41])
-			ebEntry.SetHash(key[41:73])
-			ebEntrySlice = append(ebEntrySlice, ebEntry)		
-		}
-
-	}
-	iter.Release()
-	err = iter.Error()
-	
-	
-	return ebEntrySlice, nil
-}	
 
 	
 	

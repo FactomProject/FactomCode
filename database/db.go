@@ -22,11 +22,17 @@ type Db interface {
 	// FetchEntry gets an entry by hash from the database.
 	FetchEntryByHash(entrySha *notaryapi.Hash) (entry *notaryapi.Entry, err error)
 	
-	// FetchEntriesFromQueue gets all of the ebentries that have not been processed
-	FetchEntriesFromQueue(chainID *[]byte, startTime *[]byte) (ebentries []*notaryapi.EBEntry, err error)
+	// FetchEBEntriesFromQueue gets all of the ebentries that have not been processed
+	FetchEBEntriesFromQueue(chainID *[]byte, startTime *[]byte) (ebentries []*notaryapi.EBEntry, err error)
 	
 	// ProcessEBlockBatche inserts the EBlock and update all it's ebentries in DB
-	ProcessEBlockBatche(eBlockHash *notaryapi.Hash, eblock *notaryapi.Block) error 	
+	ProcessEBlockBatch(eBlockHash *notaryapi.Hash, eblock *notaryapi.Block) error 	
+	
+	// FetchFBEntriesFromQueue gets all of the fbentries that have not been processed
+	FetchFBEntriesFromQueue(startTime *[]byte) (fbentries []*notaryapi.FBEntry, err error)	
+	
+	// ProcessFBlockBatche inserts the EBlock and update all it's ebentries in DB
+	ProcessFBlockBatch(BlockHash *notaryapi.Hash, block *notaryapi.FBlock) error 	
 
 	// RollbackClose discards the recent database changes to the previously
 	// saved data at last Sync and closes the database.

@@ -47,7 +47,7 @@ func (e *EBEntry) TimeStamp() int64 {
 
 func (e *EBEntry) GetBinaryTimeStamp() (binaryTimeStamp []byte)  {
 	b := make([]byte, 8)
-	binary.BigEndian.PutUint64(b, uint64(e.timeStamp)) //??
+	binary.BigEndian.PutUint64(b, uint64(e.timeStamp)) 
 	return b
 	
 }

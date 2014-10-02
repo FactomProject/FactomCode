@@ -246,7 +246,8 @@ func sendRawTransaction(msgtx *btcwire.MsgTx) (*btcwire.ShaHash, error) {
 	if err := msgtx.BtcEncode(&buf, btcwire.ProtocolVersion); err != nil {
 		// Hitting OOM by growing or writing to a bytes.Buffer already
 		// panics, and all returned errors are unexpected.
-		panic(err)
+		//panic(err) //?? should we have retry logic?
+		return nil, err
 	}
 	
 	txRawResult, err := client.DecodeRawTransaction(buf.Bytes())
@@ -324,74 +325,60 @@ func shutdown(client *btcrpcclient.Client) {
 var waiting bool = false
 
 
-func newEntryBlock(chain *notaryapi.Chain) (block *notaryapi.Block){
+func newEntryBlock(chain *notaryapi.Chain) (*notaryapi.Block, *notaryapi.Hash){
 
 	// acquire the last block
-	//   no one else will change the blocks array, so we don't need to lock to safely acquire
-	block = chain.Blocks[len(chain.Blocks)-1]
+	block := chain.Blocks[len(chain.Blocks)-1]
 
  	if len(block.EBEntries) < 1{
  		//log.Println("No new entry found. No block created for chain: "  + notaryapi.EncodeChainID(chain.ChainID))
- 		return nil
+ 		return nil, nil
  	}
 
-	blkhash, _ := notaryapi.CreateHash(block)
-	
-	db.ProcessEBlockBatche(blkhash, block)
-
-
-	// add a new block for new entries to be added to
+	// Create the block and add a new block for new coming entries
 	chain.BlockMutex.Lock()
+	blkhash, _ := notaryapi.CreateHash(block)
 	block.IsSealed = true	
 	chain.NextBlockID++	
-	
 	newblock, _ := notaryapi.CreateBlock(chain, block, 10)
 	chain.Blocks = append(chain.Blocks, newblock)
 	chain.BlockMutex.Unlock()
     
-	
+    //Store the block in db
+	db.ProcessEBlockBatch(blkhash, block)	
 	log.Println("block" + strconv.FormatUint(block.Header.BlockID, 10) +" created for chain: "  + notaryapi.EncodeChainID(chain.ChainID))	
-	return block
+	
+	return block, blkhash
 }
 
 
 func newFactomBlock(chain *notaryapi.FChain) {
 
 	// acquire the last block
-	//   no one else will change the blocks array, so we don't need to lock to safely acquire
 	block := chain.Blocks[len(chain.Blocks)-1]
-
-	//binaryTimestamp := make([]byte, 8)
-	//binary.BigEndian.PutUint64(binaryTimestamp, uint64(0))
-	//block.EBEntries, _ = db.FetchEntriesFromQueue(chain.ChainID, &binaryTimestamp)
 
  	if len(block.FBEntries) < 1{
  		//log.Println("No Factom block created for chain ... because no new entry is found.")
  		return
  	} 
 	
-	// add a new block for new entries to be added to
+	// Create the block add a new block for new coming entries
 	chain.BlockMutex.Lock()
+	blkhash, _ := notaryapi.CreateHash(block)
 	block.IsSealed = true	
 	chain.NextBlockID++
-		
 	newblock, _ := notaryapi.CreateFBlock(chain, block, 10)
 	chain.Blocks = append(chain.Blocks, newblock)
-
 	chain.BlockMutex.Unlock()
-	
 
+	//Store the block in db
+	db.ProcessFBlockBatch(blkhash, block) 		
 	log.Println("block" + strconv.FormatUint(block.Header.BlockID, 10) +" created for factom chain: "  + notaryapi.EncodeChainID(chain.ChainID))
 	
-	blkhash, _ := notaryapi.CreateHash(block)
-	hashdata := blkhash.Bytes
-	
-	fmt.Printf("hashdata.len=%d", len(hashdata))
-	
 	//Send transaction to BTC network
-	txHash, err := SendRawTransactionToBTC(hashdata)
+	txHash, err := SendRawTransactionToBTC(blkhash.Bytes)
 	if err != nil {
 		log.Fatalf("cannot init rpc client: %s", err)
 	}
-    log.Print("Recorded ", hashdata, " in transaction hash:\n",txHash)
+    log.Print("Recorded ", blkhash.Bytes, " in BTC transaction hash:\n",txHash)
 }
