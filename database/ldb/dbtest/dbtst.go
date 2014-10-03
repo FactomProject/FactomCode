@@ -33,7 +33,8 @@ func main() {
 	//wo := &opt.WriteOptions{}
 	opts := &opt.Options{}
 
-	ldb, err := leveldb.OpenFile("/tmp/ldb9", opts)
+	ldb, err := leveldb.OpenFile("/tmp/client/ldb9", opts)
+	fmt.Println("started db from /tmp/client/ldb9")
 	if err != nil {
 		fmt.Printf("db open failed %v\n", err)
 		return
