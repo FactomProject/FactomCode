@@ -26,27 +26,91 @@ import (
  
 	"github.com/FactomProject/FactomCode/database"	
 	"github.com/FactomProject/FactomCode/database/ldb"	
+	"code.google.com/p/gcfg"	
 
 )
 
-var client *btcrpcclient.Client
-var currentAddr btcutil.Address
-var balance int64
+var  (
+	client *btcrpcclient.Client
+ 	currentAddr btcutil.Address
+	balance int64
+	tickers [2]*time.Ticker
+	db database.Db // database
+	chainMap map[string]*notaryapi.Chain // ChainMap with string([32]byte) as key
+	fchain *notaryapi.FChain	//Factom Chain
+)
 
-var portNumber = flag.Int("p", 8083, "Set the port to listen on")
+var (
+ 	logLevel = "DEBUG"
+	portNumber int = 8083  	
+	sendToBTCinSeconds = 60
+	applicationName = "factom/restapi"
+	dataStorePath = "/tmp/store/seed/"
+	ldbpath = "/tmp/ldb9"
+	//BTC:
+	addrStr = "movaFTARmsaTMk3j71MpX8HtMURpsKhdra"
+	walletPassphrase = "lindasilva"
+	certHomePath = "btcwallet"
+	rpcClientHost = "localhost:18332"
+	rpcClientEndpoint = "ws"
+	rpcClientUser = "testuser"
+	rpcClientPass = "notarychain"
+	btcTransFee float64 = 0.0001
+	
+)
 
-var tickers [2]*time.Ticker
-
-// database
-var dbpath = "/tmp/ldb9"
-var db database.Db
-
-
-// ChainMap with string([32]byte) as key
-var chainMap map[string]*notaryapi.Chain
-
-//Factom Chain
-var fchain *notaryapi.FChain
+func loadConfigurations(){
+	cfg := struct {
+		App struct{
+			PortNumber	int		
+			ApplicationName string
+			LdbPath	string
+			DataStorePath string
+	    }
+		Btc struct{
+			BTCPubAddr string
+			SendToBTCinSeconds int		
+			WalletPassphrase string	
+			CertHomePath string
+			RpcClientHost string
+			RpcClientEndpoint string
+			RpcClientUser string
+			RpcClientPass string
+			BtcTransFee float64
+	    }		
+		Log struct{
+	    	LogLevel string
+		}
+    }{}
+	
+	wd, err := os.Getwd()
+	if err != nil{
+		log.Println(err)
+	}	
+	err = gcfg.ReadFileInto(&cfg, wd+"/restapi.conf")
+	if err != nil{
+		log.Println(err)
+		log.Println("Server starting with default settings...")
+	} else {
+	
+		//setting the variables by the valued form the config file
+		logLevel = cfg.Log.LogLevel	
+		applicationName = cfg.App.ApplicationName
+		portNumber = cfg.App.PortNumber
+		dataStorePath = cfg.App.DataStorePath
+		ldbpath = cfg.App.LdbPath
+		addrStr = cfg.Btc.BTCPubAddr
+		sendToBTCinSeconds = cfg.Btc.SendToBTCinSeconds 
+		walletPassphrase = cfg.Btc.WalletPassphrase
+		certHomePath = cfg.Btc.CertHomePath
+		rpcClientHost = cfg.Btc.RpcClientHost
+		rpcClientEndpoint = cfg.Btc.RpcClientEndpoint
+		rpcClientUser = cfg.Btc.RpcClientUser
+		rpcClientPass = cfg.Btc.RpcClientPass
+		btcTransFee	  = cfg.Btc.BtcTransFee
+	}
+	
+}
 
 func watchError(err error) {
 	panic(err)
@@ -56,8 +120,9 @@ func readError(err error) {
 	fmt.Println("error: ", err)
 }
 
+
 func initWithBinary(chain *notaryapi.Chain) {
-	matches, err := filepath.Glob("/tmp/store/seed/" + notaryapi.EncodeChainID(chain.ChainID) + "/store.*.block") // need to get it from a property file??
+	matches, err := filepath.Glob(dataStorePath + notaryapi.EncodeChainID(chain.ChainID) + "/store.*.block") // need to get it from a property file??
 	if err != nil {
 		panic(err)
 	}
@@ -82,8 +147,6 @@ func initWithBinary(chain *notaryapi.Chain) {
 		num++
 	}
 	
-	
-		
 	//Create an empty block and append to the chain
 	if len(chain.Blocks) == 0{
 		chain.NextBlockID = 0		
@@ -109,24 +172,26 @@ func initDB() {
 	
 	//init db
 	var err error
-	db, err = ldb.OpenLevelDB(dbpath, false)
+	db, err = ldb.OpenLevelDB(ldbpath, false)
 	
 	if err != nil{
 		log.Println("err opening db: %v", err)
+		log.Println("Creating new db ...")
 	}
 	
 	if db == nil{
-		db, err = ldb.OpenLevelDB(dbpath, true)
+		db, err = ldb.OpenLevelDB(ldbpath, true)
 	}
 	if err!=nil{
 		panic(err)
 	} else{
-		log.Println("Database started from: " + dbpath)
+		log.Println("Database started from: " + ldbpath)
 	}
 }
 
 func init() { 
-	gobundle.Setup.Application.Name = "Factom/restapi"
+	loadConfigurations()
+	gobundle.Setup.Application.Name = applicationName
 	gobundle.Init()
 	
 	initChainIDs() //for testing??
@@ -160,7 +225,7 @@ func init() {
 
 	tickers[0] = time.NewTicker(time.Minute * 5)
 
-	tickers[1] = time.NewTicker(time.Second * 30) 
+	tickers[1] = time.NewTicker(time.Second * time.Duration(sendToBTCinSeconds)) 
 
 	go func() {
 		for _ = range tickers[1].C {
@@ -205,7 +270,7 @@ func init() {
 func main() {
 	
 	//addrStr := "muhXX7mXoMZUBvGLCgfjuoY2n2mziYETYC"
-	addrStr := "movaFTARmsaTMk3j71MpX8HtMURpsKhdra"
+	//addrStr := "movaFTARmsaTMk3j71MpX8HtMURpsKhdra"
 	
 	err := initRPCClient()
 	if err != nil {
@@ -228,7 +293,7 @@ func main() {
 	}()
 
 	http.HandleFunc("/", serveRESTfulHTTP)
-	err = http.ListenAndServe(":"+strconv.Itoa(*portNumber), nil)
+	err = http.ListenAndServe(":"+strconv.Itoa(portNumber), nil)
 	if err != nil {
 		panic(err)
 	}
@@ -268,16 +333,16 @@ func save(chain *notaryapi.Chain) {
 		}
 
 		strChainID := notaryapi.EncodeChainID(chain.ChainID)
-		if fileNotExists ("/tmp/store/seed/" + strChainID){
-			err:= os.MkdirAll("/tmp/store/seed/" + strChainID, 0777)
+		if fileNotExists (dataStorePath + strChainID){
+			err:= os.MkdirAll(dataStorePath + strChainID, 0777)
 			if err==nil{
-				log.Println("Created directory /tmp/store/seed/" + strChainID)
+				log.Println("Created directory " + dataStorePath + strChainID)
 			} else{
 				log.Println(err)
 			}
 		}
 
-		err = ioutil.WriteFile(fmt.Sprintf("/tmp/store/seed/" + strChainID + "/store.%09d.block", i), data, 0777)
+		err = ioutil.WriteFile(fmt.Sprintf(dataStorePath + strChainID + "/store.%09d.block", i), data, 0777)
 		if err != nil {
 			panic(err)
 		}
@@ -443,15 +508,15 @@ func saveFChain(chain *notaryapi.FChain) {
 		}
 
 		strChainID := notaryapi.EncodeChainID(chain.ChainID)
-		if fileNotExists ("/tmp/store/seed/" + strChainID){
-			err:= os.MkdirAll("/tmp/store/seed/" + strChainID, 0777)
+		if fileNotExists (dataStorePath + strChainID){
+			err:= os.MkdirAll(dataStorePath + strChainID, 0777)
 			if err==nil{
-				log.Println("Created directory /tmp/store/seed/" + strChainID)
+				log.Println("Created directory " + dataStorePath + strChainID)
 			} else{
 				log.Println(err)
 			}
 		}
-		err = ioutil.WriteFile(fmt.Sprintf("/tmp/store/seed/" + strChainID + "/store.%09d.block", i), data, 0777)
+		err = ioutil.WriteFile(fmt.Sprintf(dataStorePath + strChainID + "/store.%09d.block", i), data, 0777)
 		if err != nil {
 			panic(err)
 		}
@@ -464,7 +529,7 @@ func initFChain() {
 	barray := (make([]byte, 32))
 	fchain.ChainID = &barray
 	
-	matches, err := filepath.Glob("/tmp/store/seed/" + notaryapi.EncodeChainID(fchain.ChainID) + "/store.*.block") // need to get it from a property file??
+	matches, err := filepath.Glob(dataStorePath + notaryapi.EncodeChainID(fchain.ChainID) + "/store.*.block") // need to get it from a property file??
 	if err != nil {
 		panic(err)
 	}

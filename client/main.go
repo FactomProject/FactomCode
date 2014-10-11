@@ -14,7 +14,8 @@ import (
 var (
  	logLevel = "DEBUG"
 	portNumber int = 8087  	
-	applicationName = "Factom/client"
+	applicationName = "factom/client"
+	serverAddr = "localhost:8083"	
 )
 func watchError(err error) {
 	panic(err)
@@ -54,6 +55,7 @@ func loadConfigurations(){
 		App struct{
 			PortNumber	int		
 			ApplicationName string
+			ServerAddr string
 	    }
 		Log struct{
 	    	LogLevel string
@@ -74,6 +76,7 @@ func loadConfigurations(){
 		logLevel = cfg.Log.LogLevel	
 		applicationName = cfg.App.ApplicationName
 		portNumber = cfg.App.PortNumber
+		serverAddr = cfg.App.ServerAddr
 	}
 	
 }

@@ -38,7 +38,7 @@ var Settings = &struct {
 	Server string
 	NextKeyID, NextEntryID int
 }{
-	"localhost:8083",
+	serverAddr, 
 	0, 0,
 }
 

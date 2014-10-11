@@ -52,9 +52,9 @@ func SendRawTransactionToBTC(hash []byte) (*btcwire.ShaHash, error) {
 
 func initWallet(addrStr string) error {
 	
-	fee, _ = btcutil.NewAmount(0.0001)
+	fee, _ = btcutil.NewAmount(btcTransFee)
 	
-	err := client.WalletPassphrase("lindasilva", int64(2))
+	err := client.WalletPassphrase(walletPassphrase, int64(2))
 	if err != nil {
 		return fmt.Errorf("cannot unlock wallet with passphrase: %s", err)
 	}	
@@ -282,18 +282,18 @@ func initRPCClient() error {
 			//go newBlock(hash, height)	// no need
 		},
 	}
-	
+	 
 	// Connect to local btcwallet RPC server using websockets.
-	certHomeDir := btcutil.AppDataDir("btcwallet", false)
+	certHomeDir := btcutil.AppDataDir(certHomePath, false)
 	certs, err := ioutil.ReadFile(filepath.Join(certHomeDir, "rpc.cert"))
 	if err != nil {
 		return fmt.Errorf("cannot read rpc.cert file: %s", err)
 	}
 	connCfg := &btcrpcclient.ConnConfig{
-		Host:         "localhost:18332",
-		Endpoint:     "ws",
-		User:         "testuser",
-		Pass:         "notarychain",
+		Host:         rpcClientHost,
+		Endpoint:     rpcClientEndpoint,
+		User:         rpcClientUser,
+		Pass:         rpcClientPass,
 		Certificates: certs,
 	}
 	
