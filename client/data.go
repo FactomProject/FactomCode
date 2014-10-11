@@ -199,7 +199,9 @@ func storeEntry(id int) {
 	buf := new(bytes.Buffer)
 	
 	entry := entries[id]
-	if entry == nil { return }
+	if (entry == nil || entry.Entry == nil || entry.Entry.Data() == nil) {
+		return
+	}
 	
 	err := safeMarshal(buf, entry)
 	if err != nil { fmt.Fprintln(os.Stderr, err); return }
