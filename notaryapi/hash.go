@@ -114,3 +114,14 @@ func Sha(data []byte) (h *Hash) {
 	h.Bytes = sha.Sum(nil)	
 	return
 }
+
+
+func (h *Hash) String() string {
+	hashstr := ""
+	hash := h.Bytes
+	for i := range hash {
+		hashstr += fmt.Sprintf("%02x", hash[HashSize-1-i])
+	}
+
+	return hashstr
+}

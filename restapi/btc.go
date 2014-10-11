@@ -372,15 +372,27 @@ func newFactomBlock(chain *notaryapi.FChain) {
 	chain.BlockMutex.Unlock()
 
 	//Store the block in db
-	db.ProcessFBlockBatch(blkhash, block) 		
+	db.ProcessFBlockBatch(blkhash, block) 	
+	//need to add a FB process queue in db??	
 	log.Println("block" + strconv.FormatUint(block.Header.BlockID, 10) +" created for factom chain: "  + notaryapi.EncodeChainID(chain.ChainID))
-	/*
+	
 	//Send transaction to BTC network
 	txHash, err := SendRawTransactionToBTC(blkhash.Bytes)
 	if err != nil {
 		log.Fatalf("cannot init rpc client: %s", err)
 	}
+	
+	// Create a FBInfo and insert it into db
+	fbInfo := new (notaryapi.FBInfo)
+	fbInfo.FBHash = blkhash
+	btcTxHash := new (notaryapi.Hash)
+	btcTxHash.Bytes = txHash.Bytes()
+	fbInfo.BTCTxHash = btcTxHash
+	
+	db.InsertFBInfo(blkhash, fbInfo)
+	
+	
     log.Print("Recorded ", blkhash.Bytes, " in BTC transaction hash:\n",txHash)
     
-    */
+    
 }

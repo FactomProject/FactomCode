@@ -26,11 +26,15 @@ const (
 const (
 	TBL_ENTRY     uint8 = iota
 	TBL_ENTRY_QUEUE
+	TBL_ENTRY_INFO
 
-	TBL_EB
-	TBL_EB_QUEUE
+	TBL_EB 			//3
+	TBL_EB_QUEUE	//4	
+	TBL_EB_INFO		//5
+	
 
 	TBL_FB
+	TBL_FB_INFO
 )
 
 // the process status in db
@@ -41,6 +45,8 @@ const (
 
 // chain type key prefix ??
 var currentChainType uint32 = 1 
+
+var isLookupDB bool = true // to be put in property file 
 
 
 type tTxInsertData struct {

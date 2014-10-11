@@ -35,6 +35,7 @@ type EntryData interface {
 	UnmarshalBinary([]byte) error
 }
 
+
 type EntryDataType uint32
 type EntryDataVersion uint32
 
@@ -82,6 +83,26 @@ type Entry struct {
 	
 	BinaryMarshallable
 }
+
+
+type EntryInfo struct {
+
+    EntryHash *Hash
+    EBHash *Hash
+    EBBlockNum uint64
+    //EBOffset uint64
+    
+}
+
+type EntryInfoBranch struct {
+	EntryHash *Hash
+	
+	EntryInfo *EntryInfo
+	EBInfo *EBInfo
+	FBInfo *FBInfo
+    
+}
+
 
 func NewEntry(data EntryData) *Entry {
 	e := &Entry{EntryData: data}
@@ -326,6 +347,46 @@ func (e *Entry) UnmarshalBinary(data []byte) (err error) {
 		if err != nil { return err }
 		data = data[e.signatures[i].MarshalledSize():]
 	}
+	
+	return nil
+}
+
+
+
+func (e *EntryInfo) MarshalBinary() (data []byte, err error) {
+	var buf bytes.Buffer
+	
+	data, _ = e.EntryHash.MarshalBinary()
+	buf.Write(data)
+	
+	data, _ = e.EBHash.MarshalBinary()
+	buf.Write(data)
+	
+	binary.Write(&buf, binary.BigEndian, e.EBBlockNum)
+	
+	return buf.Bytes(), nil
+}
+
+func (e *EntryInfo) MarshalledSize() uint64 {
+	var size uint64 = 0
+	
+	size += 33	//e.EntryHash
+	size += 33  //e.EBHash
+	size += 8 	//e.EBBlockNum
+	
+	return size
+}
+
+func (e *EntryInfo) UnmarshalBinary(data []byte) (err error) {
+	e.EntryHash = new(Hash)
+	e.EntryHash.UnmarshalBinary(data[:33])
+
+	data = data[33:]
+	e.EBHash = new(Hash)
+	e.EBHash.UnmarshalBinary(data[:33])	
+	
+	data = data[33:]
+	e.EBBlockNum = binary.BigEndian.Uint64(data[0:8])
 	
 	return nil
 }

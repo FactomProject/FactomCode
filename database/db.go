@@ -41,5 +41,18 @@ type Db interface {
 	// Sync verifies that the database is coherent on disk and no
 	// outstanding transactions are in flight.
 	Sync() (err error)
+	
+	
+	
+	
+	// Insert the Factom Block meta data into db
+	InsertFBInfo(fbHash *notaryapi.Hash, fbInfo *notaryapi.FBInfo) (err error)
+	
+	// FetchEntryInfoBranchByHash gets an EntryInfoBranch obj
+	FetchEntryInfoBranchByHash(entryHash *notaryapi.Hash) (entryInfoBranch *notaryapi.EntryInfoBranch, err error)
+	
+	
+	
+	
 }
 

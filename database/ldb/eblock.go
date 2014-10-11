@@ -94,6 +94,19 @@ func (db *LevelDb) ProcessEBlockBatch(eBlockHash *notaryapi.Hash, eblock *notary
 			ebEntryKey = append(ebEntryKey, ebEntry.GetBinaryTimeStamp() ...) 			// Timestamp (8 bytes)
 			ebEntryKey = append(ebEntryKey, ebEntry.Hash().Bytes ...) 					// Entry Hash (32 bytes)
 			db.lbatch.Put(ebEntryKey, []byte{byte(STATUS_PROCESSED)})	
+			
+			if isLookupDB {
+				// Create an EntryInfo and insert it into db
+				var entryInfo = new (notaryapi.EntryInfo)
+				entryInfo.EntryHash = ebEntry.Hash()
+				entryInfo.EBHash = eBlockHash
+				entryInfo.EBBlockNum = eblock.Header.BlockID
+			 	var entryInfoKey [] byte = []byte{byte(TBL_ENTRY_INFO)} 
+			 	entryInfoKey = append(entryInfoKey, entryInfo.EntryHash.Bytes ...) 
+			 	binaryEntryInfo, _ := entryInfo.MarshalBinary()
+				db.lbatch.Put(entryInfoKey, binaryEntryInfo)	
+			}				
+			
 		}
 
 		err = db.lDb.Write(db.lbatch, db.wo)

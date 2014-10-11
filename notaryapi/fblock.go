@@ -28,6 +28,15 @@ type FBlock struct {
 
 }
 
+type FBInfo struct {
+
+	FBHash *Hash 
+	BTCTxHash *Hash
+	//BTCBlockNum uint64
+	//BTCBlockOffset uint64
+	//EBInfoArray *[]EBInfo //not marshalized in db
+
+}
 
 func CreateFBlock(chain *FChain, prev *FBlock, capacity uint) (b *FBlock, err error) {
 	if prev == nil && chain.NextBlockID != 0 {
@@ -158,6 +167,42 @@ func (b *FBlock) UnmarshalBinary(data []byte) (err error) {
 	b.Salt = new(Hash)
 	b.Salt.UnmarshalBinary(data)
 	data = data[b.Salt.MarshalledSize():]
+	
+	return nil
+}
+
+
+
+func (b *FBInfo) MarshalBinary() (data []byte, err error) {
+	var buf bytes.Buffer
+
+	data, _ = b.FBHash.MarshalBinary()
+	buf.Write(data)
+	
+	data, _ = b.BTCTxHash.MarshalBinary()
+	buf.Write(data)
+	
+	return buf.Bytes(), err
+}
+
+func (b *FBInfo) MarshalledSize() uint64 {
+	var size uint64 = 0
+	size += 33	//EBHash
+	size += 33 	//BTCTxHash
+	
+	return size
+}
+
+func (b *FBInfo) UnmarshalBinary(data []byte) (err error) {
+
+	
+	b.FBHash = new(Hash)
+	b.FBHash.UnmarshalBinary(data[:33])
+
+	data = data[33:]
+	b.BTCTxHash = new(Hash)
+	b.BTCTxHash.UnmarshalBinary(data[:33])	
+	
 	
 	return nil
 }

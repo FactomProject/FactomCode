@@ -126,7 +126,7 @@ func initDB() {
 }
 
 func init() { 
-	gobundle.Setup.Application.Name = "NotaryChains/restapi"
+	gobundle.Setup.Application.Name = "Factom/restapi"
 	gobundle.Init()
 	
 	initChainIDs() //for testing??
@@ -160,7 +160,7 @@ func init() {
 
 	tickers[0] = time.NewTicker(time.Minute * 5)
 
-	tickers[1] = time.NewTicker(time.Second * 60) 
+	tickers[1] = time.NewTicker(time.Second * 30) 
 
 	go func() {
 		for _ = range tickers[1].C {
@@ -172,7 +172,30 @@ func init() {
 				save(chain)
 			}
 			newFactomBlock(fchain)
-			saveFChain(fchain)			
+			saveFChain(fchain)		
+			
+		/*for testing	
+			for _, chain := range chainMap {
+				if len(chain.Blocks) < 2{
+					continue
+				}
+				fmt.Println("Print out block ", len(chain.Blocks)-2, " for chain: " + notaryapi.EncodeChainID(chain.ChainID))
+				block := chain.Blocks[chain.NextBlockID - 1]
+				entryIB, _ := db.FetchEntryInfoBranchByHash((*block).EBEntries[0].Hash())
+				
+				fmt.Println(entryIB.EntryHash)
+				
+				if entryIB.EBInfo != nil{
+					fmt.Println("entryIB.EBInfo.EBHash: %v", entryIB.EBInfo.EBHash)
+				}
+				if entryIB.FBInfo != nil{
+					fmt.Println("entryIB.FBInfo.BTCTxHash: %v", entryIB.FBInfo.BTCTxHash)
+				}
+
+
+			}
+			------------------------------------*/
+							
 		}
 
 	}()
@@ -181,7 +204,8 @@ func init() {
 
 func main() {
 	
-	addrStr := "muhXX7mXoMZUBvGLCgfjuoY2n2mziYETYC"
+	//addrStr := "muhXX7mXoMZUBvGLCgfjuoY2n2mziYETYC"
+	addrStr := "movaFTARmsaTMk3j71MpX8HtMURpsKhdra"
 	
 	err := initRPCClient()
 	if err != nil {

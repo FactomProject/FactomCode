@@ -81,8 +81,22 @@ func (db *LevelDb) ProcessFBlockBatch(fBlockHash *notaryapi.Hash, fblock *notary
 			fbEntryKey = append(fbEntryKey, *fbEntry.ChainID ...) 					// Chain id (32 bytes)
 			fbEntryKey = append(fbEntryKey, fbEntry.Hash().Bytes ...) 				// Entry Hash (32 bytes)
 			db.lbatch.Put(fbEntryKey, []byte{byte(STATUS_PROCESSED)})
-		 
+			
+			if isLookupDB {
+				// Create an EBInfo and insert it into db
+				var ebInfo = new (notaryapi.EBInfo)
+				ebInfo.EBHash = fbEntry.Hash()
+				ebInfo.FBHash = fBlockHash
+				ebInfo.FBBlockNum = fblock.Header.BlockID
+			 	var ebInfoKey [] byte = []byte{byte(TBL_EB_INFO)} 
+			 	ebInfoKey = append(ebInfoKey, ebInfo.EBHash.Bytes ...) 
+			 	binaryEbInfo, _ := ebInfo.MarshalBinary()
+				db.lbatch.Put(ebInfoKey, binaryEbInfo)	
+			}	 	
 		}
+		
+		
+		
 
 		err = db.lDb.Write(db.lbatch, db.wo)
 		if err != nil {
@@ -94,3 +108,29 @@ func (db *LevelDb) ProcessFBlockBatch(fBlockHash *notaryapi.Hash, fblock *notary
 	return nil
 }
 
+
+// Insert the Factom Block meta data into db
+func (db *LevelDb)InsertFBInfo(fbHash *notaryapi.Hash, fbInfo *notaryapi.FBInfo) (err error){
+	db.dbLock.Lock()
+	defer db.dbLock.Unlock()
+	
+	if db.lbatch == nil {
+		db.lbatch = new(leveldb.Batch)
+	}
+	defer db.lbatch.Reset()	
+	
+	var Key [] byte = []byte{byte(TBL_FB_INFO)} 
+	Key = append (Key, fbHash.Bytes ...)
+	
+	binaryEBInfo, _ := fbInfo.MarshalBinary()
+	db.lbatch.Put(Key, binaryEBInfo)	
+	
+	
+	err = db.lDb.Write(db.lbatch, db.wo)
+	if err != nil {
+		log.Println("batch failed %v\n", err)
+		return err
+	}	
+
+	return nil
+} 
