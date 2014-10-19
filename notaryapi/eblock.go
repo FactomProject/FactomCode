@@ -11,7 +11,7 @@ import (
 )
 
 type Chain struct {
-	ChainID 	*[]byte
+	ChainID 	*Hash
 	Blocks 		[]*Block
 	BlockMutex 	sync.Mutex	
 	NextBlockID uint64	
@@ -34,17 +34,18 @@ type EBInfo struct {
     EBHash *Hash
     FBHash *Hash
     FBBlockNum uint64
+    ChainID *Hash
     //FBOffset uint64
     //EntryInfoArray *[]EntryInfo //not marshalized in db
     
 }
 
-func EncodeChainID(chainID *[]byte) (string){
-	return hex.EncodeToString(*chainID)
+func EncodeBinary(bytes *[]byte) (string){
+	return hex.EncodeToString(*bytes)
 }
 
-func DecodeChainID(chainID *string) ([]byte, error){
-	return hex.DecodeString(*chainID)
+func DecodeBinary(bytes *string) ([]byte, error){
+	return hex.DecodeString(*bytes)
 }
 
 func CreateBlock(chain *Chain, prev *Block, capacity uint) (b *Block, err error) {
@@ -84,7 +85,7 @@ func (b *Block) AddEBEntry(e *Entry) (err error) {
 	if err != nil { return }
 
 
- 	ebEntry := NewEBEntry(h, b.Chain.ChainID)	
+ 	ebEntry := NewEBEntry(h, &b.Chain.ChainID.Bytes)	
  	ebEntry.SetIntTimeStamp(e.TimeStamp())
 	
 	b.EBEntries = append(b.EBEntries, ebEntry) 
@@ -188,6 +189,9 @@ func (b *EBInfo) MarshalBinary() (data []byte, err error) {
 	
 	binary.Write(&buf, binary.BigEndian, b.FBBlockNum)
 	
+	data, _ = b.ChainID.MarshalBinary()	
+	buf.Write(data) 
+	
 	return buf.Bytes(), err
 }
 
@@ -196,6 +200,7 @@ func (b *EBInfo) MarshalledSize() uint64 {
 	size += 33	//b.EBHash
 	size += 33  //b.FBHash
 	size += 8 	//b.FBBlockNum
+	size += 33 	//b.ChainID	
 	
 	return size
 }
@@ -210,6 +215,10 @@ func (b *EBInfo) UnmarshalBinary(data []byte) (err error) {
 	
 	data = data[33:]
 	b.FBBlockNum = binary.BigEndian.Uint64(data[0:8])
+	
+	data = data[8:]
+	b.ChainID = new(Hash)
+	b.ChainID.UnmarshalBinary(data[:33])	
 	
 	return nil
 }

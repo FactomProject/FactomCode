@@ -17,7 +17,6 @@ import (
 	"code.google.com/p/gcfg"	
 	socks "github.com/hailiang/gosocks"
 	"strings"
-
 ) 
 
 const MAX_OUR_REQUESTS = 2

@@ -82,7 +82,7 @@ func (db *LevelDb) ProcessEBlockBatch(eBlockHash *notaryapi.Hash, eblock *notary
 		binaryTimestamp := make([]byte, 8)
 		binary.BigEndian.PutUint64(binaryTimestamp, uint64(eblock.Header.TimeStamp))	
 		qkey = append(qkey, binaryTimestamp ...) 										// Timestamp (8 bytes)	
-		qkey = append(qkey, *eblock.Chain.ChainID ...) 									// Chain id (32 bytes)
+		qkey = append(qkey, eblock.Chain.ChainID.Bytes ...) 									// Chain id (32 bytes)
 		qkey = append (qkey, eBlockHash.Bytes ...)										// EBEntry Hash (32 bytes)
 		db.lbatch.Put(qkey, []byte{byte(STATUS_IN_QUEUE)})
 	
@@ -90,7 +90,7 @@ func (db *LevelDb) ProcessEBlockBatch(eBlockHash *notaryapi.Hash, eblock *notary
 		for i:=0; i< len(eblock.EBEntries); i++  {
 			var ebEntry notaryapi.EBEntry = *eblock.EBEntries[i] 
 			var ebEntryKey [] byte = []byte{byte(TBL_ENTRY_QUEUE)} 		  				// Table Name (1 bytes)
-			ebEntryKey = append(ebEntryKey, *(eblock.Chain.ChainID) ...) 				// Chain id (32 bytes)
+			ebEntryKey = append(ebEntryKey, eblock.Chain.ChainID.Bytes ...) 				// Chain id (32 bytes)
 			ebEntryKey = append(ebEntryKey, ebEntry.GetBinaryTimeStamp() ...) 			// Timestamp (8 bytes)
 			ebEntryKey = append(ebEntryKey, ebEntry.Hash().Bytes ...) 					// Entry Hash (32 bytes)
 			db.lbatch.Put(ebEntryKey, []byte{byte(STATUS_PROCESSED)})	
@@ -118,3 +118,37 @@ func (db *LevelDb) ProcessEBlockBatch(eBlockHash *notaryapi.Hash, eblock *notary
 	}
 	return nil
 }
+
+// FetchEBInfoByHash gets an EBInfo obj
+func (db *LevelDb) FetchEBInfoByHash(ebHash *notaryapi.Hash) (ebInfo *notaryapi.EBInfo, err error) {
+	db.dbLock.Lock()
+	defer db.dbLock.Unlock()
+	
+	var key [] byte = []byte{byte(TBL_EB_INFO)} 
+	key = append (key, ebHash.Bytes ...)	
+	data, err := db.lDb.Get(key, db.ro)
+	
+	if data != nil{
+		ebInfo = new (notaryapi.EBInfo)
+		ebInfo.UnmarshalBinary(data)
+	}
+	
+	return ebInfo, nil
+} 
+
+
+// FetchEntryBlock gets an entry by hash from the database.
+func (db *LevelDb) FetchEBlockByHash(eBlockHash *notaryapi.Hash) (eBlock *notaryapi.Block, err error) {
+	db.dbLock.Lock()
+	defer db.dbLock.Unlock()
+	
+	var key [] byte = []byte{byte(TBL_EB)} 
+	key = append (key, eBlockHash.Bytes ...)	
+	data, err := db.lDb.Get(key, db.ro)
+	
+	if data != nil{
+		eBlock = new (notaryapi.Block)
+		eBlock.UnmarshalBinary(data)
+	}
+	return eBlock, nil
+} 

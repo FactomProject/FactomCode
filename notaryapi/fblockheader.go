@@ -85,3 +85,7 @@ func NewFBlockHeader(blockId uint64, prevHash *Hash, merkleRootHash *Hash,
 		BlockID:    blockId,
 	}
 }
+
+func (b *FBlockHeader) RealTime() time.Time {
+	return time.Unix(b.TimeStamp, 0)
+}

@@ -9,7 +9,7 @@ import (
 
 
 type EBlockHeader struct {
-//	ChainID []byte
+//	ChainID []byte // ?? put in ebinfo for now
 	BlockID uint64
 	PrevBlockHash *Hash
 	MerkleRoot *Hash
@@ -71,4 +71,8 @@ func NewEBlockHeader(blockId uint64, prevHash *Hash, merkle *Hash) *EBlockHeader
 		TimeStamp:  time.Now().Unix(),
 		BlockID:    blockId,
 	}
+}
+
+func (e *EBlockHeader) RealTime() time.Time {
+	return time.Unix(e.TimeStamp, 0)
 }

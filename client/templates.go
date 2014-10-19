@@ -68,6 +68,7 @@ func buildTemplateTree() (main *template.Template, err error) {
 		"isValidKeyID": templateIsValidKeyId,
 		
 		"keysExceptEntrySigs": templateKeysExceptEntrySigs,
+		//"eBlock": getEBlock,
 	}
 	
 	main, err = template.New("main").Funcs(funcmap).Parse(`{{template "page.gwp" .}}`)
@@ -108,6 +109,7 @@ func templateRef(name string, data interface{}) (string, error) {
 }
 
 func templateGetEntry(idx int) (map[string]interface{}, error) {
+	fmt.Println (" in templateGetEntry")
 	fentry, ok := entries[idx]
 	if !ok {
 		return nil, errors.New(fmt.Sprint("No entry at index", idx))

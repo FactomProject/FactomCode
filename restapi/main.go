@@ -23,6 +23,7 @@ import (
 	"time"
 	"log"
 	"encoding/binary"
+	"encoding/csv"
  
 	"github.com/FactomProject/FactomCode/database"	
 	"github.com/FactomProject/FactomCode/database/ldb"	
@@ -122,7 +123,7 @@ func readError(err error) {
 
 
 func initWithBinary(chain *notaryapi.Chain) {
-	matches, err := filepath.Glob(dataStorePath + notaryapi.EncodeChainID(chain.ChainID) + "/store.*.block") // need to get it from a property file??
+	matches, err := filepath.Glob(dataStorePath + chain.ChainID.String() + "/store.*.block") // need to get it from a property file??
 	if err != nil {
 		panic(err)
 	}
@@ -163,9 +164,9 @@ func initWithBinary(chain *notaryapi.Chain) {
 	binaryTimestamp := make([]byte, 8)
 	binary.BigEndian.PutUint64(binaryTimestamp, uint64(0))
 	if chain.Blocks[chain.NextBlockID].IsSealed == true {
-		panic ("chain.Blocks[chain.NextBlockID].IsSealed for chain:" + notaryapi.EncodeChainID(chain.ChainID))
+		panic ("chain.Blocks[chain.NextBlockID].IsSealed for chain:" + chain.ChainID.String())
 	}
-	chain.Blocks[chain.NextBlockID].EBEntries, _ = db.FetchEBEntriesFromQueue(chain.ChainID, &binaryTimestamp)		
+	chain.Blocks[chain.NextBlockID].EBEntries, _ = db.FetchEBEntriesFromQueue(&chain.ChainID.Bytes, &binaryTimestamp)		
 }
 
 func initDB() {
@@ -176,17 +177,20 @@ func initDB() {
 	
 	if err != nil{
 		log.Println("err opening db: %v", err)
-		log.Println("Creating new db ...")
+
 	}
 	
 	if db == nil{
+		log.Println("Creating new db ...")			
 		db, err = ldb.OpenLevelDB(ldbpath, true)
+
+		if err!=nil{
+			panic(err)
+		} else{
+			log.Println("Database started from: " + ldbpath)
+		}		
 	}
-	if err!=nil{
-		panic(err)
-	} else{
-		log.Println("Database started from: " + ldbpath)
-	}
+
 }
 
 func init() { 
@@ -198,13 +202,23 @@ func init() {
 	
 	initDB()
 	
+	/*-------------
+	fbHash := new (notaryapi.Hash)
+	str := "120c3daf1bd7ed1aeaa307a3882f4c069ddb8478f27e0219c9801630891a5ecb"
+	fbHash.Bytes, _ = notaryapi.DecodeBinary(&str)
+	ExportDbToFile(fbHash)
+	
+	
+	//-----------------*/
+	
+	
 	dynrsrc.Start(watchError, readError)
 	notaryapi.StartDynamic(gobundle.DataFile("html.gwp"), readError)
 	
 	for _, chain := range chainMap {
 		initWithBinary(chain)
 			
-		fmt.Println("Loaded", len(chain.Blocks)-1, "blocks for chain: " + notaryapi.EncodeChainID(chain.ChainID))
+		fmt.Println("Loaded", len(chain.Blocks)-1, "blocks for chain: " + chain.ChainID.String())
 	
 		for i := 0; i < len(chain.Blocks); i = i + 1 {
 			if uint64(i) != chain.Blocks[i].Header.BlockID {
@@ -220,7 +234,7 @@ func init() {
 
 	// init FactomChain
 	initFChain()
-	fmt.Println("Loaded", len(fchain.Blocks)-1, "Factom blocks for chain: "+ notaryapi.EncodeChainID(fchain.ChainID))
+	fmt.Println("Loaded", len(fchain.Blocks)-1, "Factom blocks for chain: "+ notaryapi.EncodeBinary(fchain.ChainID))
 
 
 	tickers[0] = time.NewTicker(time.Minute * 5)
@@ -239,27 +253,30 @@ func init() {
 			newFactomBlock(fchain)
 			saveFChain(fchain)		
 			
-		/*for testing	
+		//for testing	
 			for _, chain := range chainMap {
 				if len(chain.Blocks) < 2{
 					continue
 				}
-				fmt.Println("Print out block ", len(chain.Blocks)-2, " for chain: " + notaryapi.EncodeChainID(chain.ChainID))
+				fmt.Println("Print out block ", len(chain.Blocks)-2, " for chain: " + chain.ChainID.String())
 				block := chain.Blocks[chain.NextBlockID - 1]
 				entryIB, _ := db.FetchEntryInfoBranchByHash((*block).EBEntries[0].Hash())
 				
-				fmt.Println(entryIB.EntryHash)
+				fmt.Println("entryIB.EntryHash: " + entryIB.EntryHash.String())
 				
 				if entryIB.EBInfo != nil{
-					fmt.Println("entryIB.EBInfo.EBHash: %v", entryIB.EBInfo.EBHash)
+					fmt.Println("entryIB.EBInfo.EBHash: " + entryIB.EBInfo.EBHash.String())
+					fmt.Println("entryIB.EBInfo.FBHash: " + entryIB.EBInfo.FBHash.String())					
+					
 				}
 				if entryIB.FBInfo != nil{
+
 					fmt.Println("entryIB.FBInfo.BTCTxHash: %v", entryIB.FBInfo.BTCTxHash)
 				}
 
 
 			}
-			------------------------------------*/
+
 							
 		}
 
@@ -311,7 +328,7 @@ func fileNotExists(name string) (bool) {
 
 func save(chain *notaryapi.Chain) {
 	if len(chain.Blocks)==0{
-		log.Println("no blocks to save for chain: " + string (*chain.ChainID))
+		log.Println("no blocks to save for chain: " + chain.ChainID.String())
 		return
 	}
 	
@@ -332,7 +349,7 @@ func save(chain *notaryapi.Chain) {
 			panic(err)
 		}
 
-		strChainID := notaryapi.EncodeChainID(chain.ChainID)
+		strChainID := chain.ChainID.String()
 		if fileNotExists (dataStorePath + strChainID){
 			err:= os.MkdirAll(dataStorePath + strChainID, 0777)
 			if err==nil{
@@ -450,7 +467,7 @@ func post(context string, form url.Values) (interface{}, *notaryapi.Error) {
 	newEntry.StampTime()
 	
 
-	chainID, err1 := notaryapi.DecodeChainID(&chainid) //need a validation method??
+	chainID, err1 := notaryapi.DecodeBinary(&chainid) //need a validation method??
 	if err1 != nil{
 		return nil, notaryapi.CreateError(notaryapi.ErrorInternal, `Not able to decode chain id`) //ErrorInternal?
 	}
@@ -507,7 +524,7 @@ func saveFChain(chain *notaryapi.FChain) {
 			panic(err)
 		}
 
-		strChainID := notaryapi.EncodeChainID(chain.ChainID)
+		strChainID := notaryapi.EncodeBinary(chain.ChainID)
 		if fileNotExists (dataStorePath + strChainID){
 			err:= os.MkdirAll(dataStorePath + strChainID, 0777)
 			if err==nil{
@@ -529,7 +546,7 @@ func initFChain() {
 	barray := (make([]byte, 32))
 	fchain.ChainID = &barray
 	
-	matches, err := filepath.Glob(dataStorePath + notaryapi.EncodeChainID(fchain.ChainID) + "/store.*.block") // need to get it from a property file??
+	matches, err := filepath.Glob(dataStorePath + notaryapi.EncodeBinary(fchain.ChainID) + "/store.*.block") // need to get it from a property file??
 	if err != nil {
 		panic(err)
 	}
@@ -569,11 +586,38 @@ func initFChain() {
 	binaryTimestamp := make([]byte, 8)
 	binary.BigEndian.PutUint64(binaryTimestamp, uint64(0))
 	if fchain.Blocks[fchain.NextBlockID].IsSealed == true {
-		panic ("fchain.Blocks[fchain.NextBlockID].IsSealed for chain:" + notaryapi.EncodeChainID(fchain.ChainID))
+		panic ("fchain.Blocks[fchain.NextBlockID].IsSealed for chain:" + notaryapi.EncodeBinary(fchain.ChainID))
 	}
 	fchain.Blocks[fchain.NextBlockID].FBEntries, _ = db.FetchFBEntriesFromQueue(&binaryTimestamp)			
 
 }
+
+func ExportDbToFile(fbHash *notaryapi.Hash) {
+	
+	if fileNotExists( dataStorePath+"csv/") {
+		os.MkdirAll(dataStorePath+"csv/" , 0755)
+	}
+	
+	//write the records to a csv file: 
+	file, err := os.Create(dataStorePath+"csv/" + fbHash.String() + ".csv")
+	if err != nil {panic(err)}
+    defer file.Close()
+    writer := csv.NewWriter(file)
+ 
+ 	ldbMap, err := db.FetchAllDBRecordsByFBHash(fbHash)   
+	
+ 	if err != nil{
+ 		log.Println(err)
+ 		return
+ 	}
+ 	
+    for key, value := range ldbMap{
+	    //csv header: key, value
+	    writer.Write([]string {key, value})
+    }
+	writer.Flush()	    
+}
+
 
 //for testing - to be moved into db-------------------------------------
 
@@ -586,14 +630,16 @@ func initChainIDs() {
 	barray1[0] = byte(1)
 	chainIDs = [][]byte{barray1}
 	chain1 := new (notaryapi.Chain)
-	chain1.ChainID = &chainIDs[0]
+	chain1.ChainID = new (notaryapi.Hash)
+	chain1.ChainID.Bytes = chainIDs[0]
 	chainMap[string(chainIDs[0])] = chain1
 	
 	barray2 := make([]byte, 32)
 	barray2[0] = byte(2)
 	chainIDs = append(chainIDs, barray2)
 	chain2 := new (notaryapi.Chain)
-	chain2.ChainID = &chainIDs[1]
+	chain2.ChainID = new (notaryapi.Hash)
+	chain2.ChainID.Bytes = chainIDs[1]
 	chainMap[string(chainIDs[1])] = chain2	
 
 }

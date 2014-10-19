@@ -1,0 +1,16 @@
+	<div class="entry">
+		<h2>Factom Blocks ({{len .fbInfoArray}}): 	</h2>
+			<br>
+				<div class="submitted">
+					<ul>
+						{{range .fbInfoArray}}
+							{{with .}}<li><div>
+								<a href="/fblock/{{.FBHash}}">Block ID: {{.FBlockID}} Hash: {{.FBHash}} </a> <br>
+							</div></li>
+							{{end}}
+						{{end}}
+					</ul>
+				</div>
+				<br><br>
+				<br><br>
+		</div>

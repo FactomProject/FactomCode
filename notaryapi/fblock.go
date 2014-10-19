@@ -31,6 +31,7 @@ type FBlock struct {
 type FBInfo struct {
 
 	FBHash *Hash 
+	FBlockID uint64
 	BTCTxHash *Hash
 	//BTCBlockNum uint64
 	//BTCBlockOffset uint64
@@ -179,6 +180,8 @@ func (b *FBInfo) MarshalBinary() (data []byte, err error) {
 	data, _ = b.FBHash.MarshalBinary()
 	buf.Write(data)
 	
+	binary.Write(&buf, binary.BigEndian, b.FBlockID)	
+		
 	data, _ = b.BTCTxHash.MarshalBinary()
 	buf.Write(data)
 	
@@ -187,7 +190,8 @@ func (b *FBInfo) MarshalBinary() (data []byte, err error) {
 
 func (b *FBInfo) MarshalledSize() uint64 {
 	var size uint64 = 0
-	size += 33	//EBHash
+	size += 33	//FBHash
+	size += 8	//FBlockID
 	size += 33 	//BTCTxHash
 	
 	return size
@@ -198,8 +202,11 @@ func (b *FBInfo) UnmarshalBinary(data []byte) (err error) {
 	
 	b.FBHash = new(Hash)
 	b.FBHash.UnmarshalBinary(data[:33])
-
+	
 	data = data[33:]
+	b.FBlockID = binary.BigEndian.Uint64(data[:8])
+
+	data = data[8:]
 	b.BTCTxHash = new(Hash)
 	b.BTCTxHash.UnmarshalBinary(data[:33])	
 	

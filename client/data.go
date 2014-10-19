@@ -20,6 +20,7 @@ import (
 type FlaggedEntry struct {
 	Entry *notaryapi.Entry
 	Submitted *Submission
+	
 }
 
 type Submission struct {
@@ -237,3 +238,11 @@ func addKey(key notaryapi.Key) {
 func storeKey(id int) {
 	
 }
+/*
+func getEBlock() (eBlock *notaryapi.Block){
+	
+	eBlock = new (notaryapi.Block)
+	return eBlock
+	
+}
+*/

@@ -346,7 +346,7 @@ func newEntryBlock(chain *notaryapi.Chain) (*notaryapi.Block, *notaryapi.Hash){
     
     //Store the block in db
 	db.ProcessEBlockBatch(blkhash, block)	
-	log.Println("block" + strconv.FormatUint(block.Header.BlockID, 10) +" created for chain: "  + notaryapi.EncodeChainID(chain.ChainID))	
+	log.Println("block" + strconv.FormatUint(block.Header.BlockID, 10) +" created for chain: "  + chain.ChainID.String())	
 	
 	return block, blkhash
 }
@@ -374,7 +374,7 @@ func newFactomBlock(chain *notaryapi.FChain) {
 	//Store the block in db
 	db.ProcessFBlockBatch(blkhash, block) 	
 	//need to add a FB process queue in db??	
-	log.Println("block" + strconv.FormatUint(block.Header.BlockID, 10) +" created for factom chain: "  + notaryapi.EncodeChainID(chain.ChainID))
+	log.Println("block" + strconv.FormatUint(block.Header.BlockID, 10) +" created for factom chain: "  + notaryapi.EncodeBinary(chain.ChainID))
 	
 	//Send transaction to BTC network
 	txHash, err := SendRawTransactionToBTC(blkhash.Bytes)
@@ -388,9 +388,12 @@ func newFactomBlock(chain *notaryapi.FChain) {
 	btcTxHash := new (notaryapi.Hash)
 	btcTxHash.Bytes = txHash.Bytes()
 	fbInfo.BTCTxHash = btcTxHash
+	fbInfo.FBlockID = block.Header.BlockID
 	
 	db.InsertFBInfo(blkhash, fbInfo)
 	
+	// Export all db records associated w/ this new factom block
+	ExportDbToFile(blkhash)
 	
     log.Print("Recorded ", blkhash.Bytes, " in BTC transaction hash:\n",txHash)
     

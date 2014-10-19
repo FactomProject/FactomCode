@@ -28,13 +28,15 @@ const (
 	TBL_ENTRY_QUEUE
 	TBL_ENTRY_INFO
 
-	TBL_EB 			//3
-	TBL_EB_QUEUE	//4	
-	TBL_EB_INFO		//5
+	TBL_EB 				//3
+	TBL_EB_QUEUE		//4	
+	TBL_EB_INFO			//5
+	TBL_EB_CHAIN_NUM
 	
 
-	TBL_FB
+	TBL_FB				//7
 	TBL_FB_INFO
+	TBL_FB_NUM
 )
 
 // the process status in db
@@ -106,7 +108,7 @@ func openDB(dbpath string, create bool) (pbdb database.Db, err error) {
 	}()
 
 	if create == true {
-		err = os.Mkdir(dbpath, 0750)
+		err = os.MkdirAll(dbpath, 0750)
 		if err != nil {
 			log.Println("mkdir failed %v %v", dbpath, err)
 			return

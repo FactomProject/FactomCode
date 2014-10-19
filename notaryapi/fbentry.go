@@ -19,11 +19,11 @@ type FBEntry struct {
 	hash *Hash
 	
 	
-	ChainID *[]byte // not marshalllized
+	ChainID *Hash // not marshalllized
 	status int8 //for future use??
 }
 
-func NewFBEntry(h *Hash, id *[]byte) *FBEntry {
+func NewFBEntry(h *Hash, id *Hash) *FBEntry {
 	e := &FBEntry{}
 	e.StampTime()
 	e.hash = h
@@ -131,10 +131,10 @@ func (e *FBEntry) Decoding(unmarshaller gocoding.Unmarshaller, theType reflect.T
 func (e *FBEntry) MarshalBinary() ([]byte, error) {
 	var buf bytes.Buffer
 
+	data, _ := e.ChainID.MarshalBinary()	
+	buf.Write(data)
 	
-	buf.Write(*e.ChainID)
-	
-	data, _ := e.Hash().MarshalBinary()
+	data, _ = e.Hash().MarshalBinary()
 	buf.Write(data)
 	
 
@@ -145,7 +145,8 @@ func (e *FBEntry) MarshalBinary() ([]byte, error) {
 func (e *FBEntry) MarshalledSize() uint64 {
 	var size uint64 = 0
 	
-	size += 32 // Chain ID	
+	size += e.ChainID.MarshalledSize()// Chain ID	
+	
 	size += e.Hash().MarshalledSize()
 
 	
@@ -155,11 +156,12 @@ func (e *FBEntry) MarshalledSize() uint64 {
 func (e *FBEntry) UnmarshalBinary(data []byte) (err error) {
 
 	
-	chainID := data[:32]
-	e.ChainID = &chainID
+	e.ChainID = new (Hash)
+	e.ChainID.UnmarshalBinary(data[:33])
+
 		
 	e.hash = new(Hash)
-	e.hash.UnmarshalBinary(data[32:])
+	e.hash.UnmarshalBinary(data[33:])
 	
 	return nil
 }

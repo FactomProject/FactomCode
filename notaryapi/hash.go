@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"github.com/firelizzard18/gocoding"
 	"reflect"
+	"encoding/hex"	
 
 )
 
@@ -117,6 +118,17 @@ func Sha(data []byte) (h *Hash) {
 
 
 func (h *Hash) String() string {
+	return hex.EncodeToString(h.Bytes)
+}
+
+func HexToHash(hexStr string) (h *Hash, err error)  {
+	h = new (Hash)
+	h.Bytes, err = hex.DecodeString(hexStr)
+	return h, err
+}
+
+// String returns the ShaHash in the standard bitcoin big-endian form.
+func (h *Hash) BTCString() string {
 	hashstr := ""
 	hash := h.Bytes
 	for i := range hash {

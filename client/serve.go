@@ -33,7 +33,10 @@ func serve_init() {
 	server.Get(`/entries/([^/]+)(?:/([^/]+)(?:/([^/]+))?)?`, handleEntry)
 	server.Get(`/keys/(?:add|\+)`, handleAddKey)
 	server.Get(`/keys/([^/]+)(?:/([^/]+))?`, handleKey)
-}
+	server.Get(`/fblock/([^/]+)(?)`, handleFBlock)	
+	server.Get(`/fblock/?`, handleAllFBlocks)		
+	server.Get(`/eblock/([^/]+)(?)`, handleEBlock)
+} 
 
 func safeWrite(ctx *web.Context, code int, data map[string]interface{}) *notaryapi.Error {
 	var buf bytes.Buffer
@@ -65,6 +68,7 @@ func handleHome(ctx *web.Context) {
 }
 
 func handleEntries(ctx *web.Context) {
+	fmt.Println(" in handleEntries")
 	safeWrite200(ctx, map[string]interface{} {
 		"Title": "Entries",
 		"ContentTmpl": "entries.gwp",
@@ -73,6 +77,11 @@ func handleEntries(ctx *web.Context) {
 }
 
 func handleExplore(ctx *web.Context, rest string) {
+	
+	if rest == "" || rest == "/" {
+		handleAllFBlocks(ctx)
+		return
+	}	
 	if rest == "" || rest == "/" {
 		safeWrite200(ctx, map[string]interface{} {
 			"Title": "Explore",
@@ -205,7 +214,7 @@ func handleEntriesPost(ctx *web.Context) {
 		data := url.Values{}
 		data.Set("format", "json")
 		data.Set("data", buf.String())
-		data.Set("chainid", notaryapi.EncodeChainID(&entry.ChainID))
+		data.Set("chainid", notaryapi.EncodeBinary(&entry.ChainID))
 		
 		resp, err := http.PostForm(server, data)
 		if err != nil {
@@ -308,7 +317,7 @@ func handleEntriesPost(ctx *web.Context) {
 		}
 		
 		chainid := ctx.Params["chainid"]
-		binaryChainID, err := notaryapi.DecodeChainID(&chainid) 
+		binaryChainID, err := notaryapi.DecodeBinary(&chainid) 
 		if err != nil {
 			abortMessage = fmt.Sprint("Invalid chain id: ", chainid)
 			return
@@ -331,7 +340,6 @@ func handleEntriesPost(ctx *web.Context) {
 
 func handleKeysPost(ctx *web.Context) {
 	var abortMessage, abortReturn string
-	
 	defer func() {
 		if abortMessage != "" && abortReturn != "" {
 			ctx.Header().Add("Location", fmt.Sprint("/failed?message=", abortMessage, "&return=", abortReturn))
@@ -381,6 +389,7 @@ func handleAddEntry(ctx *web.Context) {
 }
 
 func handleEntry(ctx *web.Context, entry_id_str string, action string, action_id_str string) {
+	fmt.Println(" in handleEntry")	
 	var err error
 	var title, error_str, tmpl string
 	var entry_id int
@@ -425,6 +434,47 @@ func handleEntry(ctx *web.Context, entry_id_str string, action string, action_id
 	}
 }
 
+func handleEBlock(ctx *web.Context, eBlockHash string) {
+	var err error
+	var title, tmpl string
+	
+	hash,_ := notaryapi.HexToHash(eBlockHash)
+	eBlock, _ := db.FetchEBlockByHash(hash)
+	ebInfo, _ := db.FetchEBInfoByHash(hash)	
+	
+	if eBlock == nil || ebInfo == nil  {
+		fmt.Sprintf("Bad entry block id: %s", eBlockHash)
+		title = "Entry Block not found"
+		return
+	}
+	
+
+	defer func(){
+		tmpl = "eblock.gwp"
+		
+		r := safeWrite(ctx, 200, map[string]interface{} {
+			"Title": title,
+			"ContentTmpl": tmpl,
+			"eBlock": eBlock,	
+			"ebHash": eBlockHash,	
+			"ebInfo": ebInfo,	
+		})
+		if r != nil {
+			handleError(ctx, r)
+		}
+	}()
+	
+	
+	if err != nil  {
+		fmt.Sprintf("Bad block id: %s", err.Error())
+		title = "Entry Block not found"
+		return
+	} else {
+		title = fmt.Sprint("Entry Block ", eBlock.Header.BlockID)
+	}
+	
+}
+
 func handleAddKey(ctx *web.Context) {
 	safeWrite200(ctx, map[string]interface{} {
 		"Title": "Add Key",
@@ -436,7 +486,7 @@ func handleKey(ctx *web.Context, key_id_str string, action string) {
 	var err error
 	var title, error_str string
 	var key_id int
-	
+
 	defer func() {
 		r := safeWrite(ctx, 200, map[string]interface{} {
 			"Title": title,
@@ -498,4 +548,54 @@ func handleError(ctx *web.Context, err *notaryapi.Error) {
 		ctx.WriteHeader(500)
 		ctx.Write([]byte(str))
 	}
+}
+
+func handleFBlock(ctx *web.Context, hashStr string) {
+	
+	var title, error_str string	
+	hash,_ := notaryapi.HexToHash(hashStr)
+	fBlock, _ := db.FetchFBlockByHash(hash)
+	fbInfo, _ := db.FetchFBInfoByHash(hash)
+	
+	if fBlock == nil || fbInfo == nil {
+		fmt.Sprintf("Bad entry block id: %s", hashStr)
+		title = "Factom Block not found"
+		return
+	}	
+	
+	defer func() {
+		r := safeWrite(ctx, 200, map[string]interface{} {
+			"Title": title,
+			"Error": error_str,
+			"ContentTmpl": "fblock.gwp",
+			"fBlock": fBlock,	
+			"fbHash": hashStr,	
+			"fbInfo": fbInfo,		
+		})
+		if r != nil {
+			handleError(ctx, r)
+		}
+	}()
+	
+}
+
+func handleAllFBlocks(ctx *web.Context) {
+	var title, error_str string	
+
+	fbInfoArray, _ := db.FetchAllFBInfos()
+	
+	
+	defer func() {
+		r := safeWrite(ctx, 200, map[string]interface{} {
+			"Title": title,
+			"Error": error_str,
+			"ContentTmpl": "fblocks.gwp",
+			"fbInfoArray": fbInfoArray,		
+		})
+		if r != nil {
+			handleError(ctx, r)
+		}
+	}()
+	
+	
 }

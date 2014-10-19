@@ -95,38 +95,6 @@ func (db *LevelDb) FetchEntryInfoByHash(entryHash *notaryapi.Hash) (entryInfo *n
 	return entryInfo, nil
 } 
 
-// FetchEBInfoByHash gets an EBInfo obj
-func (db *LevelDb) FetchEBInfoByHash(ebHash *notaryapi.Hash) (ebInfo *notaryapi.EBInfo, err error) {
-	db.dbLock.Lock()
-	defer db.dbLock.Unlock()
-	
-	log.Println("ebhash: %v", ebHash.Bytes)
-	var key [] byte = []byte{byte(TBL_EB_INFO)} 
-	key = append (key, ebHash.Bytes ...)	
-	data, err := db.lDb.Get(key, db.ro)
-	
-	if data != nil{
-		ebInfo = new (notaryapi.EBInfo)
-		ebInfo.UnmarshalBinary(data)
-	}
-	
-	return ebInfo, nil
-} 
 
-// FetchFBInfoByHash gets an FBInfo obj
-func (db *LevelDb) FetchFBInfoByHash(fbHash *notaryapi.Hash) (fbInfo *notaryapi.FBInfo, err error) {
-	db.dbLock.Lock()
-	defer db.dbLock.Unlock()
-	
-	var key [] byte = []byte{byte(TBL_FB_INFO)} 
-	key = append (key, fbHash.Bytes ...)	
-	data, err := db.lDb.Get(key, db.ro)
-	
-	if data != nil{
-		fbInfo = new (notaryapi.FBInfo)
-		fbInfo.UnmarshalBinary(data)
-	}
-	
-	return fbInfo, nil
-} 
+
 	

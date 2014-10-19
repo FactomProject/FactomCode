@@ -7,6 +7,7 @@ import (
 	"github.com/conformal/goleveldb/leveldb"
 	"github.com/conformal/goleveldb/leveldb/opt"
 	"github.com/conformal/goleveldb/leveldb/util"
+	"github.com/FactomProject/FactomCode/notaryapi"		
 	//"bytes"
 	//"encoding/binary"
 )
@@ -71,10 +72,8 @@ func main() {
 	
 	for iter.Next() {			
 			key := iter.Key()
-			fmt.Println("key:%v", key)	
-			fmt.Println("  len(key):%v", len(key))	
+			fmt.Println("key:%v", notaryapi.EncodeBinary(&key))	
 			fmt.Println("  value:%v", iter.Value())
-			fmt.Println("  len(val):%v", len(iter.Value()))
 			t := new (tst)
 			
 			//t.key = binary.BigEndian.Uint32(key[:4])

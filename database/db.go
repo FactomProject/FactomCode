@@ -48,11 +48,28 @@ type Db interface {
 	// Insert the Factom Block meta data into db
 	InsertFBInfo(fbHash *notaryapi.Hash, fbInfo *notaryapi.FBInfo) (err error)
 	
+	// FetchEBInfoByHash gets an EBInfo obj
+	FetchEBInfoByHash(ebHash *notaryapi.Hash) (ebInfo *notaryapi.EBInfo, err error)
+	
+	// FetchFBInfoByHash gets an FBInfo obj
+	FetchFBInfoByHash(fbHash *notaryapi.Hash) (fbInfo *notaryapi.FBInfo, err error)
+	
 	// FetchEntryInfoBranchByHash gets an EntryInfoBranch obj
 	FetchEntryInfoBranchByHash(entryHash *notaryapi.Hash) (entryInfoBranch *notaryapi.EntryInfoBranch, err error)
 	
+	// FetchEntryBlock gets an entry by hash from the database.
+	FetchEBlockByHash(eBlockHash *notaryapi.Hash) (eBlock *notaryapi.Block, err error)	
+
+	// FetchFBlock gets an entry by hash from the database.
+	FetchFBlockByHash(fBlockHash *notaryapi.Hash) (fBlock *notaryapi.FBlock, err error)	
 	
+	// FetchAllFBInfo gets all of the fbInfo 
+	FetchAllFBInfos() (fbInfos []notaryapi.FBInfo, err error)	
 	
-	
+	// FetchFBInfoByHash gets an FBInfo obj
+	FetchAllDBRecordsByFBHash(fbHash *notaryapi.Hash) (ldbMap map[string]string, err error)	
+
+	// InsertAllDBRecords inserts all key value pairs from map into db
+	InsertAllDBRecords(ldbMap map[string]string) (err error)		
 }
 
