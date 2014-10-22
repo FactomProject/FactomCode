@@ -1,6 +1,7 @@
 	<div class="entry">
 		<h2>Factom Block ID: {{ .fBlock.Header.BlockID}}</h2>	
-		<br>
+		<br>			
+
 		Block Hash: {{ .fbHash}}	<br>			
 		
 		<div class="data">
@@ -13,8 +14,8 @@
 				Merkle Root: {{ .MerkleRoot}}		<br>
 				Created Time: {{ .RealTime}}		<br>
 			{{end}}					
-				BTC transaction: <a href="http://blockexplorer.com/testnet/tx/{{.fbInfo.BTCTxHash.BTCString}}"> {{.fbInfo.BTCTxHash.BTCString}}</a> <br><br>
-						
+				BTC transaction: <a href="http://blockexplorer.com/testnet/tx/{{.fbInfo.BTCTxHash.BTCString}}"> {{.fbInfo.BTCTxHash.BTCString}}</a> <br>
+	
 		</div>
 
 				<hr />
@@ -31,4 +32,6 @@
 					</ul>
 				</div>
 				<br><br>
-		</div>
+		<hr />		
+		<div align = "left"><a href="/explore"> More Factom Blocks </a> <br></div>				
+	</div>

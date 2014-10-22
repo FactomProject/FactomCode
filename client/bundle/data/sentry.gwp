@@ -1,0 +1,26 @@
+<div class="entry">
+		<h4>Chain: {{ .ebInfo.ChainID}}</h4>		
+
+		
+		<div class="submitted">	
+			{{with .entryInfo}}	
+				Entry Block ID: {{.EBBlockNum}}<br>
+				Entry Block Hash: <a href="/eblock/{{.EBHash}}">{{ .EBHash}}</a><br>
+			{{end}}					
+				Block Created Time: {{.eblock.Header.RealTime}}<br>				
+		</div>
+		<br>
+	<hr />
+				
+	<div class="submitted">
+		<h3>Entry Details:</h3>
+		</br>
+		Entry Hash: {{ .entryInfo.EntryHash}}	<br>		
+		Entry Type: {{ .entry.EntryData.TypeName}}	<br>	
+		Entry Version: {{ .entry.EntryData.Version}}	<br>		
+		Entry Data: {{ .entryData}}	<br>	
+	</div>
+	</br>
+	</br>
+
+</div>

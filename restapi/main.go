@@ -186,10 +186,9 @@ func initDB() {
 
 		if err!=nil{
 			panic(err)
-		} else{
-			log.Println("Database started from: " + ldbpath)
-		}		
+		} 		
 	}
+	log.Println("Database started from: " + ldbpath)	
 
 }
 
@@ -399,8 +398,13 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(err.HTTPCode)
 		}
 
-		buf.WriteTo(w)
-		w.Write([]byte("\n\n"))
+		//buf.WriteTo(w)
+		if resource != nil {
+			//Send back entry hash
+			w.Write(resource.([]byte)) 
+		}else{
+			w.Write([]byte("\n\n"))
+		}
 	}()
 
 	switch method {
@@ -478,16 +482,9 @@ func post(context string, form url.Values) (interface{}, *notaryapi.Error) {
 	}
 	
 	// store the new entry in db
-	if db !=nil{
-		entryBinary, _ := newEntry.MarshalBinary()
-		
-		hash, _ := notaryapi.CreateHash(newEntry)
-		
-		db.InsertEntryAndQueue( hash, &entryBinary, newEntry, &chainID)
-	 
-	} else{
-		panic("db is null!")
-	}
+	entryBinary, _ := newEntry.MarshalBinary()
+	hash, _ := notaryapi.CreateHash(newEntry)
+	db.InsertEntryAndQueue( hash, &entryBinary, newEntry, &chainID)
 
 	chain.BlockMutex.Lock()
 	err := chain.Blocks[len(chain.Blocks)-1].AddEBEntry(newEntry)
@@ -497,7 +494,7 @@ func post(context string, form url.Values) (interface{}, *notaryapi.Error) {
 		return nil, notaryapi.CreateError(notaryapi.ErrorInternal, fmt.Sprintf(`Error while adding Entity to Block: %s`, err.Error()))
 	}
 
-	return newEntry, nil
+	return hash.Bytes, nil
 }
 
 

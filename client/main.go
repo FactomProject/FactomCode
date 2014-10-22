@@ -59,6 +59,7 @@ func init() {
 	go func() {
 		for _ = range ticker.C {
 			ImportDbRecordsFromFile()
+			RefreshPendingEntries()
 		}
 	}()		
 }
@@ -124,11 +125,10 @@ func initDB() {
 		
 		if err!=nil{
 			panic(err)
-		} else{
-			log.Println("Database started from: " + ldbpath)
 		}		
 	}
 	
+	log.Println("Database started from: " + ldbpath)
 
 }
 

@@ -79,6 +79,7 @@ type Entry struct {
 	EntryData
 	unixTime int64
 	signatures []Signature
+	
 	ChainID []byte //??
 	
 	BinaryMarshallable
@@ -296,8 +297,10 @@ func (e *Entry) MarshalBinary() ([]byte, error) {
 	binary.Write(&buf, binary.BigEndian, e.Version())
 	binary.Write(&buf, binary.BigEndian, e.TimeStamp())
 	
+	datacount := uint64(len(e.Data()))
+	binary.Write(&buf, binary.BigEndian, datacount)	
+	
 	data := e.Data()
-	binary.Write(&buf, binary.BigEndian, uint64(len(data)))
 	buf.Write(data)
 	
 	count := uint64(len(e.Signatures()))
@@ -333,6 +336,7 @@ func (e *Entry) UnmarshalBinary(data []byte) (err error) {
 	entryData,	data := data[:dataCount], data[dataCount:]
 	sigCount,	data := binary.BigEndian.Uint64(data[:8]), data[8:]
 	
+
 	e.EntryData = newEntryDataOfType(EntryDataType(dataType), EntryDataVersion(version))
 	if e.EntryData == nil { return errors.New("Bad entry data type") }
 	
@@ -446,7 +450,7 @@ func (e *plainData) DataHash() *Hash {
 func (e *plainData) DecodeFromString(str string) error {
 	str = whitesp.ReplaceAllString(str, "")
 	if len(str) % 2 == 1 {
-		str += "0"
+		str = "0" + str 
 	}
 	
 	data, err := hex.DecodeString(str)

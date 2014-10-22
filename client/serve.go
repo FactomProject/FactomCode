@@ -10,7 +10,10 @@ import (
 	"github.com/FactomProject/FactomCode/notaryapi"
 	"net/http"
 	"net/url"
+	"io/ioutil"
 	"strconv"
+	"sort"
+
 )
 
 var server = web.NewServer()
@@ -36,6 +39,7 @@ func serve_init() {
 	server.Get(`/fblock/([^/]+)(?)`, handleFBlock)	
 	server.Get(`/fblock/?`, handleAllFBlocks)		
 	server.Get(`/eblock/([^/]+)(?)`, handleEBlock)
+	server.Get(`/sentry/([^/]+)(?)`, handleSEntry)	
 } 
 
 func safeWrite(ctx *web.Context, code int, data map[string]interface{}) *notaryapi.Error {
@@ -221,9 +225,18 @@ func handleEntriesPost(ctx *web.Context) {
 			abortMessage = fmt.Sprint("An error occured while submitting the entry (entry may have been accepted by the server but was not locally flagged as such): ", err.Error())
 			return
 		}
+		
+		body, err := ioutil.ReadAll(resp.Body)
+		
+		var entryHash string
+		if body != nil{
+			fmt.Println("body: %v", notaryapi.EncodeBinary(&body))
+			entryHash = notaryapi.EncodeBinary(&body)
+		}
+		
 		resp.Body.Close()
 		
-		flagSubmitEntry(idx)
+		flagSubmitEntry(idx, entryHash)
 		
 	
 	case "rmEntrySig":
@@ -475,6 +488,53 @@ func handleEBlock(ctx *web.Context, eBlockHash string) {
 	
 }
 
+func handleSEntry(ctx *web.Context, entryHash string) {
+	var err error
+	var title, tmpl string
+	
+	hash,_ := notaryapi.HexToHash(entryHash)
+	entry, _ := db.FetchEntryByHash(hash)
+	entryInfo, _ := db.FetchEntryInfoByHash(hash)	
+	ebInfo, _ := db.FetchEBInfoByHash(entryInfo.EBHash)
+	eblock, _ := db.FetchEBlockByHash(entryInfo.EBHash)
+	
+	if entry == nil || entryInfo == nil || ebInfo == nil {
+		fmt.Sprintf("Bad entry hash: %s", entryHash)
+		title = "Entry not found"
+		return
+	}
+	
+
+	defer func(){
+		tmpl = "sentry.gwp"
+		
+		bytes := entry.Data()
+		entryData := notaryapi.EncodeBinary(&bytes)
+		r := safeWrite(ctx, 200, map[string]interface{} {
+			"Title": title,
+			"ContentTmpl": tmpl,
+			"entry": entry,	
+			"entryInfo": entryInfo,	
+			"ebInfo":ebInfo,
+			"eblock":eblock,
+			"entryData":entryData,
+		})
+		if r != nil {
+			handleError(ctx, r)
+		}
+	}()
+	
+	
+	if err != nil  {
+		fmt.Sprintf("Bad entry hash: %s", err.Error())
+		title = "Entry not found"
+		return
+	} else {
+		title = fmt.Sprint("Entry: ", entryHash)
+	}
+	
+}
+
 func handleAddKey(ctx *web.Context) {
 	safeWrite200(ctx, map[string]interface{} {
 		"Title": "Add Key",
@@ -583,7 +643,7 @@ func handleAllFBlocks(ctx *web.Context) {
 	var title, error_str string	
 
 	fbInfoArray, _ := db.FetchAllFBInfos()
-	
+	sort.Sort(byBlockID(fbInfoArray))
 	
 	defer func() {
 		r := safeWrite(ctx, 200, map[string]interface{} {
@@ -599,3 +659,15 @@ func handleAllFBlocks(ctx *web.Context) {
 	
 	
 }
+
+// array sorting implementation
+type byBlockID []notaryapi.FBInfo
+func (f byBlockID) Len() int { 
+  return len(f) 
+} 
+func (f byBlockID) Less(i, j int) bool { 
+  return f[i].FBlockID > f[j].FBlockID
+} 
+func (f byBlockID) Swap(i, j int) { 
+  f[i], f[j] = f[j], f[i] 
+} 

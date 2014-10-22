@@ -109,7 +109,7 @@ func templateRef(name string, data interface{}) (string, error) {
 }
 
 func templateGetEntry(idx int) (map[string]interface{}, error) {
-	fmt.Println (" in templateGetEntry")
+
 	fentry, ok := entries[idx]
 	if !ok {
 		return nil, errors.New(fmt.Sprint("No entry at index", idx))

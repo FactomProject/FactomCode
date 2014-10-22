@@ -53,6 +53,9 @@ type Db interface {
 	
 	// FetchFBInfoByHash gets an FBInfo obj
 	FetchFBInfoByHash(fbHash *notaryapi.Hash) (fbInfo *notaryapi.FBInfo, err error)
+
+	// FetchEntryInfoBranchByHash gets an EntryInfo obj
+	FetchEntryInfoByHash(entryHash *notaryapi.Hash) (entryInfo *notaryapi.EntryInfo, err error) 
 	
 	// FetchEntryInfoBranchByHash gets an EntryInfoBranch obj
 	FetchEntryInfoBranchByHash(entryHash *notaryapi.Hash) (entryInfoBranch *notaryapi.EntryInfoBranch, err error)

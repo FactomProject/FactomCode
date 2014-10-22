@@ -25,7 +25,7 @@
 		</br>
 		<ul>
 			{{range .eBlock.EBEntries}}
-				{{with .}}<li><div><a href="/ebentry/{{.Hash}}">{{.Hash}} </a></div></li>
+				{{with .}}<li><div><a href="/sentry/{{.Hash}}">{{.Hash}} </a></div></li>
 				{{end}}
 			{{end}}
 		</ul>

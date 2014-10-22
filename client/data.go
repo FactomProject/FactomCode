@@ -26,6 +26,7 @@ type FlaggedEntry struct {
 type Submission struct {
 	Host string
 	Confirmed bool
+	EntryHash string 
 }
 
 var entries map[int]*FlaggedEntry
@@ -174,6 +175,20 @@ func getConfirmedEntryIDs() []int {
 	return ids[:i]
 }
 
+func RefreshPendingEntries(){
+	ids := getPendingEntryIDs()
+	
+	for _, id := range ids {
+		hash := new (notaryapi.Hash)	
+		hash.Bytes, _ = notaryapi.DecodeBinary(&entries[id].Submitted.EntryHash)
+		entryInfoBranch, _ := db.FetchEntryInfoBranchByHash(hash)
+		if entryInfoBranch.FBInfo != nil {
+			entries[id].Submitted.Confirmed = true
+			storeEntry(id)
+		}
+	}
+}
+
 func getEntry(id int) *notaryapi.Entry {
 	return entries[id].Entry
 }
@@ -182,8 +197,8 @@ func getEntrySubmission(id int) *Submission {
 	return entries[id].Submitted
 }
 
-func flagSubmitEntry(id int) {
-	entries[id].Submitted = &Submission{Host: Settings.Server}
+func flagSubmitEntry(id int, entryHash string) {
+	entries[id].Submitted = &Submission{Host: Settings.Server, EntryHash: entryHash}
 	storeEntry(id)
 }
 
