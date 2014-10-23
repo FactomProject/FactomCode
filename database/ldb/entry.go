@@ -56,9 +56,10 @@ func (db *LevelDb) FetchEntryByHash(entrySha *notaryapi.Hash) (entry *notaryapi.
 	key = append (key, entrySha.Bytes ...)	
 	data, err := db.lDb.Get(key, db.ro)
 	
-	entry = new (notaryapi.Entry)
-	entry.UnmarshalBinary(data)
-	
+	if data != nil{
+		entry = new (notaryapi.Entry)
+		entry.UnmarshalBinary(data)
+	}
 	return entry, nil
 } 
 

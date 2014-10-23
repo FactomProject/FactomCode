@@ -32,6 +32,11 @@ Reference Client
     {{else}}
       [Explore](/explore)
     {{end}}
+  * {{if eq .Title "Search"}}
+      <div>Search</div>
+    {{else}}
+      [Search](/search)
+    {{end}}
   * {{if eq .Title "Settings"}}
       <div>Settings</div>
     {{else}}

@@ -31,6 +31,7 @@ func serve_init() {
 	server.Post(`/entries/?`, handleEntriesPost)
 	server.Post(`/keys/?`, handleKeysPost)
 	server.Post(`/settings/?`, handleSettingsPost)
+	server.Post(`/search/?`, handleSearch)		
 	
 	server.Get(`/entries/(?:add|\+)`, handleAddEntry)
 	server.Get(`/entries/([^/]+)(?:/([^/]+)(?:/([^/]+))?)?`, handleEntry)
@@ -40,6 +41,7 @@ func serve_init() {
 	server.Get(`/fblock/?`, handleAllFBlocks)		
 	server.Get(`/eblock/([^/]+)(?)`, handleEBlock)
 	server.Get(`/sentry/([^/]+)(?)`, handleSEntry)	
+	server.Get(`/search/?`, handleSearch)		
 } 
 
 func safeWrite(ctx *web.Context, code int, data map[string]interface{}) *notaryapi.Error {
@@ -402,7 +404,7 @@ func handleAddEntry(ctx *web.Context) {
 }
 
 func handleEntry(ctx *web.Context, entry_id_str string, action string, action_id_str string) {
-	fmt.Println(" in handleEntry")	
+
 	var err error
 	var title, error_str, tmpl string
 	var entry_id int
@@ -456,8 +458,7 @@ func handleEBlock(ctx *web.Context, eBlockHash string) {
 	ebInfo, _ := db.FetchEBInfoByHash(hash)	
 	
 	if eBlock == nil || ebInfo == nil  {
-		fmt.Sprintf("Bad entry block id: %s", eBlockHash)
-		title = "Entry Block not found"
+		handleMessage(ctx, "Not Found", "Entry block not found for hash: " + eBlockHash)
 		return
 	}
 	
@@ -494,13 +495,22 @@ func handleSEntry(ctx *web.Context, entryHash string) {
 	
 	hash,_ := notaryapi.HexToHash(entryHash)
 	entry, _ := db.FetchEntryByHash(hash)
+	
+	if entry == nil{
+		handleMessage(ctx, "Not Found", "Entry not found for hash: " + entryHash)
+		return
+	}
+	
 	entryInfo, _ := db.FetchEntryInfoByHash(hash)	
 	ebInfo, _ := db.FetchEBInfoByHash(entryInfo.EBHash)
 	eblock, _ := db.FetchEBlockByHash(entryInfo.EBHash)
 	
-	if entry == nil || entryInfo == nil || ebInfo == nil {
+	if entryInfo == nil || ebInfo == nil {
 		fmt.Sprintf("Bad entry hash: %s", entryHash)
 		title = "Entry not found"
+		err := new (notaryapi.Error)
+		err.Message = "Bad entry hash: " + entryHash
+		handleError(ctx, err)
 		return
 	}
 	
@@ -610,6 +620,18 @@ func handleError(ctx *web.Context, err *notaryapi.Error) {
 	}
 }
 
+
+func handleMessage(ctx *web.Context, title string, message string) {
+	
+	r := safeWrite(ctx,200, map[string]interface{} {
+		"Title": title,
+		"Content": message,
+		"ContentTmpl": "message.gwp",
+	})
+	if r != nil {
+		handleError(ctx, r)
+	}	
+}
 func handleFBlock(ctx *web.Context, hashStr string) {
 	
 	var title, error_str string	
@@ -618,8 +640,7 @@ func handleFBlock(ctx *web.Context, hashStr string) {
 	fbInfo, _ := db.FetchFBInfoByHash(hash)
 	
 	if fBlock == nil || fbInfo == nil {
-		fmt.Sprintf("Bad entry block id: %s", hashStr)
-		title = "Factom Block not found"
+		handleMessage(ctx, "Not Found", "Factom Block not found for hash: " + hashStr)
 		return
 	}	
 	
@@ -657,6 +678,36 @@ func handleAllFBlocks(ctx *web.Context) {
 		}
 	}()
 	
+	
+}
+
+func handleSearch(ctx *web.Context) {
+	var title, error_str string	 
+
+	inputhash := ctx.Params["inputhash"]
+	hash := new (notaryapi.Hash)
+	hash.Bytes, _ = notaryapi.DecodeBinary(&inputhash)
+
+	switch hashtype := ctx.Params["hashtype"]; hashtype {
+	case "entry":
+		handleSEntry(ctx, inputhash)
+
+	case "eblock":
+		handleEBlock(ctx, inputhash)
+			
+	case "fblock":
+		handleFBlock(ctx, inputhash)
+		
+	default:
+		r := safeWrite(ctx, 200, map[string]interface{} {
+			"Title": title,
+			"Error": error_str,
+			"ContentTmpl": "search.gwp",	
+		})
+		if r != nil {
+			handleError(ctx, r)
+		}	
+	}		
 	
 }
 
