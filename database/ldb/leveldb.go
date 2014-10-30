@@ -37,6 +37,9 @@ const (
 	TBL_FB				//7
 	TBL_FB_INFO
 	TBL_FB_NUM
+	
+	TBL_CHAIN_HASH		//10
+	TBL_CHAIN_NAME
 )
 
 // the process status in db

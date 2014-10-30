@@ -5,7 +5,16 @@ import (
 	"github.com/firelizzard18/gocoding/json"
 	"reflect"
 	"strings"
+	"encoding/hex"	
 )
+
+func EncodeBinary(bytes *[]byte) (string){
+	return hex.EncodeToString(*bytes)
+}
+
+func DecodeBinary(bytes *string) ([]byte, error){
+	return hex.DecodeString(*bytes)
+}
 
 func NewUnmarshaller(decoding gocoding.Decoding) gocoding.Unmarshaller {
 	return gocoding.NewUnmarshaller(NewDecoding(decoding))

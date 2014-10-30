@@ -218,9 +218,15 @@ func handleEntriesPost(ctx *web.Context) {
 		
 		server := fmt.Sprintf(`http://%s/v1`, Settings.Server)
 		data := url.Values{}
-		data.Set("format", "json")
-		data.Set("data", buf.String())
-		data.Set("chainid", notaryapi.EncodeBinary(&entry.ChainID))
+		
+		data.Set("format", "binary")
+		serverEntry := new (notaryapi.Entry)
+		serverEntry.ChainID.Bytes = entry.ChainID
+		serverEntry.Data = entry.Data()
+		binaryEntry,_ := serverEntry.MarshalBinary()
+		
+		data.Set("entry", notaryapi.EncodeBinary(&binaryEntry))
+
 		
 		resp, err := http.PostForm(server, data)
 		if err != nil {
@@ -325,7 +331,7 @@ func handleEntriesPost(ctx *web.Context) {
 			return
 		}
 		
-		entry := notaryapi.NewEntryOfType(notaryapi.EntryDataType(id))
+		entry := NewEntryOfType(EntryDataType(id))
 		if entry == nil {
 			abortMessage = fmt.Sprint("Failed to generate entry: unsupported data type: ", id)
 			return
@@ -518,7 +524,7 @@ func handleSEntry(ctx *web.Context, entryHash string) {
 	defer func(){
 		tmpl = "sentry.gwp"
 		
-		bytes := entry.Data()
+		bytes := entry.Data
 		entryData := notaryapi.EncodeBinary(&bytes)
 		r := safeWrite(ctx, 200, map[string]interface{} {
 			"Title": title,

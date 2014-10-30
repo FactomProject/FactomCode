@@ -7,11 +7,15 @@ import (
 	
 	"encoding/binary"
 	"sync"
-	"encoding/hex"
+
 )
 
 type Chain struct {
 	ChainID 	*Hash
+	Name		string
+	//Status	uint8
+	
+	
 	Blocks 		[]*Block
 	BlockMutex 	sync.Mutex	
 	NextBlockID uint64	
@@ -40,13 +44,7 @@ type EBInfo struct {
     
 }
 
-func EncodeBinary(bytes *[]byte) (string){
-	return hex.EncodeToString(*bytes)
-}
 
-func DecodeBinary(bytes *string) ([]byte, error){
-	return hex.DecodeString(*bytes)
-}
 
 func CreateBlock(chain *Chain, prev *Block, capacity uint) (b *Block, err error) {
 	if prev == nil && chain.NextBlockID != 0 {
@@ -221,4 +219,48 @@ func (b *EBInfo) UnmarshalBinary(data []byte) (err error) {
 	b.ChainID.UnmarshalBinary(data[:33])	
 	
 	return nil
+}
+
+func (b *Chain) MarshalBinary() (data []byte, err error) {
+	var buf bytes.Buffer
+
+	data, _ = b.ChainID.MarshalBinary()
+	buf.Write(data)
+	
+	data = []byte (b.Name)
+	count := len(data)
+	
+	binary.Write(&buf, binary.BigEndian, uint64(count))	
+
+	buf.Write(data)
+	
+	return buf.Bytes(), err
+}
+
+func (b *Chain) MarshalledSize() uint64 {
+	var size uint64 = 0
+	size += 33	//b.ChainID
+	size += 1  // string length
+	size += uint64(len(b.Name)) 	
+	
+	return size
+}
+
+func (b *Chain) UnmarshalBinary(data []byte) (err error) {
+	b.ChainID = new(Hash)
+	b.ChainID.UnmarshalBinary(data[:33])
+
+	data = data[33:]
+	count := binary.BigEndian.Uint64(data[0:8])
+	
+	data = data[8:]
+	b.Name = string(data[:count])
+	
+	return nil
+}
+
+func (b *Chain) GenerateIDFromName(name string) (chainID *Hash, err error) {
+	b.ChainID = Sha([]byte(name))
+	
+	return b.ChainID, nil
 }

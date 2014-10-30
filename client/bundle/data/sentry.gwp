@@ -15,9 +15,7 @@
 	<div class="submitted">
 		<h3>Entry Details:</h3>
 		</br>
-		Entry Hash: {{ .entryInfo.EntryHash}}	<br>		
-		Entry Type: {{ .entry.EntryData.TypeName}}	<br>	
-		Entry Version: {{ .entry.EntryData.Version}}	<br>		
+		Entry Hash: {{ .entryInfo.EntryHash}}	<br>			
 		Entry Data: {{ .entryData}}	<br>	
 	</div>
 	</br>

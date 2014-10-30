@@ -3,13 +3,7 @@ package notaryapi
 import (
 	"bytes"
 	"encoding/binary"
-	//"encoding/hex"
-	//"errors"
-	"github.com/firelizzard18/gocoding"
-	//"io"
 	"reflect"
-	//"regexp"
-	"strings"
 	"time"
 )
 
@@ -75,59 +69,6 @@ func (e *FBEntry) EncodableFields() map[string]reflect.Value {
 	return fields
 }
 
-func (e *FBEntry) Decoding(unmarshaller gocoding.Unmarshaller, theType reflect.Type) gocoding.Decoder {
-	return func(scratch [64]byte, scanner gocoding.Scanner, value reflect.Value) {
-		if scanner.Peek() == gocoding.ScannedLiteralBegin {
-			null := scanner.NextValue()
-			if null.IsValid() && null.IsNil() {
-				value.Set(reflect.Zero(theType))
-				return
-			}
-		}
-	
-		if !gocoding.PeekCheck(scanner, gocoding.ScannedStructBegin, gocoding.ScannedMapBegin) { return }
-		
-		if value.IsNil() {
-			value.Set(reflect.ValueOf(new(EBEntry)))
-		}
-		
-		e := value.Interface().(*EBEntry)
-		typecode := EmptyDataType
-		
-		for {
-			// get the next code, check for the end
-			code := scanner.Continue()
-			if code.Matches(gocoding.ScannedStructEnd, gocoding.ScannedMapEnd) { break }
-			
-			// check for key begin
-			if code != gocoding.ScannedKeyBegin {
-				// this will generate an appropriate error message
-				gocoding.PeekCheck(scanner, gocoding.ScannedKeyBegin, gocoding.ScannedStructEnd, gocoding.ScannedMapEnd)
-				return
-			}
-			
-			// get the key
-			key := scanner.NextValue()
-			if key.Kind() != reflect.String {
-				scanner.Error(gocoding.ErrorPrintf("Decoding", "Invalid key type %s", key.Type().String()))
-				return
-			}
-			keystr := key.String()
-			
-			scanner.Continue()
-			switch strings.ToLower(keystr) {
-			case `chainid`:
-				unmarshaller.UnmarshalObject(scanner, &typecode)//??
-				
-			case `hash`:
-				unmarshaller.UnmarshalObject(scanner, &e.hash)
-				
-			default:
-			}
-		}
-	}
-}
-
 func (e *FBEntry) MarshalBinary() ([]byte, error) {
 	var buf bytes.Buffer
 
@@ -136,8 +77,6 @@ func (e *FBEntry) MarshalBinary() ([]byte, error) {
 	
 	data, _ = e.Hash().MarshalBinary()
 	buf.Write(data)
-	
-
 	
 	return buf.Bytes(), nil
 }
@@ -148,7 +87,6 @@ func (e *FBEntry) MarshalledSize() uint64 {
 	size += e.ChainID.MarshalledSize()// Chain ID	
 	
 	size += e.Hash().MarshalledSize()
-
 	
 	return size
 }

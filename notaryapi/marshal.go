@@ -9,7 +9,6 @@ import (
 	"github.com/firelizzard18/gocoding/json"
 	"io"
 	"reflect"
-	"strconv"
 	"text/template"
 )
 
@@ -37,7 +36,7 @@ var hashEncoder = M.Alt.FindEncoder(reflect.TypeOf(new(Hash)))
 
 func init() {
 	M.Alt.CacheEncoder(reflect.TypeOf(new(Block)), AltBlockEncoder)
-	M.Alt.CacheEncoder(reflect.TypeOf(new(Entry)), AltEntryEncoder)
+	//M.Alt.CacheEncoder(reflect.TypeOf(new(Entry)), AltEntryEncoder)
 }
 
 func AltBlockEncoder(scratch [64]byte, renderer gocoding.Renderer, value reflect.Value) {
@@ -60,39 +59,6 @@ func AltBlockEncoder(scratch [64]byte, renderer gocoding.Renderer, value reflect
 	renderer.StartElement("Salt")
 	M.Alt.MarshalValue(renderer, value.FieldByName("Salt"))
 	renderer.StopElement("Salt")
-	
-	renderer.StopStruct()
-}
-
-func AltEntryEncoder(scratch [64]byte, renderer gocoding.Renderer, value reflect.Value) {
-	entry := value.Interface().(*Entry)
-	
-	renderer.StartStruct()
-	
-	for name, value := range entry.EncodableFields() {
-		renderer.StartElement(name)
-		
-		if name == "Signatures" {
-			renderer.StartArray()
-			
-			for idx, sig := range entry.Signatures() {
-				num := strconv.Itoa(idx)
-				
-				renderer.StartElement(num)
-				hash, err := CreateHash(sig.Key())
-				if err != nil { renderer.Error(gocoding.ErrorPrint("Encoding", "Error creating hash: ", err.Error())) }
-				
-				hashEncoder(scratch, renderer, reflect.ValueOf(hash))
-				renderer.StopElement(num)
-			}
-			
-			renderer.StopArray()
-		} else {
-			M.Alt.MarshalValue(renderer, value)
-		}
-		
-		renderer.StopElement(name)
-	}
 	
 	renderer.StopStruct()
 }

@@ -33,6 +33,15 @@ type Db interface {
 	
 	// ProcessFBlockBatche inserts the EBlock and update all it's ebentries in DB
 	ProcessFBlockBatch(BlockHash *notaryapi.Hash, block *notaryapi.FBlock) error 	
+	
+	// InsertChain inserts the newly created chain into db
+	InsertChain(chain *notaryapi.Chain) (err error)
+	
+	// FetchEBInfoByHash gets a chain by chainID
+	FetchChainByHash(chainID *notaryapi.Hash) (chain *notaryapi.Chain, err error)	
+
+	// FetchChainByName gets a chain by chain name
+	FetchChainByName(name string) (chain *notaryapi.Chain, err error)			
 
 	// RollbackClose discards the recent database changes to the previously
 	// saved data at last Sync and closes the database.
@@ -43,7 +52,10 @@ type Db interface {
 	Sync() (err error)
 	
 	
+
 	
+	// FetchAllChainByName gets all of the chains under the path - name
+	FetchAllChainsByName(name string) (chains *[]notaryapi.Chain, err error)		
 	
 	// Insert the Factom Block meta data into db
 	InsertFBInfo(fbHash *notaryapi.Hash, fbInfo *notaryapi.FBInfo) (err error)
