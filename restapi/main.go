@@ -485,7 +485,7 @@ func post(context string, form url.Values) (interface{}, *notaryapi.Error) {
 
 	return hash.Bytes, nil
 }
-
+/*
 func createNewChain(chainName string) (chain *notaryapi.Chain){
 		chain = new (notaryapi.Chain)
 		chain.Name = chainName
@@ -496,7 +496,7 @@ func createNewChain(chainName string) (chain *notaryapi.Chain){
 		
 		return chain
 }
-
+*/
 func saveFChain(chain *notaryapi.FChain) {
 	if len(chain.Blocks)==0{
 		//log.Println("no blocks to save for chain: " + string (*chain.ChainID))
@@ -620,7 +620,7 @@ func initChains() {
 	chainIDMap = make(map[string]*notaryapi.Chain)
 	//chainNameMap = make(map[string]*notaryapi.Chain)
 
-	chains, err := db.FetchAllChainsByName("")
+	chains, err := db.FetchAllChainsByName(nil)
 	
 	if err != nil{
 		panic (err)
@@ -646,7 +646,7 @@ func initChainIDs() {
 	chain1 := new (notaryapi.Chain)
 	chain1.ChainID = new (notaryapi.Hash)
 	chain1.ChainID.Bytes = chainIDs[0]
-	chain1.Name = "app1"
+	chain1.Name = [][]byte {[]byte("apple"), []byte("phone")}
 	db.InsertChain(chain1)
 //	chainMap[string(chainIDs[0])] = chain1
 	
@@ -656,7 +656,7 @@ func initChainIDs() {
 	chain2 := new (notaryapi.Chain)
 	chain2.ChainID = new (notaryapi.Hash)
 	chain2.ChainID.Bytes = chainIDs[1]
-	chain2.Name = "app2"	
+	chain2.Name = [][]byte {[]byte("apple"), []byte("mac")}	
 	db.InsertChain(chain2)	
 //	chainMap[string(chainIDs[1])] = chain2	
 

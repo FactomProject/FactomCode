@@ -41,7 +41,7 @@ type Db interface {
 	FetchChainByHash(chainID *notaryapi.Hash) (chain *notaryapi.Chain, err error)	
 
 	// FetchChainByName gets a chain by chain name
-	FetchChainByName(name string) (chain *notaryapi.Chain, err error)			
+	FetchChainByName(chainName [][]byte) (chain *notaryapi.Chain, err error)			
 
 	// RollbackClose discards the recent database changes to the previously
 	// saved data at last Sync and closes the database.
@@ -55,7 +55,7 @@ type Db interface {
 
 	
 	// FetchAllChainByName gets all of the chains under the path - name
-	FetchAllChainsByName(name string) (chains *[]notaryapi.Chain, err error)		
+	FetchAllChainsByName(chainName [][]byte) (chains *[]notaryapi.Chain, err error)		
 	
 	// Insert the Factom Block meta data into db
 	InsertFBInfo(fbHash *notaryapi.Hash, fbInfo *notaryapi.FBInfo) (err error)

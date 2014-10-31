@@ -171,7 +171,7 @@ func (db *LevelDb)	InsertChain(chain *notaryapi.Chain) (err error){
 	db.lbatch.Put(chainByHashKey, binaryChain)	
 	
 	var chainByNameKey [] byte = []byte{byte(TBL_CHAIN_NAME)} 
-	chainByNameKey = append (chainByNameKey, []byte(chain.Name) ...)
+	chainByNameKey = append (chainByNameKey, []byte(notaryapi.EncodeChainNameToString(chain.Name)) ...)
 	
 	// Cross reference to chain id
 	db.lbatch.Put(chainByNameKey, chain.ChainID.Bytes)	
@@ -202,9 +202,11 @@ func (db *LevelDb) 	FetchChainByHash(chainID *notaryapi.Hash) (chain *notaryapi.
 }	
 
 // FetchChainIDByName gets a chainID by chain name
-func (db *LevelDb) 	FetchChainIDByName(name string) (chainID *notaryapi.Hash, err error){
+func (db *LevelDb) 	FetchChainIDByName(chainName [][]byte) (chainID *notaryapi.Hash, err error){
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
+	
+	name := notaryapi.EncodeChainNameToString(chainName)
 	
 	var key [] byte = []byte{byte(TBL_CHAIN_NAME)} 
 	key = append (key, []byte(name) ...)	
@@ -218,9 +220,10 @@ func (db *LevelDb) 	FetchChainIDByName(name string) (chainID *notaryapi.Hash, er
 	return chainID, nil
 }
 // FetchChainByName gets a chain by chain name
-func (db *LevelDb) 	FetchChainByName(name string) (chain *notaryapi.Chain, err error){
+func (db *LevelDb) 	FetchChainByName(chainName [][]byte) (chain *notaryapi.Chain, err error){
 	
-	chainID,_ := db.FetchChainIDByName(name)
+	
+	chainID,_ := db.FetchChainIDByName(chainName)
 	
 	if chainID != nil{
 		chain, _ = db.FetchChainByHash(chainID)
@@ -230,11 +233,11 @@ func (db *LevelDb) 	FetchChainByName(name string) (chain *notaryapi.Chain, err e
 }		
 
 // FetchAllChainByName gets all of the chains under the path - name
-func (db *LevelDb)	FetchAllChainsByName(name string) (chains *[]notaryapi.Chain, err error)	{
+func (db *LevelDb)	FetchAllChainsByName(chainName [][]byte) (chains *[]notaryapi.Chain, err error)	{
 
 	chainSlice := make([]notaryapi.Chain, 0, 10) 	
 	
-	chainIDSlice,_ := db.FetchAllChainIDsByName(name)
+	chainIDSlice,_ := db.FetchAllChainIDsByName(chainName)
 	
 	for _, chainID := range *chainIDSlice{			
 		chain,_ := db.FetchChainByHash (&chainID)
@@ -246,10 +249,12 @@ func (db *LevelDb)	FetchAllChainsByName(name string) (chains *[]notaryapi.Chain,
 	return &chainSlice, nil	
 }
 // FetchAllChainIDsByName gets all of the chainIDs under the path - name
-func (db *LevelDb)	FetchAllChainIDsByName(name string) (chainIDs *[]notaryapi.Hash, err error)	{
+func (db *LevelDb)	FetchAllChainIDsByName(chainName [][]byte) (chainIDs *[]notaryapi.Hash, err error)	{
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
+	name := notaryapi.EncodeChainNameToString(chainName)
+	
 	var fromkey [] byte = []byte{byte(TBL_CHAIN_NAME)} 		  		// Table Name (1 bytes)
 	fromkey = append(fromkey, []byte(name) ...) 					// Chain Type (32 bytes)
 	
