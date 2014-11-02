@@ -34,7 +34,7 @@ import (
 var  (
 	client *btcrpcclient.Client
  	currentAddr btcutil.Address
-	balance int64
+//	balance int64
 	tickers [2]*time.Ticker
 	db database.Db // database
 	chainMap map[string]*notaryapi.Chain // ChainMap with string([32]byte) as key
@@ -294,7 +294,7 @@ func main() {
 	}
 	defer shutdown(client)
 	
-	if err := initWallet(addrStr); err != nil {
+	if err := initWallet(); err != nil {
 		log.Fatalf("cannot init wallet: %s", err)
 	}
 	

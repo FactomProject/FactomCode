@@ -3,9 +3,10 @@ package main
 import (
 	"bytes"
 	"encoding/hex"
+	"encoding/json"
 	"strconv"
 	"time"
-	"sort"
+//	"sort"
 	"fmt"
 	"log"
 	"io/ioutil"
@@ -16,6 +17,7 @@ import (
 	"github.com/conformal/btcscript"
 	"github.com/conformal/btcutil"
 	"github.com/conformal/btcwire"
+	"github.com/conformal/btcws"
 	"github.com/conformal/btcrpcclient"
 
 	"github.com/FactomProject/FactomCode/notaryapi"
@@ -23,7 +25,24 @@ import (
 )
 
 var fee btcutil.Amount
-var wif *btcutil.WIF
+//var wif *btcutil.WIF
+var balances []balance
+var blkHashFailed []*notaryapi.Hash
+const maxTries = 3
+
+// the spentResult is the one showing up in ListSpent()
+// but is already spent in blockexploer
+// it's a bug in btcwallet
+var spentResult = btcjson.ListUnspentResult {
+	TxId:"1a3450d99659d5b704d89c26d56082a0f13ba2a275fdd9ffc0ec4f42c88fe857", 
+	Vout:0xb, 
+	Address:"mvwnVraAK1VKRcbPgrSAVZ6E5hkqbwRxCy", 
+	Account:"", 
+	ScriptPubKey:"76a914a93c1baaaeae1b30688edab5e927fb2bfc794cae88ac", 
+	RedeemScript:"", 
+	Amount:1, 
+	Confirmations:28247,
+}
 
 // ByAmount defines the methods needed to satisify sort.Interface to
 // sort a slice of Utxos by their amount.
@@ -33,10 +52,34 @@ func (u ByAmount) Len() int           { return len(u) }
 func (u ByAmount) Less(i, j int) bool { return u[i].Amount < u[j].Amount }
 func (u ByAmount) Swap(i, j int)      { u[i], u[j] = u[j], u[i] }
 
+type balance struct {
+	unspentResult 	btcjson.ListUnspentResult
+	address			btcutil.Address
+	wif 			*btcutil.WIF
+}
+
+
+func writeToBTC(hash *notaryapi.Hash) (*btcwire.ShaHash, error) {	
+	for attempts := 0; attempts < maxTries; attempts++ {
+		txHash, err := SendRawTransactionToBTC(hash.Bytes)
+		if err != nil {
+			log.Printf("Attempt %d to send raw tx to BTC failed: %s\n", attempts, err)
+			time.Sleep(time.Duration(attempts*20) * time.Second)
+			continue
+		}
+		return txHash, nil
+	}
+	blkHashFailed = append(blkHashFailed, hash)
+	return nil, fmt.Errorf("Fail to write hash %s to BTC: %s", hash)
+}
+
 
 func SendRawTransactionToBTC(hash []byte) (*btcwire.ShaHash, error) {
+	b := balances[0]
+	i := copy(balances, balances[1:])
+	balances[i] = b
 	
-	msgtx, err := createRawTransaction(hash)
+	msgtx, err := createRawTransaction(b, hash)
 	if err != nil {
 		return nil, fmt.Errorf("cannot create Raw Transaction: %s", err)
 	}
@@ -45,119 +88,140 @@ func SendRawTransactionToBTC(hash []byte) (*btcwire.ShaHash, error) {
 	if err != nil {
 		return nil, fmt.Errorf("cannot send Raw Transaction: %s", err)
 	}
-	
 	return shaHash, nil
 }
 
 
-func initWallet(addrStr string) error {
-	
+func getAddress(b *balance) error {
+	addr, err := btcutil.DecodeAddress(b.unspentResult.Address, &btcnet.TestNet3Params)
+	if err != nil {
+		return fmt.Errorf("cannot decode address: %s", err)
+	}
+	b.address = addr
+
+	wif, err := client.DumpPrivKey(addr)
+	if err != nil {	
+		return fmt.Errorf("cannot get WIF: %s", err)
+	}
+	b.wif = wif
+
+	return nil
+}
+
+
+func initWallet() error {
 	fee, _ = btcutil.NewAmount(btcTransFee)
+	blkHashFailed = make([]*notaryapi.Hash, 0, 100)
 	
 	err := client.WalletPassphrase(walletPassphrase, int64(2))
 	if err != nil {
 		return fmt.Errorf("cannot unlock wallet with passphrase: %s", err)
+	}
+
+	unspentResults, err := client.ListUnspent()	//minConf=1
+	if err != nil {
+		return fmt.Errorf("cannot list unspent. %s", err)
+	}
+	//fmt.Println("unspentResults.len=", len(unspentResults))
+
+	balances = make([]balance, 0, 100)
+	if len(unspentResults) > 0 {
+		var i int
+		for _, b := range unspentResults {
+		
+			//bypass the bug in btcwallet where one unconfirmed spent 
+			//is listed in unspent result
+			if b.Amount > float64(0.1) && !compareUnspentResult(spentResult, b) {
+				//fmt.Println(i, "  ", b.Amount)
+				balances = append(balances, balance{unspentResult : b})
+				i++
+			}			
+		}
+	}
+	fmt.Println("balances.len=", len(balances))
+
+	for i, b := range balances {
+		addr, err := btcutil.DecodeAddress(b.unspentResult.Address, &btcnet.TestNet3Params)
+		if err != nil {
+			return fmt.Errorf("cannot decode address: %s", err)
+		}
+		balances[i].address = addr
+
+		wif, err := client.DumpPrivKey(addr)
+		if err != nil {	
+			return fmt.Errorf("cannot get WIF: %s", err)
+		}
+		balances[i].wif = wif
+		
+		//fmt.Println(balances[i])
 	}	
 
-	currentAddr, err = btcutil.DecodeAddress(addrStr, &btcnet.TestNet3Params)
-	if err != nil {
-		return fmt.Errorf("cannot decode address: %s", err)
-	}
-
-	wif, err = client.DumpPrivKey(currentAddr) 
-	if err != nil { 
-		return fmt.Errorf("cannot get WIF: %s", err)
-	}
-
 	return nil
-	
 }
 
 
-func createRawTransaction(hash []byte) (*btcwire.MsgTx, error) {
+func compareUnspentResult(a, b btcjson.ListUnspentResult) bool {
+	if a.TxId == b.TxId && a.Vout == b.Vout && a.Amount == b.Amount && a.Address == b.Address {
+		return true
+	} else {
+		return false
+	}
+}
+
+
+func createRawTransaction(b balance, hash []byte) (*btcwire.MsgTx, error) {
 	
 	msgtx := btcwire.NewMsgTx()
-
-	minconf := 0	// 1
-	maxconf := 999999
 	
-	addrs := []btcutil.Address{currentAddr}
-		
-	unspent, err := client.ListUnspentMinMaxAddresses(minconf, maxconf, addrs)
-	if err != nil {
-		return nil, fmt.Errorf("cannot ListUnspentMinMaxAddresses: %s", err)
-	}
-	fmt.Printf("unspent, len=%d", len(unspent))
-
-	// Sort eligible inputs, as unspent expects these to be sorted
-	// by amount in reverse order.
-	sort.Sort(sort.Reverse(ByAmount(unspent)))
-	
-	inputs, btcin, err := selectInputs(unspent, minconf)
-	if err != nil {
-		return nil, fmt.Errorf("cannot selectInputs: %s", err)
-	}
-	fmt.Println("selectedInputs, len=%d", len(inputs))
-	
-	change := btcin - fee
-	if err = addTxOuts(msgtx, change, hash); err != nil {
+	if err := addTxOuts(msgtx, b, hash); err != nil {
 		return nil, fmt.Errorf("cannot addTxOuts: %s", err)
 	}
 
-	if err = addTxIn(msgtx, inputs); err != nil {
+	if err := addTxIn(msgtx, b); err != nil {
 		return nil, fmt.Errorf("cannot addTxIn: %s", err)
 	}
 
-	if err = validateMsgTx(msgtx, inputs); err != nil {
+	if err := validateMsgTx(msgtx, []btcjson.ListUnspentResult{b.unspentResult}); err != nil {
 		return nil, fmt.Errorf("cannot validateMsgTx: %s", err)
 	}
 
 	return msgtx, nil
 }
 
-
-// For every unspent output given, add a new input to the given MsgTx. Only P2PKH outputs are
-// supported at this point.
-func addTxIn(msgtx *btcwire.MsgTx, outputs []btcjson.ListUnspentResult) error {
+func addTxIn(msgtx *btcwire.MsgTx, b balance) error {
 	
-	for _, output := range outputs {
-		fmt.Printf("unspentResult: %#v", output)
-		prevTxHash, err := btcwire.NewShaHashFromStr(output.TxId)
-		if err != nil {
-			return fmt.Errorf("cannot get sha hash from str: %s", err)
-		}
-		
-		outPoint := btcwire.NewOutPoint(prevTxHash, output.Vout)
-		msgtx.AddTxIn(btcwire.NewTxIn(outPoint, nil))
+	output := b.unspentResult
+	fmt.Printf("unspentResult: %#v\n", output)
+	prevTxHash, err := btcwire.NewShaHashFromStr(output.TxId)
+	if err != nil {
+		return fmt.Errorf("cannot get sha hash from str: %s", err)
 	}
+	
+	outPoint := btcwire.NewOutPoint(prevTxHash, output.Vout)
+	msgtx.AddTxIn(btcwire.NewTxIn(outPoint, nil))
 
-	for i, output := range outputs {
-	 
-		subscript, err := hex.DecodeString(output.ScriptPubKey)
-		if err != nil {
-			return fmt.Errorf("cannot decode scriptPubKey: %s", err)
-		}
-		
-		fmt.Println("subscript ", string(subscript))
-	 
-		sigScript, err := btcscript.SignatureScript(msgtx, i, subscript,
-			btcscript.SigHashAll, wif.PrivKey.ToECDSA(), true)
-		if err != nil {
-			return fmt.Errorf("cannot create scriptSig: %s", err)
-		}
-		msgtx.TxIn[i].SignatureScript = sigScript
-		
-		fmt.Println("sigScript ", string(sigScript))
-		
+	subscript, err := hex.DecodeString(output.ScriptPubKey)
+	if err != nil {
+		return fmt.Errorf("cannot decode scriptPubKey: %s", err)
+	}		
+	//fmt.Println("\nsubscript ", string(subscript))
+ 
+	sigScript, err := btcscript.SignatureScript(msgtx, 0, subscript,
+		btcscript.SigHashAll, b.wif.PrivKey.ToECDSA(), true)
+	if err != nil {
+		return fmt.Errorf("cannot create scriptSig: %s", err)
 	}
+	msgtx.TxIn[0].SignatureScript = sigScript
+	
+	//fmt.Println("sigScript ", string(sigScript))
 	return nil
 }
 
-func addTxOuts(msgtx *btcwire.MsgTx, change btcutil.Amount, hash []byte) error {
+
+func addTxOuts(msgtx *btcwire.MsgTx, b balance, hash []byte) error {
  
  	header := []byte{0x46, 0x61, 0x63, 0x74, 0x6f, 0x6d, 0x21, 0x21}	// Factom!!
 	hash = append(header, hash...)
-
 	
 	builder := btcscript.NewScriptBuilder()
 	builder.AddOp(btcscript.OP_RETURN)
@@ -165,51 +229,21 @@ func addTxOuts(msgtx *btcwire.MsgTx, change btcutil.Amount, hash []byte) error {
 	opReturn := builder.Script()
 	msgtx.AddTxOut(btcwire.NewTxOut(0, opReturn))
 
+	amount, _ := btcutil.NewAmount(b.unspentResult.Amount)
+	change := amount - fee
+
 	// Check if there are leftover unspent outputs, and return coins back to
 	// a new address we own.
 	if change > 0 {
 
 		// Spend change.
-		pkScript, err := btcscript.PayToAddrScript(currentAddr)
+		pkScript, err := btcscript.PayToAddrScript(b.address)
 		if err != nil {
 			return fmt.Errorf("cannot create txout script: %s", err)
 		}
-		//btcscript.JSONToAmount(jsonAmount float64) (int64)
 		msgtx.AddTxOut(btcwire.NewTxOut(int64(change), pkScript))
 	}
 	return nil
-}
-
-
-
-// selectInputs selects the minimum number possible of unspent
-// outputs to use to create a new transaction that spends amt satoshis.
-// btcout is the total number of satoshis which would be spent by the
-// combination of all selected previous outputs.  err will equal
-// ErrInsufficientFunds if there are not enough unspent outputs to spend amt
-// amt.
-func selectInputs(eligible []btcjson.ListUnspentResult, minconf int) (selected []btcjson.ListUnspentResult, out btcutil.Amount, err error) {
-	// Iterate throguh eligible transactions, appending to outputs and
-	// increasing out.  This is finished when out is greater than the
-	// requested amt to spend.
-	selected = make([]btcjson.ListUnspentResult, 0, len(eligible))
-	for _, e := range eligible {
-		amount, err := btcutil.NewAmount(e.Amount)
-		if err != nil {
-			fmt.Println("err in creating NewAmount")
-			continue
-		}
-		selected = append(selected, e)
-		out += amount
-		if out >= fee {
-			return selected, out, nil
-		}
-	}
-	if out < fee {
-		return nil, 0, fmt.Errorf("insufficient funds: transaction requires %v fee, but only %v spendable", fee, out)		 
-	}
-
-	return selected, out, nil
 }
 
 
@@ -250,17 +284,11 @@ func sendRawTransaction(msgtx *btcwire.MsgTx) (*btcwire.ShaHash, error) {
 		return nil, err
 	}
 	
-	txRawResult, err := client.DecodeRawTransaction(buf.Bytes())
-	if err != nil {
-		return nil, fmt.Errorf("cannot Decode Raw Transaction: %s", err)
-	}
-	fmt.Println("txRawResult: ", txRawResult)
-	
 	shaHash, err := client.SendRawTransaction(msgtx, false)
 	if err != nil {
-		return nil, fmt.Errorf("cannot send Raw Transaction: %s", err)
+		return nil, fmt.Errorf("failed in rpcclient.SendRawTransaction: %s", err)
 	}
-	fmt.Println("btc txHash: ", shaHash)	// new tx hash
+	fmt.Println("btc txHash returned: ", shaHash)	// new tx hash
 	
 	return shaHash, nil
 }
@@ -275,11 +303,120 @@ func initRPCClient() error {
 	ntfnHandlers := btcrpcclient.NotificationHandlers{
 		OnAccountBalance: func(account string, balance btcutil.Amount, confirmed bool) {
 		     //go newBalance(account, balance, confirmed)
-		     fmt.Println("OnAccountBalance, account=", account, ", balance=", balance.String, ", confirmed=", confirmed)
+		     fmt.Println("OnAccountBalance, account=", account, ", balance=", balance.ToUnit(btcutil.AmountBTC), ", confirmed=", confirmed)
 	    },
 		OnBlockConnected: func(hash *btcwire.ShaHash, height int32) {
 			fmt.Println("OnBlockConnected")
 			//go newBlock(hash, height)	// no need
+		},
+		// OnClientConnected is invoked when the client connects or reconnects
+		// to the RPC server.  This callback is run async with the rest of the
+		// notification handlers, and is safe for blocking client requests.
+		OnClientConnected: func() {
+			fmt.Println("OnClientConnected")
+		},
+
+		// OnBlockConnected is invoked when a block is connected to the longest
+		// (best) chain.  It will only be invoked if a preceding call to
+		// NotifyBlocks has been made to register for the notification and the
+		// function is non-nil.
+		//OnBlockConnected func(hash *btcwire.ShaHash, height int32)
+		
+		// OnBlockDisconnected is invoked when a block is disconnected from the
+		// longest (best) chain.  It will only be invoked if a preceding call to
+		// NotifyBlocks has been made to register for the notification and the
+		// function is non-nil.
+		OnBlockDisconnected: func(hash *btcwire.ShaHash, height int32) {
+			fmt.Println("OnBlockDisconnected: hash=", hash, ", height=", height)
+		},
+
+		// OnRecvTx is invoked when a transaction that receives funds to a
+		// registered address is received into the memory pool and also
+		// connected to the longest (best) chain.  It will only be invoked if a
+		// preceding call to NotifyReceived, Rescan, or RescanEndHeight has been
+		// made to register for the notification and the function is non-nil.
+		OnRecvTx: func(transaction *btcutil.Tx, details *btcws.BlockDetails) {
+			fmt.Printf("OnRecvTx: tx=%#v", transaction, ", details=%#v", details, "\n")
+		},
+
+		// OnRedeemingTx is invoked when a transaction that spends a registered
+		// outpoint is received into the memory pool and also connected to the
+		// longest (best) chain.  It will only be invoked if a preceding call to
+		// NotifySpent, Rescan, or RescanEndHeight has been made to register for
+		// the notification and the function is non-nil.
+		//
+		// NOTE: The NotifyReceived will automatically register notifications
+		// for the outpoints that are now "owned" as a result of receiving
+		// funds to the registered addresses.  This means it is possible for
+		// this to invoked indirectly as the result of a NotifyReceived call.
+		OnRedeemingTx: func(transaction *btcutil.Tx, details *btcws.BlockDetails) {
+			fmt.Printf("OnRedeemingTx: tx=%#v", transaction, ", details=%#v", details, "\n")
+		},
+
+		// OnRescanFinished is invoked after a rescan finishes due to a previous
+		// call to Rescan or RescanEndHeight.  Finished rescans should be
+		// signaled on this notification, rather than relying on the return
+		// result of a rescan request, due to how btcd may send various rescan
+		// notifications after the rescan request has already returned.
+		OnRescanFinished: func(hash *btcwire.ShaHash, height int32, blkTime time.Time) {
+			fmt.Println("OnRescanFinished: hash=", hash, ", height=", height, ", blkTime=", blkTime)
+		},
+
+		// OnRescanProgress is invoked periodically when a rescan is underway.
+		// It will only be invoked if a preceding call to Rescan or
+		// RescanEndHeight has been made and the function is non-nil.
+		OnRescanProgress: func(hash *btcwire.ShaHash, height int32, blkTime time.Time) {
+			fmt.Println("OnRescanProgress: hash=", hash, ", height=", height, ", blkTime=", blkTime)
+		},
+
+		// OnTxAccepted is invoked when a transaction is accepted into the
+		// memory pool.  It will only be invoked if a preceding call to
+		// NotifyNewTransactions with the verbose flag set to false has been
+		// made to register for the notification and the function is non-nil.
+		OnTxAccepted: func(hash *btcwire.ShaHash, amount btcutil.Amount) {
+			fmt.Println("OnTxAccepted: hash=", hash, ", amount=", amount)
+		},
+
+		// OnTxAccepted is invoked when a transaction is accepted into the
+		// memory pool.  It will only be invoked if a preceding call to
+		// NotifyNewTransactions with the verbose flag set to true has been
+		// made to register for the notification and the function is non-nil.
+		OnTxAcceptedVerbose: func(txDetails *btcjson.TxRawResult) {
+			fmt.Printf("OnTxAcceptedVerbose: txDetails=%#v", txDetails, "\n")
+		},
+
+		// OnBtcdConnected is invoked when a wallet connects or disconnects from
+		// btcd.
+		//
+		// This will only be available when client is connected to a wallet
+		// server such as btcwallet.
+		OnBtcdConnected: func(connected bool) { 
+			fmt.Println("OnBtcdConnected, connected=", connected)
+		},
+
+		// OnAccountBalance is invoked with account balance updates.
+		//
+		// This will only be available when speaking to a wallet server
+		// such as btcwallet.
+		//OnAccountBalance func(account string, balance btcutil.Amount, confirmed bool)
+
+		// OnWalletLockState is invoked when a wallet is locked or unlocked.
+		//
+		// This will only be available when client is connected to a wallet
+		// server such as btcwallet.
+		OnWalletLockState: func(locked bool) {
+			fmt.Println("OnWalletLockState, locked=", locked)
+		},
+
+		// OnUnknownNotification is invoked when an unrecognized notification
+		// is received.  This typically means the notification handling code
+		// for this package needs to be updated for a new notification type or
+		// the caller is using a custom notification this package does not know
+		// about.
+		OnUnknownNotification: func(method string, params []json.RawMessage) {
+			var msgTx btcwire.MsgTx
+			_ = json.Unmarshal(params[0], &msgTx)	
+			fmt.Printf("OnUnknownNotification: method=", method, ", param=%#v", msgTx, "\n")
 		},
 	}
 	 
@@ -377,25 +514,29 @@ func newFactomBlock(chain *notaryapi.FChain) {
 	log.Println("block" + strconv.FormatUint(block.Header.BlockID, 10) +" created for factom chain: "  + notaryapi.EncodeBinary(chain.ChainID))
 	
 	//Send transaction to BTC network
-	txHash, err := SendRawTransactionToBTC(blkhash.Bytes)
-	if err != nil {
-		log.Fatalf("cannot init rpc client: %s", err)
-	}
+	txHash, _ := writeToBTC(blkhash)		
 	
 	// Create a FBInfo and insert it into db
 	fbInfo := new (notaryapi.FBInfo)
 	fbInfo.FBHash = blkhash
-	btcTxHash := new (notaryapi.Hash)
-	btcTxHash.Bytes = txHash.Bytes()
-	fbInfo.BTCTxHash = btcTxHash
 	fbInfo.FBlockID = block.Header.BlockID
+
+	if (txHash != nil) {
+		btcTxHash := new (notaryapi.Hash)
+		btcTxHash.Bytes = txHash.Bytes()
+		fbInfo.BTCTxHash = btcTxHash
+	}
 	
 	db.InsertFBInfo(blkhash, fbInfo)
 	
 	// Export all db records associated w/ this new factom block
 	ExportDbToFile(blkhash)
 	
-    log.Print("Recorded ", blkhash.Bytes, " in BTC transaction hash:\n",txHash)
+	if (txHash != nil) {
+	    log.Print("Recorded ", blkhash.Bytes, " in BTC transaction hash:\n",txHash)
+	} else {
+		log.Println("failed to record ", blkhash.Bytes, " to BTC" )
+	}
     
     
 }
