@@ -37,7 +37,8 @@ var  (
 //	balance int64
 	tickers [2]*time.Ticker
 	db database.Db // database
-	chainMap map[string]*notaryapi.Chain // ChainMap with string([32]byte) as key
+	chainIDMap map[string]*notaryapi.Chain // ChainIDMap with chainID string([32]byte) as key
+	//chainNameMap map[string]*notaryapi.Chain // ChainNameMap with chain name string as key	
 	fchain *notaryapi.FChain	//Factom Chain
 )
 
@@ -197,24 +198,14 @@ func init() {
 	gobundle.Setup.Application.Name = applicationName
 	gobundle.Init()
 	
-	initChainIDs() //for testing??
-	
 	initDB()
-	
-	/*-------------
-	fbHash := new (notaryapi.Hash)
-	str := "120c3daf1bd7ed1aeaa307a3882f4c069ddb8478f27e0219c9801630891a5ecb"
-	fbHash.Bytes, _ = notaryapi.DecodeBinary(&str)
-	ExportDbToFile(fbHash)
-	
-	
-	//-----------------*/
-	
+		
+	initChains() 
 	
 	dynrsrc.Start(watchError, readError)
 	notaryapi.StartDynamic(gobundle.DataFile("html.gwp"), readError)
 	
-	for _, chain := range chainMap {
+	for _, chain := range chainIDMap {
 		initWithBinary(chain)
 			
 		fmt.Println("Loaded", len(chain.Blocks)-1, "blocks for chain: " + chain.ChainID.String())
@@ -242,7 +233,7 @@ func init() {
 
 	go func() {
 		for _ = range tickers[1].C {
-			for _, chain := range chainMap {
+			for _, chain := range chainIDMap {
 				eblock, blkhash := newEntryBlock(chain)
 				if eblock != nil{
 					fchain.AddFBEntry(eblock, blkhash)
@@ -253,7 +244,7 @@ func init() {
 			saveFChain(fchain)		
 			
 		//for testing	
-			for _, chain := range chainMap {
+/*			for _, chain := range chainMap {
 				if len(chain.Blocks) < 2{
 					continue
 				}
@@ -275,7 +266,7 @@ func init() {
 
 
 			}
-
+*/
 							
 		}
 
@@ -444,7 +435,7 @@ var blockPtrType = reflect.TypeOf((*notaryapi.Block)(nil)).Elem()
 
 func post(context string, form url.Values) (interface{}, *notaryapi.Error) {
 	newEntry := new(notaryapi.Entry)
-	format, data, chainid := form.Get("format"), form.Get("data"), form.Get("chainid")
+	format, data := form.Get("format"), form.Get("entry")
 
 	switch format {
 	case "", "json":
@@ -459,7 +450,13 @@ func post(context string, form url.Values) (interface{}, *notaryapi.Error) {
 		if err != nil {
 			return nil, notaryapi.CreateError(notaryapi.ErrorXMLUnmarshal, err.Error())
 		}
-
+	case "binary":
+		binaryEntry,_ := notaryapi.DecodeBinary(&data)
+		err := newEntry.UnmarshalBinary(binaryEntry)
+		fmt.Println("newEntry.data:%v", notaryapi.EncodeBinary(&newEntry.Data))
+		if err != nil {
+			return nil, notaryapi.CreateError(notaryapi.ErrorXMLUnmarshal, err.Error())
+		}
 	default:
 		return nil, notaryapi.CreateError(notaryapi.ErrorUnsupportedUnmarshal, fmt.Sprintf(`The format "%s" is not supported`, format))
 	}
@@ -467,16 +464,8 @@ func post(context string, form url.Values) (interface{}, *notaryapi.Error) {
 	if newEntry == nil {
 		return nil, notaryapi.CreateError(notaryapi.ErrorInternal, `Entity to be POSTed is nil`)
 	}
-
-	newEntry.StampTime()
 	
-
-	chainID, err1 := notaryapi.DecodeBinary(&chainid) //need a validation method??
-	if err1 != nil{
-		return nil, notaryapi.CreateError(notaryapi.ErrorInternal, `Not able to decode chain id`) //ErrorInternal?
-	}
-	chain := chainMap[string(chainID)]
-	
+	chain := chainIDMap[newEntry.ChainID.String()]
 	if chain == nil{
 		return nil, notaryapi.CreateError(notaryapi.ErrorInternal, `This chain is not supported`) //ErrorInternal?
 	}
@@ -484,7 +473,7 @@ func post(context string, form url.Values) (interface{}, *notaryapi.Error) {
 	// store the new entry in db
 	entryBinary, _ := newEntry.MarshalBinary()
 	hash, _ := notaryapi.CreateHash(newEntry)
-	db.InsertEntryAndQueue( hash, &entryBinary, newEntry, &chainID)
+	db.InsertEntryAndQueue( hash, &entryBinary, newEntry, &chain.ChainID.Bytes)
 
 	chain.BlockMutex.Lock()
 	err := chain.Blocks[len(chain.Blocks)-1].AddEBEntry(newEntry)
@@ -496,8 +485,18 @@ func post(context string, form url.Values) (interface{}, *notaryapi.Error) {
 
 	return hash.Bytes, nil
 }
-
-
+/*
+func createNewChain(chainName string) (chain *notaryapi.Chain){
+		chain = new (notaryapi.Chain)
+		chain.Name = chainName
+		chain.GenerateIDFromName(chainName)
+		
+		db.InsertChain(chain)
+		chainIDMap[chain.ChainID.String()] = chain
+		
+		return chain
+}
+*/
 func saveFChain(chain *notaryapi.FChain) {
 	if len(chain.Blocks)==0{
 		//log.Println("no blocks to save for chain: " + string (*chain.ChainID))
@@ -615,13 +614,31 @@ func ExportDbToFile(fbHash *notaryapi.Hash) {
 	writer.Flush()	    
 }
 
+func initChains() {
+	initChainIDs()
+	
+	chainIDMap = make(map[string]*notaryapi.Chain)
+	//chainNameMap = make(map[string]*notaryapi.Chain)
+
+	chains, err := db.FetchAllChainsByName(nil)
+	
+	if err != nil{
+		panic (err)
+	}
+	
+	for _, chain := range *chains {
+		var newChain = chain
+		chainIDMap[newChain.ChainID.String()] = &newChain	
+		//chainIDMap[string(chain.ChainID.Bytes)] = &chain			
+	}
+}
 
 //for testing - to be moved into db-------------------------------------
 
 var chainIDs [][]byte
 
 func initChainIDs() {
-	chainMap = make(map[string]*notaryapi.Chain)
+//	chainMap = make(map[string]*notaryapi.Chain)
 
 	barray1 := make([]byte, 32)
 	barray1[0] = byte(1)
@@ -629,7 +646,9 @@ func initChainIDs() {
 	chain1 := new (notaryapi.Chain)
 	chain1.ChainID = new (notaryapi.Hash)
 	chain1.ChainID.Bytes = chainIDs[0]
-	chainMap[string(chainIDs[0])] = chain1
+	chain1.Name = [][]byte {[]byte("apple"), []byte("phone")}
+	db.InsertChain(chain1)
+//	chainMap[string(chainIDs[0])] = chain1
 	
 	barray2 := make([]byte, 32)
 	barray2[0] = byte(2)
@@ -637,7 +656,9 @@ func initChainIDs() {
 	chain2 := new (notaryapi.Chain)
 	chain2.ChainID = new (notaryapi.Hash)
 	chain2.ChainID.Bytes = chainIDs[1]
-	chainMap[string(chainIDs[1])] = chain2	
+	chain2.Name = [][]byte {[]byte("apple"), []byte("mac")}	
+	db.InsertChain(chain2)	
+//	chainMap[string(chainIDs[1])] = chain2	
 
 }
-//--------------------------------------------------------------------------
+

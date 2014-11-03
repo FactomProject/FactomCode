@@ -4,17 +4,12 @@ import (
 	"bytes"
 	"encoding/binary"
 	"reflect"
-	"strings"
 	"time"
-
-	"github.com/firelizzard18/gocoding"
-
-	//"github.com/conformal/btcwire"
 )
 
 
 type EBEntry struct {
-	timeStamp int64
+	timeStamp int64 
 	hash *Hash
 	
 	ChainID *[]byte // not marshalllized
@@ -81,61 +76,6 @@ func (e *EBEntry) EncodableFields() map[string]reflect.Value {
 	return fields
 }
 
-func (e *EBEntry) Decoding(unmarshaller gocoding.Unmarshaller, theType reflect.Type) gocoding.Decoder {
-	return func(scratch [64]byte, scanner gocoding.Scanner, value reflect.Value) {
-		if scanner.Peek() == gocoding.ScannedLiteralBegin {
-			null := scanner.NextValue()
-			if null.IsValid() && null.IsNil() {
-				value.Set(reflect.Zero(theType))
-				return
-			}
-		}
-	
-		if !gocoding.PeekCheck(scanner, gocoding.ScannedStructBegin, gocoding.ScannedMapBegin) { return }
-		
-		if value.IsNil() {
-			value.Set(reflect.ValueOf(new(EBEntry)))
-		}
-		
-		e := value.Interface().(*EBEntry)
-		typecode := EmptyDataType
-		
-		for {
-			// get the next code, check for the end
-			code := scanner.Continue()
-			if code.Matches(gocoding.ScannedStructEnd, gocoding.ScannedMapEnd) { break }
-			
-			// check for key begin
-			if code != gocoding.ScannedKeyBegin {
-				// this will generate an appropriate error message
-				gocoding.PeekCheck(scanner, gocoding.ScannedKeyBegin, gocoding.ScannedStructEnd, gocoding.ScannedMapEnd)
-				return
-			}
-			
-			// get the key
-			key := scanner.NextValue()
-			if key.Kind() != reflect.String {
-				scanner.Error(gocoding.ErrorPrintf("Decoding", "Invalid key type %s", key.Type().String()))
-				return
-			}
-			keystr := key.String()
-			
-			scanner.Continue()
-			switch strings.ToLower(keystr) {
-			case `type`:
-				unmarshaller.UnmarshalObject(scanner, &typecode)
-				
-			case `timestamp`:
-				unmarshaller.UnmarshalObject(scanner, &e.timeStamp)
-				
-			case `hash`:
-				unmarshaller.UnmarshalObject(scanner, &e.hash)
-				
-			default:
-			}
-		}
-	}
-}
 
 func (e *EBEntry) MarshalBinary() ([]byte, error) {
 	var buf bytes.Buffer

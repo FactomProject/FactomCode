@@ -15,10 +15,11 @@ import (
 	"path/filepath"
 	"regexp"
 	"strconv"
+	"sort"
 )
 
 type FlaggedEntry struct {
-	Entry *notaryapi.Entry
+	Entry *ClientEntry
 	Submitted *Submission
 	
 }
@@ -144,6 +145,7 @@ func getActiveEntryIDs() []int {
 		ids[i] = id
 		i++
 	}
+	sort.Sort(sort.Reverse(sort.IntSlice(ids[:i])))
 	return ids[:i]
 }
 
@@ -158,6 +160,7 @@ func getPendingEntryIDs() []int {
 		ids[i] = id
 		i++
 	}
+	sort.Sort(sort.Reverse(sort.IntSlice(ids[:i])))
 	return ids[:i]
 }
 
@@ -172,6 +175,7 @@ func getConfirmedEntryIDs() []int {
 		ids[i] = id
 		i++
 	}
+	sort.Sort(sort.Reverse(sort.IntSlice(ids[:i])))
 	return ids[:i]
 }
 
@@ -189,7 +193,7 @@ func RefreshPendingEntries(){
 	}
 }
 
-func getEntry(id int) *notaryapi.Entry {
+func getEntry(id int) *ClientEntry {
 	return entries[id].Entry
 }
 
@@ -202,7 +206,7 @@ func flagSubmitEntry(id int, entryHash string) {
 	storeEntry(id)
 }
 
-func addEntry(entry *notaryapi.Entry) (last int) {
+func addEntry(entry *ClientEntry) (last int) {
 	entries[Settings.NextEntryID] = &FlaggedEntry{Entry: entry}
 	last = Settings.NextEntryID
 	storeEntry(Settings.NextEntryID)
@@ -237,6 +241,7 @@ func getKeyIDs() []int {
 		ids[i] = id
 		i++
 	}
+	sort.Sort(sort.Reverse(sort.IntSlice(ids[:i])))
 	return ids[:i]
 }
 
@@ -261,3 +266,4 @@ func getEBlock() (eBlock *notaryapi.Block){
 	
 }
 */
+
