@@ -3,9 +3,10 @@ package main
 import (
 	"testing"
 	"fmt"
+	"time"
 
 	"github.com/conformal/btcutil"
-//	"github.com/FactomProject/FactomCode/notaryapi"
+	"github.com/FactomProject/FactomCode/notaryapi"
 )
 
 
@@ -26,7 +27,7 @@ func TestWallet(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	fmt.Println("account & balance: ", accountMap[""])
+//	fmt.Println("account & balance: ", accountMap)
 	if accountMap[""] <= 0 {
 		t.Errorf("wallet account name is not empty")
 	}
@@ -36,18 +37,12 @@ func TestWallet(t *testing.T) {
 
 	allAddr := make([]btcutil.Address, 0, 1000)
 	for key, _ := range accountMap {
-		//fmt.Println("account=", key, ", balance=", value)
 		addresses, err := client.GetAddressesByAccount(key)
 		if err != nil {
 			t.Fatal(err)
 		}
-		//fmt.Println("len=", len(addresses))
-		//for _, a := range addresses {
-			//fmt.Println(a)
-		//}
 		allAddr = append(allAddr, addresses...)
 	}
-	//fmt.Println("allAddr.len=", len(allAddr))
 	if len(allAddr) != 268 {
 		t.Errorf("allAddr.len=%d", len(allAddr), ", NOT 268")
 	}
@@ -69,7 +64,6 @@ func TestWallet(t *testing.T) {
 			i++
 		}
 	}
-//	fmt.Println("num of addresses with balance: ", i)
 	if i != 87 {
 		t.Errorf("num of addresses with balance=%d", i, ", NOT 87")
 	}
@@ -80,7 +74,6 @@ func TestListUnspent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-//	fmt.Println("test.listunspent.len=", len(balance))
 	if len(balance) != 93 {
 		t.Errorf("test.listunspent.len==%d", len(balance), ", NOT 93")
 	}
@@ -92,7 +85,6 @@ func TestListUnspent(t *testing.T) {
 			i++
 		}
 	}
-//	fmt.Println("qualified unspent len=", i)
 	if i != 21 {
 		t.Errorf("qualified unspent len==%d", i, ", NOT 21")
 	}
@@ -127,18 +119,21 @@ func TestUnconfirmedSpent(t *testing.T) {
 		}
 	}
 
-//	fmt.Println("Unconfirmed unSpent Len: ", len(b2))
-//	for _, b := range b2 {
-//		fmt.Println(b)
-//	}
-
 	if len(b2) != 4 {
 		t.Errorf("Unconfirmed unspent len=%d", len(b2), ", NOT 4")
+	}
+	var sum float64
+	for i:=0; i<len(b2); i++ {
+		sum += b2[i].Amount
+	}
+	// the same as unconfirmed balance in OnAccountBalance call back
+	if sum != 1.9936741999999998 {
+		t.Errorf("Unconfirmed unspent sum = %f", sum, ", not 1.9936742")
 	}
 
 }
 
-/*
+
 func TestRepeatedSpending(t *testing.T) {
 	for i:=0; i<100; i++ {
 		hash, err := writeToBTC(notaryapi.Sha([]byte{byte(i)}))
@@ -146,9 +141,10 @@ func TestRepeatedSpending(t *testing.T) {
 			t.Fatal(err)
 		}
 		fmt.Println("repeating=", i, ", hash= ", hash, "\n")
+		time.Sleep(30 * time.Second)
 	}
 }
-*/
+
 
 
 

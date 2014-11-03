@@ -113,7 +113,7 @@ func initWallet() error {
 	fee, _ = btcutil.NewAmount(btcTransFee)
 	blkHashFailed = make([]*notaryapi.Hash, 0, 100)
 	
-	err := client.WalletPassphrase(walletPassphrase, int64(2))
+	err := client.WalletPassphrase(walletPassphrase, int64(6000))
 	if err != nil {
 		return fmt.Errorf("cannot unlock wallet with passphrase: %s", err)
 	}
@@ -153,7 +153,7 @@ func initWallet() error {
 		}
 		balances[i].wif = wif
 		
-		//fmt.Println(balances[i])
+		fmt.Println(balances[i])
 	}	
 
 	return nil
@@ -203,8 +203,7 @@ func addTxIn(msgtx *btcwire.MsgTx, b balance) error {
 	subscript, err := hex.DecodeString(output.ScriptPubKey)
 	if err != nil {
 		return fmt.Errorf("cannot decode scriptPubKey: %s", err)
-	}		
-	//fmt.Println("\nsubscript ", string(subscript))
+	}
  
 	sigScript, err := btcscript.SignatureScript(msgtx, 0, subscript,
 		btcscript.SigHashAll, b.wif.PrivKey.ToECDSA(), true)
@@ -213,7 +212,6 @@ func addTxIn(msgtx *btcwire.MsgTx, b balance) error {
 	}
 	msgtx.TxIn[0].SignatureScript = sigScript
 	
-	//fmt.Println("sigScript ", string(sigScript))
 	return nil
 }
 
@@ -244,6 +242,31 @@ func addTxOuts(msgtx *btcwire.MsgTx, b balance, hash []byte) error {
 		msgtx.AddTxOut(btcwire.NewTxOut(int64(change), pkScript))
 	}
 	return nil
+}
+
+
+func selectInputs(eligible []btcjson.ListUnspentResult, minconf int) (selected []btcjson.ListUnspentResult, out btcutil.Amount, err error) {
+	// Iterate throguh eligible transactions, appending to outputs and
+	// increasing out.  This is finished when out is greater than the
+	// requested amt to spend.
+	selected = make([]btcjson.ListUnspentResult, 0, len(eligible))
+	for _, e := range eligible {
+		amount, err := btcutil.NewAmount(e.Amount)
+		if err != nil {
+			fmt.Println("err in creating NewAmount")
+			continue
+		}
+		selected = append(selected, e)
+		out += amount
+		if out >= fee {
+			return selected, out, nil
+		}
+	}
+	if out < fee {
+		return nil, 0, fmt.Errorf("insufficient funds: transaction requires %v fee, but only %v spendable", fee, out)		 
+	}
+
+	return selected, out, nil
 }
 
 
@@ -301,26 +324,30 @@ func initRPCClient() error {
 	// for notifications.  See the documentation of the btcrpcclient
 	// NotificationHandlers type for more details about each handler.
 	ntfnHandlers := btcrpcclient.NotificationHandlers{
+		// OnAccountBalance is invoked with account balance updates.
+		//
+		// This will only be available when speaking to a wallet server
+		// such as btcwallet.
 		OnAccountBalance: func(account string, balance btcutil.Amount, confirmed bool) {
 		     //go newBalance(account, balance, confirmed)
 		     fmt.Println("OnAccountBalance, account=", account, ", balance=", balance.ToUnit(btcutil.AmountBTC), ", confirmed=", confirmed)
 	    },
+
+		// OnBlockConnected is invoked when a block is connected to the longest
+		// (best) chain.  It will only be invoked if a preceding call to
+		// NotifyBlocks has been made to register for the notification and the
+		// function is non-nil.
 		OnBlockConnected: func(hash *btcwire.ShaHash, height int32) {
-			fmt.Println("OnBlockConnected")
+			fmt.Println("OnBlockConnected: hash=", hash, ", height=", height)
 			//go newBlock(hash, height)	// no need
 		},
+		
 		// OnClientConnected is invoked when the client connects or reconnects
 		// to the RPC server.  This callback is run async with the rest of the
 		// notification handlers, and is safe for blocking client requests.
 		OnClientConnected: func() {
 			fmt.Println("OnClientConnected")
 		},
-
-		// OnBlockConnected is invoked when a block is connected to the longest
-		// (best) chain.  It will only be invoked if a preceding call to
-		// NotifyBlocks has been made to register for the notification and the
-		// function is non-nil.
-		//OnBlockConnected func(hash *btcwire.ShaHash, height int32)
 		
 		// OnBlockDisconnected is invoked when a block is disconnected from the
 		// longest (best) chain.  It will only be invoked if a preceding call to
@@ -394,12 +421,6 @@ func initRPCClient() error {
 			fmt.Println("OnBtcdConnected, connected=", connected)
 		},
 
-		// OnAccountBalance is invoked with account balance updates.
-		//
-		// This will only be available when speaking to a wallet server
-		// such as btcwallet.
-		//OnAccountBalance func(account string, balance btcutil.Amount, confirmed bool)
-
 		// OnWalletLockState is invoked when a wallet is locked or unlocked.
 		//
 		// This will only be available when client is connected to a wallet
@@ -414,9 +435,7 @@ func initRPCClient() error {
 		// the caller is using a custom notification this package does not know
 		// about.
 		OnUnknownNotification: func(method string, params []json.RawMessage) {
-			var msgTx btcwire.MsgTx
-			_ = json.Unmarshal(params[0], &msgTx)	
-			fmt.Printf("OnUnknownNotification: method=", method, ", param=%#v", msgTx, "\n")
+			fmt.Println("OnUnknownNotification: method=", method, "\nparams[0]=", string(params[0]), "\nparam[1]=", string(params[1]))
 		},
 	}
 	 
