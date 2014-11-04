@@ -154,9 +154,40 @@ func initWallet() error {
 		balances[i].wif = wif
 		
 		fmt.Println(balances[i])
-	}	
+	}
+	
+	registerNotifications()
 
 	return nil
+}
+
+
+func registerNotifications() {
+	// OnBlockConnected or OnBlockDisconnected
+	err := client.NotifyBlocks()
+	if err != nil {
+		fmt.Println("NotifyBlocks err: ", err.Error())
+	}
+	
+	// OnTxAccepted 
+	err = client.NotifyNewTransactions(true)	//verbose is true
+	if err != nil {
+		fmt.Println("NotifyNewTransactions err: ", err.Error())
+	}
+	
+	// OnRecvTx 
+	addresses := make([]btcutil.Address, 0, 30)
+	for _, a := range balances {
+		addresses = append(addresses, a.address)
+	}
+	err = client.NotifyReceived(addresses)
+	if err != nil {
+		fmt.Println("NotifyReceived err: ", err.Error())
+	}
+
+	// OnRedeemingTx
+	//err := client.NotifySpent(outpoints)
+	
 }
 
 
@@ -324,6 +355,7 @@ func initRPCClient() error {
 	// for notifications.  See the documentation of the btcrpcclient
 	// NotificationHandlers type for more details about each handler.
 	ntfnHandlers := btcrpcclient.NotificationHandlers{
+	
 		// OnAccountBalance is invoked with account balance updates.
 		//
 		// This will only be available when speaking to a wallet server
