@@ -36,9 +36,6 @@ type balance struct {
 	wif 			*btcutil.WIF
 }
 
-// blockDetailsMap stores txHash & blockdetails(block hash, height and offset)
-// for those tx being confirmed in btc blockchain
-var blockDetailsMap map[string]*btcws.BlockDetails
 
 // failedMerkles stores to-be-written-to-btc FactomBlock Hash
 // after it failed for maxTrials attempt 
@@ -114,7 +111,6 @@ func unlockWallet(timeoutSecs int64) error {
 func initWallet() error {
 	fee, _ = btcutil.NewAmount(btcTransFee)
 	failedMerkles = make([]*notaryapi.Hash, 0, 100)
-	blockDetailsMap = make(map[string]*btcws.BlockDetails)
 	
 	err := unlockWallet(int64(1))
 	if err != nil {
@@ -438,10 +434,36 @@ func createBtcdNotificationHandlers() btcrpcclient.NotificationHandlers {
 		// funds to the registered addresses.  This means it is possible for
 		// this to invoked indirectly as the result of a NotifyReceived call.
 		OnRedeemingTx: func(transaction *btcutil.Tx, details *btcws.BlockDetails) {
-			blockDetailsMap[transaction.Sha().String()] = details
 			fmt.Printf("dclient: OnRedeemingTx: details=%#v\n", details)
 			fmt.Printf("dclient: OnRedeemingTx: tx.Sha=%#v,  tx.index=%d\n", 
 				transaction.Sha().String(), transaction.Index())
+			
+			if details != nil {
+				go func() {
+					var i = -1
+					for j, b := range fbBatches {
+						if b.BTCTxHash.String() == transaction.Sha().String() {
+							b.BTCTxOffset = details.Index
+							b.BTCBlockHeight = details.Height
+							
+							txHash, _ := btcwire.NewShaHashFromStr(details.Hash)
+							btcTxHash := new (notaryapi.Hash)
+							btcTxHash.Bytes = txHash.Bytes()
+							b.BTCBlockHash = btcTxHash
+							
+							i = j
+							break
+						}
+					}
+	
+					if i >= 0 {
+						//todo: update db with FBBatch
+						//db.InsertFBInfo(blkhash, fbInfo)
+						copy(fbBatches[i:], fbBatches[i+1:])
+						fbBatches[len(fbBatches) - 1] = nil
+					}
+				}()
+			}
 		},
 	}
 	
@@ -600,8 +622,5 @@ func saveFBBatchMerkleRoottoBTC(fbBatch *notaryapi.FBBatch) {
 	fbBatch.BTCTxHash = btcTxHash
 
     log.Print("Recorded merkle root ", merkleRoot.Bytes, " in BTC transaction hash:\n",txHash)
-	
-	//todo: update db with FBBatch
-	//db.InsertFBInfo(blkhash, fbInfo)
 	   
 }
