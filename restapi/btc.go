@@ -24,11 +24,28 @@ import (
 	
 )
 
+
+// fee is paid to miner for tx written into btc
 var fee btcutil.Amount
-//var wif *btcutil.WIF
+
+// balances store unspent balance & address & its WIF
 var balances []balance
+type balance struct {
+	unspentResult 	btcjson.ListUnspentResult
+	address			btcutil.Address
+	wif 			*btcutil.WIF
+}
+
+// blockDetailsMap stores txHash & blockdetails(block hash, height and offset)
+// for those tx being confirmed in btc blockchain
+var blockDetailsMap map[string]*btcws.BlockDetails
+
+// blkHashFailed stores to-be-written-to-btc FactomBlock Hash
+// after it failed for maxTrials attempt 
 var blkHashFailed []*notaryapi.Hash
-const maxTries = 3
+
+// maxTrials is the max attempts to writeToBTC
+const maxTrials = 3
 
 // the spentResult is the one showing up in ListSpent()
 // but is already spent in blockexploer
@@ -52,15 +69,9 @@ func (u ByAmount) Len() int           { return len(u) }
 func (u ByAmount) Less(i, j int) bool { return u[i].Amount < u[j].Amount }
 func (u ByAmount) Swap(i, j int)      { u[i], u[j] = u[j], u[i] }
 
-type balance struct {
-	unspentResult 	btcjson.ListUnspentResult
-	address			btcutil.Address
-	wif 			*btcutil.WIF
-}
-
 
 func writeToBTC(hash *notaryapi.Hash) (*btcwire.ShaHash, error) {	
-	for attempts := 0; attempts < maxTries; attempts++ {
+	for attempts := 0; attempts < maxTrials; attempts++ {
 		txHash, err := SendRawTransactionToBTC(hash.Bytes)
 		if err != nil {
 			log.Printf("Attempt %d to send raw tx to BTC failed: %s\n", attempts, err)
@@ -92,19 +103,11 @@ func SendRawTransactionToBTC(hash []byte) (*btcwire.ShaHash, error) {
 }
 
 
-func getAddress(b *balance) error {
-	addr, err := btcutil.DecodeAddress(b.unspentResult.Address, &btcnet.TestNet3Params)
+func unlockWallet(timeoutSecs int64) error {
+	err := wclient.WalletPassphrase(walletPassphrase, int64(timeoutSecs))
 	if err != nil {
-		return fmt.Errorf("cannot decode address: %s", err)
+		return fmt.Errorf("cannot unlock wallet with passphrase: %s", err)
 	}
-	b.address = addr
-
-	wif, err := client.DumpPrivKey(addr)
-	if err != nil {	
-		return fmt.Errorf("cannot get WIF: %s", err)
-	}
-	b.wif = wif
-
 	return nil
 }
 
@@ -112,13 +115,14 @@ func getAddress(b *balance) error {
 func initWallet() error {
 	fee, _ = btcutil.NewAmount(btcTransFee)
 	blkHashFailed = make([]*notaryapi.Hash, 0, 100)
+	blockDetailsMap = make(map[string]*btcws.BlockDetails)
 	
-	err := client.WalletPassphrase(walletPassphrase, int64(6000))
+	err := unlockWallet(int64(1))
 	if err != nil {
-		return fmt.Errorf("cannot unlock wallet with passphrase: %s", err)
+		return fmt.Errorf("%s", err)
 	}
 
-	unspentResults, err := client.ListUnspent()	//minConf=1
+	unspentResults, err := wclient.ListUnspent()	//minConf=1
 	if err != nil {
 		return fmt.Errorf("cannot list unspent. %s", err)
 	}
@@ -138,7 +142,7 @@ func initWallet() error {
 			}			
 		}
 	}
-	fmt.Println("balances.len=", len(balances))
+//	fmt.Println("balances.len=", len(balances))
 
 	for i, b := range balances {
 		addr, err := btcutil.DecodeAddress(b.unspentResult.Address, &btcnet.TestNet3Params)
@@ -147,16 +151,18 @@ func initWallet() error {
 		}
 		balances[i].address = addr
 
-		wif, err := client.DumpPrivKey(addr)
+		wif, err := wclient.DumpPrivKey(addr)
 		if err != nil {	
 			return fmt.Errorf("cannot get WIF: %s", err)
 		}
 		balances[i].wif = wif
 		
-		fmt.Println(balances[i])
+//		fmt.Println(balances[i])
 	}
 	
-	registerNotifications()
+//	registerNotifications()
+
+	time.Sleep(1 * time.Second)
 
 	return nil
 }
@@ -164,13 +170,13 @@ func initWallet() error {
 
 func registerNotifications() {
 	// OnBlockConnected or OnBlockDisconnected
-	err := client.NotifyBlocks()
+	err := dclient.NotifyBlocks()
 	if err != nil {
 		fmt.Println("NotifyBlocks err: ", err.Error())
 	}
 	
-	// OnTxAccepted 
-	err = client.NotifyNewTransactions(true)	//verbose is true
+	// OnTxAccepted: not useful since it covers all addresses
+	err = dclient.NotifyNewTransactions(false)	//verbose is false
 	if err != nil {
 		fmt.Println("NotifyNewTransactions err: ", err.Error())
 	}
@@ -180,13 +186,13 @@ func registerNotifications() {
 	for _, a := range balances {
 		addresses = append(addresses, a.address)
 	}
-	err = client.NotifyReceived(addresses)
+	err = dclient.NotifyReceived(addresses)
 	if err != nil {
 		fmt.Println("NotifyReceived err: ", err.Error())
 	}
 
 	// OnRedeemingTx
-	//err := client.NotifySpent(outpoints)
+	//err := dclient.NotifySpent(outpoints)
 	
 }
 
@@ -222,7 +228,7 @@ func createRawTransaction(b balance, hash []byte) (*btcwire.MsgTx, error) {
 func addTxIn(msgtx *btcwire.MsgTx, b balance) error {
 	
 	output := b.unspentResult
-	fmt.Printf("unspentResult: %#v\n", output)
+//	fmt.Printf("unspentResult: %#v\n", output)
 	prevTxHash, err := btcwire.NewShaHashFromStr(output.TxId)
 	if err != nil {
 		return fmt.Errorf("cannot get sha hash from str: %s", err)
@@ -230,6 +236,12 @@ func addTxIn(msgtx *btcwire.MsgTx, b balance) error {
 	
 	outPoint := btcwire.NewOutPoint(prevTxHash, output.Vout)
 	msgtx.AddTxIn(btcwire.NewTxIn(outPoint, nil))
+
+	// OnRedeemingTx
+	err = dclient.NotifySpent([]*btcwire.OutPoint {outPoint})
+	if err != nil {
+		fmt.Println("NotifySpent err: ", err.Error())
+	}
 
 	subscript, err := hex.DecodeString(output.ScriptPubKey)
 	if err != nil {
@@ -338,7 +350,9 @@ func sendRawTransaction(msgtx *btcwire.MsgTx) (*btcwire.ShaHash, error) {
 		return nil, err
 	}
 	
-	shaHash, err := client.SendRawTransaction(msgtx, false)
+	// use rpc client for btcd here for better callback info
+	// this should not require wallet to be unlocked
+	shaHash, err := dclient.SendRawTransaction(msgtx, false)
 	if err != nil {
 		return nil, fmt.Errorf("failed in rpcclient.SendRawTransaction: %s", err)
 	}
@@ -348,8 +362,7 @@ func sendRawTransaction(msgtx *btcwire.MsgTx) (*btcwire.ShaHash, error) {
 }
 
 
-
-func initRPCClient() error {
+func createBtcwalletNotificationHandlers() btcrpcclient.NotificationHandlers {
 	// Only override the handlers for notifications you care about.
 	// Also note most of the handlers will only be called if you register
 	// for notifications.  See the documentation of the btcrpcclient
@@ -362,31 +375,46 @@ func initRPCClient() error {
 		// such as btcwallet.
 		OnAccountBalance: func(account string, balance btcutil.Amount, confirmed bool) {
 		     //go newBalance(account, balance, confirmed)
-		     fmt.Println("OnAccountBalance, account=", account, ", balance=", balance.ToUnit(btcutil.AmountBTC), ", confirmed=", confirmed)
+		     //fmt.Println("wclient: OnAccountBalance, account=", account, ", balance=", balance.ToUnit(btcutil.AmountBTC), ", confirmed=", confirmed)
 	    },
+
+		// OnWalletLockState is invoked when a wallet is locked or unlocked.
+		//
+		// This will only be available when client is connected to a wallet
+		// server such as btcwallet.
+		OnWalletLockState: func(locked bool) {
+			fmt.Println("wclient: OnWalletLockState, locked=", locked)
+		},
+
+		// OnUnknownNotification is invoked when an unrecognized notification
+		// is received.  This typically means the notification handling code
+		// for this package needs to be updated for a new notification type or
+		// the caller is using a custom notification this package does not know
+		// about.
+		OnUnknownNotification: func(method string, params []json.RawMessage) {
+			//fmt.Println("wclient: OnUnknownNotification: method=", method, "\nparams[0]=", string(params[0]), "\nparam[1]=", string(params[1]))
+		},
+	}
+	
+	return ntfnHandlers
+}
+
+
+
+func createBtcdNotificationHandlers() btcrpcclient.NotificationHandlers {
+	// Only override the handlers for notifications you care about.
+	// Also note most of the handlers will only be called if you register
+	// for notifications.  See the documentation of the btcrpcclient
+	// NotificationHandlers type for more details about each handler.
+	ntfnHandlers := btcrpcclient.NotificationHandlers{
 
 		// OnBlockConnected is invoked when a block is connected to the longest
 		// (best) chain.  It will only be invoked if a preceding call to
 		// NotifyBlocks has been made to register for the notification and the
 		// function is non-nil.
 		OnBlockConnected: func(hash *btcwire.ShaHash, height int32) {
-			fmt.Println("OnBlockConnected: hash=", hash, ", height=", height)
+			//fmt.Println("dclient: OnBlockConnected: hash=", hash, ", height=", height)
 			//go newBlock(hash, height)	// no need
-		},
-		
-		// OnClientConnected is invoked when the client connects or reconnects
-		// to the RPC server.  This callback is run async with the rest of the
-		// notification handlers, and is safe for blocking client requests.
-		OnClientConnected: func() {
-			fmt.Println("OnClientConnected")
-		},
-		
-		// OnBlockDisconnected is invoked when a block is disconnected from the
-		// longest (best) chain.  It will only be invoked if a preceding call to
-		// NotifyBlocks has been made to register for the notification and the
-		// function is non-nil.
-		OnBlockDisconnected: func(hash *btcwire.ShaHash, height int32) {
-			fmt.Println("OnBlockDisconnected: hash=", hash, ", height=", height)
 		},
 
 		// OnRecvTx is invoked when a transaction that receives funds to a
@@ -395,7 +423,9 @@ func initRPCClient() error {
 		// preceding call to NotifyReceived, Rescan, or RescanEndHeight has been
 		// made to register for the notification and the function is non-nil.
 		OnRecvTx: func(transaction *btcutil.Tx, details *btcws.BlockDetails) {
-			fmt.Printf("OnRecvTx: tx=%#v", transaction, ", details=%#v", details, "\n")
+			//fmt.Printf("dclient: OnRecvTx: details=%#v\n", details)
+			//fmt.Printf("dclient: OnRecvTx: tx=%#v,  tx.Sha=%#v, tx.index=%d\n", 
+				//transaction, transaction.Sha().String(), transaction.Index())
 		},
 
 		// OnRedeemingTx is invoked when a transaction that spends a registered
@@ -409,104 +439,76 @@ func initRPCClient() error {
 		// funds to the registered addresses.  This means it is possible for
 		// this to invoked indirectly as the result of a NotifyReceived call.
 		OnRedeemingTx: func(transaction *btcutil.Tx, details *btcws.BlockDetails) {
-			fmt.Printf("OnRedeemingTx: tx=%#v", transaction, ", details=%#v", details, "\n")
-		},
-
-		// OnRescanFinished is invoked after a rescan finishes due to a previous
-		// call to Rescan or RescanEndHeight.  Finished rescans should be
-		// signaled on this notification, rather than relying on the return
-		// result of a rescan request, due to how btcd may send various rescan
-		// notifications after the rescan request has already returned.
-		OnRescanFinished: func(hash *btcwire.ShaHash, height int32, blkTime time.Time) {
-			fmt.Println("OnRescanFinished: hash=", hash, ", height=", height, ", blkTime=", blkTime)
-		},
-
-		// OnRescanProgress is invoked periodically when a rescan is underway.
-		// It will only be invoked if a preceding call to Rescan or
-		// RescanEndHeight has been made and the function is non-nil.
-		OnRescanProgress: func(hash *btcwire.ShaHash, height int32, blkTime time.Time) {
-			fmt.Println("OnRescanProgress: hash=", hash, ", height=", height, ", blkTime=", blkTime)
-		},
-
-		// OnTxAccepted is invoked when a transaction is accepted into the
-		// memory pool.  It will only be invoked if a preceding call to
-		// NotifyNewTransactions with the verbose flag set to false has been
-		// made to register for the notification and the function is non-nil.
-		OnTxAccepted: func(hash *btcwire.ShaHash, amount btcutil.Amount) {
-			fmt.Println("OnTxAccepted: hash=", hash, ", amount=", amount)
-		},
-
-		// OnTxAccepted is invoked when a transaction is accepted into the
-		// memory pool.  It will only be invoked if a preceding call to
-		// NotifyNewTransactions with the verbose flag set to true has been
-		// made to register for the notification and the function is non-nil.
-		OnTxAcceptedVerbose: func(txDetails *btcjson.TxRawResult) {
-			fmt.Printf("OnTxAcceptedVerbose: txDetails=%#v", txDetails, "\n")
-		},
-
-		// OnBtcdConnected is invoked when a wallet connects or disconnects from
-		// btcd.
-		//
-		// This will only be available when client is connected to a wallet
-		// server such as btcwallet.
-		OnBtcdConnected: func(connected bool) { 
-			fmt.Println("OnBtcdConnected, connected=", connected)
-		},
-
-		// OnWalletLockState is invoked when a wallet is locked or unlocked.
-		//
-		// This will only be available when client is connected to a wallet
-		// server such as btcwallet.
-		OnWalletLockState: func(locked bool) {
-			fmt.Println("OnWalletLockState, locked=", locked)
-		},
-
-		// OnUnknownNotification is invoked when an unrecognized notification
-		// is received.  This typically means the notification handling code
-		// for this package needs to be updated for a new notification type or
-		// the caller is using a custom notification this package does not know
-		// about.
-		OnUnknownNotification: func(method string, params []json.RawMessage) {
-			fmt.Println("OnUnknownNotification: method=", method, "\nparams[0]=", string(params[0]), "\nparam[1]=", string(params[1]))
+			blockDetailsMap[transaction.Sha().String()] = details
+			fmt.Printf("dclient: OnRedeemingTx: details=%#v\n", details)
+			fmt.Printf("dclient: OnRedeemingTx: tx.Sha=%#v,  tx.index=%d\n", 
+				transaction.Sha().String(), transaction.Index())
 		},
 	}
+	
+	return ntfnHandlers
+}
+
+
+func initRPCClient() error {
 	 
 	// Connect to local btcwallet RPC server using websockets.
+	ntfnHandlers := createBtcwalletNotificationHandlers()
 	certHomeDir := btcutil.AppDataDir(certHomePath, false)
 	certs, err := ioutil.ReadFile(filepath.Join(certHomeDir, "rpc.cert"))
 	if err != nil {
 		return fmt.Errorf("cannot read rpc.cert file: %s", err)
-	}
+	}	
 	connCfg := &btcrpcclient.ConnConfig{
 		Host:         rpcClientHost,
 		Endpoint:     rpcClientEndpoint,
 		User:         rpcClientUser,
 		Pass:         rpcClientPass,
 		Certificates: certs,
+	}	
+	wclient, err = btcrpcclient.New(connCfg, &ntfnHandlers)	
+	if err != nil {
+		return fmt.Errorf("cannot create rpc client for btcwallet: %s", err)
 	}
 	
-	client, err = btcrpcclient.New(connCfg, &ntfnHandlers)	
+	// Connect to local btcd RPC server using websockets.
+	dntfnHandlers := createBtcdNotificationHandlers()
+	certHomeDir = btcutil.AppDataDir(certHomePathBtcd, false)
+	certs, err = ioutil.ReadFile(filepath.Join(certHomeDir, "rpc.cert"))
 	if err != nil {
-		return fmt.Errorf("cannot create rpc client: %s", err)
+		return fmt.Errorf("cannot read rpc.cert file for btcd rpc server: %s", err)
+	}	
+	dconnCfg := &btcrpcclient.ConnConfig{
+		Host:         rpcBtcdHost,	
+		Endpoint:     rpcClientEndpoint,
+		User:         rpcClientUser,
+		Pass:         rpcClientPass,
+		Certificates: certs,
+	}	
+	dclient, err = btcrpcclient.New(dconnCfg, &dntfnHandlers)	
+	if err != nil {
+		return fmt.Errorf("cannot create rpc client for btcd: %s", err)
 	}
 	
 	return nil
 }
 
 
-func shutdown(client *btcrpcclient.Client) {
+func shutdown() {
 	// For this example gracefully shutdown the client after 10 seconds.
 	// Ordinarily when to shutdown the client is highly application
 	// specific.
 	log.Println("Client shutdown in 2 seconds...")
 	time.AfterFunc(time.Second*2, func() {
 		log.Println("Going down...")
-		client.Shutdown()
+		wclient.Shutdown()
+		dclient.Shutdown()
 	})
 	defer log.Println("Shutdown done!")
 	// Wait until the client either shuts down gracefully (or the user
 	// terminates the process with Ctrl+C).
-	client.WaitForShutdown()
+	wclient.WaitForShutdown()
+	dclient.WaitForShutdown()
 }
 
 

@@ -32,7 +32,9 @@ import (
 )
 
 var  (
-	client *btcrpcclient.Client
+	wclient *btcrpcclient.Client		//rpc client for btcwallet rpc server
+	dclient *btcrpcclient.Client	//rpc client for btcd rpc server
+
  	currentAddr btcutil.Address
 //	balance int64
 	tickers [2]*time.Ticker
@@ -53,11 +55,14 @@ var (
 	addrStr = "movaFTARmsaTMk3j71MpX8HtMURpsKhdra"
 	walletPassphrase = "lindasilva"
 	certHomePath = "btcwallet"
-	rpcClientHost = "localhost:18332"
+	rpcClientHost = "localhost:18332"	//btcwallet rpcserver address
 	rpcClientEndpoint = "ws"
 	rpcClientUser = "testuser"
 	rpcClientPass = "notarychain"
 	btcTransFee float64 = 0.0001
+
+	certHomePathBtcd = "btcd"
+	rpcBtcdHost = "localhost:18334"		//btcd rpcserver address
 	
 )
 
@@ -226,9 +231,10 @@ func init() {
 	initFChain()
 	fmt.Println("Loaded", len(fchain.Blocks)-1, "Factom blocks for chain: "+ notaryapi.EncodeBinary(fchain.ChainID))
 
+	// write 10 FBlock in a batch to BTC every 10 minutes
+	tickers[0] = time.NewTicker(time.Minute * 10)
 
-	tickers[0] = time.NewTicker(time.Minute * 5)
-
+	// create EBlocks and FBlock every 60 seconds
 	tickers[1] = time.NewTicker(time.Second * time.Duration(sendToBTCinSeconds)) 
 
 	go func() {
@@ -283,7 +289,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("cannot init rpc client: %s", err)
 	}
-	defer shutdown(client)
+	defer shutdown()
 	
 	if err := initWallet(); err != nil {
 		log.Fatalf("cannot init wallet: %s", err)
