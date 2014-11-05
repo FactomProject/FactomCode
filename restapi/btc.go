@@ -40,9 +40,9 @@ type balance struct {
 // for those tx being confirmed in btc blockchain
 var blockDetailsMap map[string]*btcws.BlockDetails
 
-// blkHashFailed stores to-be-written-to-btc FactomBlock Hash
+// failedMerkles stores to-be-written-to-btc FactomBlock Hash
 // after it failed for maxTrials attempt 
-var blkHashFailed []*notaryapi.Hash
+var failedMerkles []*notaryapi.Hash
 
 // maxTrials is the max attempts to writeToBTC
 const maxTrials = 3
@@ -70,9 +70,9 @@ func (u ByAmount) Less(i, j int) bool { return u[i].Amount < u[j].Amount }
 func (u ByAmount) Swap(i, j int)      { u[i], u[j] = u[j], u[i] }
 
 
-func writeToBTC(hash *notaryapi.Hash) (*btcwire.ShaHash, error) {	
+func writeToBTC(bytes []byte) (*btcwire.ShaHash, error) {	
 	for attempts := 0; attempts < maxTrials; attempts++ {
-		txHash, err := SendRawTransactionToBTC(hash.Bytes)
+		txHash, err := SendRawTransactionToBTC(bytes)
 		if err != nil {
 			log.Printf("Attempt %d to send raw tx to BTC failed: %s\n", attempts, err)
 			time.Sleep(time.Duration(attempts*20) * time.Second)
@@ -80,8 +80,7 @@ func writeToBTC(hash *notaryapi.Hash) (*btcwire.ShaHash, error) {
 		}
 		return txHash, nil
 	}
-	blkHashFailed = append(blkHashFailed, hash)
-	return nil, fmt.Errorf("Fail to write hash %s to BTC: %s", hash)
+	return nil, fmt.Errorf("Fail to write hash %s to BTC: %s", bytes)
 }
 
 
@@ -114,7 +113,7 @@ func unlockWallet(timeoutSecs int64) error {
 
 func initWallet() error {
 	fee, _ = btcutil.NewAmount(btcTransFee)
-	blkHashFailed = make([]*notaryapi.Hash, 0, 100)
+	failedMerkles = make([]*notaryapi.Hash, 0, 100)
 	blockDetailsMap = make(map[string]*btcws.BlockDetails)
 	
 	err := unlockWallet(int64(1))
@@ -542,14 +541,14 @@ func newEntryBlock(chain *notaryapi.Chain) (*notaryapi.Block, *notaryapi.Hash){
 }
 
 
-func newFactomBlock(chain *notaryapi.FChain) {
+func newFactomBlock(chain *notaryapi.FChain) *notaryapi.FBlock {
 
 	// acquire the last block
 	block := chain.Blocks[len(chain.Blocks)-1]
 
  	if len(block.FBEntries) < 1{
  		//log.Println("No Factom block created for chain ... because no new entry is found.")
- 		return
+ 		return nil
  	} 
 	
 	// Create the block add a new block for new coming entries
@@ -565,31 +564,44 @@ func newFactomBlock(chain *notaryapi.FChain) {
 	db.ProcessFBlockBatch(blkhash, block) 	
 	//need to add a FB process queue in db??	
 	log.Println("block" + strconv.FormatUint(block.Header.BlockID, 10) +" created for factom chain: "  + notaryapi.EncodeBinary(chain.ChainID))
-	
-	//Send transaction to BTC network
-	txHash, _ := writeToBTC(blkhash)		
-	
-	// Create a FBInfo and insert it into db
-	fbInfo := new (notaryapi.FBInfo)
-	fbInfo.FBHash = blkhash
-	fbInfo.FBlockID = block.Header.BlockID
 
-	if (txHash != nil) {
-		btcTxHash := new (notaryapi.Hash)
-		btcTxHash.Bytes = txHash.Bytes()
-		fbInfo.BTCTxHash = btcTxHash
-	}
+	//update FBBlock with FBHash & FBlockID
+	block.FBHash = blkhash
+	block.FBlockID = block.Header.BlockID
 	
-	db.InsertFBInfo(blkhash, fbInfo)
-	
-	// Export all db records associated w/ this new factom block
+	//Export all db records associated w/ this new factom block
 	ExportDbToFile(blkhash)
 	
-	if (txHash != nil) {
-	    log.Print("Recorded ", blkhash.Bytes, " in BTC transaction hash:\n",txHash)
-	} else {
-		log.Println("failed to record ", blkhash.Bytes, " to BTC" )
+	return block
+}
+
+
+func saveFBBatchMerkleRoottoBTC(fbBatch *notaryapi.FBBatch) {
+
+	//calculate batch merkle root
+	hashes := make([]*notaryapi.Hash, len(fbBatch.FBBatches))
+	for i, entry := range fbBatch.FBBatches {
+		hashes[i] = entry.Header.MerkleRoot
+	}	
+	merkle := notaryapi.BuildMerkleTreeStore(hashes)
+	merkleRoot := merkle[len(merkle) - 1]
+	fbBatch.FBBatchMerkleRoot = merkleRoot
+
+	//Send transaction to BTC network
+	txHash, err := writeToBTC(merkleRoot.Bytes)		
+	if err != nil {
+		failedMerkles = append(failedMerkles, merkleRoot)
+		fmt.Println("failed to record ", merkleRoot.Bytes, " to BTC: ", err.Error())
 	}
-    
-    
+
+	btcTxHash := new (notaryapi.Hash)
+	btcTxHash.Bytes = txHash.Bytes()
+	//fbInfo.BTCTxHash = btcTxHash
+	fbBatch.BTCTxHash = btcTxHash
+
+    log.Print("Recorded merkle root ", merkleRoot.Bytes, " in BTC transaction hash:\n",txHash)
+	
+	//todo: update db with FBBatch
+	//db.InsertFBInfo(blkhash, fbInfo)
+	   
 }

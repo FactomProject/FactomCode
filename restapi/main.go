@@ -42,6 +42,9 @@ var  (
 	chainIDMap map[string]*notaryapi.Chain // ChainIDMap with chainID string([32]byte) as key
 	//chainNameMap map[string]*notaryapi.Chain // ChainNameMap with chain name string as key	
 	fchain *notaryapi.FChain	//Factom Chain
+	
+	fbBatches []*notaryapi.FBBatch
+	fbBatch *notaryapi.FBBatch
 )
 
 var (
@@ -230,12 +233,25 @@ func init() {
 	// init FactomChain
 	initFChain()
 	fmt.Println("Loaded", len(fchain.Blocks)-1, "Factom blocks for chain: "+ notaryapi.EncodeBinary(fchain.ChainID))
+	
+	fbBatches = make([]*notaryapi.FBBatch, 100)
 
 	// write 10 FBlock in a batch to BTC every 10 minutes
 	tickers[0] = time.NewTicker(time.Minute * 10)
 
 	// create EBlocks and FBlock every 60 seconds
 	tickers[1] = time.NewTicker(time.Second * time.Duration(sendToBTCinSeconds)) 
+	
+	go func() {
+		for _ = range tickers[0].C {
+			newFBBatch := &notaryapi.FBBatch {
+				FBBatches: make([]*notaryapi.FBlock, 10),
+			}
+			fbBatch := fbBatches[len(fbBatches) - 1]
+			fbBatches = append(fbBatches, newFBBatch)
+			saveFBBatchMerkleRoottoBTC(fbBatch)
+		}
+	}()
 
 	go func() {
 		for _ = range tickers[1].C {
@@ -246,7 +262,10 @@ func init() {
 				}
 				save(chain)
 			}
-			newFactomBlock(fchain)
+			fbBlock := newFactomBlock(fchain)
+			if fbBlock != nil {
+				fbBatch.FBBatches = append(fbBatch.FBBatches, fbBlock)
+			}
 			saveFChain(fchain)		
 			
 		//for testing	

@@ -22,21 +22,42 @@ type FBlock struct {
 	FBEntries []*FBEntry
 
 	//Not Marshalized
-	Salt *Hash
+	Salt *Hash	
 	Chain *FChain
 	IsSealed bool
-
+	FBHash *Hash 
+	FBlockID uint64
 }
 
-type FBInfo struct {
 
+type FBInfo struct {
 	FBHash *Hash 
 	FBlockID uint64
 	BTCTxHash *Hash
-	//BTCBlockNum uint64
-	//BTCBlockOffset uint64
-	//EBInfoArray *[]EBInfo //not marshalized in db
+}
 
+	
+type FBBatch struct {
+
+	// FBBatches usually include 10 FBlocks, merkle root of which
+	// is written into BTC. Only hash of each FBlock will be marshalled
+	FBBatches []*FBlock	
+	
+	// BTCTxHash is the Tx hash returned from rpcclient.SendRawTransaction
+	BTCTxHash *Hash	// use string or *btcwire.ShaHash ???
+	
+	// BTCTxOffset is the index of the TX in this BTC block
+	BTCTxOffset int
+	
+	// BTCBlockHeight is the height of the block where this TX is stored in BTC
+	BTCBlockHeight int32
+	
+	//BTCBlockHash is the hash of the block where this TX is stored in BTC
+	BTCBlockHash *Hash	// use string or *btcwire.ShaHash ???
+	
+	// FBBatchMerkleRoot is the merkle root of a batch of 10 FactomBlocks
+	// and is written into BTC as OP_RETURN data
+	FBBatchMerkleRoot *Hash
 }
 
 func CreateFBlock(chain *FChain, prev *FBlock, capacity uint) (b *FBlock, err error) {
