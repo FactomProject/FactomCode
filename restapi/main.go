@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/xml"
 	"errors"
-	"flag"
+//	"flag"
 	"fmt"
 	"github.com/FactomProject/FactomCode/notaryapi"
 	"github.com/conformal/btcrpcclient"
@@ -16,7 +16,6 @@ import (
 	"net/http"
 	"net/url"
 	"path/filepath"
-	"reflect"
 	"strconv"
 	"strings"
 	"os"
@@ -32,11 +31,10 @@ import (
 )
 
 var  (
-	wclient *btcrpcclient.Client		//rpc client for btcwallet rpc server
+	wclient *btcrpcclient.Client	//rpc client for btcwallet rpc server
 	dclient *btcrpcclient.Client	//rpc client for btcd rpc server
 
  	currentAddr btcutil.Address
-//	balance int64
 	tickers [2]*time.Ticker
 	db database.Db // database
 	chainIDMap map[string]*notaryapi.Chain // ChainIDMap with chainID string([32]byte) as key
@@ -55,7 +53,7 @@ var (
 	dataStorePath = "/tmp/store/seed/"
 	ldbpath = "/tmp/ldb9"
 	//BTC:
-	addrStr = "movaFTARmsaTMk3j71MpX8HtMURpsKhdra"
+//	addrStr = "movaFTARmsaTMk3j71MpX8HtMURpsKhdra"
 	walletPassphrase = "lindasilva"
 	certHomePath = "btcwallet"
 	rpcClientHost = "localhost:18332"	//btcwallet rpcserver address
@@ -109,7 +107,7 @@ func loadConfigurations(){
 		portNumber = cfg.App.PortNumber
 		dataStorePath = cfg.App.DataStorePath
 		ldbpath = cfg.App.LdbPath
-		addrStr = cfg.Btc.BTCPubAddr
+//		addrStr = cfg.Btc.BTCPubAddr
 		sendToBTCinSeconds = cfg.Btc.SendToBTCinSeconds 
 		walletPassphrase = cfg.Btc.WalletPassphrase
 		certHomePath = cfg.Btc.CertHomePath
@@ -234,27 +232,23 @@ func init() {
 	initFChain()
 	fmt.Println("Loaded", len(fchain.Blocks)-1, "Factom blocks for chain: "+ notaryapi.EncodeBinary(fchain.ChainID))
 	
-	fbBatches = make([]*notaryapi.FBBatch, 100)
-
-	// write 10 FBlock in a batch to BTC every 10 minutes
-	tickers[0] = time.NewTicker(time.Minute * 10)
+	// init fbBatches, fbBatch
+	fbBatches = make([]*notaryapi.FBBatch, 0, 100)
+	fbBatch := &notaryapi.FBBatch {
+		FBlocks: make([]*notaryapi.FBlock, 0, 10),
+	}
+	fbBatches = append(fbBatches, fbBatch)
 
 	// create EBlocks and FBlock every 60 seconds
-	tickers[1] = time.NewTicker(time.Second * time.Duration(sendToBTCinSeconds)) 
-	
-	go func() {
-		for _ = range tickers[0].C {
-			newFBBatch := &notaryapi.FBBatch {
-				FBBatches: make([]*notaryapi.FBlock, 10),
-			}
-			fbBatch := fbBatches[len(fbBatches) - 1]
-			fbBatches = append(fbBatches, newFBBatch)
-			saveFBBatchMerkleRoottoBTC(fbBatch)
-		}
-	}()
+	tickers[0] = time.NewTicker(time.Second * time.Duration(sendToBTCinSeconds)) 
+
+	// write 10 FBlock in a batch to BTC every 10 minutes
+	tickers[1] = time.NewTicker(time.Minute * 2)	//10)
 
 	go func() {
-		for _ = range tickers[1].C {
+		for _ = range tickers[0].C {
+			fmt.Println("in tickers[0]: newEntryBlock & newFactomBlock")
+		
 			for _, chain := range chainIDMap {
 				eblock, blkhash := newEntryBlock(chain)
 				if eblock != nil{
@@ -262,40 +256,44 @@ func init() {
 				}
 				save(chain)
 			}
+			
 			fbBlock := newFactomBlock(fchain)
 			if fbBlock != nil {
-				fbBatch.FBBatches = append(fbBatch.FBBatches, fbBlock)
+				// mark the start block of a FBBatch
+				fmt.Printf("in tickers[0]: fbBatch=%#v\n", fbBatch)
+				if len(fbBatch.FBlocks) == 0 {
+					fbBlock.Header.BatchFlag = byte(1)
+				}
+				fbBatch.FBlocks = append(fbBatch.FBlocks, fbBlock)
+				fmt.Printf("in tickers[0]: ADDED FBBLOCK: fbBatch=%#v\n", fbBatch)
 			}
-			saveFChain(fchain)		
 			
-		//for testing	
-/*			for _, chain := range chainMap {
-				if len(chain.Blocks) < 2{
-					continue
-				}
-				fmt.Println("Print out block ", len(chain.Blocks)-2, " for chain: " + chain.ChainID.String())
-				block := chain.Blocks[chain.NextBlockID - 1]
-				entryIB, _ := db.FetchEntryInfoBranchByHash((*block).EBEntries[0].Hash())
-				
-				fmt.Println("entryIB.EntryHash: " + entryIB.EntryHash.String())
-				
-				if entryIB.EBInfo != nil{
-					fmt.Println("entryIB.EBInfo.EBHash: " + entryIB.EBInfo.EBHash.String())
-					fmt.Println("entryIB.EBInfo.FBHash: " + entryIB.EBInfo.FBHash.String())					
-					
-				}
-				if entryIB.FBInfo != nil{
-
-					fmt.Println("entryIB.FBInfo.BTCTxHash: %v", entryIB.FBInfo.BTCTxHash)
-				}
-
-
-			}
-*/
-							
+			saveFChain(fchain)									
 		}
-
 	}()
+
+	
+	go func() {
+		for _ = range tickers[1].C {
+			fmt.Println("in tickers[1]: new FBBatch. len(fbBatch.FBlocks)=", len(fbBatch.FBlocks))
+			
+			// skip empty fbBatch.
+			if len(fbBatch.FBlocks) > 0 {
+				doneBatch := fbBatch
+				newFBBatch := &notaryapi.FBBatch {
+					FBlocks: make([]*notaryapi.FBlock, 0, 10),
+				}
+				fbBatch = newFBBatch
+				fbBatches = append(fbBatches, newFBBatch)
+			
+				fmt.Printf("in tickers[1]: doneBatch.FBlocks.len=%d, doneBatch=%#v\n", len(doneBatch.FBlocks), doneBatch)
+			
+				// go routine here?
+				saveFBBatchMerkleRoottoBTC(doneBatch)
+			}
+		}
+	}()
+	
 }
 
 
@@ -314,7 +312,9 @@ func main() {
 		log.Fatalf("cannot init wallet: %s", err)
 	}
 	
+	doEntries()
 	
+/*	
 	flag.Parse()
 
 	defer func() {
@@ -328,7 +328,8 @@ func main() {
 	err = http.ListenAndServe(":"+strconv.Itoa(portNumber), nil)
 	if err != nil {
 		panic(err)
-	}
+	}*/
+
 }
 
 
@@ -456,7 +457,6 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 	err = notaryapi.Marshal(resource, accept, &buf, alt)
 }
 
-var blockPtrType = reflect.TypeOf((*notaryapi.Block)(nil)).Elem()
 
 func post(context string, form url.Values) (interface{}, *notaryapi.Error) {
 	newEntry := new(notaryapi.Entry)
@@ -486,6 +486,11 @@ func post(context string, form url.Values) (interface{}, *notaryapi.Error) {
 		return nil, notaryapi.CreateError(notaryapi.ErrorUnsupportedUnmarshal, fmt.Sprintf(`The format "%s" is not supported`, format))
 	}
 
+	return processNewEntry(newEntry)
+}
+
+
+func processNewEntry(newEntry *notaryapi.Entry) ([]byte, *notaryapi.Error) {
 	if newEntry == nil {
 		return nil, notaryapi.CreateError(notaryapi.ErrorInternal, `Entity to be POSTed is nil`)
 	}
@@ -510,6 +515,7 @@ func post(context string, form url.Values) (interface{}, *notaryapi.Error) {
 
 	return hash.Bytes, nil
 }
+
 /*
 func createNewChain(chainName string) (chain *notaryapi.Chain){
 		chain = new (notaryapi.Chain)
@@ -522,6 +528,7 @@ func createNewChain(chainName string) (chain *notaryapi.Chain){
 		return chain
 }
 */
+
 func saveFChain(chain *notaryapi.FChain) {
 	if len(chain.Blocks)==0{
 		//log.Println("no blocks to save for chain: " + string (*chain.ChainID))
