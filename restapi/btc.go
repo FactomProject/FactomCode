@@ -466,9 +466,10 @@ func saveFBBatch(transaction *btcutil.Tx, details *btcws.BlockDetails) {
 		//todo: update db with FBBatch
 		//db.InsertFBInfo(blkhash, fbBatches[i])
 		
-		copy(fbBatches[i:], fbBatches[i+1:])
-		//fbBatches[i:] = fbBatches[(i+1):]
-		fbBatches[len(fbBatches) - 1] = nil					
+		//delete fbBatches[i]
+		fbBatches = append(fbBatches[:i], fbBatches[i+1:]...)
+		//copy(fbBatches[i:], fbBatches[i+1:])
+		//fbBatches[len(fbBatches) - 1] = nil					
 
 		fmt.Println("found in fbBatches: after deletion, len=", len(fbBatches))
 	}
@@ -632,3 +633,4 @@ func toHash(txHash *btcwire.ShaHash) *notaryapi.Hash {
 	h.SetBytes(txHash.Bytes())
 	return h
 }
+
