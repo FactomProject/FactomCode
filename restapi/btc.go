@@ -407,9 +407,9 @@ func createBtcdNotificationHandlers() btcrpcclient.NotificationHandlers {
 		// preceding call to NotifyReceived, Rescan, or RescanEndHeight has been
 		// made to register for the notification and the function is non-nil.
 		OnRecvTx: func(transaction *btcutil.Tx, details *btcws.BlockDetails) {
-			fmt.Printf("dclient: OnRecvTx: details=%#v\n", details)
-			fmt.Printf("dclient: OnRecvTx: tx=%#v,  tx.Sha=%#v, tx.index=%d\n", 
-				transaction, transaction.Sha().String(), transaction.Index())
+			//fmt.Printf("dclient: OnRecvTx: details=%#v\n", details)
+			//fmt.Printf("dclient: OnRecvTx: tx=%#v,  tx.Sha=%#v, tx.index=%d\n", 
+				//transaction, transaction.Sha().String(), transaction.Index())
 		},
 
 		// OnRedeemingTx is invoked when a transaction that spends a registered
@@ -446,14 +446,13 @@ func saveFBBatch(transaction *btcutil.Tx, details *btcws.BlockDetails) {
 		fmt.Printf("i=%d, fbBatch=%#v\n", i, fbBatches[i])
 		
 		if fbBatches[i].BTCTxHash != nil && 
-			fbBatches[i].BTCTxHash.String() == transaction.Sha().String() {
+			bytes.Compare(fbBatches[i].BTCTxHash.Bytes, transaction.Sha().Bytes()) == 0 {
 			
 			fbBatches[i].BTCTxOffset = details.Index
 			fbBatches[i].BTCBlockHeight = details.Height
 			
 			txHash, _ := btcwire.NewShaHashFromStr(details.Hash)
 			fbBatches[i].BTCBlockHash = toHash(txHash)
-			fmt.Println("In saveFBBatch, txHash=", txHash.String(), ", toHash=", fbBatches[i].BTCBlockHash)
 			
 			found = true
 			break
@@ -462,7 +461,7 @@ func saveFBBatch(transaction *btcutil.Tx, details *btcws.BlockDetails) {
 	fmt.Println("In saveFBBatch, found=", found)
 
 	if found {
-		fmt.Println("found in fbBatches: i=", i, ", len=", len(fbBatches))
+		fmt.Printf("found in fbBatches: i=%d, len=%d, DELETE fbBatch%#v\n",i , len(fbBatches), fbBatches[i])
 		
 		//todo: update db with FBBatch
 		//db.InsertFBInfo(blkhash, fbBatches[i])
@@ -470,6 +469,8 @@ func saveFBBatch(transaction *btcutil.Tx, details *btcws.BlockDetails) {
 		copy(fbBatches[i:], fbBatches[i+1:])
 		//fbBatches[i:] = fbBatches[(i+1):]
 		fbBatches[len(fbBatches) - 1] = nil					
+
+		fmt.Println("found in fbBatches: after deletion, len=", len(fbBatches))
 	}
 }
 
@@ -537,7 +538,6 @@ func shutdown() {
 
 
 func newEntryBlock(chain *notaryapi.Chain) (*notaryapi.Block, *notaryapi.Hash){
-	fmt.Println("in newEntryBlock")
 
 	// acquire the last block
 	block := chain.Blocks[len(chain.Blocks)-1]
@@ -558,14 +558,13 @@ func newEntryBlock(chain *notaryapi.Chain) (*notaryapi.Block, *notaryapi.Hash){
     
     //Store the block in db
 	db.ProcessEBlockBatch(blkhash, block)	
-	fmt.Println("EntryBlock: block" + strconv.FormatUint(block.Header.BlockID, 10) +" created for chain: "  + chain.ChainID.String())	
+	log.Println("EntryBlock: block" + strconv.FormatUint(block.Header.BlockID, 10) +" created for chain: "  + chain.ChainID.String())	
 	
 	return block, blkhash
 }
 
 
 func newFactomBlock(chain *notaryapi.FChain) *notaryapi.FBlock {
-	fmt.Println("in newFactomBlock")
 
 	// acquire the last block
 	block := chain.Blocks[len(chain.Blocks)-1]
@@ -587,7 +586,7 @@ func newFactomBlock(chain *notaryapi.FChain) *notaryapi.FBlock {
 	//Store the block in db
 //	db.ProcessFBlockBatch(blkhash, block) 	
 	//need to add a FB process queue in db??	
-	fmt.Println("FactomBlock: block" + strconv.FormatUint(block.Header.BlockID, 10) +" created for factom chain: "  + notaryapi.EncodeBinary(chain.ChainID))
+	log.Println("FactomBlock: block" + strconv.FormatUint(block.Header.BlockID, 10) +" created for factom chain: "  + notaryapi.EncodeBinary(chain.ChainID))
 
 	//update FBBlock with FBHash & FBlockID
 	block.FBHash = blkhash
@@ -623,7 +622,7 @@ func saveFBBatchMerkleRoottoBTC(fbBatch *notaryapi.FBBatch) {
 	//convert btc tx hash to factom hash, and update fbBatch
 	fbBatch.BTCTxHash = toHash(txHash)
 
-    fmt.Print("Recorded FBBatch merkle root in BTC tx hash:\n",txHash, "\nconverted hash: ", fbBatch.BTCTxHash.String())
+    fmt.Print("Recorded FBBatch merkle root in BTC tx hash:\n",txHash, "\nconverted hash: ", fbBatch.BTCTxHash.String(), "\n")
 	   
 }
 

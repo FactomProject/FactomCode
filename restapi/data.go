@@ -41,6 +41,6 @@ func doEntries() {
 		}
 	}
 	
-	time.Sleep(2 * time.Minute)
+	time.Sleep(15 * time.Minute)
 }
 

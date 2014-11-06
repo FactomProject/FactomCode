@@ -74,13 +74,12 @@ func (b *FBlockHeader) UnmarshalBinary(data []byte) (err error) {
 }
 
 
-func NewFBlockHeader(blockId uint64, prevHash *Hash, merkleRootHash *Hash, 
+func NewFBlockHeader(blockId uint64, prevHash *Hash,  
 	version int32, count uint32) *FBlockHeader {
 
 	return &FBlockHeader{
 		Version:    version,
 		PrevBlockHash:  prevHash,
-		MerkleRoot: merkleRootHash,
 		TimeStamp:  time.Now().Unix(),
 		EntryCount: count,
 		BlockID:    blockId,

@@ -23,6 +23,7 @@ import (
 	"log"
 	"encoding/binary"
 	"encoding/csv"
+//	"container/list"
  
 	"github.com/FactomProject/FactomCode/database"	
 	"github.com/FactomProject/FactomCode/database/ldb"	
@@ -42,6 +43,7 @@ var  (
 	fchain *notaryapi.FChain	//Factom Chain
 	
 	fbBatches []*notaryapi.FBBatch
+//	fbBatches *list.List
 	fbBatch *notaryapi.FBBatch
 )
 
@@ -260,12 +262,12 @@ func init() {
 			fbBlock := newFactomBlock(fchain)
 			if fbBlock != nil {
 				// mark the start block of a FBBatch
-				fmt.Printf("in tickers[0]: fbBatch=%#v\n", fbBatch)
+				fmt.Println("in tickers[0]: len(fbBatch.FBlocks)=", len(fbBatch.FBlocks))
 				if len(fbBatch.FBlocks) == 0 {
 					fbBlock.Header.BatchFlag = byte(1)
 				}
 				fbBatch.FBlocks = append(fbBatch.FBlocks, fbBlock)
-				fmt.Printf("in tickers[0]: ADDED FBBLOCK: fbBatch=%#v\n", fbBatch)
+				fmt.Println("in tickers[0]: ADDED FBBLOCK: len(fbBatch.FBlocks)=", len(fbBatch.FBlocks))
 			}
 			
 			saveFChain(fchain)									
@@ -286,7 +288,7 @@ func init() {
 				fbBatch = newFBBatch
 				fbBatches = append(fbBatches, newFBBatch)
 			
-				fmt.Printf("in tickers[1]: doneBatch.FBlocks.len=%d, doneBatch=%#v\n", len(doneBatch.FBlocks), doneBatch)
+				fmt.Printf("in tickers[1]: doneBatch=%#v\n", doneBatch)
 			
 				// go routine here?
 				saveFBBatchMerkleRoottoBTC(doneBatch)

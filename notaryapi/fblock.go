@@ -76,7 +76,7 @@ func CreateFBlock(chain *FChain, prev *FBlock, capacity uint) (b *FBlock, err er
 		prevHash, err = CreateHash(prev)
 	}
 	
-	b.Header = NewFBlockHeader(chain.NextBlockID, prevHash, EmptyHash(), FBlockVersion, uint32(0))
+	b.Header = NewFBlockHeader(chain.NextBlockID, prevHash, FBlockVersion, uint32(0))
 	
 	b.Chain = chain
 

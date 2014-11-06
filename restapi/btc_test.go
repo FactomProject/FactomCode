@@ -4,8 +4,10 @@ import (
 	"testing"
 	"fmt"
 	"time"
+	"bytes"
 
 	"github.com/conformal/btcutil"
+	"github.com/conformal/btcwire"	
 	"github.com/FactomProject/FactomCode/notaryapi"
 )
 
@@ -146,6 +148,15 @@ func TestRepeatedSpending(t *testing.T) {
 }
 
 
+func TestToHash(t *testing.T) {
+	s := "e517043a9770aacc7406db5f2ae8b3d687ce9bca3c8f76bc0be1ed18aed7ad68"
+	txHash, err := btcwire.NewShaHashFromStr(s)
+	if err != nil {fmt.Println(err.Error()) }
+	h := toHash(txHash)
+	fmt.Println("txHash=", txHash.String(), ", toHash=", h.String())
+	fmt.Println("equal in string: ", txHash.String() == h.String())
+	fmt.Println("equal in bytes: ", bytes.Compare(txHash.Bytes(), h.Bytes))
+}
 
 
 
