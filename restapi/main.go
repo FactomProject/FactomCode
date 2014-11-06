@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/xml"
 	"errors"
-//	"flag"
+	"flag"
 	"fmt"
 	"github.com/FactomProject/FactomCode/notaryapi"
 	"github.com/conformal/btcrpcclient"
@@ -23,7 +23,6 @@ import (
 	"log"
 	"encoding/binary"
 	"encoding/csv"
-//	"container/list"
  
 	"github.com/FactomProject/FactomCode/database"	
 	"github.com/FactomProject/FactomCode/database/ldb"	
@@ -43,7 +42,6 @@ var  (
 	fchain *notaryapi.FChain	//Factom Chain
 	
 	fbBatches []*notaryapi.FBBatch
-//	fbBatches *list.List
 	fbBatch *notaryapi.FBBatch
 )
 
@@ -282,11 +280,10 @@ func init() {
 			// skip empty fbBatch.
 			if len(fbBatch.FBlocks) > 0 {
 				doneBatch := fbBatch
-				newFBBatch := &notaryapi.FBBatch {
+				fbBatch = &notaryapi.FBBatch {
 					FBlocks: make([]*notaryapi.FBlock, 0, 10),
 				}
-				fbBatch = newFBBatch
-				fbBatches = append(fbBatches, newFBBatch)
+				fbBatches = append(fbBatches, doneBatch)
 			
 				fmt.Printf("in tickers[1]: doneBatch=%#v\n", doneBatch)
 			
@@ -314,23 +311,21 @@ func main() {
 		log.Fatalf("cannot init wallet: %s", err)
 	}
 	
-	doEntries()
+//	doEntries()
 	
-/*	
+	
 	flag.Parse()
-
 	defer func() {
 		tickers[0].Stop()
 		tickers[1].Stop()
 		dynrsrc.Stop()
 		db.Close()
 	}()
-
 	http.HandleFunc("/", serveRESTfulHTTP)
 	err = http.ListenAndServe(":"+strconv.Itoa(portNumber), nil)
 	if err != nil {
 		panic(err)
-	}*/
+	}
 
 }
 
