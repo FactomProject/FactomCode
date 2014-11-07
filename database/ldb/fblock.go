@@ -184,10 +184,8 @@ func (db *LevelDb) FetchAllFBInfos() (fbInfos []notaryapi.FBInfo, err error){
 	defer db.dbLock.Unlock()
 
 	var fromkey [] byte = []byte{byte(TBL_FB_INFO)} 		  			// Table Name (1 bytes)						// Timestamp  (8 bytes)
-
-	var tokey [] byte 		  											// Table Name (1 bytes)
-
-	
+	var tokey [] byte = []byte{byte(TBL_FB_INFO+1)} 		  			// Table Name (1 bytes)	
+		
 	fbInfoSlice := make([]notaryapi.FBInfo, 0, 10) 	
 	
 	iter := db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
@@ -244,6 +242,19 @@ func (db *LevelDb) FetchAllDBRecordsByFBHash(fbHash *notaryapi.Hash) (ldbMap map
 		ldbMap[notaryapi.EncodeBinary(&key)] = notaryapi.EncodeBinary(&data)
 	}
 	
+	// Chain Num cross references --- to be removed ???
+	fromkey := []byte{byte(TBL_EB_CHAIN_NUM)} 	
+	tokey := []byte{byte(TBL_EB_CHAIN_NUM+1)} 	  			
+	iter := db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
+	
+	for iter.Next() {		
+		k := iter.Key()
+		v := iter.Value()
+		ldbMap[notaryapi.EncodeBinary(&k)] = notaryapi.EncodeBinary(&v)
+	}
+	iter.Release()
+	err = iter.Error()		
+	
 	//EBlocks
 	for _, fbentry := range fblock.FBEntries{
 		//EBlock
@@ -290,11 +301,59 @@ func (db *LevelDb) FetchAllDBRecordsByFBHash(fbHash *notaryapi.Hash) (ldbMap map
 		
 	}
 	
-	
-	
 	return ldbMap, nil
 } 
 
+
+// FetchSupportDBRecords gets all supporting db records
+func (db *LevelDb) FetchSupportDBRecords() (ldbMap map[string]string, err error) {
+//	db.dbLock.Lock()
+//	defer db.dbLock.Unlock()
+	if ldbMap == nil {
+		ldbMap = make(map[string]string)
+	}
+	
+	// Chains 
+	fromkey := []byte{byte(TBL_CHAIN_HASH)} 
+	tokey := []byte{byte(TBL_CHAIN_HASH+1)} 			  			
+	iter := db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
+	
+	for iter.Next() {		
+		k := iter.Key()
+		v := iter.Value()
+		ldbMap[notaryapi.EncodeBinary(&k)] = notaryapi.EncodeBinary(&v)
+	}
+	iter.Release()
+	err = iter.Error()	
+	
+	// Chain Name cross references
+	fromkey = []byte{byte(TBL_CHAIN_NAME)} 	
+	tokey = []byte{byte(TBL_CHAIN_NAME+1)} 	  			
+	iter = db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
+	
+	for iter.Next() {		
+		k := iter.Key()
+		v := iter.Value()
+		ldbMap[notaryapi.EncodeBinary(&k)] = notaryapi.EncodeBinary(&v)
+	}
+	iter.Release()
+	err = iter.Error()		
+
+	// Chain Num cross references
+	fromkey = []byte{byte(TBL_EB_CHAIN_NUM)} 	
+	tokey = []byte{byte(TBL_EB_CHAIN_NUM+1)} 	  			
+	iter = db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
+	
+	for iter.Next() {		
+		k := iter.Key()
+		v := iter.Value()
+		ldbMap[notaryapi.EncodeBinary(&k)] = notaryapi.EncodeBinary(&v)
+	}
+	iter.Release()
+	err = iter.Error()	
+	
+	return ldbMap, nil
+} 
 // InsertAllDBRecords inserts all key value pairs from map into db
 func (db *LevelDb) InsertAllDBRecords(ldbMap map[string]string) (err error){
 	db.dbLock.Lock()

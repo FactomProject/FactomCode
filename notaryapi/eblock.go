@@ -11,7 +11,7 @@ import (
 
 )
 // Size of array used to store sha hashes.  See ShaHash.
-const Separator = "."
+const Separator = "/"
 
 type Chain struct {
 	ChainID 	*Hash
@@ -266,7 +266,7 @@ func (b *Chain) UnmarshalBinary(data []byte) (err error) {
 	for i:=uint64(0); i<count; i++{
 		length := binary.BigEndian.Uint64(data[0:8])		
 		data = data[8:]		
-		b.Name = append(b.Name, data[:length])
+		b.Name[i] = data[:length]
 		data = data[length:]
 	}
 	
@@ -280,24 +280,27 @@ func (b *Chain) GenerateIDFromName() (chainID *Hash, err error) {
 	for _, bytes := range b.Name{
 		byteSlice = append(byteSlice, Sha(bytes).Bytes ...)
 	}
-	
 	b.ChainID = Sha(byteSlice)
 	return b.ChainID, nil
 }
 
 // To encode the binary name to a string to enable internal path search in db
-// The algorithm is PathString = Hex(Name[0]) + "." + Hex(Name[0]) + "." + ... + Hex(Name[n])
+// The algorithm is PathString = Hex(Name[0]) + ":" + Hex(Name[0]) + ":" + ... + Hex(Name[n])
 func EncodeChainNameToString(name [][]byte) (pathstr string ) {
 	pathstr = ""
 	for _, bytes := range name{
-		pathstr = pathstr + EncodeBinary(&bytes)
+		pathstr = pathstr + EncodeBinary(&bytes) + Separator
+	}
+	
+	if len(pathstr)>0{
+		pathstr = pathstr[:len(pathstr)-1]
 	}
 	
 	return pathstr
 }
 
 // To decode the binary name to a string to enable internal path search in db
-// The algorithm is PathString = Hex(Name[0]) + "." + Hex(Name[0]) + "." + ... + Hex(Name[n])
+// The algorithm is PathString = Hex(Name[0]) + ":" + Hex(Name[0]) + ":" + ... + Hex(Name[n])
 func DecodeStringToChainName(pathstr string) (name [][]byte) {
 	strArray := strings.Split(pathstr, Separator)
 	bArray := make ([][]byte, 0, 32)

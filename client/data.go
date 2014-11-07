@@ -32,6 +32,7 @@ type Submission struct {
 
 var entries map[int]*FlaggedEntry
 var keys map[int]notaryapi.Key
+var chains map[int]notaryapi.Chain
 
 var marshaller gocoding.Marshaller
 var marshallerHTML gocoding.Marshaller
@@ -39,10 +40,10 @@ var unmarshaller gocoding.Unmarshaller
 
 var Settings = &struct {
 	Server string
-	NextKeyID, NextEntryID int
+	NextChainID, NextKeyID, NextEntryID int
 }{
 	serverAddr, 
-	0, 0,
+	0, 0, 0,
 }
 
 func init() {
@@ -83,6 +84,8 @@ func safeUnmarshal(reader gocoding.SliceableRuneReader, obj interface{}) error {
 
 func loadStore() {
 	keys = make(map[int]notaryapi.Key)
+	
+	chains = make(map[int]notaryapi.Chain)
 
 	err := os.MkdirAll(gobundle.ConfigFile("store"), 0755)
 	if err != nil { panic(err) }
@@ -234,10 +237,24 @@ func getKeyCount() int {
 	return len(keys)
 }
 
+func getChainCount() int {
+	return len(chains)
+}
+
 func getKeyIDs() []int {
 	ids := make([]int, getKeyCount())
 	i := 0
 	for id, _ := range keys {
+		ids[i] = id
+		i++
+	}
+	sort.Sort(sort.Reverse(sort.IntSlice(ids[:i])))
+	return ids[:i]
+}
+func getChainIDs() []int {
+	ids := make([]int, getChainCount())
+	i := 0
+	for id, _ := range chains {
 		ids[i] = id
 		i++
 	}
@@ -249,10 +266,20 @@ func getKey(id int) notaryapi.Key {
 	return keys[id]
 }
 
+func getChain(id int) notaryapi.Chain {
+	return chains[id]
+}
+
 func addKey(key notaryapi.Key) {
 	keys[Settings.NextKeyID] = key
 	storeKey(Settings.NextKeyID)
 	Settings.NextKeyID++
+}
+
+func addChain(chain notaryapi.Chain) {
+	chains[Settings.NextChainID] = chain
+	storeKey(Settings.NextChainID)
+	Settings.NextChainID++
 }
 
 func storeKey(id int) {

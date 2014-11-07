@@ -199,7 +199,6 @@ func (b *FBInfo) MarshalledSize() uint64 {
 
 func (b *FBInfo) UnmarshalBinary(data []byte) (err error) {
 
-	
 	b.FBHash = new(Hash)
 	b.FBHash.UnmarshalBinary(data[:33])
 	

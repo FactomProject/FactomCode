@@ -31,7 +31,8 @@ func serve_init() {
 	server.Post(`/entries/?`, handleEntriesPost)
 	server.Post(`/keys/?`, handleKeysPost)
 	server.Post(`/settings/?`, handleSettingsPost)
-	server.Post(`/search/?`, handleSearch)		
+	server.Post(`/search/?`, handleSearch)	
+	server.Post(`/addchain/?`, handleChainPost)	
 	
 	server.Get(`/entries/(?:add|\+)`, handleAddEntry)
 	server.Get(`/entries/([^/]+)(?:/([^/]+)(?:/([^/]+))?)?`, handleEntry)
@@ -41,7 +42,11 @@ func serve_init() {
 	server.Get(`/fblock/?`, handleAllFBlocks)		
 	server.Get(`/eblock/([^/]+)(?)`, handleEBlock)
 	server.Get(`/sentry/([^/]+)(?)`, handleSEntry)	
-	server.Get(`/search/?`, handleSearch)		
+	server.Get(`/search/?`, handleSearch)
+//	server.Get(`/addchain/?`, handleChain)		
+	server.Get(`/chains/?`, handleChains)	
+	server.Get(`/chains/(?:add|\+)`, handleAddChain)
+	server.Get(`/chain/([^/]+)(?)`, handleChain)
 } 
 
 func safeWrite(ctx *web.Context, code int, data map[string]interface{}) *notaryapi.Error {
@@ -74,7 +79,6 @@ func handleHome(ctx *web.Context) {
 }
 
 func handleEntries(ctx *web.Context) {
-	fmt.Println(" in handleEntries")
 	safeWrite200(ctx, map[string]interface{} {
 		"Title": "Entries",
 		"ContentTmpl": "entries.gwp",
@@ -396,6 +400,71 @@ func handleKeysPost(ctx *web.Context) {
 	}
 }
 
+func handleChainPost(ctx *web.Context) {
+	var abortMessage, abortReturn string
+	defer func() {
+		if abortMessage != "" && abortReturn != "" {
+			ctx.Header().Add("Location", fmt.Sprint("/failed?message=", abortMessage, "&return=", abortReturn))
+			ctx.WriteHeader(303)
+		}
+	}()
+		
+		bName := make ([][]byte, 0, 5)
+
+		
+			
+		level0 := ctx.Params["level0"]
+		if len(level0) > 0 {
+			bName = append(bName, []byte(level0))
+		}	
+		level1 := ctx.Params["level1"]
+		if len(level1) > 0 {
+			bName = append(bName, []byte(level1))
+		}		
+		level2 := ctx.Params["level2"]
+		if len(level2) > 0 {
+			bName = append(bName, []byte(level2))
+		}		
+		level3 := ctx.Params["level3"]
+		if len(level3) > 0 {
+			bName = append(bName, []byte(level3))
+		}		
+		level4 := ctx.Params["level4"]		
+		if len(level4) > 0 {
+			bName = append(bName, []byte(level4))
+		}		
+		fmt.Println("level0:%v", level0)			
+		fmt.Println("bName[0]%v", string(bName[0]))
+		chain := new(notaryapi.Chain)
+	
+		server := fmt.Sprintf(`http://%s/v1`, Settings.Server)
+		data := url.Values{}
+		
+		data.Set("datatype", "chain")
+		data.Set("format", "binary")
+		chain.Name = bName	
+		chain.GenerateIDFromName()	
+		fmt.Println("chainid:%v", chain.ChainID.String())
+					
+		binaryChain,_ := chain.MarshalBinary()
+		data.Set("chain", notaryapi.EncodeBinary(&binaryChain))
+		
+		resp, err := http.PostForm(server, data)
+		if err != nil {
+			abortMessage = fmt.Sprint("An error occured while submitting the entry (entry may have been accepted by the server but was not locally flagged as such): ", err.Error())
+			return
+		}
+		
+		body, err := ioutil.ReadAll(resp.Body)
+		
+		if body != nil{
+			fmt.Println("body: %v", notaryapi.EncodeBinary(&body))
+		}
+		
+		resp.Body.Close()
+		handleMessage(ctx, "Sumbitted", "The server has received your request to create a new chain with id: " + notaryapi.EncodeBinary(&body))
+}
+
 func handleSettingsPost(ctx *web.Context) {
 	Settings.Server = ctx.Params["server"]
 	saveSettings()
@@ -403,9 +472,12 @@ func handleSettingsPost(ctx *web.Context) {
 }
 
 func handleAddEntry(ctx *web.Context) {
+	chains, _ := db.FetchAllChainsByName(nil)
+	
 	safeWrite200(ctx, map[string]interface{} {
 		"Title": "Add Entry",
 		"ContentTmpl": "addentry.gwp",
+		"chains": chains,
 	})
 }
 
@@ -558,6 +630,35 @@ func handleAddKey(ctx *web.Context) {
 	})
 }
 
+
+func handleAddChain(ctx *web.Context) {
+	safeWrite200(ctx, map[string]interface{} {
+		"Title": "Add Chain",
+		"ContentTmpl": "addchain.gwp",
+	})
+}
+
+func handleChains(ctx *web.Context) {
+	var title, error_str string	
+
+	chains, _ := db.FetchAllChainsByName(nil)
+	//sort.Sort(byBlockID(fbInfoArray))
+	
+	defer func() {
+		r := safeWrite(ctx, 200, map[string]interface{} {
+			"Title": title,
+			"Error": error_str,
+			"ContentTmpl": "chains.gwp",
+			"chains": chains,		
+		})
+		if r != nil {
+			handleError(ctx, r)
+		}
+	}()
+	
+	
+}
+
 func handleKey(ctx *web.Context, key_id_str string, action string) {
 	var err error
 	var title, error_str string
@@ -658,6 +759,30 @@ func handleFBlock(ctx *web.Context, hashStr string) {
 			"fBlock": fBlock,	
 			"fbHash": hashStr,	
 			"fbInfo": fbInfo,		
+		})
+		if r != nil {
+			handleError(ctx, r)
+		}
+	}()
+	
+}
+
+func handleChain(ctx *web.Context, chainIDstr string) {
+	
+	var title, error_str string	
+	chainID,_ := notaryapi.HexToHash(chainIDstr)
+	
+	chain, _ := db.FetchChainByHash(chainID)
+	
+	eBInfos, _ := db.FetchAllEBInfosByChain(chainID)
+	
+	defer func() {
+		r := safeWrite(ctx, 200, map[string]interface{} {
+			"Title": title,
+			"Error": error_str,
+			"ContentTmpl": "chain.gwp",
+			"eBInfos": eBInfos,		
+			"chain": chain,
 		})
 		if r != nil {
 			handleError(ctx, r)

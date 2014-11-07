@@ -212,15 +212,11 @@ func init() {
 	
 		for i := 0; i < len(chain.Blocks); i = i + 1 {
 			if uint64(i) != chain.Blocks[i].Header.BlockID {
-				fmt.Println ("i:%v", i)
-				fmt.Println ("chain.Blocks[i].Header.BlockID:%v", chain.Blocks[i].Header.BlockID)
-				//bug to fix: store.10.block will come right after store.1.block
 				panic(errors.New("BlockID does not equal index"))
 			}
 		}
 	
 	}
-
 
 	// init FactomChain
 	initFChain()
@@ -408,7 +404,13 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		resource, err = post("/"+strings.Join(path, "/"), form)
+		datatype := form.Get("datatype") 
+		switch datatype {
+			case "chain":
+				resource, err = postChain("/"+strings.Join(path, "/"), form)
+			default:
+				resource, err = postEntry("/"+strings.Join(path, "/"), form)
+		}
 
 	default:
 		err = notaryapi.CreateError(notaryapi.ErrorBadMethod, fmt.Sprintf(`The HTTP %s method is not supported`, method))
@@ -433,7 +435,7 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 
 var blockPtrType = reflect.TypeOf((*notaryapi.Block)(nil)).Elem()
 
-func post(context string, form url.Values) (interface{}, *notaryapi.Error) {
+func postEntry(context string, form url.Values) (interface{}, *notaryapi.Error) {
 	newEntry := new(notaryapi.Entry)
 	format, data := form.Get("format"), form.Get("entry")
 
@@ -453,7 +455,6 @@ func post(context string, form url.Values) (interface{}, *notaryapi.Error) {
 	case "binary":
 		binaryEntry,_ := notaryapi.DecodeBinary(&data)
 		err := newEntry.UnmarshalBinary(binaryEntry)
-		fmt.Println("newEntry.data:%v", notaryapi.EncodeBinary(&newEntry.Data))
 		if err != nil {
 			return nil, notaryapi.CreateError(notaryapi.ErrorXMLUnmarshal, err.Error())
 		}
@@ -484,6 +485,46 @@ func post(context string, form url.Values) (interface{}, *notaryapi.Error) {
 	}
 
 	return hash.Bytes, nil
+}
+
+func postChain(context string, form url.Values) (interface{}, *notaryapi.Error) {
+	newChain := new(notaryapi.Chain)
+	format, data := form.Get("format"), form.Get("chain")
+
+	switch format {
+	case "binary":
+		binaryChain,_ := notaryapi.DecodeBinary(&data)
+		err := newChain.UnmarshalBinary(binaryChain)	
+		newChain.GenerateIDFromName()		
+		if err != nil {
+			return nil, notaryapi.CreateError(notaryapi.ErrorInternal, err.Error())
+		}
+	default:
+		return nil, notaryapi.CreateError(notaryapi.ErrorUnsupportedUnmarshal, fmt.Sprintf(`The format "%s" is not supported`, format))
+	}
+
+	if newChain == nil {
+		return nil, notaryapi.CreateError(notaryapi.ErrorInternal, `Chain is nil`)
+	}
+	
+	chain := chainIDMap[newChain.ChainID.String()]
+	if chain != nil{
+		return nil, notaryapi.CreateError(notaryapi.ErrorInternal, `This chain is already existing`) //ErrorInternal?
+	}
+	
+	// Store the new chain in db
+	db.InsertChain(newChain)
+	
+	// Chain initialization
+	initWithBinary(newChain)	
+	fmt.Println("Loaded", len(newChain.Blocks)-1, "blocks for chain: " + newChain.ChainID.String())	
+	
+	// Add the new chain in the chainIDMap
+	chainIDMap[newChain.ChainID.String()] = newChain	
+
+	ExportDataFromDbToFile()
+	
+	return newChain.ChainID.Bytes, nil
 }
 /*
 func createNewChain(chainName string) (chain *notaryapi.Chain){
@@ -563,6 +604,7 @@ func initFChain() {
 		}
 		block.Chain = fchain
 		block.IsSealed = true
+		
 		fchain.Blocks[num] = block
 		num++
 	}
@@ -614,8 +656,34 @@ func ExportDbToFile(fbHash *notaryapi.Hash) {
 	writer.Flush()	    
 }
 
+func ExportDataFromDbToFile() {
+	
+	if fileNotExists( dataStorePath+"csv/") {
+		os.MkdirAll(dataStorePath+"csv/" , 0755)
+	}
+	
+	//write the records to a csv file: 
+	file, err := os.Create(dataStorePath+"csv/"  + "supportdata.csv")
+	if err != nil {panic(err)}
+    defer file.Close()
+    writer := csv.NewWriter(file)
+ 
+ 	ldbMap, err := db.FetchSupportDBRecords()   
+	
+ 	if err != nil{
+ 		log.Println(err)
+ 		return
+ 	}
+ 	
+    for key, value := range ldbMap{
+	    //csv header: key, value
+	    writer.Write([]string {key, value})
+    }
+	writer.Flush()	    
+}
+
 func initChains() {
-	initChainIDs()
+	//initChainIDs()
 	
 	chainIDMap = make(map[string]*notaryapi.Chain)
 	//chainNameMap = make(map[string]*notaryapi.Chain)
@@ -634,7 +702,7 @@ func initChains() {
 }
 
 //for testing - to be moved into db-------------------------------------
-
+/*
 var chainIDs [][]byte
 
 func initChainIDs() {
@@ -661,5 +729,5 @@ func initChainIDs() {
 //	chainMap[string(chainIDs[1])] = chain2	
 
 }
-
+*/
 //--------------------------------------------------------------------------

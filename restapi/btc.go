@@ -377,16 +377,19 @@ func newFactomBlock(chain *notaryapi.FChain) {
 	log.Println("block" + strconv.FormatUint(block.Header.BlockID, 10) +" created for factom chain: "  + notaryapi.EncodeBinary(chain.ChainID))
 	
 	//Send transaction to BTC network
-	txHash, err := SendRawTransactionToBTC(blkhash.Bytes)
-	if err != nil {
-		log.Fatalf("cannot init rpc client: %s", err)
-	}
+	//txHash, err := SendRawTransactionToBTC(blkhash.Bytes)
+	//if err != nil {
+	//	log.Fatalf("cannot init rpc client: %s", err)
+	//}
+	
+	
 	
 	// Create a FBInfo and insert it into db
 	fbInfo := new (notaryapi.FBInfo)
 	fbInfo.FBHash = blkhash
 	btcTxHash := new (notaryapi.Hash)
-	btcTxHash.Bytes = txHash.Bytes()
+//	btcTxHash.Bytes = txHash.Bytes()
+	btcTxHash.Bytes =blkhash.Bytes
 	fbInfo.BTCTxHash = btcTxHash
 	fbInfo.FBlockID = block.Header.BlockID
 	
@@ -395,7 +398,8 @@ func newFactomBlock(chain *notaryapi.FChain) {
 	// Export all db records associated w/ this new factom block
 	ExportDbToFile(blkhash)
 	
-    log.Print("Recorded ", blkhash.Bytes, " in BTC transaction hash:\n",txHash)
+	
+    //log.Print("Recorded ", blkhash.Bytes, " in BTC transaction hash:\n",txHash)
     
     
 }

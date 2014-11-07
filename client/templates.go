@@ -61,6 +61,13 @@ func buildTemplateTree() (main *template.Template, err error) {
 		"isValidEntryID": templateIsValidEntryId,
 		"isEntrySubmitted": func (idx int) bool { sub := getEntrySubmission(idx); return sub != nil && sub.Host != "" },
 		"entrySubmission": getEntrySubmission,
+
+		"chain": templateGetChain,
+		"chainIDs": getChainIDs,
+		"chainCount": getChainCount,
+		"isValidChainID": templateIsValidChainId,
+		"chainNameToString": chainNameToString,
+		"bytesToString": bytesToString,
 		
 		"key": templateGetKey,
 		"keyIDs": getKeyIDs,
@@ -182,6 +189,18 @@ func templateGetKey(idx int) (map[string]interface{}, error) {
 	}, nil
 }
 
+func templateGetChain(idx int) (map[string]interface{}, error) {
+	chain, ok := chains[idx]
+	if !ok {
+		return nil, errors.New(fmt.Sprint("No Chain at index", idx))
+	}
+	
+	return map[string]interface{}{
+		"ID": idx,
+		"chain": chain,
+	}, nil
+}
+
 func templateIsValidKeyId(id interface{}) bool {
 	switch id.(type) {
 	case int:
@@ -199,6 +218,25 @@ func templateIsValidKeyId(id interface{}) bool {
 		return false
 	}
 }
+
+func templateIsValidChainId(id interface{}) bool {
+	switch id.(type) {
+	case int:
+		num := int(reflect.ValueOf(id).Int())
+		_, ok := chains[num]
+		return ok
+		
+	case string:
+		str := reflect.ValueOf(id).String()
+		num, err := strconv.Atoi(str)
+		if err != nil { return false }
+		return templateIsValidChainId(num)
+	
+	default:
+		return false
+	}
+}
+
 
 func templateKeysExceptEntrySigs(entry_id int) (keyIDs []int, err error) {
 	sigs := getEntry(entry_id).Signatures()
@@ -229,4 +267,22 @@ main:
 	keyIDs = keyIDs[:i]
 	
 	return keyIDs, nil
+}
+
+func bytesToString(bytes []byte) string {
+	return string(bytes)
+
+}
+
+func chainNameToString(name [][]byte) (pathstr string ) {
+	pathstr = ""
+	for _, bytes := range name{
+		pathstr = pathstr + string(bytes) + notaryapi.Separator
+	}
+	
+	if len(pathstr)>0{
+		pathstr = pathstr[:len(pathstr)-1]
+	}
+	
+	return pathstr
 }

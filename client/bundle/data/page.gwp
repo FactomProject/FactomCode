@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 	<head>
-		<title>{{.Title}} - NotaryChain Client</title>
+		<title>{{.Title}} - Factom Client</title>
 		<link rel="stylesheet" type="text/css" href="/style.css" />
 		<script>
 			function tree(data) {

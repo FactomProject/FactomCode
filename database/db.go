@@ -75,16 +75,27 @@ type Db interface {
 	// FetchEntryBlock gets an entry by hash from the database.
 	FetchEBlockByHash(eBlockHash *notaryapi.Hash) (eBlock *notaryapi.Block, err error)	
 
+	// FetchAllEBlocksByChain gets all of the blocks by chain id
+	FetchAllEBlocksByChain(chainID *notaryapi.Hash) (eBlocks *[]notaryapi.Block, err error)	
+
+	// FetchAllEBInfosByChain gets all of the entry block infos by chain id
+	FetchAllEBInfosByChain(chainID *notaryapi.Hash) (eBInfos *[]notaryapi.EBInfo, err error)
+	
+	
+
 	// FetchFBlock gets an entry by hash from the database.
 	FetchFBlockByHash(fBlockHash *notaryapi.Hash) (fBlock *notaryapi.FBlock, err error)	
 	
 	// FetchAllFBInfo gets all of the fbInfo 
 	FetchAllFBInfos() (fbInfos []notaryapi.FBInfo, err error)	
 	
-	// FetchFBInfoByHash gets an FBInfo obj
+	// FetchFBInfoByHash gets all db records related to a factom block
 	FetchAllDBRecordsByFBHash(fbHash *notaryapi.Hash) (ldbMap map[string]string, err error)	
 
 	// InsertAllDBRecords inserts all key value pairs from map into db
-	InsertAllDBRecords(ldbMap map[string]string) (err error)		
+	InsertAllDBRecords(ldbMap map[string]string) (err error)	
+	
+	// FetchSupportDBRecords gets support db records
+	FetchSupportDBRecords() (ldbMap map[string]string, err error)	
 }
 

@@ -17,6 +17,16 @@ Reference Client
       {{range activeEntryIDs}}<option>{{.}}</option>{{end}}
       <option>+</option>
     </select>
+  * {{if eq .Title "Chains"}}
+      <div>Chains</div>
+    {{else}}
+      [Chains](/chains)
+    {{end}}
+    <select id="key_select" data-key-id="{{unnil .KeyID -1}}" onchange="window.location='/chains/'+this.item(this.selectedIndex).innerHTML">
+      <option selected></option>
+      {{range keyIDs}}<option>{{.}}</option>{{end}}
+      <option>+</option>
+    </select>
   * {{if eq .Title "Keys"}}
       <div>Keys</div>
     {{else}}

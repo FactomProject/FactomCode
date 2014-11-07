@@ -6,8 +6,11 @@
 
 <form id="genform" method="post" action="/entries">
 	<select name="chainid">
-		<option value="0100000000000000000000000000000000000000000000000000000000000000" selected>Chain 1</option>
-		<option value="0200000000000000000000000000000000000000000000000000000000000000">Chain 2</option>
+		{{range .chains}}
+			{{with .}}<li><div>	
+				<option value="{{.ChainID}}" >{{chainNameToString .Name}}</option>
+			{{end}}
+		{{end}}
 	</select>
 <br />
 <br />	
