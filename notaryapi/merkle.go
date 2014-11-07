@@ -36,11 +36,6 @@ func HashMerkleBranches(left *Hash, right *Hash) *Hash {
 	return newSha
 }
 
-//func BuildMerkleTreeStore(transactions []*btcutil.Tx) []*btcwire.ShaHash {
-//func CreateHash(entities...BinaryMarshallable) (h *Hash, err error) {
-//func BuildMerkleTreeStore(entities...BinaryMarshallable) []*Hash {
-//func BuildMerkleTreeStore(entities...[]*BEntry) []*Hash {
-
 func BuildMerkleTreeStore(hashes []*Hash) []*Hash {
 	// Calculate how many entries are required to hold the binary merkle
 	// tree as a linear array and create an array of that size.

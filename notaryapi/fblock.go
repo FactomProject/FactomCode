@@ -20,23 +20,44 @@ type FBlock struct {
 	//Marshalized
 	Header *FBlockHeader 
 	FBEntries []*FBEntry
+	Salt *Hash	
 
 	//Not Marshalized
-	Salt *Hash
 	Chain *FChain
 	IsSealed bool
-
+	FBHash *Hash 
+	FBlockID uint64
 }
 
-type FBInfo struct {
 
+type FBInfo struct {
 	FBHash *Hash 
 	FBlockID uint64
 	BTCTxHash *Hash
-	//BTCBlockNum uint64
-	//BTCBlockOffset uint64
-	//EBInfoArray *[]EBInfo //not marshalized in db
+}
 
+	
+type FBBatch struct {
+
+	// FBlocks usually include 10 FBlocks, merkle root of which
+	// is written into BTC. Only hash of each FBlock will be marshalled
+	FBlocks []*FBlock	
+	
+	// BTCTxHash is the Tx hash returned from rpcclient.SendRawTransaction
+	BTCTxHash *Hash	// use string or *btcwire.ShaHash ???
+	
+	// BTCTxOffset is the index of the TX in this BTC block
+	BTCTxOffset int
+	
+	// BTCBlockHeight is the height of the block where this TX is stored in BTC
+	BTCBlockHeight int32
+	
+	//BTCBlockHash is the hash of the block where this TX is stored in BTC
+	BTCBlockHash *Hash	// use string or *btcwire.ShaHash ???
+	
+	// FBBatchMerkleRoot is the merkle root of a batch of 10 FactomBlocks
+	// and is written into BTC as OP_RETURN data
+	FBBatchMerkleRoot *Hash
 }
 
 func CreateFBlock(chain *FChain, prev *FBlock, capacity uint) (b *FBlock, err error) {
@@ -55,7 +76,7 @@ func CreateFBlock(chain *FChain, prev *FBlock, capacity uint) (b *FBlock, err er
 		prevHash, err = CreateHash(prev)
 	}
 	
-	b.Header = NewFBlockHeader(chain.NextBlockID, prevHash, EmptyHash(), FBlockVersion, uint32(0))
+	b.Header = NewFBlockHeader(chain.NextBlockID, prevHash, FBlockVersion, uint32(0))
 	
 	b.Chain = chain
 
@@ -91,26 +112,15 @@ func (fchain *FChain) AddFBEntry(eb *Block, hash *Hash) (err error) {
 func (b *FBlock) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
 
-	hashes := make([]*Hash, len(b.FBEntries))
-	for i, entry := range b.FBEntries {
-		data, _ := entry.MarshalBinary()
-		hashes[i] = Sha(data)
+	if b.Header.MerkleRoot == nil {
+		b.Header.MerkleRoot = b.calculateMerkleRoot()
 	}
-	
-	merkle := BuildMerkleTreeStore(hashes)
-	//merkle := BuildMerkleTreeStore(b.FBEntries)
-	b.Header.MerkleRoot = merkle[len(merkle) - 1]
 
 	b.Header.EntryCount = uint32(len(b.FBEntries))
 	//fmt.Println("fblock.count=", b.Header.EntryCount)
 	
 	data, _ = b.Header.MarshalBinary()
 	buf.Write(data)
-	
-	//binary.Write(&buf, binary.BigEndian, b.BlockID)	
-	//data, _ = b.PreviousHash.MarshalBinary()
-	//buf.Write(data)
-	
 
 	count := uint32(len(b.FBEntries))
 	// need to get rid of count, duplicated with blockheader.entrycount
@@ -119,7 +129,6 @@ func (b *FBlock) MarshalBinary() (data []byte, err error) {
 		data, _ := b.FBEntries[i].MarshalBinary()
 		buf.Write(data)
 	}
-
 	
 	data, _ = b.Salt.MarshalBinary()
 	buf.Write(data)
@@ -127,11 +136,22 @@ func (b *FBlock) MarshalBinary() (data []byte, err error) {
 	return buf.Bytes(), err
 }
 
+
+func (b *FBlock) calculateMerkleRoot() *Hash {
+	hashes := make([]*Hash, len(b.FBEntries))
+	for i, entry := range b.FBEntries {
+		data, _ := entry.MarshalBinary()
+		hashes[i] = Sha(data)
+	}
+	
+	merkle := BuildMerkleTreeStore(hashes)
+	//merkle := BuildMerkleTreeStore(b.FBEntries)
+	return merkle[len(merkle) - 1]
+}
+
+
 func (b *FBlock) MarshalledSize() uint64 {
 	var size uint64 = 0
-	
-	//size += 8 // BlockID uint64
-	//size += b.PreviousHash.MarshalledSize()
 	
 	size += b.Header.MarshalledSize()
 	size += 4 // len(Entries) uint32
@@ -145,12 +165,6 @@ func (b *FBlock) MarshalledSize() uint64 {
 }
 
 func (b *FBlock) UnmarshalBinary(data []byte) (err error) {
-	//b.BlockID, data = binary.BigEndian.Uint64(data[0:8]), data[8:]
-	
-	//b.PreviousHash = new(Hash)
-	//b.PreviousHash.UnmarshalBinary(data)
-	//data = data[b.PreviousHash.MarshalledSize():]
-	
 	fbh := new(FBlockHeader)
 	fbh.UnmarshalBinary(data)
 	b.Header = fbh
@@ -172,6 +186,74 @@ func (b *FBlock) UnmarshalBinary(data []byte) (err error) {
 	return nil
 }
 
+
+func (b *FBBatch) MarshalBinary() (data []byte, err error) {
+	var buf bytes.Buffer
+	
+	count := len(b.FBlocks)
+	binary.Write(&buf, binary.BigEndian, count)
+	for _, fb := range b.FBlocks {
+		data, _ := fb.FBHash.MarshalBinary()
+		buf.Write(data)
+	}
+
+	data, _ = b.BTCTxHash.MarshalBinary()
+	buf.Write(data)
+	
+	binary.Write(&buf, binary.BigEndian, b.BTCTxOffset)	
+	binary.Write(&buf, binary.BigEndian, b.BTCBlockHeight)	
+
+	data, _ = b.BTCBlockHash.MarshalBinary()
+	buf.Write(data)
+
+	data, _ = b.FBBatchMerkleRoot.MarshalBinary()
+	buf.Write(data)
+	
+	return buf.Bytes(), err
+}
+
+
+func (b *FBBatch) MarshalledSize() uint64 {
+	var size uint64 = 0
+	size += 4 + uint64(33 * len(b.FBlocks))	//FBlocks
+	size += 33	//BTCTxHash
+	size += 4	//BTCTxOffset
+	size += 4 	//BTCBlockHeight
+	size += 33	//BTCBlockHash
+	size += 33	//FBBatchMerkleRoot
+	
+	return size	
+}
+
+
+func (b *FBBatch) UnmarshalBinary(data []byte) (err error) {
+	count, data := binary.BigEndian.Uint32(data[0:4]), data[4:]
+	b.FBlocks = make([]*FBlock, count)
+	for i := uint32(0); i < count; i = i + 1 {
+		b.FBlocks[i] = new(FBlock)
+		err = b.FBlocks[i].FBHash.UnmarshalBinary(data)
+		if err != nil { return }
+		data = data[33:]
+	}
+
+	b.BTCTxHash = new(Hash)
+	b.BTCTxHash.UnmarshalBinary(data[:33])	
+	data = data[33:] 
+	
+	b.BTCTxOffset = int(binary.BigEndian.Uint32(data[:4]))
+	data = data[4:]
+	
+	b.BTCBlockHeight = int32(binary.BigEndian.Uint32(data[:4]))
+	data = data[4:]
+
+	b.BTCBlockHash = new(Hash)
+	b.BTCBlockHash.UnmarshalBinary(data[:33])	
+
+	b.FBBatchMerkleRoot = new(Hash)
+	b.FBBatchMerkleRoot.UnmarshalBinary(data[:33])	
+	
+	return nil
+}
 
 
 func (b *FBInfo) MarshalBinary() (data []byte, err error) {

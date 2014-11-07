@@ -89,8 +89,9 @@ func (hash *Hash) SetBytes(newHash []byte) error {
 		return fmt.Errorf("invalid sha length of %v, want %v", nhlen,
 			HashSize)
 	}
-	//copy(hash[:], newHash[0:HashSize])
-	copy(hash.Bytes, newHash[0:HashSize])
+
+	hash.Bytes = make([]byte, HashSize)
+	copy(hash.Bytes, newHash)
 	return nil
 }
 
