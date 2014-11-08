@@ -75,7 +75,7 @@ func (db *LevelDb) FetchEntryInfoBranchByHash(entryHash *notaryapi.Hash) (entryI
 	}
 	
 	if entryInfoBranch.EBInfo != nil{
-		entryInfoBranch.FBInfo, _ = db.FetchFBInfoByHash(entryInfoBranch.EBInfo.FBHash)
+		entryInfoBranch.FBBatch, _ = db.FetchFBBatchByHash(entryInfoBranch.EBInfo.FBHash)
 	}
 	
 	return entryInfoBranch, nil

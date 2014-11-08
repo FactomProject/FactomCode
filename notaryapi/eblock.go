@@ -31,6 +31,7 @@ type Block struct {
 	EBEntries []*EBEntry
 
 	//Not Marshalized
+	EBHash *Hash 	
 	Salt *Hash
 	Chain *Chain	
 	IsSealed bool
@@ -44,7 +45,7 @@ type EBInfo struct {
     ChainID *Hash
     //FBOffset uint64
     //EntryInfoArray *[]EntryInfo //not marshalized in db
-    
+  
 }
 
 

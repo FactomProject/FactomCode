@@ -189,7 +189,7 @@ func RefreshPendingEntries(){
 		hash := new (notaryapi.Hash)	
 		hash.Bytes, _ = notaryapi.DecodeBinary(&entries[id].Submitted.EntryHash)
 		entryInfoBranch, _ := db.FetchEntryInfoBranchByHash(hash)
-		if entryInfoBranch.FBInfo != nil {
+		if entryInfoBranch.FBBatch != nil {
 			entries[id].Submitted.Confirmed = true
 			storeEntry(id)
 		}

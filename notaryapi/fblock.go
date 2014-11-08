@@ -3,7 +3,6 @@ package notaryapi
 import (
 	"bytes"
 	"errors"
-	
 	"encoding/binary"
 	"sync"
 )
@@ -26,16 +25,8 @@ type FBlock struct {
 	Chain *FChain
 	IsSealed bool
 	FBHash *Hash 
-	FBlockID uint64
+	//FBlockID uint64
 }
-
-
-type FBInfo struct {
-	FBHash *Hash 
-	FBlockID uint64
-	BTCTxHash *Hash
-}
-
 	
 type FBBatch struct {
 
@@ -190,7 +181,7 @@ func (b *FBlock) UnmarshalBinary(data []byte) (err error) {
 func (b *FBBatch) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
 	
-	count := len(b.FBlocks)
+	count := uint32(len(b.FBlocks))
 	binary.Write(&buf, binary.BigEndian, count)
 	for _, fb := range b.FBlocks {
 		data, _ := fb.FBHash.MarshalBinary()
@@ -227,10 +218,12 @@ func (b *FBBatch) MarshalledSize() uint64 {
 
 
 func (b *FBBatch) UnmarshalBinary(data []byte) (err error) {
+
 	count, data := binary.BigEndian.Uint32(data[0:4]), data[4:]
 	b.FBlocks = make([]*FBlock, count)
 	for i := uint32(0); i < count; i = i + 1 {
 		b.FBlocks[i] = new(FBlock)
+		b.FBlocks[i].FBHash = new (Hash)
 		err = b.FBlocks[i].FBHash.UnmarshalBinary(data)
 		if err != nil { return }
 		data = data[33:]
@@ -246,51 +239,12 @@ func (b *FBBatch) UnmarshalBinary(data []byte) (err error) {
 	b.BTCBlockHeight = int32(binary.BigEndian.Uint32(data[:4]))
 	data = data[4:]
 
+
 	b.BTCBlockHash = new(Hash)
 	b.BTCBlockHash.UnmarshalBinary(data[:33])	
 
 	b.FBBatchMerkleRoot = new(Hash)
 	b.FBBatchMerkleRoot.UnmarshalBinary(data[:33])	
-	
-	return nil
-}
-
-
-func (b *FBInfo) MarshalBinary() (data []byte, err error) {
-	var buf bytes.Buffer
-
-	data, _ = b.FBHash.MarshalBinary()
-	buf.Write(data)
-	
-	binary.Write(&buf, binary.BigEndian, b.FBlockID)	
-		
-	data, _ = b.BTCTxHash.MarshalBinary()
-	buf.Write(data)
-	
-	return buf.Bytes(), err
-}
-
-func (b *FBInfo) MarshalledSize() uint64 {
-	var size uint64 = 0
-	size += 33	//FBHash
-	size += 8	//FBlockID
-	size += 33 	//BTCTxHash
-	
-	return size
-}
-
-func (b *FBInfo) UnmarshalBinary(data []byte) (err error) {
-
-	b.FBHash = new(Hash)
-	b.FBHash.UnmarshalBinary(data[:33])
-	
-	data = data[33:]
-	b.FBlockID = binary.BigEndian.Uint64(data[:8])
-
-	data = data[8:]
-	b.BTCTxHash = new(Hash)
-	b.BTCTxHash.UnmarshalBinary(data[:33])	
-	
 	
 	return nil
 }

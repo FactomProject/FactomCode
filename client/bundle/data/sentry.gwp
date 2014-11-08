@@ -1,5 +1,5 @@
 <div class="entry">
-		<h4>Chain: {{ .ebInfo.ChainID}}</h4>		
+		<h4>Chain: <a href="/chain/{{.ebInfo.ChainID}}">{{ .ebInfo.ChainID}}</a></h4>		
 
 		
 		<div class="submitted">	

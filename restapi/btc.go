@@ -463,13 +463,14 @@ func saveFBBatch(transaction *btcutil.Tx, details *btcws.BlockDetails) {
 	if found {
 		fmt.Printf("found in fbBatches: i=%d, len=%d, DELETE fbBatch%#v\n",i , len(fbBatches), fbBatches[i])
 		
-		//todo: update db with FBBatch
-		//db.InsertFBInfo(blkhash, fbBatches[i])
-		
 		//delete fbBatches[i]
 		fbBatches = append(fbBatches[:i], fbBatches[i+1:]...)
 		//copy(fbBatches[i:], fbBatches[i+1:])
-		//fbBatches[len(fbBatches) - 1] = nil					
+		//fbBatches[len(fbBatches) - 1] = nil	
+		
+		// Update db with FBBatch
+		db.InsertFBBatch(fbBatches[i])
+		ExportDataFromDbToFile()						
 
 		fmt.Println("found in fbBatches: after deletion, len=", len(fbBatches))
 	}
@@ -585,16 +586,16 @@ func newFactomBlock(chain *notaryapi.FChain) *notaryapi.FBlock {
 	chain.BlockMutex.Unlock()
 
 	//Store the block in db
-//	db.ProcessFBlockBatch(blkhash, block) 	
-	//need to add a FB process queue in db??	
+	db.ProcessFBlockBatch(blkhash, block) 	
+
 	log.Println("FactomBlock: block" + strconv.FormatUint(block.Header.BlockID, 10) +" created for factom chain: "  + notaryapi.EncodeBinary(chain.ChainID))
 
 	//update FBBlock with FBHash & FBlockID
 	block.FBHash = blkhash
-	block.FBlockID = block.Header.BlockID
+	//block.FBlockID = block.Header.BlockID
 	
 	//Export all db records associated w/ this new factom block
-//	ExportDbToFile(blkhash)
+	ExportDbToFile(blkhash)
 	
 	return block
 }
@@ -613,33 +614,6 @@ func saveFBBatchMerkleRoottoBTC(fbBatch *notaryapi.FBBatch) {
 	merkleRoot := merkle[len(merkle) - 1]
 	fbBatch.FBBatchMerkleRoot = merkleRoot
 
-	//Send transaction to BTC network
-		/* to be removed
-			//txHash, err := SendRawTransactionToBTC(blkhash.Bytes)
-			//if err != nil {
-			//	log.Fatalf("cannot init rpc client: %s", err)
-			//}
-	
-	
-	
-			// Create a FBInfo and insert it into db
-			fbInfo := new (notaryapi.FBInfo)
-			fbInfo.FBHash = blkhash
-			btcTxHash := new (notaryapi.Hash)
-		//	btcTxHash.Bytes = txHash.Bytes()
-			btcTxHash.Bytes =blkhash.Bytes
-			fbInfo.BTCTxHash = btcTxHash
-			fbInfo.FBlockID = block.Header.BlockID
-	
-			db.InsertFBInfo(blkhash, fbInfo)
-	
-			// Export all db records associated w/ this new factom block
-			ExportDbToFile(blkhash)
-	
-	
-		    //log.Print("Recorded ", blkhash.Bytes, " in BTC transaction hash:\n",txHash)
-		    
-		*/
 	txHash, err := writeToBTC(merkleRoot.Bytes)		
 	if err != nil {
 		failedMerkles = append(failedMerkles, merkleRoot)
@@ -649,8 +623,7 @@ func saveFBBatchMerkleRoottoBTC(fbBatch *notaryapi.FBBatch) {
 	//convert btc tx hash to factom hash, and update fbBatch
 	fbBatch.BTCTxHash = toHash(txHash)
 
-    	fmt.Print("Recorded FBBatch merkle root in BTC tx hash:\n",txHash, "\nconverted hash: ", fbBatch.BTCTxHash.String(), "\n")
-	   
+    fmt.Print("Recorded FBBatch merkle root in BTC tx hash:\n",txHash, "\nconverted hash: ", fbBatch.BTCTxHash.String(), "\n")
 
 }
 

@@ -13,9 +13,10 @@
 				{{end}}					
 				Merkle Root: {{ .MerkleRoot}}		<br>
 				Created Time: {{ .RealTime}}		<br>
-			{{end}}					
-				BTC transaction: <a href="http://blockexplorer.com/testnet/tx/{{.fbInfo.BTCTxHash.BTCString}}"> {{.fbInfo.BTCTxHash.BTCString}}</a> <br>
-	
+			{{end}}		
+			{{if eq .fbBatchStatus "existing"}}					
+				BTC transaction: <a href="http://blockexplorer.com/testnet/tx/{{.fbBatch.BTCTxHash.BTCString}}"> {{.fbBatch.BTCTxHash.BTCString}}</a> <br>
+			{{end}}		
 		</div>
 
 				<hr />

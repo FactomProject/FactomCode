@@ -309,6 +309,7 @@ func (db *LevelDb)	FetchAllEBlocksByChain(chainID *notaryapi.Hash) (eBlocks *[]n
 		if data != nil{
 			eBlock := new (notaryapi.Block)
 			eBlock.UnmarshalBinary(data)
+			eBlock.EBHash = eBlockHash
 			eBlockSlice = append(eBlockSlice, *eBlock)					
 		}
 	}

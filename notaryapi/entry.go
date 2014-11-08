@@ -30,7 +30,7 @@ type EntryInfoBranch struct {
 	
 	EntryInfo *EntryInfo
 	EBInfo *EBInfo
-	FBInfo *FBInfo
+	FBBatch *FBBatch
     
 }
 

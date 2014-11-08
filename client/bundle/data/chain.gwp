@@ -14,9 +14,9 @@
 		
 		<div class="submitted">
 			<ul>
-				{{range .eBInfos}}
+				{{range .eBlocks}}
 					{{with .}}<li><div>
-						<a href="/eblock/{{.EBHash}}">Block ID: {{.FBBlockNum}} Hash: {{.EBHash}} </a> <br>
+						<a href="/eblock/{{.EBHash}}">Block ID: {{.Header.BlockID}} Hash: {{.EBHash}} </a> <br>
 						</div></li>
 					{{end}}
 				{{end}}

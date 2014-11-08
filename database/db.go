@@ -58,13 +58,19 @@ type Db interface {
 	FetchAllChainsByName(chainName [][]byte) (chains *[]notaryapi.Chain, err error)		
 	
 	// Insert the Factom Block meta data into db
-	InsertFBInfo(fbHash *notaryapi.Hash, fbInfo *notaryapi.FBInfo) (err error)
+	//InsertFBInfo(fbHash *notaryapi.Hash, fbInfo *notaryapi.FBInfo) (err error)
 	
+	// Insert the Factom Block meta data into db
+	InsertFBBatch(fbBatch *notaryapi.FBBatch) (err error)
+		
 	// FetchEBInfoByHash gets an EBInfo obj
 	FetchEBInfoByHash(ebHash *notaryapi.Hash) (ebInfo *notaryapi.EBInfo, err error)
 	
 	// FetchFBInfoByHash gets an FBInfo obj
-	FetchFBInfoByHash(fbHash *notaryapi.Hash) (fbInfo *notaryapi.FBInfo, err error)
+	//FetchFBInfoByHash(fbHash *notaryapi.Hash) (fbInfo *notaryapi.FBInfo, err error)
+	
+	// FetchFBBatchByHash gets an FBBatch obj
+	FetchFBBatchByHash(fbHash *notaryapi.Hash) (fbBatch *notaryapi.FBBatch, err error)	
 
 	// FetchEntryInfoBranchByHash gets an EntryInfo obj
 	FetchEntryInfoByHash(entryHash *notaryapi.Hash) (entryInfo *notaryapi.EntryInfo, err error) 
@@ -87,7 +93,7 @@ type Db interface {
 	FetchFBlockByHash(fBlockHash *notaryapi.Hash) (fBlock *notaryapi.FBlock, err error)	
 	
 	// FetchAllFBInfo gets all of the fbInfo 
-	FetchAllFBInfos() (fbInfos []notaryapi.FBInfo, err error)	
+	FetchAllFBlocks() (fBlocks []notaryapi.FBlock, err error)	
 	
 	// FetchFBInfoByHash gets all db records related to a factom block
 	FetchAllDBRecordsByFBHash(fbHash *notaryapi.Hash) (ldbMap map[string]string, err error)	

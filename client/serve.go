@@ -741,12 +741,16 @@ func handleMessage(ctx *web.Context, title string, message string) {
 }
 func handleFBlock(ctx *web.Context, hashStr string) {
 	
-	var title, error_str string	
+	var title, error_str, fbBatchStatus string	
 	hash,_ := notaryapi.HexToHash(hashStr)
 	fBlock, _ := db.FetchFBlockByHash(hash)
-	fbInfo, _ := db.FetchFBInfoByHash(hash)
+	fbBatch, _ := db.FetchFBBatchByHash(hash)
 	
-	if fBlock == nil || fbInfo == nil {
+	if fbBatch != nil {
+		fbBatchStatus = "existing"
+	}
+	
+	if fBlock == nil {
 		handleMessage(ctx, "Not Found", "Factom Block not found for hash: " + hashStr)
 		return
 	}	
@@ -758,7 +762,8 @@ func handleFBlock(ctx *web.Context, hashStr string) {
 			"ContentTmpl": "fblock.gwp",
 			"fBlock": fBlock,	
 			"fbHash": hashStr,	
-			"fbInfo": fbInfo,		
+			"fbBatch": fbBatch,	
+			"fbBatchStatus": fbBatchStatus,
 		})
 		if r != nil {
 			handleError(ctx, r)
@@ -774,14 +779,15 @@ func handleChain(ctx *web.Context, chainIDstr string) {
 	
 	chain, _ := db.FetchChainByHash(chainID)
 	
-	eBInfos, _ := db.FetchAllEBInfosByChain(chainID)
+	eBlocks, _ := db.FetchAllEBlocksByChain(chainID)
+	sort.Sort(byEBlockID(*eBlocks))
 	
 	defer func() {
 		r := safeWrite(ctx, 200, map[string]interface{} {
 			"Title": title,
 			"Error": error_str,
 			"ContentTmpl": "chain.gwp",
-			"eBInfos": eBInfos,		
+			"eBlocks": eBlocks,		
 			"chain": chain,
 		})
 		if r != nil {
@@ -794,15 +800,15 @@ func handleChain(ctx *web.Context, chainIDstr string) {
 func handleAllFBlocks(ctx *web.Context) {
 	var title, error_str string	
 
-	fbInfoArray, _ := db.FetchAllFBInfos()
-	sort.Sort(byBlockID(fbInfoArray))
+	fBlocks, _ := db.FetchAllFBlocks()
+	sort.Sort(byBlockID(fBlocks))
 	
 	defer func() {
 		r := safeWrite(ctx, 200, map[string]interface{} {
 			"Title": title,
 			"Error": error_str,
 			"ContentTmpl": "fblocks.gwp",
-			"fbInfoArray": fbInfoArray,		
+			"fBlocks": fBlocks,		
 		})
 		if r != nil {
 			handleError(ctx, r)
@@ -843,13 +849,25 @@ func handleSearch(ctx *web.Context) {
 }
 
 // array sorting implementation
-type byBlockID []notaryapi.FBInfo
+type byBlockID []notaryapi.FBlock
 func (f byBlockID) Len() int { 
   return len(f) 
 } 
 func (f byBlockID) Less(i, j int) bool { 
-  return f[i].FBlockID > f[j].FBlockID
+  return f[i].Header.BlockID > f[j].Header.BlockID
 } 
 func (f byBlockID) Swap(i, j int) { 
+  f[i], f[j] = f[j], f[i] 
+} 
+
+// array sorting implementation
+type byEBlockID []notaryapi.Block
+func (f byEBlockID) Len() int { 
+  return len(f) 
+} 
+func (f byEBlockID) Less(i, j int) bool { 
+  return f[i].Header.BlockID > f[j].Header.BlockID
+} 
+func (f byEBlockID) Swap(i, j int) { 
   f[i], f[j] = f[j], f[i] 
 } 

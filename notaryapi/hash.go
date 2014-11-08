@@ -51,8 +51,11 @@ func (h *Hash) MarshalledSize() uint64 {
 }
 
 func (h *Hash) UnmarshalBinary(data []byte) error {
-	h.Bytes, data = make([]byte, data[0]), data[1:]
-	copy(h.Bytes, data)
+	h.Bytes = make([]byte, data[0])
+	if data[0] > byte(0){
+		data = data[1:]
+		copy(h.Bytes, data)
+	}
 	
 	return nil
 }
