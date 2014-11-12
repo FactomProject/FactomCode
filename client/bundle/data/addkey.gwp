@@ -6,6 +6,6 @@
 </select>
 <br />
 <form id="genform" method="post" action="/keys">
-	<input type="hidden" name="action" value="genKey" />
-	<input type="submit" value="Generate" />
+	<input type="hidden" name="action" value="genKey" /><br>
+	<input type="submit" value="Generate" class="button"/>
 </form>

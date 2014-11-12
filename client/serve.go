@@ -13,6 +13,7 @@ import (
 	"io/ioutil"
 	"strconv"
 	"sort"
+	"strings"
 
 )
 
@@ -34,7 +35,8 @@ func serve_init() {
 	server.Post(`/search/?`, handleSearch)	
 	server.Post(`/addchain/?`, handleChainPost)	
 	
-	server.Get(`/entries/(?:add|\+)`, handleAddEntry)
+//	server.Get(`/entries/(?:add|\+)`, handleAddEntry)
+	server.Get(`/entries/(?:add|\+)`, handleClientEntry)	
 	server.Get(`/entries/([^/]+)(?:/([^/]+)(?:/([^/]+))?)?`, handleEntry)
 	server.Get(`/keys/(?:add|\+)`, handleAddKey)
 	server.Get(`/keys/([^/]+)(?:/([^/]+))?`, handleKey)
@@ -207,12 +209,70 @@ func handleEntriesPost(ctx *web.Context) {
 			abortMessage = fmt.Sprint("Failed to submit entry: bad id: ", id)
 			return
 		}
-//		if sub := getEntrySubmission(idx); sub != nil {
-//			abortMessage = fmt.Sprint("Failed to submit entry: entry has already been submitted to ", sub.Host)
-//			return
-//		}
+
 		
 		entry := getEntry(idx)
+		
+		chainid := ctx.Params["chainid"]
+		binaryChainID, err := notaryapi.DecodeBinary(&chainid) 
+		if err != nil {
+			abortMessage = fmt.Sprint("Invalid chain id: ", chainid)
+			return
+		} else{
+			entry.ChainID = binaryChainID
+		}		
+
+		externalHashes := make([]notaryapi.Hash, 0, 10)
+		ehash0 := strings.TrimSpace(ctx.Params["ehash0"])
+		if len(ehash0)>0{
+			bytes := []byte(ehash0)
+			if len(bytes) < 32{
+				emptyBytes := make([]byte, 32-len(bytes), 32-len(bytes))
+				bytes = append(emptyBytes, bytes ...)
+			} else if len(bytes) == 64{
+				bytes,_ = notaryapi.DecodeBinary(&ehash0)
+			}
+			externalHash := new(notaryapi.Hash)
+			externalHash.Bytes = bytes[:32]
+			externalHashes = append(externalHashes, *externalHash)
+		}	
+		
+		ehash1 := strings.TrimSpace(ctx.Params["ehash1"])
+		if len(ehash1)>0{
+			bytes := []byte(ehash1)
+			if len(bytes) < 32{
+				emptyBytes := make([]byte, 32-len(bytes), 32-len(bytes))
+				bytes = append(emptyBytes, bytes ...)
+			} else if len(bytes) == 64{
+				bytes,_ = notaryapi.DecodeBinary(&ehash1)
+			}
+			externalHash := new(notaryapi.Hash)
+			externalHash.Bytes = bytes[:32]
+			externalHashes = append(externalHashes, *externalHash)
+		}	
+		
+		ehash2 := strings.TrimSpace(ctx.Params["ehash2"])
+		if len(ehash2)>0{
+			bytes := []byte(ehash2)
+			if len(bytes) < 32{
+				emptyBytes := make([]byte, 32-len(bytes), 32-len(bytes))
+				bytes = append(emptyBytes, bytes ...)
+			} else if len(bytes) == 64{
+				bytes,_ = notaryapi.DecodeBinary(&ehash2)
+			}
+			externalHash := new(notaryapi.Hash)
+			externalHash.Bytes = bytes[:32]
+			externalHashes = append(externalHashes, *externalHash)
+		}	
+		
+		entry.ExtHashes = &externalHashes
+
+		err = entry.DecodeFromString(ctx.Params["data"])
+		if err != nil {
+			abortMessage = fmt.Sprint("Failed to edit data entry data: error parsing data: ", err.Error())
+			return
+		}		
+		
 		buf := new(bytes.Buffer)
 		err = safeMarshal(buf, entry)
 		if err != nil {
@@ -226,11 +286,11 @@ func handleEntriesPost(ctx *web.Context) {
 		data.Set("format", "binary")
 		serverEntry := new (notaryapi.Entry)
 		serverEntry.ChainID.Bytes = entry.ChainID
+		serverEntry.ExtHashes = externalHashes
 		serverEntry.Data = entry.Data()
 		binaryEntry,_ := serverEntry.MarshalBinary()
 		
 		data.Set("entry", notaryapi.EncodeBinary(&binaryEntry))
-
 		
 		resp, err := http.PostForm(server, data)
 		if err != nil {
@@ -481,17 +541,44 @@ func handleAddEntry(ctx *web.Context) {
 	})
 }
 
+func handleClientEntry(ctx *web.Context) {
+
+	chains, _ := db.FetchAllChainsByName(nil)
+	entry := NewEntryOfType(EntryDataType(1))
+	entry_id := addEntry(entry)	
+	fmt.Println("len of chains:%v", len(*chains))
+	
+	safeWrite200(ctx, map[string]interface{} {
+		"Title": "Add Entry",
+		"ContentTmpl": "cliententry.gwp",
+		"chains": chains,
+		"EntryID": entry_id,		
+		
+	})
+}
+
 func handleEntry(ctx *web.Context, entry_id_str string, action string, action_id_str string) {
 
 	var err error
 	var title, error_str, tmpl string
 	var entry_id int
+	var newdata string
+	var externalHashes []notaryapi.Hash
 	
 	defer func(){
 		if action == "submit" {
 			tmpl = "entrysubmit.gwp"
 		} else {
 			tmpl = "entry.gwp"
+		}
+		
+		fentry, ok := entries[entry_id]
+		
+		if ok{
+			newdata = string (fentry.Entry.Data())
+			if fentry.Entry.ExtHashes != nil{
+				externalHashes = *fentry.Entry.ExtHashes
+			}
 		}
 		
 		r := safeWrite(ctx, 200, map[string]interface{} {
@@ -501,12 +588,14 @@ func handleEntry(ctx *web.Context, entry_id_str string, action string, action_id
 			"Error": error_str,
 			"Mode": action,
 			"ShowEntries": true,
+			"externalHashes": externalHashes,
+			"newdata": newdata,
 		})
 		if r != nil {
 			handleError(ctx, r)
 		}
 	}()
-	
+	 
 	entry_id, err = strconv.Atoi(entry_id_str)
 	
 	if err != nil  {
@@ -596,8 +685,7 @@ func handleSEntry(ctx *web.Context, entryHash string) {
 	defer func(){
 		tmpl = "sentry.gwp"
 		
-		bytes := entry.Data
-		entryData := notaryapi.EncodeBinary(&bytes)
+		entryData := string(entry.Data)
 		r := safeWrite(ctx, 200, map[string]interface{} {
 			"Title": title,
 			"ContentTmpl": tmpl,

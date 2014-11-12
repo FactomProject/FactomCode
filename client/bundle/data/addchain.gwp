@@ -14,5 +14,5 @@
 	<label>Name Level 3: </label><input type="text" name="level3" value="" /> <br /><br />
 	<label>Name Level 4: </label><input type="text" name="level4" value="" /> <br /><br />
 	<label>...</label> <br /><br />	
-	<div align = "left" ><input type="submit" value="Submit" /></div>
+	<div align = "left" ><input type="submit" value="Submit" class="button"/></div>
 </form>

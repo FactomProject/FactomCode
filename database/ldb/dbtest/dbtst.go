@@ -87,6 +87,6 @@ func main() {
 	}
 	
 	fmt.Printf("len(elice):%v", len(elice))
-	fmt.Printf("completed2\n")
+	fmt.Printf("completed\n")
 	ldb.Close()
 }

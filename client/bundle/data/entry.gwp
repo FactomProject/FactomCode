@@ -1,10 +1,10 @@
 {{if isValidEntryID .EntryID}}
 	{{$mode := unnil .Mode ""}}
 	{{$error := .Error}}
+	{{$subd := isEntrySubmitted .EntryID}}
+	{{$edit := and $mode (eq $mode "edit")  (not $subd)}}
+	{{$sign := and $mode (eq $mode "sign") (gt keyCount 0) (not $subd)}}	
 	{{with entry .EntryID}}
-		{{$subd := isEntrySubmitted .ID}}
-		{{$edit := and $mode (eq $mode "edit") (eq 0 (len .Signatures)) (not $subd)}}
-		{{$sign := and $mode (eq $mode "sign") (gt keyCount 0) (not $subd)}}
 		{{if $edit}}
 			<form id="editEntryForm" method="post" action="/entries">
 				<input type="hidden" name="id" value="{{.ID}}" />
@@ -24,17 +24,6 @@
 		<div class="entry">
 			<h1>
 				Entry {{.ID}} ({{.Type}}{{if $subd}}, Submitted{{end}})
-				{{if $edit}}
-					<input class="button" type="submit" value="Done" form="editEntryForm" />
-					<a class="button" href="/entries/{{.ID}}">Cancel</a>
-				{{else if $sign}}
-					<input class="button" type="submit" value="Sign" form="signEntryForm" />
-					<a class="button" href="/entries/{{.ID}}">Cancel</a>
-				{{else}}
-					{{if eq 0 (len .Signatures)}}<a class="button" href="/entries/{{.ID}}/edit">Edit</a>{{end}}
-					{{if gt keyCount 0}}<a class="button" href="/entries/{{.ID}}/sign">Sign</a>{{end}}
-					<a class="button" href="/entries/{{.ID}}/submit">Send</a>
-				{{end}}
 			</h1>
 			<hr />
 			{{if $error}}
@@ -75,14 +64,19 @@
 				</div>
 			{{end}}
 			<hr />
+		{{end}}
+			<div class="data">
+				<h4>External Hashes (Base16 encoding):</h4>
+				{{range .externalHashes}}
+					{{hexEncode .Bytes}}	<br>	
+				{{end}}	
+			</div>			
+			<hr />		
 			<div class="data">
 				<h4>Data:</h4>
-				{{if $edit}}
-					<textarea name="data" form="editEntryForm">{{.Data}}</textarea>
-				{{else}}
-					<p>{{.Data}}</p>
-				{{end}}
+					<p>{{.newdata}}</p>
 			</div>
+		{{with entry .EntryID}}			
 			{{if $subd}}{{with entrySubmission .ID}}
 				<hr />
 				<div class="submitted">

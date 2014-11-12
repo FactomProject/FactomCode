@@ -15,7 +15,11 @@
 	<div class="submitted">
 		<h3>Entry Details:</h3>
 		</br>
-		Entry Hash: {{ .entryInfo.EntryHash}}	<br>			
+		Entry Hash: {{ .entryInfo.EntryHash}}	<br>
+		{{range .entry.ExtHashes}}
+			External Hash: {{hexEncode .Bytes}}	<br>	
+		{{end}}	
+				
 		Entry Data: {{ .entryData}}	<br>	
 	</div>
 	</br>

@@ -77,9 +77,9 @@ func (e *Entry) UnmarshalBinary(data []byte) (err error) {
 	count,	data := data[0], data[1:]
 	e.ExtHashes = make([]Hash, count)	
 	for i := uint8(0); i < count; i++ {
-		err := e.ExtHashes[i].UnmarshalBinary(data[:e.ExtHashes[i].MarshalledSize()])
+		err := e.ExtHashes[i].UnmarshalBinary(data[:33])
 		if err != nil { return err }
-		data = data[e.ExtHashes[i].MarshalledSize():]
+		data = data[33:]
 	}	
 	
 	e.Data = data

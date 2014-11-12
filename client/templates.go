@@ -48,6 +48,7 @@ func buildTemplateTree() (main *template.Template, err error) {
 	funcmap := template.FuncMap{
 		"tmplref": templateRef,
 		"enc64": base64.StdEncoding.EncodeToString,
+		"hexEncode": notaryapi.EncodeBinary,
 		"atoi": func(str string) (int, error) { return strconv.Atoi(str) },
 		"itoa": func(num int) string { return strconv.Itoa(num) },
 		"isNil": func(val interface{}) bool { switch val.(type) { case nil: return true }; return false },
@@ -269,7 +270,7 @@ main:
 	return keyIDs, nil
 }
 
-func bytesToString(bytes []byte) string {
+func bytesToString(bytes string) string {
 	return string(bytes)
 
 }

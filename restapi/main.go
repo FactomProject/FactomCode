@@ -476,6 +476,7 @@ func postEntry(context string, form url.Values) (interface{}, *notaryapi.Error) 
 		}
 	case "binary":
 		binaryEntry,_ := notaryapi.DecodeBinary(&data)
+		fmt.Println("data:%v", data)
 		err := newEntry.UnmarshalBinary(binaryEntry)
 		if err != nil {
 			return nil, notaryapi.CreateError(notaryapi.ErrorXMLUnmarshal, err.Error())
@@ -500,6 +501,7 @@ func processNewEntry(newEntry *notaryapi.Entry) ([]byte, *notaryapi.Error) {
 	
 	// store the new entry in db
 	entryBinary, _ := newEntry.MarshalBinary()
+		fmt.Println("entryBinary:%v", notaryapi.EncodeBinary(&entryBinary))	
 	hash, _ := notaryapi.CreateHash(newEntry)
 	db.InsertEntryAndQueue( hash, &entryBinary, newEntry, &chain.ChainID.Bytes)
 

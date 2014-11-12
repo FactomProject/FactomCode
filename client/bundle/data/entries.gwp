@@ -8,5 +8,17 @@
 </ul>
 <h2>Confirmed</h2>
 <ul>
-	{{range confirmedEntryIDs}}{{with entry .}}<li><div><a href="/entries/{{.ID}}">Entry {{.ID}} ({{.Type}})</a> --> <a href="/sentry/{{.Submitted.EntryHash}}">Factom Confirmation</a></div></li>{{end}}{{end}}
+{{range confirmedEntryIDs}}
+	{{with entry .}}
+	<li><div><a href="/entries/{{.ID}}">Entry {{.ID}} ({{.Type}})</a> --> 
+		<a href="/sentry/{{.Submitted.EntryHash}}">
+		{{if eq .Submitted.Confirmed 1}}		
+			Confirmed by Factom
+		{{else}}
+			Confirmed by Bitcoin
+		{{end}}	
+		</a>
+	</div></li>
+	{{end}}
+{{end}}
 </ul>

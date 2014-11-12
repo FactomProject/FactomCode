@@ -26,7 +26,7 @@ type FlaggedEntry struct {
 
 type Submission struct {
 	Host string
-	Confirmed bool
+	Confirmed int
 	EntryHash string 
 }
 
@@ -156,7 +156,7 @@ func getPendingEntryIDs() []int {
 	ids := make([]int, getEntryCount())
 	i := 0
 	for id, entry := range entries {
-		if entry.Submitted == nil || entry.Submitted.Host == "" || entry.Submitted.Confirmed {
+		if entry.Submitted == nil || entry.Submitted.Host == "" || entry.Submitted.Confirmed>0 {
 			continue
 		}
 		
@@ -171,7 +171,7 @@ func getConfirmedEntryIDs() []int {
 	ids := make([]int, getEntryCount())
 	i := 0
 	for id, entry := range entries {
-		if entry.Submitted == nil || entry.Submitted.Host == "" || !entry.Submitted.Confirmed {
+		if entry.Submitted == nil || entry.Submitted.Host == "" || entry.Submitted.Confirmed ==0 {
 			continue
 		}
 		
@@ -190,9 +190,13 @@ func RefreshPendingEntries(){
 		hash.Bytes, _ = notaryapi.DecodeBinary(&entries[id].Submitted.EntryHash)
 		entryInfoBranch, _ := db.FetchEntryInfoBranchByHash(hash)
 		if entryInfoBranch.FBBatch != nil {
-			entries[id].Submitted.Confirmed = true
+			entries[id].Submitted.Confirmed =2
 			storeEntry(id)
+		} else if entryInfoBranch.EBInfo != nil{
+			entries[id].Submitted.Confirmed =1
+			storeEntry(id)			
 		}
+		
 	}
 }
 
@@ -236,7 +240,7 @@ func storeEntry(id int) {
 func getKeyCount() int {
 	return len(keys)
 }
-
+ 
 func getChainCount() int {
 	return len(chains)
 }
