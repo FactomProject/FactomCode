@@ -90,23 +90,17 @@ func (e *FBEntry) MarshalBinary() ([]byte, error) {
 
 func (e *FBEntry) MarshalledSize() uint64 {
 	var size uint64 = 0
-	
 	size += e.ChainID.MarshalledSize()// Chain ID	
-	
 	size += e.MerkleRoot.MarshalledSize()
-	
 	return size
 }
 
 func (e *FBEntry) UnmarshalBinary(data []byte) (err error) {
-
-	
 	e.ChainID = new (Hash)
 	e.ChainID.UnmarshalBinary(data[:33])
-
 		
-	e.hash = new(Hash)
-	e.hash.UnmarshalBinary(data[33:])
+	e.MerkleRoot = new(Hash)
+	e.MerkleRoot.UnmarshalBinary(data[33:])
 	
 	return nil
 }

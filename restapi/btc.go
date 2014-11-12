@@ -439,20 +439,20 @@ func createBtcdNotificationHandlers() btcrpcclient.NotificationHandlers {
 
 
 func saveFBBatch(transaction *btcutil.Tx, details *btcws.BlockDetails) {
-	fmt.Println("In saveFBBatch, len(fbBatches)=", len(fbBatches))
+	fmt.Println("In saveFBBatch, len(fbBatches.batches)=", len(fbBatches.batches))
 	var i int
 	var found bool
-	for i = 0; i < len(fbBatches); i++ {
-		fmt.Printf("i=%d, fbBatch=%#v\n", i, fbBatches[i])
+	for i = 0; i < len(fbBatches.batches); i++ {
+		fmt.Printf("i=%d, fbBatch=%#v\n", i, fbBatches.batches[i])
 		
-		if fbBatches[i].BTCTxHash != nil && 
-			bytes.Compare(fbBatches[i].BTCTxHash.Bytes, transaction.Sha().Bytes()) == 0 {
+		if fbBatches.batches[i].BTCTxHash != nil && 
+			bytes.Compare(fbBatches.batches[i].BTCTxHash.Bytes, transaction.Sha().Bytes()) == 0 {
 			
-			fbBatches[i].BTCTxOffset = details.Index
-			fbBatches[i].BTCBlockHeight = details.Height
+			fbBatches.batches[i].BTCTxOffset = details.Index
+			fbBatches.batches[i].BTCBlockHeight = details.Height
 			
 			txHash, _ := btcwire.NewShaHashFromStr(details.Hash)
-			fbBatches[i].BTCBlockHash = toHash(txHash)
+			fbBatches.batches[i].BTCBlockHash = toHash(txHash)
 			
 			found = true
 			break
@@ -461,18 +461,20 @@ func saveFBBatch(transaction *btcutil.Tx, details *btcws.BlockDetails) {
 	fmt.Println("In saveFBBatch, found=", found)
 
 	if found {
-		fmt.Printf("found in fbBatches: i=%d, len=%d, DELETE fbBatch%#v\n",i , len(fbBatches), fbBatches[i])
+		fmt.Printf("found in fbBatches: i=%d, len=%d, DELETE fbBatch%#v\n",i , len(fbBatches.batches), fbBatches.batches[i])
 		
-		//delete fbBatches[i]
-		fbBatches = append(fbBatches[:i], fbBatches[i+1:]...)
-		//copy(fbBatches[i:], fbBatches[i+1:])
-		//fbBatches[len(fbBatches) - 1] = nil	
+		//delete fbBatches.batches[i]
+		fbBatches.batchMutex.Lock()
+		copy(fbBatches.batches[i:], fbBatches.batches[i+1:])
+		fbBatches.batches[len(fbBatches.batches) - 1] = nil
+		fbBatches.batches = fbBatches.batches[:len(fbBatches.batches) - 1]
+		fbBatches.batchMutex.Unlock()
 		
 		// Update db with FBBatch
-		db.InsertFBBatch(fbBatches[i])
+		db.InsertFBBatch(fbBatches.batches[i])
 		ExportDataFromDbToFile()						
 
-		fmt.Println("found in fbBatches: after deletion, len=", len(fbBatches))
+		fmt.Println("found in fbBatches: after deletion, len=", len(fbBatches.batches))
 	}
 }
 
@@ -595,7 +597,7 @@ func newFactomBlock(chain *notaryapi.FChain) *notaryapi.FBlock {
 	//block.FBlockID = block.Header.BlockID
 	
 	//Export all db records associated w/ this new factom block
-	ExportDbToFile(blkhash)
+//	ExportDbToFile(blkhash)
 	
 	return block
 }
