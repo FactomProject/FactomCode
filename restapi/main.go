@@ -18,6 +18,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"os"
 	"time"
 	"log"
@@ -41,7 +42,8 @@ var  (
 	//chainNameMap map[string]*notaryapi.Chain // ChainNameMap with chain name string as key	
 	fchain *notaryapi.FChain	//Factom Chain
 	
-	fbBatches []*notaryapi.FBBatch
+//	fbBatches []*notaryapi.FBBatch
+	fbBatches *FBBatches
 	fbBatch *notaryapi.FBBatch
 )
 
@@ -66,6 +68,11 @@ var (
 	rpcBtcdHost = "localhost:18334"		//btcd rpcserver address
 	
 )
+
+type FBBatches struct {
+	batches []*notaryapi.FBBatch
+	batchMutex 	sync.Mutex
+}
 
 func loadConfigurations(){
 	cfg := struct {
@@ -229,11 +236,14 @@ func init() {
 	fmt.Println("Loaded", len(fchain.Blocks)-1, "Factom blocks for chain: "+ notaryapi.EncodeBinary(fchain.ChainID))
 	
 	// init fbBatches, fbBatch
-	fbBatches = make([]*notaryapi.FBBatch, 0, 100)
+//	fbBatches = make([]*notaryapi.FBBatch, 0, 100)
+	fbBatches = &FBBatches {
+		batches: make([]*notaryapi.FBBatch, 0, 100),
+	}
 	fbBatch := &notaryapi.FBBatch {
 		FBlocks: make([]*notaryapi.FBlock, 0, 10),
 	}
-	fbBatches = append(fbBatches, fbBatch)
+	fbBatches.batches = append(fbBatches.batches, fbBatch)
 
 	// create EBlocks and FBlock every 60 seconds
 	tickers[0] = time.NewTicker(time.Second * time.Duration(sendToBTCinSeconds)) 
@@ -279,7 +289,10 @@ func init() {
 				fbBatch = &notaryapi.FBBatch {
 					FBlocks: make([]*notaryapi.FBlock, 0, 10),
 				}
-				fbBatches = append(fbBatches, doneBatch)
+				
+				fbBatches.batchMutex.Lock()
+				fbBatches.batches = append(fbBatches.batches, doneBatch)
+				fbBatches.batchMutex.Unlock()
 			
 				fmt.Printf("in tickers[1]: doneBatch=%#v\n", doneBatch)
 			
@@ -307,8 +320,8 @@ func main() {
 		log.Fatalf("cannot init wallet: %s", err)
 	}
 	
-//	doEntries()
-	
+	//doEntries()
+
 	
 	flag.Parse()
 	defer func() {
@@ -714,7 +727,7 @@ func ExportDataFromDbToFile() {
 }
 
 func initChains() {
-	//initChainIDs()
+//	initChainIDs()
 	
 	chainIDMap = make(map[string]*notaryapi.Chain)
 	//chainNameMap = make(map[string]*notaryapi.Chain)
@@ -733,7 +746,7 @@ func initChains() {
 }
 
 //for testing - to be moved into db-------------------------------------
-/*
+
 var chainIDs [][]byte
 
 func initChainIDs() {
@@ -760,5 +773,5 @@ func initChainIDs() {
 //	chainMap[string(chainIDs[1])] = chain2	
 
 }
-*/
+
 

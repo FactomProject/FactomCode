@@ -10,18 +10,25 @@ import (
 
 type FBEntry struct {
 	timeStamp int64
+	MerkleRoot *Hash	// the same MR in EBlockHeader
+	ChainID *Hash 
+	
+	// not marshalllized
 	hash *Hash
-	
-	
-	ChainID *Hash // not marshalllized
+	eblock *Block
 	status int8 //for future use??
 }
 
-func NewFBEntry(h *Hash, id *Hash) *FBEntry {
+//func NewFBEntry(h *Hash, id *Hash) *FBEntry {
+func NewFBEntry(eb *Block, h *Hash) *FBEntry {
 	e := &FBEntry{}
 	e.StampTime()
 	e.hash = h
-	e.ChainID = id
+	
+	e.eblock = eb
+	e.ChainID = eb.Chain.ChainID
+	e.MerkleRoot = eb.Header.MerkleRoot
+	
 	return e
 }
 
@@ -75,7 +82,7 @@ func (e *FBEntry) MarshalBinary() ([]byte, error) {
 	data, _ := e.ChainID.MarshalBinary()	
 	buf.Write(data)
 	
-	data, _ = e.Hash().MarshalBinary()
+	data, _ = e.MerkleRoot.MarshalBinary()
 	buf.Write(data)
 	
 	return buf.Bytes(), nil
@@ -83,23 +90,17 @@ func (e *FBEntry) MarshalBinary() ([]byte, error) {
 
 func (e *FBEntry) MarshalledSize() uint64 {
 	var size uint64 = 0
-	
 	size += e.ChainID.MarshalledSize()// Chain ID	
-	
-	size += e.Hash().MarshalledSize()
-	
+	size += e.MerkleRoot.MarshalledSize()
 	return size
 }
 
 func (e *FBEntry) UnmarshalBinary(data []byte) (err error) {
-
-	
 	e.ChainID = new (Hash)
 	e.ChainID.UnmarshalBinary(data[:33])
-
 		
-	e.hash = new(Hash)
-	e.hash.UnmarshalBinary(data[33:])
+	e.MerkleRoot = new(Hash)
+	e.MerkleRoot.UnmarshalBinary(data[33:])
 	
 	return nil
 }
