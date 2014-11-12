@@ -68,14 +68,9 @@ func CreateFBlock(chain *FChain, prev *FBlock, capacity uint) (b *FBlock, err er
 	}
 	
 	b.Header = NewFBlockHeader(chain.NextBlockID, prevHash, FBlockVersion, uint32(0))
-	
 	b.Chain = chain
-
-	
 	b.FBEntries = make([]*FBEntry, 0, capacity)
-	
 	b.Salt = EmptyHash()
-	
 	b.IsSealed = false
 	
 	return b, err
@@ -85,19 +80,17 @@ func CreateFBlock(chain *FChain, prev *FBlock, capacity uint) (b *FBlock, err er
 func (fchain *FChain) AddFBEntry(eb *Block, hash *Hash) (err error) {
 	fBlock := fchain.Blocks[len(fchain.Blocks)-1]
 	
-	fbEntry := NewFBEntry(hash, eb.Chain.ChainID)
+	fbEntry := NewFBEntry(eb, hash)
 	b := make([]byte, 8)
 	binary.BigEndian.PutUint64(b, uint64(eb.Header.TimeStamp)) 	
 	fbEntry.SetTimeStamp(b)
-	
 	
 	fchain.BlockMutex.Lock()
 	fBlock.FBEntries = append(fBlock.FBEntries, fbEntry) 
 	fchain.BlockMutex.Unlock()
 
 	return nil
-	
-	}
+}
 
 
 func (b *FBlock) MarshalBinary() (data []byte, err error) {
@@ -136,7 +129,6 @@ func (b *FBlock) calculateMerkleRoot() *Hash {
 	}
 	
 	merkle := BuildMerkleTreeStore(hashes)
-	//merkle := BuildMerkleTreeStore(b.FBEntries)
 	return merkle[len(merkle) - 1]
 }
 
