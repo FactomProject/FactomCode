@@ -80,6 +80,12 @@ type Db interface {
 	
 	// FetchEntryBlock gets an entry by hash from the database.
 	FetchEBlockByHash(eBlockHash *notaryapi.Hash) (eBlock *notaryapi.Block, err error)	
+	
+	// FetchEBlockByMR gets an entry block by merkle root from the database.
+	FetchEBlockByMR(eBMR *notaryapi.Hash) (eBlock *notaryapi.Block, err error) 
+	
+	// FetchEBHashByMR gets an entry by hash from the database.
+	FetchEBHashByMR(eBMR *notaryapi.Hash) (eBlockHash *notaryapi.Hash, err error) 
 
 	// FetchAllEBlocksByChain gets all of the blocks by chain id
 	FetchAllEBlocksByChain(chainID *notaryapi.Hash) (eBlocks *[]notaryapi.Block, err error)	

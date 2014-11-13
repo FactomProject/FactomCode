@@ -77,6 +77,11 @@ func (db *LevelDb) ProcessEBlockBatch(eBlockHash *notaryapi.Hash, eblock *notary
 		key = append (key, eBlockHash.Bytes ...)			
 		db.lbatch.Put(key, binaryEblock)
 		
+		// Insert the entry block merkle root cross reference
+		key = []byte{byte(TBL_EB_MR)} 
+		key = append (key, eblock.MerkleRoot.Bytes ...)			
+		db.lbatch.Put(key, eBlockHash.Bytes)
+		
 		// Insert the entry block number cross reference
 		key = []byte{byte(TBL_EB_CHAIN_NUM)} 
 		key = append (key, eblock.Chain.ChainID.Bytes ...)	
@@ -144,6 +149,16 @@ func (db *LevelDb) FetchEBInfoByHash(ebHash *notaryapi.Hash) (ebInfo *notaryapi.
 	return ebInfo, nil
 } 
 
+// FetchEBlockByMR gets an entry block by merkle root from the database.
+func (db *LevelDb) FetchEBlockByMR(eBMR *notaryapi.Hash) (eBlock *notaryapi.Block, err error) {
+	eBlockHash, _ := db.FetchEBHashByMR(eBMR)
+	
+	if eBlockHash != nil{
+		eBlock, _ = db.FetchEBlockByHash(eBlockHash)
+	}
+
+	return eBlock, nil
+} 
 
 // FetchEntryBlock gets an entry by hash from the database.
 func (db *LevelDb) FetchEBlockByHash(eBlockHash *notaryapi.Hash) (eBlock *notaryapi.Block, err error) {
@@ -159,6 +174,22 @@ func (db *LevelDb) FetchEBlockByHash(eBlockHash *notaryapi.Hash) (eBlock *notary
 		eBlock.UnmarshalBinary(data)
 	}
 	return eBlock, nil
+} 
+
+// FetchEBHashByMR gets an entry by hash from the database.
+func (db *LevelDb) FetchEBHashByMR(eBMR *notaryapi.Hash) (eBlockHash *notaryapi.Hash, err error) {
+	db.dbLock.Lock()
+	defer db.dbLock.Unlock()
+	
+	var key [] byte = []byte{byte(TBL_EB_MR)} 
+	key = append (key, eBMR.Bytes ...)	
+	data, err := db.lDb.Get(key, db.ro)
+	
+	if data != nil{
+		eBlockHash = new (notaryapi.Hash)
+		eBlockHash.UnmarshalBinary(data)
+	}
+	return eBlockHash, nil
 } 
 
 // InsertChain inserts the newly created chain into db

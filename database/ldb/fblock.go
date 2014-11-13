@@ -86,6 +86,7 @@ func (db *LevelDb) ProcessFBlockBatch(fBlockHash *notaryapi.Hash, fblock *notary
 				// Create an EBInfo and insert it into db
 				var ebInfo = new (notaryapi.EBInfo)
 				ebInfo.EBHash = fbEntry.Hash()
+				ebInfo.MerkleRoot = fbEntry.MerkleRoot
 				ebInfo.FBHash = fBlockHash
 				ebInfo.FBBlockNum = fblock.Header.BlockID
 				ebInfo.ChainID = fbEntry.ChainID

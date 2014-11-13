@@ -11,6 +11,7 @@ import (
 	"log"
 	"io/ioutil"
 	"path/filepath"
+
  
 	"github.com/conformal/btcjson"
 	"github.com/conformal/btcnet"
@@ -559,7 +560,18 @@ func newEntryBlock(chain *notaryapi.Chain) (*notaryapi.Block, *notaryapi.Hash){
 	newblock, _ := notaryapi.CreateBlock(chain, block, 10)
 	chain.Blocks = append(chain.Blocks, newblock)
 	chain.BlockMutex.Unlock()
-    
+	
+	// Create the Entry Block Merkle Root for FB Entry
+	hashes := make([]*notaryapi.Hash, 0, len(block.EBEntries)+1)
+	for _, entry := range block.EBEntries {
+		data, _ := entry.MarshalBinary()
+		hashes = append (hashes, notaryapi.Sha(data))
+	}
+	binaryEBHeader, _ := block.Header.MarshalBinary()
+	hashes = append (hashes, notaryapi.Sha(binaryEBHeader))	
+	merkle := notaryapi.BuildMerkleTreeStore(hashes)
+	block.MerkleRoot = merkle[len(merkle) - 1]	// MerkleRoot is not marshalized in Entry Block
+	    
     //Store the block in db
 	db.ProcessEBlockBatch(blkhash, block)	
 	log.Println("EntryBlock: block" + strconv.FormatUint(block.Header.BlockID, 10) +" created for chain: "  + chain.ChainID.String())	

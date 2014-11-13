@@ -32,6 +32,7 @@ type Block struct {
 
 	//Not Marshalized
 	EBHash *Hash 	
+	MerkleRoot *Hash
 	Salt *Hash
 	Chain *Chain	
 	IsSealed bool
@@ -40,6 +41,7 @@ type Block struct {
 type EBInfo struct {
 
     EBHash *Hash
+	MerkleRoot *Hash    
     FBHash *Hash
     FBBlockNum uint64
     ChainID *Hash
@@ -97,7 +99,8 @@ func (b *Block) AddEBEntry(e *Entry) (err error) {
 
 func (b *Block) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
-
+/* It should not be created in MarshalBianry method
+// because the header needs to be sealed before this method is called
 	hashes := make([]*Hash, len(b.EBEntries))
 	for i, entry := range b.EBEntries {
 		data, _ := entry.MarshalBinary()
@@ -107,7 +110,7 @@ func (b *Block) MarshalBinary() (data []byte, err error) {
 	
 	merkle := BuildMerkleTreeStore(hashes)
 	b.Header.MerkleRoot = merkle[len(merkle) - 1]
-	
+*/	
 	data, _ = b.Header.MarshalBinary()
 	buf.Write(data)
 	
@@ -184,6 +187,9 @@ func (b *EBInfo) MarshalBinary() (data []byte, err error) {
 
 	data, _ = b.EBHash.MarshalBinary()
 	buf.Write(data)
+
+	data, _ = b.MerkleRoot.MarshalBinary()
+	buf.Write(data)
 	
 	data, _ = b.FBHash.MarshalBinary()
 	buf.Write(data)
@@ -199,6 +205,7 @@ func (b *EBInfo) MarshalBinary() (data []byte, err error) {
 func (b *EBInfo) MarshalledSize() uint64 {
 	var size uint64 = 0
 	size += 33	//b.EBHash
+	size += 33	//b.MerkleRoot	
 	size += 33  //b.FBHash
 	size += 8 	//b.FBBlockNum
 	size += 33 	//b.ChainID	
@@ -209,6 +216,9 @@ func (b *EBInfo) MarshalledSize() uint64 {
 func (b *EBInfo) UnmarshalBinary(data []byte) (err error) {
 	b.EBHash = new(Hash)
 	b.EBHash.UnmarshalBinary(data[:33])
+
+	b.MerkleRoot = new(Hash)
+	b.MerkleRoot.UnmarshalBinary(data[:33])
 
 	data = data[33:]
 	b.FBHash = new(Hash)

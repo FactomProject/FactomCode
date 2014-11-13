@@ -1,0 +1,97 @@
+{{if isValidEntryID .EntryID}}
+	{{$mode := unnil .Mode ""}}
+	{{$error := .Error}}
+	{{$subd := isEntrySubmitted .EntryID}}
+	{{$edit := and $mode (eq $mode "edit")  (not $subd)}}
+	{{$sign := and $mode (eq $mode "sign") (gt keyCount 0) (not $subd)}}	
+	{{with entry .EntryID}}
+		{{if $edit}}
+			<form id="editEntryForm" method="post" action="/entries">
+				<input type="hidden" name="id" value="{{.ID}}" />
+				<input type="hidden" name="action" value="editDataEntry" />
+			</form>
+		{{else if $sign}}
+			<form id="signEntryForm" method="post" action="/entries">
+				<input type="hidden" name="id" value="{{.ID}}" />
+				<input type="hidden" name="action" value="signEntry" />
+			</form>
+		{{else}}
+			<form id="rmEntrySigForm" method="post" action="/entries">
+				<input type="hidden" name="id" value="{{.ID}}" />
+				<input type="hidden" name="action" value="rmEntrySig" />
+			</form>
+		{{end}}
+		<div class="entry">
+			<h1>
+				Entry {{.ID}} ({{.Type}}{{if $subd}}, Submitted{{end}})
+			</h1>
+			<hr />
+			{{if $error}}
+				<div class="error">{{$error}}</div>
+				<hr />
+			{{end}}
+			{{if $sign}}
+				{{$keys := keysExceptEntrySigs .ID}}
+				{{if gt (len $keys) 0}}
+					<label for="rmSigID">Sign with Key: </label>
+					<select id="rmSigID" form="signEntryForm" name="key">
+				        {{range $keys}}<option value="{{.}}">{{with key .}}{{enc64 .Hash}}{{end}}</option>{{end}}
+					</select>
+				{{else}}
+					<h6>No keys to sign with</h6>
+				{{end}}
+			{{else}}
+				<div class="signatures">
+					{{if len .Signatures | lt 0}}
+						{{$id := .ID}}
+						<h4>Signed by keys:</h4>
+						<ul>
+							{{range $idx, $sig := .Signatures}}<li>
+								{{if lt $sig.KeyID 0}}
+									{{enc64 $sig.Hash}}
+								{{else}}
+									<a href="/keys/{{$sig.KeyID}}">{{enc64 $sig.Hash}}</a>
+								{{end}}
+								{{if not $subd}}
+									<input type="hidden" name="sig_id" value="{{$idx}}" form="rmEntrySigForm" />
+									<input type="submit" value="delete" form="rmEntrySigForm" class="button" />
+								{{end}}
+							</li>{{end}}
+						</ul>
+					{{else}}
+						Unsigned
+					{{end}}
+				</div>
+			{{end}}
+			<hr />
+		{{end}}
+			<div class="data">
+				<h4>External Hashes (Base16 encoding):</h4>
+				{{range .externalHashes}}
+					{{hexEncode .Bytes}}	<br>	
+				{{end}}	
+			</div>			
+			<hr />		
+			<div class="data">
+				<h4>Data:</h4>
+					<p>{{.newdata}}</p>
+			</div>
+		{{with entry .EntryID}}			
+			{{if $subd}}{{with entrySubmission .ID}}
+				<hr />
+				<div class="submitted">
+					<h4>Submitted to:</h4>
+					<span>{{.Host}} {{if .Confirmed}}(Confirmed){{else}}(Unconfirmed){{end}}</span>
+				</div>
+			{{end}}{{end}}
+			<hr />
+			<div class="timestamp">Last edited on {{.TimeStamp}}</div>
+		</div>
+	{{end}}
+{{else}}
+	<div class="error">Entry not found</div>
+	{{if .Error}}
+		<hr />
+		<div class="error">{{.Error}}</div>
+	{{end}}
+{{end}}

@@ -10,7 +10,7 @@ import (
 
 type FBEntry struct {
 	timeStamp int64
-	MerkleRoot *Hash	// the same MR in EBlockHeader
+	MerkleRoot *Hash	// Different MR in EBlockHeader
 	ChainID *Hash 
 	
 	// not marshalllized
@@ -27,7 +27,7 @@ func NewFBEntry(eb *Block, h *Hash) *FBEntry {
 	
 	e.eblock = eb
 	e.ChainID = eb.Chain.ChainID
-	e.MerkleRoot = eb.Header.MerkleRoot
+	e.MerkleRoot = eb.MerkleRoot
 	
 	return e
 }
