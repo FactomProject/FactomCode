@@ -26,7 +26,7 @@ type Db interface {
 	FetchEBEntriesFromQueue(chainID *[]byte, startTime *[]byte) (ebentries []*notaryapi.EBEntry, err error)
 	
 	// ProcessEBlockBatche inserts the EBlock and update all it's ebentries in DB
-	ProcessEBlockBatch(eBlockHash *notaryapi.Hash, eblock *notaryapi.Block) error 	
+	ProcessEBlockBatch(eblock *notaryapi.Block) error 	
 	
 	// FetchFBEntriesFromQueue gets all of the fbentries that have not been processed
 	FetchFBEntriesFromQueue(startTime *[]byte) (fbentries []*notaryapi.FBEntry, err error)	

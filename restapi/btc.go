@@ -555,11 +555,13 @@ func newEntryBlock(chain *notaryapi.Chain) (*notaryapi.Block, *notaryapi.Hash){
 	// Create the block and add a new block for new coming entries
 	chain.BlockMutex.Lock()
 	blkhash, _ := notaryapi.CreateHash(block)
+	log.Println("blkhash:%v", blkhash.Bytes)
 	block.IsSealed = true	
 	chain.NextBlockID++	
 	newblock, _ := notaryapi.CreateBlock(chain, block, 10)
 	chain.Blocks = append(chain.Blocks, newblock)
 	chain.BlockMutex.Unlock()
+	block.EBHash = blkhash	
 	
 	// Create the Entry Block Merkle Root for FB Entry
 	hashes := make([]*notaryapi.Hash, 0, len(block.EBEntries)+1)
@@ -573,7 +575,7 @@ func newEntryBlock(chain *notaryapi.Chain) (*notaryapi.Block, *notaryapi.Hash){
 	block.MerkleRoot = merkle[len(merkle) - 1]	// MerkleRoot is not marshalized in Entry Block
 	    
     //Store the block in db
-	db.ProcessEBlockBatch(blkhash, block)	
+	db.ProcessEBlockBatch(block)	 
 	log.Println("EntryBlock: block" + strconv.FormatUint(block.Header.BlockID, 10) +" created for chain: "  + chain.ChainID.String())	
 	
 	return block, blkhash
@@ -609,7 +611,7 @@ func newFactomBlock(chain *notaryapi.FChain) *notaryapi.FBlock {
 	//block.FBlockID = block.Header.BlockID
 	
 	//Export all db records associated w/ this new factom block
-//	ExportDbToFile(blkhash)
+	ExportDbToFile(blkhash)
 	
 	return block
 }

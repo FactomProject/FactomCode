@@ -59,7 +59,7 @@ func init() {
 	go func() {
 		for _ = range ticker.C {
 			ImportDbRecordsFromFile()
-			RefreshPendingEntries()
+			RefreshEntries()
 		}
 	}()		
 }

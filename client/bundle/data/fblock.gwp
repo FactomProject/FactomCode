@@ -25,8 +25,9 @@
 					<ul>
 						{{range .fBlock.FBEntries}}
 							{{with .}}<li><div>
-								<a href="/eblock/{{.Hash}}">{{.Hash}} </a> <br>
-								Chain: {{.ChainID}}
+								<a href="/eblock/{{.Hash}}">Entry Block: {{.Hash}} </a> <br>
+								Chain: {{.ChainID}} <br>
+								Merkle Root: {{.MerkleRoot}}
 							</div></li>
 							{{end}}
 						{{end}}

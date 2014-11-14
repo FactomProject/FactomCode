@@ -1,3 +1,3 @@
 # Home
 
-Welcome to the Factom reference client!
+Welcome to the Factom Demo Client!

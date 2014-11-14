@@ -629,7 +629,6 @@ func handleEBlock(ctx *web.Context, eBlockHash string) {
 		return
 	}
 	
-
 	defer func(){
 		tmpl = "eblock.gwp"
 		

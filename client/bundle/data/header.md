@@ -1,6 +1,6 @@
 # Factom
 
-Reference Client
+Demo Client
 
   * {{if eq .Title "Home"}}
       <div>Home</div>

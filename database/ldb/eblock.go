@@ -54,7 +54,7 @@ func (db *LevelDb) FetchEBEntriesFromQueue(chainID *[]byte, startTime *[]byte) (
 
 
 // ProcessEBlockBatche inserts the EBlock and update all it's ebentries in DB
-func (db *LevelDb) ProcessEBlockBatch(eBlockHash *notaryapi.Hash, eblock *notaryapi.Block) error {
+func (db *LevelDb) ProcessEBlockBatch(eblock *notaryapi.Block) error {
 
 	if eblock !=  nil {
 		if db.lbatch == nil {
@@ -74,13 +74,15 @@ func (db *LevelDb) ProcessEBlockBatch(eBlockHash *notaryapi.Hash, eblock *notary
 		
 		// Insert the binary entry block
 		var key [] byte = []byte{byte(TBL_EB)} 
-		key = append (key, eBlockHash.Bytes ...)			
+		key = append (key, eblock.EBHash.Bytes ...)			
 		db.lbatch.Put(key, binaryEblock)
 		
 		// Insert the entry block merkle root cross reference
 		key = []byte{byte(TBL_EB_MR)} 
-		key = append (key, eblock.MerkleRoot.Bytes ...)			
-		db.lbatch.Put(key, eBlockHash.Bytes)
+		key = append (key, eblock.MerkleRoot.Bytes ...)	
+		binaryEBHash, _ := eblock.EBHash.MarshalBinary()		
+		db.lbatch.Put(key, binaryEBHash)
+
 		
 		// Insert the entry block number cross reference
 		key = []byte{byte(TBL_EB_CHAIN_NUM)} 
@@ -88,7 +90,7 @@ func (db *LevelDb) ProcessEBlockBatch(eBlockHash *notaryapi.Hash, eblock *notary
 		bytes := make([]byte, 8)
     	binary.BigEndian.PutUint64(bytes, eblock.Header.BlockID)		
 		key = append (key, bytes ...)			
-		db.lbatch.Put(key, eBlockHash.Bytes)		
+		db.lbatch.Put(key, binaryEBHash)		
 		
 		// Insert the binary Entry Block process queue in order to create a FBEntry
 		var qkey [] byte = []byte{byte(TBL_EB_QUEUE)} 									// Table Name (1 bytes)
@@ -96,7 +98,7 @@ func (db *LevelDb) ProcessEBlockBatch(eBlockHash *notaryapi.Hash, eblock *notary
 		binary.BigEndian.PutUint64(binaryTimestamp, uint64(eblock.Header.TimeStamp))	
 		qkey = append(qkey, binaryTimestamp ...) 										// Timestamp (8 bytes)	
 		qkey = append(qkey, eblock.Chain.ChainID.Bytes ...) 									// Chain id (32 bytes)
-		qkey = append (qkey, eBlockHash.Bytes ...)										// EBEntry Hash (32 bytes)
+		qkey = append (qkey, eblock.EBHash.Bytes ...)										// EBEntry Hash (32 bytes)
 		db.lbatch.Put(qkey, []byte{byte(STATUS_IN_QUEUE)})
 	
 		// Update entry process queue for each entry in eblock
@@ -112,7 +114,7 @@ func (db *LevelDb) ProcessEBlockBatch(eBlockHash *notaryapi.Hash, eblock *notary
 				// Create an EntryInfo and insert it into db
 				var entryInfo = new (notaryapi.EntryInfo)
 				entryInfo.EntryHash = ebEntry.Hash()
-				entryInfo.EBHash = eBlockHash
+				entryInfo.EBHash = eblock.EBHash
 				entryInfo.EBBlockNum = eblock.Header.BlockID
 			 	var entryInfoKey [] byte = []byte{byte(TBL_ENTRY_INFO)} 
 			 	entryInfoKey = append(entryInfoKey, entryInfo.EntryHash.Bytes ...) 
@@ -186,8 +188,10 @@ func (db *LevelDb) FetchEBHashByMR(eBMR *notaryapi.Hash) (eBlockHash *notaryapi.
 	data, err := db.lDb.Get(key, db.ro)
 	
 	if data != nil{
+		log.Println("data:%v", data)
 		eBlockHash = new (notaryapi.Hash)
 		eBlockHash.UnmarshalBinary(data)
+		log.Println("eBlockHash:%v", eBlockHash.Bytes)
 	}
 	return eBlockHash, nil
 } 

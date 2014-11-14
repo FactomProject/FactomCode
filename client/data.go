@@ -182,7 +182,7 @@ func getConfirmedEntryIDs() []int {
 	return ids[:i]
 }
 
-func RefreshPendingEntries(){
+func RefreshEntries(){
 	ids := getPendingEntryIDs()
 	
 	for _, id := range ids {
@@ -198,6 +198,25 @@ func RefreshPendingEntries(){
 		}
 		
 	}
+	
+	ids = getConfirmedEntryIDs()
+	
+	for _, id := range ids {
+		if entries[id].Submitted.Confirmed == 2{
+			continue
+		}
+		hash := new (notaryapi.Hash)	
+		hash.Bytes, _ = notaryapi.DecodeBinary(&entries[id].Submitted.EntryHash)
+		entryInfoBranch, _ := db.FetchEntryInfoBranchByHash(hash)
+		if entryInfoBranch.FBBatch != nil {
+			entries[id].Submitted.Confirmed =2
+			storeEntry(id)
+		} else if entryInfoBranch.EBInfo != nil{
+			entries[id].Submitted.Confirmed =1
+			storeEntry(id)			
+		}
+		
+	}	
 }
 
 func getEntry(id int) *ClientEntry {

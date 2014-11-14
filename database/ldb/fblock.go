@@ -284,6 +284,20 @@ func (db *LevelDb) FetchAllDBRecordsByFBHash(fbHash *notaryapi.Hash) (ldbMap map
 	
 	//EBlocks
 	for _, fbentry := range fblock.FBEntries{
+		
+		//EB Merkle root and EBHash Cross Reference
+		key = []byte{byte(TBL_EB_MR)}
+		key = append (key, fbentry.MerkleRoot.Bytes ...)	
+		data, err = db.lDb.Get(key, db.ro)
+		if data == nil {
+			return nil, errors.New("EBHash not found for MR: " + fbentry.MerkleRoot.String())
+		} else {
+			fbHash := new(notaryapi.Hash) 
+			fbHash.UnmarshalBinary(data)
+			fbentry.SetHash(fbHash.Bytes)			
+			ldbMap[notaryapi.EncodeBinary(&key)] = notaryapi.EncodeBinary(&data)
+		}		
+		
 		//EBlock
 		key = []byte{byte(TBL_EB)}
 		key = append (key, fbentry.Hash().Bytes ...)	

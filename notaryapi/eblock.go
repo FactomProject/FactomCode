@@ -125,8 +125,8 @@ func (b *Block) MarshalBinary() (data []byte, err error) {
 		buf.Write(data)
 	}
 	
-	data, _ = b.Salt.MarshalBinary()
-	buf.Write(data)
+	//data, _ = b.Salt.MarshalBinary()
+	//buf.Write(data)
 	
 	return buf.Bytes(), err
 }
@@ -139,7 +139,7 @@ func (b *Block) MarshalledSize() uint64 {
 	
 	size += b.Header.MarshalledSize()
 	size += 8 // len(Entries) uint64
-	size += b.Salt.MarshalledSize()
+	//size += b.Salt.MarshalledSize()
 	
 	for _, ebentry := range b.EBEntries {
 		size += ebentry.MarshalledSize()
@@ -174,9 +174,9 @@ func (b *Block) UnmarshalBinary(data []byte) (err error) {
 		data = data[b.EBEntries[i].MarshalledSize():]
 	}
 	
-	b.Salt = new(Hash)
-	b.Salt.UnmarshalBinary(data)
-	data = data[b.Salt.MarshalledSize():]
+	//b.Salt = new(Hash)
+	//b.Salt.UnmarshalBinary(data)
+	//data = data[b.Salt.MarshalledSize():]
 	
 	return nil
 }
@@ -216,7 +216,8 @@ func (b *EBInfo) MarshalledSize() uint64 {
 func (b *EBInfo) UnmarshalBinary(data []byte) (err error) {
 	b.EBHash = new(Hash)
 	b.EBHash.UnmarshalBinary(data[:33])
-
+	
+	data = data[33:]
 	b.MerkleRoot = new(Hash)
 	b.MerkleRoot.UnmarshalBinary(data[:33])
 
