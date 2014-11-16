@@ -17,7 +17,7 @@
 		</br>
 		Entry Hash: {{ .entryInfo.EntryHash}}	<br>
 		{{range .entry.ExtHashes}}
-			External ID: {{.Bytes}}	<br>	
+			External ID: {{hexEncode .Bytes}}	<br>	
 		{{end}}	
 				
 		Entry Data: {{ .entryData}}	<br>	

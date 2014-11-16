@@ -1,6 +1,6 @@
 <h1>
 	Settings
-	<input class="button" type="submit" value="Save" form="settingsForm" />
 </h1>
 <form method="post" id="settingsForm"></form>
-<input type="text" name="server" value="{{.Server}}" form="settingsForm" />
+<input type="text" name="server" value="{{.Server}}" form="settingsForm" /> <br><br>
+<input class="button" type="submit" value="Save" form="settingsForm" />

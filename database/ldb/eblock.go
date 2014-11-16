@@ -333,10 +333,8 @@ func (db *LevelDb)	FetchAllEBlocksByChain(chainID *notaryapi.Hash) (eBlocks *[]n
 	
 	for iter.Next() {		
 		eBlockHash := new (notaryapi.Hash)
-		eBlockHash.Bytes = make([]byte, len(iter.Value()))	
-		copy(eBlockHash.Bytes, iter.Value())
+		eBlockHash.UnmarshalBinary(iter.Value())
 		
-		log.Println("eBlockHash.Bytes:%v", notaryapi.EncodeBinary(&eBlockHash.Bytes))
 		var key [] byte = []byte{byte(TBL_EB)} 
 		key = append (key, eBlockHash.Bytes ...)	
 		data, _ := db.lDb.Get(key, db.ro)

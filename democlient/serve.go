@@ -867,6 +867,7 @@ func handleChain(ctx *web.Context, chainIDstr string) {
 	chain, _ := db.FetchChainByHash(chainID)
 	
 	eBlocks, _ := db.FetchAllEBlocksByChain(chainID)
+	fmt.Println("len(*eBlocks):%v", len(*eBlocks))
 	sort.Sort(byEBlockID(*eBlocks))
 	
 	defer func() {
@@ -874,7 +875,7 @@ func handleChain(ctx *web.Context, chainIDstr string) {
 			"Title": title,
 			"Error": error_str,
 			"ContentTmpl": "chain.gwp",
-			"eBlocks": eBlocks,		
+			"eBlocks": *eBlocks,		
 			"chain": chain,
 		})
 		if r != nil {
