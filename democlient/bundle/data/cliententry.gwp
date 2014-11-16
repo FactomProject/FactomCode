@@ -16,10 +16,10 @@
 					{{end}}
 				</select>		
 			<hr />	
-				<h4>External Hashes:</h4>	
-				<label>Hash 0: </label><input type="text" name="ehash0" value="" /> <br />
-				<label>Hash 1: </label><input type="text" name="ehash1" value="" /> <br />
-				<label>Hash 2: </label><input type="text" name="ehash2" value="" /> <br />
+				<h4>External IDs:</h4>	
+				<label>External ID 0: </label><input type="text" name="ehash0" value="" /> <br />
+				<label>External ID 1: </label><input type="text" name="ehash1" value="" /> <br />
+				<label>External ID 2: </label><input type="text" name="ehash2" value="" /> <br />
 				<label>...</label> <br />
 			<hr />			
 			<div class="data">

@@ -66,7 +66,7 @@
 			<hr />
 		{{end}}
 			<div class="data">
-				<h4>External Hashes (Base16 encoding):</h4>
+				<h4>External IDs (Base16 encoding):</h4>
 				{{range .externalHashes}}
 					{{hexEncode .Bytes}}	<br>	
 				{{end}}	

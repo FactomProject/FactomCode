@@ -9,10 +9,10 @@
 		<option value="entry" selected>Entry Hash</option>
 		<option value="eblock">Entry Block Hash</option>
 		<option value="fblock">Factom Block Hash</option>
-		<option value="extHash" selected>External Hash</option>
+		<option value="extHash" selected>External ID</option>
 	</select> 	<input type="text" name="inputhash" size="60" MAXLENGTH="64">
 <br />
 <br />	
 
-	<input type="submit" value="Search" />
+	<input type="submit" value="Search" class="button"/>
 </form>
