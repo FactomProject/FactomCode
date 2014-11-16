@@ -441,14 +441,18 @@ func saveFBBatch(transaction *btcutil.Tx, details *btcws.BlockDetails) {
 		fmt.Printf("found in fbBatches: i=%d, len=%d, DELETE fbBatch%#v\n",i , len(fbBatches.batches), fbBatches.batches[i])
 		
 		//delete fbBatches.batches[i]
+		fbBatch := fbBatches.batches[i]
 		fbBatches.batchMutex.Lock()
+		fbBatches.batches = append(fbBatches.batches[:i], fbBatches.batches[i+1:] ...)
+		/*
 		copy(fbBatches.batches[i:], fbBatches.batches[i+1:])
 		fbBatches.batches[len(fbBatches.batches) - 1] = nil
 		fbBatches.batches = fbBatches.batches[:len(fbBatches.batches) - 1]
+		*/
 		fbBatches.batchMutex.Unlock()
 		
 		// Update db with FBBatch
-		db.InsertFBBatch(fbBatches.batches[i])
+		db.InsertFBBatch(fbBatch)
 		ExportDataFromDbToFile()						
 
 		fmt.Println("found in fbBatches: after deletion, len=", len(fbBatches.batches))
