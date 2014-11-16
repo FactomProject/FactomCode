@@ -125,6 +125,10 @@ func (h *Hash) String() string {
 	return hex.EncodeToString(h.Bytes)
 }
 
+func (h *Hash) ByteString() string {
+	return string(h.Bytes)
+}
+
 func HexToHash(hexStr string) (h *Hash, err error)  {
 	h = new (Hash)
 	h.Bytes, err = hex.DecodeString(hexStr)

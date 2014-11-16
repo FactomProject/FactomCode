@@ -922,6 +922,9 @@ func handleSearch(ctx *web.Context) {
 	case "fblock":
 		handleFBlock(ctx, inputhash)
 		
+	case "extHash":
+		handleMessage(ctx, "Not implemented yet", "Sorry this feature (External ID Search) is still under construction.")	
+		
 	default:
 		r := safeWrite(ctx, 200, map[string]interface{} {
 			"Title": title,
