@@ -247,7 +247,7 @@ func addTxIn(msgtx *btcwire.MsgTx, b balance) error {
 	}
  
 	sigScript, err := btcscript.SignatureScript(msgtx, 0, subscript,
-		btcscript.SigHashAll, b.wif.PrivKey.ToECDSA(), true)
+		btcscript.SigHashAll, b.wif.PrivKey, true)	//.ToECDSA(), true)
 	if err != nil {
 		return fmt.Errorf("cannot create scriptSig: %s", err)
 	}
@@ -373,11 +373,6 @@ func createBtcwalletNotificationHandlers() btcrpcclient.NotificationHandlers {
 			fmt.Println("wclient: OnWalletLockState, locked=", locked)
 		},
 
-		// OnUnknownNotification is invoked when an unrecognized notification
-		// is received.  This typically means the notification handling code
-		// for this package needs to be updated for a new notification type or
-		// the caller is using a custom notification this package does not know
-		// about.
 		OnUnknownNotification: func(method string, params []json.RawMessage) {
 			//fmt.Println("wclient: OnUnknownNotification: method=", method, "\nparams[0]=", 
 			//	string(params[0]), "\nparam[1]=", string(params[1]))
@@ -393,36 +388,17 @@ func createBtcdNotificationHandlers() btcrpcclient.NotificationHandlers {
 
 	ntfnHandlers := btcrpcclient.NotificationHandlers{
 
-		// OnBlockConnected is invoked when a block is connected to the longest
-		// (best) chain.  It will only be invoked if a preceding call to
-		// NotifyBlocks has been made to register for the notification and the
-		// function is non-nil.
 		OnBlockConnected: func(hash *btcwire.ShaHash, height int32) {
 			//fmt.Println("dclient: OnBlockConnected: hash=", hash, ", height=", height)
 			//go newBlock(hash, height)	// no need
 		},
 
-		// OnRecvTx is invoked when a transaction that receives funds to a
-		// registered address is received into the memory pool and also
-		// connected to the longest (best) chain.  It will only be invoked if a
-		// preceding call to NotifyReceived, Rescan, or RescanEndHeight has been
-		// made to register for the notification and the function is non-nil.
 		OnRecvTx: func(transaction *btcutil.Tx, details *btcws.BlockDetails) {
 			//fmt.Printf("dclient: OnRecvTx: details=%#v\n", details)
 			//fmt.Printf("dclient: OnRecvTx: tx=%#v,  tx.Sha=%#v, tx.index=%d\n", 
 				//transaction, transaction.Sha().String(), transaction.Index())
 		},
 
-		// OnRedeemingTx is invoked when a transaction that spends a registered
-		// outpoint is received into the memory pool and also connected to the
-		// longest (best) chain.  It will only be invoked if a preceding call to
-		// NotifySpent, Rescan, or RescanEndHeight has been made to register for
-		// the notification and the function is non-nil.
-		//
-		// NOTE: The NotifyReceived will automatically register notifications
-		// for the outpoints that are now "owned" as a result of receiving
-		// funds to the registered addresses.  This means it is possible for
-		// this to invoked indirectly as the result of a NotifyReceived call.
 		OnRedeemingTx: func(transaction *btcutil.Tx, details *btcws.BlockDetails) {
 			fmt.Printf("dclient: OnRedeemingTx: details=%#v\n", details)
 			fmt.Printf("dclient: OnRedeemingTx: tx.Sha=%#v,  tx.index=%d\n", 
