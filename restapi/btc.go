@@ -542,14 +542,14 @@ func shutdown() {
 }
 
 
-func newEntryBlock(chain *notaryapi.Chain) (*notaryapi.Block, *notaryapi.Hash){
+func newEntryBlock(chain *notaryapi.Chain) (*notaryapi.Block){
 
 	// acquire the last block
 	block := chain.Blocks[len(chain.Blocks)-1]
 
  	if len(block.EBEntries) < 1{
  		//log.Println("No new entry found. No block created for chain: "  + notaryapi.EncodeChainID(chain.ChainID))
- 		return nil, nil
+ 		return nil
  	}
 
 	// Create the block and add a new block for new coming entries
@@ -573,12 +573,13 @@ func newEntryBlock(chain *notaryapi.Chain) (*notaryapi.Block, *notaryapi.Hash){
 	hashes = append (hashes, notaryapi.Sha(binaryEBHeader))	
 	merkle := notaryapi.BuildMerkleTreeStore(hashes)
 	block.MerkleRoot = merkle[len(merkle) - 1]	// MerkleRoot is not marshalized in Entry Block
+	fmt.Println("block.MerkleRoot:%v", block.MerkleRoot.String())
 	    
     //Store the block in db
 	db.ProcessEBlockBatch(block)	 
 	log.Println("EntryBlock: block" + strconv.FormatUint(block.Header.BlockID, 10) +" created for chain: "  + chain.ChainID.String())	
 	
-	return block, blkhash
+	return block
 }
 
 
@@ -594,6 +595,12 @@ func newFactomBlock(chain *notaryapi.FChain) *notaryapi.FBlock {
 	
 	// Create the block add a new block for new coming entries
 	chain.BlockMutex.Lock()
+	block.Header.EntryCount = uint32(len(block.FBEntries))	
+	// Calculate Merkle Root for FBlock and store it in header
+	if block.Header.MerkleRoot == nil {
+		block.Header.MerkleRoot = block.CalculateMerkleRoot()
+		fmt.Println("block.Header.MerkleRoot:%v", block.Header.MerkleRoot.String())
+	}	
 	blkhash, _ := notaryapi.CreateHash(block)
 	block.IsSealed = true	
 	chain.NextBlockID++
@@ -602,12 +609,13 @@ func newFactomBlock(chain *notaryapi.FChain) *notaryapi.FBlock {
 	chain.BlockMutex.Unlock()
 
 	//Store the block in db
-	db.ProcessFBlockBatch(blkhash, block) 	
+	block.FBHash = blkhash
+	db.ProcessFBlockBatch(block)  	
 
 	log.Println("FactomBlock: block" + strconv.FormatUint(block.Header.BlockID, 10) +" created for factom chain: "  + notaryapi.EncodeBinary(chain.ChainID))
 
 	//update FBBlock with FBHash & FBlockID
-	block.FBHash = blkhash
+
 	//block.FBlockID = block.Header.BlockID
 	
 	//Export all db records associated w/ this new factom block

@@ -256,9 +256,9 @@ func init() {
 			fmt.Println("in tickers[0]: newEntryBlock & newFactomBlock")
 		
 			for _, chain := range chainIDMap {
-				eblock, blkhash := newEntryBlock(chain)
+				eblock := newEntryBlock(chain)
 				if eblock != nil{
-					fchain.AddFBEntry(eblock, blkhash)
+					fchain.AddFBEntry(eblock)
 				}
 				save(chain)
 			}
@@ -727,7 +727,8 @@ func ExportDataFromDbToFile() {
 }
 
 func initChains() {
-//	initChainIDs()
+	//initChainIDs()
+	
 	
 	chainIDMap = make(map[string]*notaryapi.Chain)
 	//chainNameMap = make(map[string]*notaryapi.Chain)
@@ -745,33 +746,5 @@ func initChains() {
 	}
 }
 
-//for testing - to be moved into db-------------------------------------
-
-var chainIDs [][]byte
-
-func initChainIDs() {
-//	chainMap = make(map[string]*notaryapi.Chain)
-
-	barray1 := make([]byte, 32)
-	barray1[0] = byte(1)
-	chainIDs = [][]byte{barray1}
-	chain1 := new (notaryapi.Chain)
-	chain1.ChainID = new (notaryapi.Hash)
-	chain1.ChainID.Bytes = chainIDs[0]
-	chain1.Name = [][]byte {[]byte("apple"), []byte("phone")}
-	db.InsertChain(chain1)
-//	chainMap[string(chainIDs[0])] = chain1
-	
-	barray2 := make([]byte, 32)
-	barray2[0] = byte(2)
-	chainIDs = append(chainIDs, barray2)
-	chain2 := new (notaryapi.Chain)
-	chain2.ChainID = new (notaryapi.Hash)
-	chain2.ChainID.Bytes = chainIDs[1]
-	chain2.Name = [][]byte {[]byte("apple"), []byte("mac")}	
-	db.InsertChain(chain2)	
-//	chainMap[string(chainIDs[1])] = chain2	
-
-}
 
 

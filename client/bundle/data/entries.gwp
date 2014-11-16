@@ -15,7 +15,7 @@
 		{{if eq .Submitted.Confirmed 1}}		
 			Confirmed by Factom
 		{{else}}
-			Confirmed by Bitcoin
+			Confirmed by Factom and Bitcoin
 		{{end}}	
 		</a>
 	</div></li>

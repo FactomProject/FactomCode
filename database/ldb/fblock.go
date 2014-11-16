@@ -50,7 +50,7 @@ func (db *LevelDb) FetchFBEntriesFromQueue(startTime *[]byte) (fbentries []*nota
 	return fbEntrySlice, nil
 }	
 // ProcessFBlockBatche inserts the FBlock and update all it's fbentries in DB
-func (db *LevelDb) ProcessFBlockBatch(fBlockHash *notaryapi.Hash, fblock *notaryapi.FBlock) error {
+func (db *LevelDb) ProcessFBlockBatch(fblock *notaryapi.FBlock) error {
 
 	if fblock !=  nil {
 		if db.lbatch == nil {
@@ -70,7 +70,7 @@ func (db *LevelDb) ProcessFBlockBatch(fBlockHash *notaryapi.Hash, fblock *notary
 		
 		// Insert the binary factom block
 		var key [] byte = []byte{byte(TBL_FB)} 
-		key = append (key, fBlockHash.Bytes ...)			
+		key = append (key, fblock.FBHash.Bytes ...)			
 		db.lbatch.Put(key, binaryFblock)
 		
 		// Update FBEntry process queue for each fbEntry in fblock
@@ -87,7 +87,7 @@ func (db *LevelDb) ProcessFBlockBatch(fBlockHash *notaryapi.Hash, fblock *notary
 				var ebInfo = new (notaryapi.EBInfo)
 				ebInfo.EBHash = fbEntry.Hash()
 				ebInfo.MerkleRoot = fbEntry.MerkleRoot
-				ebInfo.FBHash = fBlockHash
+				ebInfo.FBHash = fblock.FBHash
 				ebInfo.FBBlockNum = fblock.Header.BlockID
 				ebInfo.ChainID = fbEntry.ChainID
 			 	var ebInfoKey [] byte = []byte{byte(TBL_EB_INFO)} 
@@ -209,6 +209,12 @@ func (db *LevelDb) FetchFBlockByHash(fBlockHash *notaryapi.Hash) (fBlock *notary
 	if data != nil{
 		fBlock = new (notaryapi.FBlock)
 		fBlock.UnmarshalBinary(data)
+	}
+	
+	log.Println("fBlock.Header.MerkleRoot:%v", fBlock.Header.MerkleRoot.String())
+	
+	for _, entry := range fBlock.FBEntries{
+		log.Println("entry.MerkleRoot:%v", entry.MerkleRoot.String())
 	}
 	
 	return fBlock, nil

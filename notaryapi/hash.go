@@ -117,7 +117,7 @@ func Sha(data []byte) (h *Hash) {
 	
 	h = new(Hash)
 	h.Bytes = sha.Sum(nil)	
-	return
+	return h
 }
 
 

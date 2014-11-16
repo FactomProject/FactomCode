@@ -302,7 +302,6 @@ func handleEntriesPost(ctx *web.Context) {
 		
 		var entryHash string
 		if body != nil{
-			fmt.Println("body: %v", notaryapi.EncodeBinary(&body))
 			entryHash = notaryapi.EncodeBinary(&body)
 		}
 		
@@ -516,10 +515,6 @@ func handleChainPost(ctx *web.Context) {
 		}
 		
 		body, err := ioutil.ReadAll(resp.Body)
-		
-		if body != nil{
-			fmt.Println("body: %v", notaryapi.EncodeBinary(&body))
-		}
 		
 		resp.Body.Close()
 		handleMessage(ctx, "Sumbitted", "The server has received your request to create a new chain with id: " + notaryapi.EncodeBinary(&body))

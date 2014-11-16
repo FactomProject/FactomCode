@@ -32,7 +32,7 @@ type Db interface {
 	FetchFBEntriesFromQueue(startTime *[]byte) (fbentries []*notaryapi.FBEntry, err error)	
 	
 	// ProcessFBlockBatche inserts the EBlock and update all it's ebentries in DB
-	ProcessFBlockBatch(BlockHash *notaryapi.Hash, block *notaryapi.FBlock) error 	
+	ProcessFBlockBatch(block *notaryapi.FBlock) error 	
 	
 	// InsertChain inserts the newly created chain into db
 	InsertChain(chain *notaryapi.Chain) (err error)

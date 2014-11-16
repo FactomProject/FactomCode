@@ -77,10 +77,10 @@ func CreateFBlock(chain *FChain, prev *FBlock, capacity uint) (b *FBlock, err er
 }
 
 // Add FBEntry from an Entry Block
-func (fchain *FChain) AddFBEntry(eb *Block, hash *Hash) (err error) {
+func (fchain *FChain) AddFBEntry(eb *Block) (err error) {
 	fBlock := fchain.Blocks[len(fchain.Blocks)-1]
 	
-	fbEntry := NewFBEntry(eb, hash)
+	fbEntry := NewFBEntry(eb)
 	b := make([]byte, 8)
 	binary.BigEndian.PutUint64(b, uint64(eb.Header.TimeStamp)) 	
 	fbEntry.SetTimeStamp(b)
@@ -95,13 +95,6 @@ func (fchain *FChain) AddFBEntry(eb *Block, hash *Hash) (err error) {
 
 func (b *FBlock) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
-
-	if b.Header.MerkleRoot == nil {
-		b.Header.MerkleRoot = b.calculateMerkleRoot()
-	}
-
-	b.Header.EntryCount = uint32(len(b.FBEntries))
-	//fmt.Println("fblock.count=", b.Header.EntryCount)
 	
 	data, _ = b.Header.MarshalBinary()
 	buf.Write(data)
@@ -121,7 +114,7 @@ func (b *FBlock) MarshalBinary() (data []byte, err error) {
 }
 
 
-func (b *FBlock) calculateMerkleRoot() *Hash {
+func (b *FBlock) CalculateMerkleRoot() *Hash {
 	hashes := make([]*Hash, len(b.FBEntries))
 	for i, entry := range b.FBEntries {
 		data, _ := entry.MarshalBinary()

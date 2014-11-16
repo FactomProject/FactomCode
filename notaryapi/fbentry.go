@@ -19,11 +19,10 @@ type FBEntry struct {
 	status int8 //for future use??
 }
 
-//func NewFBEntry(h *Hash, id *Hash) *FBEntry {
-func NewFBEntry(eb *Block, h *Hash) *FBEntry {
+func NewFBEntry(eb *Block) *FBEntry {
 	e := &FBEntry{}
 	e.StampTime()
-	e.hash = h
+	e.hash = eb.EBHash
 	
 	e.eblock = eb
 	e.ChainID = eb.Chain.ChainID
