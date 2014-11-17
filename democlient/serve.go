@@ -8,9 +8,8 @@ import (
 	"github.com/firelizzard18/gocoding"
 	"github.com/hoisie/web"
 	"github.com/FactomProject/FactomCode/notaryapi"
+	"github.com/FactomProject/FactomCode/factomclient"	
 	"net/http"
-	"net/url"
-	"io/ioutil"
 	"strconv"
 	"sort"
 	"strings"
@@ -279,35 +278,39 @@ func handleEntriesPost(ctx *web.Context) {
 			abortMessage = fmt.Sprint("Failed to submit entry: entry could not be marshalled: ", err.Error())
 			return
 		}
-		
+		/*		
 		server := fmt.Sprintf(`http://%s/v1`, Settings.Server)
 		data := url.Values{}
 		
 		data.Set("format", "binary")
-		serverEntry := new (notaryapi.Entry)
-		serverEntry.ChainID.Bytes = entry.ChainID
-		serverEntry.ExtHashes = externalHashes
-		serverEntry.Data = entry.Data()
 		binaryEntry,_ := serverEntry.MarshalBinary()
 		
 		data.Set("entry", notaryapi.EncodeBinary(&binaryEntry))
 		
-		resp, err := http.PostForm(server, data)
+		resp, err := http.PostForm(server, data)		
+		var entryHash string
+		if body != nil{
+			entryHash = notaryapi.EncodeBinary(&body)
+		}
+		body, err := ioutil.ReadAll(resp.Body)
+		resp.Body.Close()		
+		*/
+		serverEntry := new (notaryapi.Entry)
+		serverEntry.ChainID.Bytes = entry.ChainID
+		serverEntry.ExtHashes = externalHashes
+		serverEntry.Data = entry.Data()
+		
+		factomclient.SetServerAddr(serverAddr)
+		err = factomclient.RevealEntry(1, serverEntry)
+
 		if err != nil {
 			abortMessage = fmt.Sprint("An error occured while submitting the entry (entry may have been accepted by the server but was not locally flagged as such): ", err.Error())
 			return
 		}
 		
-		body, err := ioutil.ReadAll(resp.Body)
+		entryHash, _ := notaryapi.CreateHash(serverEntry)
 		
-		var entryHash string
-		if body != nil{
-			entryHash = notaryapi.EncodeBinary(&body)
-		}
-		
-		resp.Body.Close()
-		
-		flagSubmitEntry(idx, entryHash)
+		flagSubmitEntry(idx, entryHash.String())
 		
 	
 	case "rmEntrySig":
@@ -495,29 +498,33 @@ func handleChainPost(ctx *web.Context) {
 		fmt.Println("level0:%v", level0)			
 		fmt.Println("bName[0]%v", string(bName[0]))
 		chain := new(notaryapi.Chain)
-	
+		chain.Name = bName	
+		chain.GenerateIDFromName()			
+		
+		/*	
 		server := fmt.Sprintf(`http://%s/v1`, Settings.Server)
 		data := url.Values{}
-		
+
 		data.Set("datatype", "chain")
 		data.Set("format", "binary")
-		chain.Name = bName	
-		chain.GenerateIDFromName()	
-		fmt.Println("chainid:%v", chain.ChainID.String())
-					
 		binaryChain,_ := chain.MarshalBinary()
 		data.Set("chain", notaryapi.EncodeBinary(&binaryChain))
 		
-		resp, err := http.PostForm(server, data)
+		resp, err := http.PostForm(server, data)	
+		body, err := ioutil.ReadAll(resp.Body)
+		
+		resp.Body.Close()			
+		*/
+		
+		factomclient.SetServerAddr(serverAddr)
+		err := factomclient.RevealChain(1, chain, nil)
+				
 		if err != nil {
 			abortMessage = fmt.Sprint("An error occured while submitting the entry (entry may have been accepted by the server but was not locally flagged as such): ", err.Error())
 			return
 		}
-		
-		body, err := ioutil.ReadAll(resp.Body)
-		
-		resp.Body.Close()
-		handleMessage(ctx, "Sumbitted", "The server has received your request to create a new chain with id: " + notaryapi.EncodeBinary(&body))
+
+		handleMessage(ctx, "Sumbitted", "The server has received your request to create a new chain with id: " + chain.ChainID.String())
 }
 
 func handleSettingsPost(ctx *web.Context) {

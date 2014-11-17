@@ -1,19 +1,19 @@
-package main
+package factomclient
 
 import (
 	//"flag"
 	"fmt"
-	"github.com/firelizzard18/dynrsrc"
-	"github.com/firelizzard18/gobundle"
-	"os"
-	"io/ioutil"	
-	"log"
-	"code.google.com/p/gcfg"
+//	"github.com/firelizzard18/dynrsrc"
+//	"github.com/firelizzard18/gobundle"
+//	"os"
+//	"io/ioutil"	
+//	"log"
+//	"code.google.com/p/gcfg"
 	"github.com/FactomProject/FactomCode/database"	
-	"github.com/FactomProject/FactomCode/database/ldb"		
-	"strings"
-	"time"	
-	"encoding/csv"
+//	"github.com/FactomProject/FactomCode/database/ldb"		
+//	"strings"
+//	"time"	
+//	"encoding/csv"
 )
 
 //var portNumber = flag.Int("p", 8087, "Set the port to listen on")
@@ -29,6 +29,8 @@ var (
 	db database.Db // database
 	
 )
+
+
 func watchError(err error) {
 	panic(err)
 }
@@ -36,7 +38,7 @@ func watchError(err error) {
 func readError(err error) {
 	fmt.Println("error: ", err)
 }
-
+/*
 func init() {
 	
 	loadConfigurations()
@@ -180,3 +182,4 @@ func getCSVFiles() (fileList []string, err error) {
 	return fileList, nil
 }
 
+*/

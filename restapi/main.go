@@ -50,7 +50,8 @@ var  (
 var (
  	logLevel = "DEBUG"
 	portNumber int = 8083  	
-	sendToBTCinSeconds = 60
+	sendToBTCinSeconds = 600
+	factomBlockInSeconds = 60
 	applicationName = "factom/restapi"
 	dataStorePath = "/tmp/store/seed/"
 	ldbpath = "/tmp/ldb9"
@@ -81,6 +82,7 @@ func loadConfigurations(){
 			ApplicationName string
 			LdbPath	string
 			DataStorePath string
+			FactomBlockInSeconds int				
 	    }
 		Btc struct{
 			BTCPubAddr string
@@ -114,6 +116,7 @@ func loadConfigurations(){
 		portNumber = cfg.App.PortNumber
 		dataStorePath = cfg.App.DataStorePath
 		ldbpath = cfg.App.LdbPath
+		factomBlockInSeconds = cfg.App.FactomBlockInSeconds
 //		addrStr = cfg.Btc.BTCPubAddr
 		sendToBTCinSeconds = cfg.Btc.SendToBTCinSeconds 
 		walletPassphrase = cfg.Btc.WalletPassphrase
@@ -246,10 +249,10 @@ func init() {
 	fbBatches.batches = append(fbBatches.batches, fbBatch)
 
 	// create EBlocks and FBlock every 60 seconds
-	tickers[0] = time.NewTicker(time.Second * time.Duration(sendToBTCinSeconds)) 
+	tickers[0] = time.NewTicker(time.Second * time.Duration(factomBlockInSeconds)) 
 
 	// write 10 FBlock in a batch to BTC every 10 minutes
-	tickers[1] = time.NewTicker(time.Minute * 2)	//10)
+	tickers[1] = time.NewTicker(time.Second * time.Duration(sendToBTCinSeconds))	
 
 	go func() {
 		for _ = range tickers[0].C {

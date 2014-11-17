@@ -3,36 +3,33 @@ package factomclient
 import (
 	"net/http"
 	"net/url"
+	"fmt"
 	"encoding/hex"	
-
-	"github.com/FactomProject/FactomCode/noteryapi"
+	"github.com/FactomProject/FactomCode/notaryapi"
 )
 
-//for now just set the server statically
-var server string = "http://demo.factom.org/v1"
-
-func CreateChain(name [][]byte) (*Hash, error) {
+func CommitChain(name [][]byte) (*notaryapi.Hash, error) {
 	c := new(notaryapi.Chain)
-	c.Name := name	
+	c.Name = name	
 	c.GenerateIDFromName()
 	return c.ChainID, nil
 }
 
-func SubmitChain(c *notaryapi.Chain) error {
-	bin := c.MarshalBinary()
+func RevealChain(version uint16, c *notaryapi.Chain, e *notaryapi.Entry) error {
+	bChain,_ := c.MarshalBinary()
 	
-	data := url.Values	
+	data := url.Values {}	
 	data.Set("datatype", "chain")
 	data.Set("format", "binary")
-	data.Set("chain", hex.EncodeToString(&bin))
+	data.Set("chain", hex.EncodeToString(bChain))
 	
-	resp, err := http.PostForm(server, data)
-	if err != nil {
-		return err
-	}
-}
+	server := fmt.Sprintf(`http://%s/v1`, serverAddr)
+	_, err := http.PostForm(server, data)
 
-func CreateEntry(cid *Hash) (*notaryapi.Entry, error) {
+	return err
+}
+/*
+func CreateEntry(cid *notaryapi.Hash) (*notaryapi.Entry, error) {
 	e := new(notaryapi.Entry)
 	e.ChainID := cid
 	e.ExtHashes := h
@@ -40,16 +37,23 @@ func CreateEntry(cid *Hash) (*notaryapi.Entry, error) {
 	
 	return e
 }
+*/
+func RevealEntry(version uint16, e *notaryapi.Entry) error {
+	bEntry,_ := e.MarshalBinary()
 
-func SubmitEntry(e *noteryapi.Entry) error {
-	bin := e.MarshalBinary()
-
-	data := url.Values
+	data := url.Values{}
 	data.Set("format", "binary")
-	data.Set("entry", hex.EncodeToString(&bin))
+	data.Set("entry", hex.EncodeToString(bEntry))
+	
+	server := fmt.Sprintf(`http://%s/v1`, serverAddr)
+	_, err := http.PostForm(server, data)
 
-	resp, err := http.PostForm(server, data)
-	if err != nil {
-		return err
-	}
+	return err
+}
+
+
+func SetServerAddr(addr string) error {
+	serverAddr = addr
+	
+	return nil
 }
