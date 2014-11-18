@@ -5,51 +5,68 @@ import (
 	"net/url"
 	"encoding/hex"	
 
-	"github.com/FactomProject/FactomCode/noteryapi"
+	"github.com/FactomProject/FactomCode/core"
 )
 
 //for now just set the server statically
 var server string = "http://demo.factom.org/v1"
 
-func CreateChain(name [][]byte) (*Hash, error) {
-	c := new(notaryapi.Chain)
+func CreateChain(name [][]byte) (*core.Chain, error) {
+	c := new(core.Chain)
 	c.Name := name	
-	c.GenerateIDFromName()
-	return c.ChainID, nil
-}
-
-func SubmitChain(c *notaryapi.Chain) error {
-	bin := c.MarshalBinary()
+	c.GenerateID()
 	
-	data := url.Values	
-	data.Set("datatype", "chain")
+	data := url.Values{}
+	data.Set("datatype", "createchain")
 	data.Set("format", "binary")
-	data.Set("chain", hex.EncodeToString(&bin))
+	data.Set("chainid", c.ChainID)
 	
 	resp, err := http.PostForm(server, data)
 	if err != nil {
 		return err
 	}
+	err := checkResponse(resp)
+	if err != nil {
+		return err
+	}
+	
+	return c
 }
 
-func CreateEntry(cid *Hash) (*notaryapi.Entry, error) {
-	e := new(notaryapi.Entry)
+func CreateEntry(cid *Hash) (*core.Entry, error) {
+	e := new(core.Entry)
 	e.ChainID := cid
-	e.ExtHashes := h
-	e.Data := data
 	
 	return e
 }
 
-func SubmitEntry(e *noteryapi.Entry) error {
-	bin := e.MarshalBinary()
-
-	data := url.Values
+func CommitEntry(e *core.Entry) error {
+	data := url.Values{}
+	data.Set("datatype", "commitentry")
 	data.Set("format", "binary")
-	data.Set("entry", hex.EncodeToString(&bin))
-
+	data.Set("entryhash", e.Hash())
+	
 	resp, err := http.PostForm(server, data)
 	if err != nil {
 		return err
 	}
+	return checkResponse(resp)
+}
+
+func RevealEntry(e *core.Entry) error {
+	data := url.Values{}
+	data.Set("datatype", "revealentry")
+	data.Set("format", "binary")
+	data.Set("entry", hex.EncodeToString(e.MarshalBinary()))
+	
+	resp, err := http.PostForm(server, data)
+	if err != nil {
+		return err
+	}
+	return checkResponse(resp)
+}
+
+func checkResponse(*http.Response) error {
+	// return an error if the http.Response conains information about a factom failure
+	return nil
 }
