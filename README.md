@@ -16,7 +16,7 @@ We are very much at an Alpha level of development.  We have a demo client and a 
 GETTING STARTED
 -------------------
 
-You need to set up Go environment and install the following projects:  
+You need to set up Go environment and install the following packages:  
 
 * https://github.com/conformal/btcd
 * https://github.com/conformal/btcwallet
