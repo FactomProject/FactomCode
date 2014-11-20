@@ -42,7 +42,7 @@ func CreateEntry(cid *Hash) (*core.Entry, error) {
 
 func CommitEntry(e *core.Entry) error {
 	data := url.Values{}
-	data.Set("datatype", "commitentry")
+	data.Set("method", "commitentry")
 	data.Set("format", "binary")
 	data.Set("entryhash", e.Hash())
 	
@@ -70,3 +70,4 @@ func checkResponse(*http.Response) error {
 	// return an error if the http.Response conains information about a factom failure
 	return nil
 }
+
