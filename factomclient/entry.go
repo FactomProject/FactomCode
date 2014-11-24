@@ -1,4 +1,4 @@
-package factomclient
+package main
 
 import (
 	"bytes"

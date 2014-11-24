@@ -9,7 +9,8 @@ import (
 
 type Entry struct {
 	ChainID Hash	
-	ExtHashes []Hash
+	//ExtHashes []Hash
+	ExtIDs	[][]byte
 	Data []byte
 	
 	timeStamp int64
@@ -21,7 +22,7 @@ type EntryInfo struct {
     EntryHash *Hash
     EBHash *Hash
     EBBlockNum uint64
-    //EBOffset uint64
+    //EBOffset uint64 
     
 }
 
@@ -47,12 +48,15 @@ func (e *Entry) MarshalBinary() ([]byte, error) {
 	data,_ := e.ChainID.MarshalBinary()
 	buf.Write(data)
 	
-	count := uint8(len(e.ExtHashes))
-	binary.Write(&buf, binary.BigEndian, count)
-	for _, hash := range e.ExtHashes {
-		data,_ = hash.MarshalBinary()
-		buf.Write(data)		
-	}	
+	
+	count := len(e.ExtIDs)
+	binary.Write(&buf, binary.BigEndian, uint8(count))	
+	for _, bytes := range e.ExtIDs {
+		count = len(bytes)
+		binary.Write(&buf, binary.BigEndian, uint32(count))	
+		buf.Write(bytes)
+	}
+		
 	
 	buf.Write(e.Data)
 
@@ -63,8 +67,11 @@ func (e *Entry) MarshalledSize() uint64 {
 	var size uint64 = 0
 	
 	size += e.ChainID.MarshalledSize() 	//33
-	size += 1 							// 1 length of ExtHashes
-	for _, hash := range e.ExtHashes { size += hash.MarshalledSize() }	
+	size += 1 							
+	for _, bytes := range e.ExtIDs {
+		size += 4
+		size += uint64(len(bytes))
+	}
 	size += uint64(len(e.Data))
 	
 	return size
@@ -75,12 +82,14 @@ func (e *Entry) UnmarshalBinary(data []byte) (err error) {
 	data = data[33:]
 
 	count,	data := data[0], data[1:]
-	e.ExtHashes = make([]Hash, count)	
-	for i := uint8(0); i < count; i++ {
-		err := e.ExtHashes[i].UnmarshalBinary(data[:33])
-		if err != nil { return err }
-		data = data[33:]
-	}	
+	e.ExtIDs = make([][]byte, count, count)
+	
+	for i:=uint8(0); i<count; i++{
+		length := binary.BigEndian.Uint32(data[0:4])		
+		data = data[4:]		
+		e.ExtIDs[i] = data[:length]
+		data = data[length:]
+	}
 	
 	e.Data = data
 	

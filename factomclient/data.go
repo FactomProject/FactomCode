@@ -1,15 +1,13 @@
-package factomclient
+package main
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"github.com/firelizzard18/gobundle"
 	"github.com/firelizzard18/gocoding"
 	"github.com/firelizzard18/gocoding/json"
 	"github.com/firelizzard18/gocoding/html"
 	"github.com/FactomProject/FactomCode/notaryapi"
-	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -42,7 +40,7 @@ var Settings = &struct {
 	Server string
 	NextChainID, NextKeyID, NextEntryID int
 }{
-	serverAddr, 
+	serverAddr,  
 	0, 0, 0,
 }
 
@@ -52,35 +50,12 @@ func init() {
 	unmarshaller = notaryapi.NewJSONUnmarshaller()
 }
 
-func safeRecover(obj interface{}) error {
-	if err, ok := obj.(error); ok {
-		return err
-	}
-	
-	return errors.New(fmt.Sprint(obj))
-}
+
 
 func EXPLODE(obj interface{}) error {
 	panic(obj)
 }
 
-func safeMarshal(writer io.Writer, obj interface{}) error {
-	renderer := json.Render(writer)
-	renderer.SetRecoverHandler(safeRecover)
-	return marshaller.Marshal(renderer, obj)
-}
-
-func safeMarshalHTML(writer io.Writer, obj interface{}) error {
-	renderer := html.Render(writer)
-	renderer.SetRecoverHandler(safeRecover)
-	return marshallerHTML.Marshal(renderer, obj)
-}
-
-func safeUnmarshal(reader gocoding.SliceableRuneReader, obj interface{}) error {
-	scanner := json.Scan(reader)
-	scanner.SetRecoverHandler(EXPLODE)
-	return unmarshaller.Unmarshal(scanner, obj)
-}
 
 func loadStore() {
 	keys = make(map[int]notaryapi.Key)
@@ -109,7 +84,7 @@ func loadStore() {
 		
 		entry := new(FlaggedEntry)
 		reader := gocoding.ReadBytes(data)
-		err = safeUnmarshal(reader, entry)
+		err = notaryapi.SafeUnmarshal(reader, entry)
 		if err != nil { panic(err) }
 		
 		entries[int(num)] = entry
@@ -230,7 +205,7 @@ func storeEntry(id int) {
 		return
 	}
 	
-	err := safeMarshal(buf, entry)
+	err := notaryapi.SafeMarshal(buf, entry)
 	if err != nil { fmt.Fprintln(os.Stderr, err); return }
 	
 	err = ioutil.WriteFile(gobundle.ConfigFile(fmt.Sprintf(`store/entry%d`, id)), buf.Bytes(), 0755)

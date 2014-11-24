@@ -1,4 +1,4 @@
-package factomclient
+package main
 
 import (
 	"bytes"
@@ -9,11 +9,12 @@ import (
 	"github.com/hoisie/web"
 	"github.com/FactomProject/FactomCode/notaryapi"
 	"net/http"
-	"net/url"
-	"io/ioutil"
+//	"net/url"
+//	"io/ioutil"
 	"strconv"
 	"sort"
-	"strings"
+//	"strings"
+	
 
 )
 
@@ -22,6 +23,7 @@ var server = web.NewServer()
 func serve_init() {
 	server.Config.StaticDir = gobundle.DataFile("/static")
 	
+	
 	server.Get(`/(?:home)?`, handleHome)
 	server.Get(`/entries/?`, handleEntries)
 	server.Get(`/keys/?`, handleKeys)
@@ -29,11 +31,8 @@ func serve_init() {
 	server.Get(`/settings/?`, handleSettings)
 	server.Get(`/failed`, handleFailed)
 	
-	server.Post(`/entries/?`, handleEntriesPost)
-	server.Post(`/keys/?`, handleKeysPost)
-	server.Post(`/settings/?`, handleSettingsPost)
-	server.Post(`/search/?`, handleSearch)	
-	server.Post(`/addchain/?`, handleChainPost)	
+	server.Post(`/v1/submitentry/?`, handleEntryPost)
+	server.Post(`/v1/addchain/?`, handleChainPost)	
 	
 //	server.Get(`/entries/(?:add|\+)`, handleAddEntry)
 	server.Get(`/entries/(?:add|\+)`, handleClientEntry)	
@@ -112,7 +111,7 @@ func handleExplore(ctx *web.Context, rest string) {
 	if err != nil { handleError(ctx, notaryapi.CreateError(notaryapi.ErrorHTTPDoRequestFailure, err.Error())); return }
 	
 	data := &map[string]interface{} {}
-	err = safeUnmarshal(gocoding.Read(resp.Body, 1024), data)
+	err = notaryapi.SafeUnmarshal(gocoding.Read(resp.Body, 1024), data)
 	resp.Body.Close()
 	if err != nil { handleError(ctx, notaryapi.CreateError(notaryapi.ErrorJSONUnmarshal, err.Error())); return }
 	
@@ -126,7 +125,7 @@ func handleExplore(ctx *web.Context, rest string) {
 	}
 	
 	buf := new(bytes.Buffer); //buf.ReadFrom(resp.Body)
-	err = safeMarshalHTML(buf, data)
+	err = notaryapi.SafeMarshalHTML(buf, data)
 	if err != nil { handleError(ctx, notaryapi.CreateError(notaryapi.ErrorHTMLMarshal, err.Error())); return }
 	
 	safeWrite200(ctx, map[string]interface{} {
@@ -161,7 +160,7 @@ func handleFailed(ctx *web.Context) {
 	})
 }
 
-func handleEntriesPost(ctx *web.Context) {
+func handleEntryPost(ctx *web.Context) {
 	var abortMessage, abortReturn string
 	
 	defer func() {
@@ -174,253 +173,17 @@ func handleEntriesPost(ctx *web.Context) {
 		}
 	}()
 	
-	switch action := ctx.Params["action"]; action {
-	case "editDataEntry":
-		id := ctx.Params["id"]
-		abortReturn = fmt.Sprint("/entries/", id)
-		idx, err := strconv.Atoi(id)
-		if err != nil {
-			abortMessage = fmt.Sprint("Failed to edit data entry data: error parsing id: ", err.Error())
-			return
-		}
-		if !templateIsValidEntryId(idx) {
-			abortMessage = fmt.Sprint("Failed to edit data entry data: bad id: ", id)
-			return
-		}
-		
-		entry := getEntry(idx)
-		err = entry.DecodeFromString(ctx.Params["data"])
-		if err != nil {
-			abortMessage = fmt.Sprint("Failed to edit data entry data: error parsing data: ", err.Error())
-			return
-		}
-		
-		storeEntry(idx)
-		
-	case "submitEntry":
-		id := ctx.Params["id"]
-		abortReturn = fmt.Sprint("/entries/", id)
-		idx, err := strconv.Atoi(id)
-		if err != nil {
-			abortMessage = fmt.Sprint("Failed to submit entry: error parsing id: ", err.Error())
-			return
-		}
-		if !templateIsValidEntryId(idx) {
-			abortMessage = fmt.Sprint("Failed to submit entry: bad id: ", id)
-			return
-		}
+	entry := new (notaryapi.Entry)
+	reader := gocoding.ReadBytes([]byte(ctx.Params["entry"]))
+	err := notaryapi.SafeUnmarshal(reader, entry)
 
+	err = notaryapi.RevealEntry(1, entry)
 		
-		entry := getEntry(idx)
-		
-		chainid := ctx.Params["chainid"]
-		binaryChainID, err := notaryapi.DecodeBinary(&chainid) 
-		if err != nil {
-			abortMessage = fmt.Sprint("Invalid chain id: ", chainid)
-			return
-		} else{
-			entry.ChainID = binaryChainID
-		}		
-
-		externalHashes := make([]notaryapi.Hash, 0, 10)
-		ehash0 := strings.TrimSpace(ctx.Params["ehash0"])
-		if len(ehash0)>0{
-			bytes := []byte(ehash0)
-			if len(bytes) < 32{
-				emptyBytes := make([]byte, 32-len(bytes), 32-len(bytes))
-				bytes = append(emptyBytes, bytes ...)
-			} else if len(bytes) == 64{
-				bytes,_ = notaryapi.DecodeBinary(&ehash0)
-			}
-			externalHash := new(notaryapi.Hash)
-			externalHash.Bytes = bytes[:32]
-			externalHashes = append(externalHashes, *externalHash)
-		}	
-		
-		ehash1 := strings.TrimSpace(ctx.Params["ehash1"])
-		if len(ehash1)>0{
-			bytes := []byte(ehash1)
-			if len(bytes) < 32{
-				emptyBytes := make([]byte, 32-len(bytes), 32-len(bytes))
-				bytes = append(emptyBytes, bytes ...)
-			} else if len(bytes) == 64{
-				bytes,_ = notaryapi.DecodeBinary(&ehash1)
-			}
-			externalHash := new(notaryapi.Hash)
-			externalHash.Bytes = bytes[:32]
-			externalHashes = append(externalHashes, *externalHash)
-		}	
-		
-		ehash2 := strings.TrimSpace(ctx.Params["ehash2"])
-		if len(ehash2)>0{
-			bytes := []byte(ehash2)
-			if len(bytes) < 32{
-				emptyBytes := make([]byte, 32-len(bytes), 32-len(bytes))
-				bytes = append(emptyBytes, bytes ...)
-			} else if len(bytes) == 64{
-				bytes,_ = notaryapi.DecodeBinary(&ehash2)
-			}
-			externalHash := new(notaryapi.Hash)
-			externalHash.Bytes = bytes[:32]
-			externalHashes = append(externalHashes, *externalHash)
-		}	
-		
-		entry.ExtHashes = &externalHashes
-
-		err = entry.DecodeFromString(ctx.Params["data"])
-		if err != nil {
-			abortMessage = fmt.Sprint("Failed to edit data entry data: error parsing data: ", err.Error())
-			return
-		}		
-		
-		buf := new(bytes.Buffer)
-		err = safeMarshal(buf, entry)
-		if err != nil {
-			abortMessage = fmt.Sprint("Failed to submit entry: entry could not be marshalled: ", err.Error())
-			return
-		}
-		
-		server := fmt.Sprintf(`http://%s/v1`, Settings.Server)
-		data := url.Values{}
-		
-		data.Set("format", "binary")
-		serverEntry := new (notaryapi.Entry)
-		serverEntry.ChainID.Bytes = entry.ChainID
-		serverEntry.ExtHashes = externalHashes
-		serverEntry.Data = entry.Data()
-		binaryEntry,_ := serverEntry.MarshalBinary()
-		
-		data.Set("entry", notaryapi.EncodeBinary(&binaryEntry))
-		
-		resp, err := http.PostForm(server, data)
-		if err != nil {
-			abortMessage = fmt.Sprint("An error occured while submitting the entry (entry may have been accepted by the server but was not locally flagged as such): ", err.Error())
-			return
-		}
-		
-		body, err := ioutil.ReadAll(resp.Body)
-		
-		var entryHash string
-		if body != nil{
-			fmt.Println("body: %v", notaryapi.EncodeBinary(&body))
-			entryHash = notaryapi.EncodeBinary(&body)
-		}
-		
-		resp.Body.Close()
-		
-		flagSubmitEntry(idx, entryHash)
-		
-	
-	case "rmEntrySig":
-		entry_id_str := ctx.Params["id"]
-		abortReturn = fmt.Sprint("/entries/", entry_id_str)
-		entry_id, err := strconv.Atoi(entry_id_str)
-		if err != nil {
-			abortMessage = fmt.Sprint("Failed to remove entry signature: error parsing entry id: ", err.Error())
-			return
-		}
-		if !templateIsValidEntryId(entry_id) {
-			abortMessage = fmt.Sprint("Failed to remove entry signature: bad entry id: ", entry_id_str)
-			return
-		}
-		entry := getEntry(entry_id)
-		
-		sig_id_str := ctx.Params["sig_id"]
-		sig_id, err := strconv.Atoi(sig_id_str)
-		if err != nil {
-			abortMessage = fmt.Sprint("Failed to remove entry signature: error parsing signature id: ", err.Error())
-			return
-		}
-		if sig_id >= len(entry.Signatures()){
-			abortMessage = fmt.Sprint("Failed to remove entry signature: bad entry signature id: ", sig_id_str)
-			break
-		} 
-		
-		if entry.Unsign(sig_id) {
-			ctx.Header().Add("Location", abortReturn)
-			ctx.WriteHeader(303)
-		} else {
-			abortMessage = fmt.Sprint("Failed to remove entry signature #", sig_id)
-		}
-		
-		storeEntry(entry_id)
-		
-	case "signEntry":
-		entry_id_str := ctx.Params["id"]
-		abortReturn = fmt.Sprint("/entries/", entry_id_str)
-		entry_id, err := strconv.Atoi(entry_id_str)
-		if err != nil {
-			abortMessage = fmt.Sprint("Failed to sign entry: error parsing entry id: ", err.Error())
-			return
-		}
-		if !templateIsValidEntryId(entry_id) {
-			abortMessage = fmt.Sprint("Failed to sign entry: bad entry id: ", entry_id_str)
-			return
-		}
-		entry := getEntry(entry_id)
-		
-		key_id_str := ctx.Params["key"]
-		key_id, err := strconv.Atoi(key_id_str)
-		if err != nil {
-			abortMessage = fmt.Sprint("Failed to sign entry: error parsing key id: ", err.Error())
-			return
-		}
-		if !templateIsValidEntryId(entry_id) {
-			abortMessage = fmt.Sprint("Failed to sign entry: bad key id: ", key_id_str)
-			return
-		}
-		var key notaryapi.PrivateKey
-		var ok bool
-		_key := getKey(key_id)
-		if key, ok = _key.(notaryapi.PrivateKey); !ok {
-			abortMessage = fmt.Sprint("Failed to sign entry: key with id ", key_id_str, " is not a private key")
-			return
-		}
-		
-		err = entry.Sign(rand.Reader, key)
-		if err != nil {
-			abortMessage = fmt.Sprint("Failed to sign entry: error while signing: ", err.Error())
-			return
-		}
-		
-		storeEntry(entry_id)
-		
-	case "genEntry":
-		abortReturn = fmt.Sprint("/entries/add")
-		
-		sid := ctx.Params["datatype"]
-		id, err := strconv.Atoi(sid)
-		if err != nil {
-			abortMessage = fmt.Sprint("Failed to generate entry: error data type: ", err.Error())
-			return
-		}
-		
-		entry := NewEntryOfType(EntryDataType(id))
-		if entry == nil {
-			abortMessage = fmt.Sprint("Failed to generate entry: unsupported data type: ", id)
-			return
-		}
-		
-		chainid := ctx.Params["chainid"]
-		binaryChainID, err := notaryapi.DecodeBinary(&chainid) 
-		if err != nil {
-			abortMessage = fmt.Sprint("Invalid chain id: ", chainid)
-			return
-		} else{
-			entry.ChainID = binaryChainID
-		}
-				
-				
-		
-		addEntry(entry)
-		
-		ctx.Header().Add("Location", fmt.Sprintf("/entries/%d", Settings.NextEntryID-1))
-		ctx.WriteHeader(303)
-		
-	default:
-		abortReturn = fmt.Sprint("/entries")
-		abortMessage = fmt.Sprint("Unknown action: ", action)
+	if err != nil {
+		abortMessage = fmt.Sprint("An error occured while submitting the entry (entry may have been accepted by the server but was not locally flagged as such): ", err.Error())
+		return
 	}
+		
 }
 
 func handleKeysPost(ctx *web.Context) {
@@ -468,61 +231,20 @@ func handleChainPost(ctx *web.Context) {
 			ctx.WriteHeader(303)
 		}
 	}()
-		
-		bName := make ([][]byte, 0, 5)
-
-		
-			
-		level0 := ctx.Params["level0"]
-		if len(level0) > 0 {
-			bName = append(bName, []byte(level0))
-		}	
-		level1 := ctx.Params["level1"]
-		if len(level1) > 0 {
-			bName = append(bName, []byte(level1))
-		}		
-		level2 := ctx.Params["level2"]
-		if len(level2) > 0 {
-			bName = append(bName, []byte(level2))
-		}		
-		level3 := ctx.Params["level3"]
-		if len(level3) > 0 {
-			bName = append(bName, []byte(level3))
-		}		
-		level4 := ctx.Params["level4"]		
-		if len(level4) > 0 {
-			bName = append(bName, []byte(level4))
-		}		
-		fmt.Println("level0:%v", level0)			
-		fmt.Println("bName[0]%v", string(bName[0]))
-		chain := new(notaryapi.Chain)
 	
-		server := fmt.Sprintf(`http://%s/v1`, Settings.Server)
-		data := url.Values{}
+	fmt.Println("In handlechainPost")	
+	chain := new (notaryapi.Chain)
+	reader := gocoding.ReadBytes([]byte(ctx.Params["chain"]))
+	err := notaryapi.SafeUnmarshal(reader, chain)
+
+	err = notaryapi.RevealChain(1, chain, nil)
 		
-		data.Set("datatype", "chain")
-		data.Set("format", "binary")
-		chain.Name = bName	
-		chain.GenerateIDFromName()	
-		fmt.Println("chainid:%v", chain.ChainID.String())
-					
-		binaryChain,_ := chain.MarshalBinary()
-		data.Set("chain", notaryapi.EncodeBinary(&binaryChain))
+	if err != nil {
+		abortMessage = fmt.Sprint("An error occured while adding the chain ", err.Error())
+		return
+	}
+	
 		
-		resp, err := http.PostForm(server, data)
-		if err != nil {
-			abortMessage = fmt.Sprint("An error occured while submitting the entry (entry may have been accepted by the server but was not locally flagged as such): ", err.Error())
-			return
-		}
-		
-		body, err := ioutil.ReadAll(resp.Body)
-		
-		if body != nil{
-			fmt.Println("body: %v", notaryapi.EncodeBinary(&body))
-		}
-		
-		resp.Body.Close()
-		handleMessage(ctx, "Sumbitted", "The server has received your request to create a new chain with id: " + notaryapi.EncodeBinary(&body))
 }
 
 func handleSettingsPost(ctx *web.Context) {

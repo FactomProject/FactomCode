@@ -1,28 +1,29 @@
-package factomclient
+package main
 
 import (
 	//"flag"
 	"fmt"
-//	"github.com/firelizzard18/dynrsrc"
-//	"github.com/firelizzard18/gobundle"
-//	"os"
-//	"io/ioutil"	
-//	"log"
-//	"code.google.com/p/gcfg"
+	"github.com/firelizzard18/dynrsrc"
+	"github.com/firelizzard18/gobundle"
+	"os"
+	"io/ioutil"	
+	"log"
+	"code.google.com/p/gcfg"
 	"github.com/FactomProject/FactomCode/database"	
-//	"github.com/FactomProject/FactomCode/database/ldb"		
-//	"strings"
-//	"time"	
-//	"encoding/csv"
+	"github.com/FactomProject/FactomCode/database/ldb"	
+	"github.com/FactomProject/FactomCode/notaryapi"
+	"strings"
+	"time"	
+	"encoding/csv"
 )
 
 //var portNumber = flag.Int("p", 8087, "Set the port to listen on")
 var (
  	logLevel = "DEBUG"
-	portNumber int = 8087  	
+	portNumber int = 8088 	
 	applicationName = "factom/client"
 	serverAddr = "localhost:8083"	
-	ldbpath = "/tmp/client/ldb9"	
+	ldbpath = "/tmp/factomclient/ldb9"	
 	dataStorePath = "/tmp/store/seed/csv"
 	refreshInSeconds int = 60
 	
@@ -38,10 +39,11 @@ func watchError(err error) {
 func readError(err error) {
 	fmt.Println("error: ", err)
 }
-/*
+
 func init() {
 	
 	loadConfigurations()
+	notaryapi.SetServerAddr(serverAddr)
 	
 	initDB()
 		
@@ -94,7 +96,7 @@ func loadConfigurations(){
 	if err != nil{
 		log.Println(err)
 	}	
-	err = gcfg.ReadFileInto(&cfg, wd+"/client.conf")
+	err = gcfg.ReadFileInto(&cfg, wd+"/factomclient.conf")
 	if err != nil{
 		log.Println(err)
 		log.Println("Client starting with default settings...")
@@ -181,5 +183,3 @@ func getCSVFiles() (fileList []string, err error) {
 	}	
 	return fileList, nil
 }
-
-*/

@@ -8,12 +8,11 @@ import (
 	"github.com/firelizzard18/gocoding"
 	"github.com/hoisie/web"
 	"github.com/FactomProject/FactomCode/notaryapi"
-	"github.com/FactomProject/FactomCode/factomclient"	
 	"net/http"
 	"strconv"
 	"sort"
 	"strings"
-
+ 
 )
 
 var server = web.NewServer()
@@ -221,50 +220,23 @@ func handleEntriesPost(ctx *web.Context) {
 			entry.ChainID = binaryChainID
 		}		
 
-		externalHashes := make([]notaryapi.Hash, 0, 10)
+		externalHashes :=  make ([][]byte, 0, 5)
 		ehash0 := strings.TrimSpace(ctx.Params["ehash0"])
 		if len(ehash0)>0{
-			bytes := []byte(ehash0)
-			if len(bytes) < 32{
-				emptyBytes := make([]byte, 32-len(bytes), 32-len(bytes))
-				bytes = append(emptyBytes, bytes ...)
-			} else if len(bytes) == 64{
-				bytes,_ = notaryapi.DecodeBinary(&ehash0)
-			}
-			externalHash := new(notaryapi.Hash)
-			externalHash.Bytes = bytes[:32]
-			externalHashes = append(externalHashes, *externalHash)
+			externalHashes = append(externalHashes, []byte(ehash0))
 		}	
 		
 		ehash1 := strings.TrimSpace(ctx.Params["ehash1"])
 		if len(ehash1)>0{
-			bytes := []byte(ehash1)
-			if len(bytes) < 32{
-				emptyBytes := make([]byte, 32-len(bytes), 32-len(bytes))
-				bytes = append(emptyBytes, bytes ...)
-			} else if len(bytes) == 64{
-				bytes,_ = notaryapi.DecodeBinary(&ehash1)
-			}
-			externalHash := new(notaryapi.Hash)
-			externalHash.Bytes = bytes[:32]
-			externalHashes = append(externalHashes, *externalHash)
+			externalHashes = append(externalHashes, []byte(ehash1))
 		}	
 		
 		ehash2 := strings.TrimSpace(ctx.Params["ehash2"])
 		if len(ehash2)>0{
-			bytes := []byte(ehash2)
-			if len(bytes) < 32{
-				emptyBytes := make([]byte, 32-len(bytes), 32-len(bytes))
-				bytes = append(emptyBytes, bytes ...)
-			} else if len(bytes) == 64{
-				bytes,_ = notaryapi.DecodeBinary(&ehash2)
-			}
-			externalHash := new(notaryapi.Hash)
-			externalHash.Bytes = bytes[:32]
-			externalHashes = append(externalHashes, *externalHash)
+			externalHashes = append(externalHashes, []byte(ehash2))
 		}	
 		
-		entry.ExtHashes = &externalHashes
+		entry.ExtIDs = externalHashes
 
 		err = entry.DecodeFromString(ctx.Params["data"])
 		if err != nil {
@@ -297,11 +269,10 @@ func handleEntriesPost(ctx *web.Context) {
 		*/
 		serverEntry := new (notaryapi.Entry)
 		serverEntry.ChainID.Bytes = entry.ChainID
-		serverEntry.ExtHashes = externalHashes
+		serverEntry.ExtIDs = externalHashes
 		serverEntry.Data = entry.Data()
 		
-		factomclient.SetServerAddr(serverAddr)
-		err = factomclient.RevealEntry(1, serverEntry)
+		err = notaryapi.RevealEntry(1, serverEntry)
 
 		if err != nil {
 			abortMessage = fmt.Sprint("An error occured while submitting the entry (entry may have been accepted by the server but was not locally flagged as such): ", err.Error())
@@ -516,8 +487,8 @@ func handleChainPost(ctx *web.Context) {
 		resp.Body.Close()			
 		*/
 		
-		factomclient.SetServerAddr(serverAddr)
-		err := factomclient.RevealChain(1, chain, nil)
+
+		err := notaryapi.RevealChain(1, chain, nil)
 				
 		if err != nil {
 			abortMessage = fmt.Sprint("An error occured while submitting the entry (entry may have been accepted by the server but was not locally flagged as such): ", err.Error())
@@ -565,7 +536,7 @@ func handleEntry(ctx *web.Context, entry_id_str string, action string, action_id
 	var title, error_str, tmpl string
 	var entry_id int
 	var newdata string
-	var externalHashes []notaryapi.Hash
+	var externalHashes [][]byte
 	
 	defer func(){
 		if action == "submit" {
@@ -578,8 +549,8 @@ func handleEntry(ctx *web.Context, entry_id_str string, action string, action_id
 		
 		if ok{
 			newdata = string (fentry.Entry.Data())
-			if fentry.Entry.ExtHashes != nil{
-				externalHashes = *fentry.Entry.ExtHashes
+			if fentry.Entry.ExtIDs != nil{
+				externalHashes = fentry.Entry.ExtIDs
 			}
 		}
 		

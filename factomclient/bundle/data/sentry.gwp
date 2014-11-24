@@ -16,8 +16,8 @@
 		<h3>Entry Details:</h3>
 		</br>
 		Entry Hash: {{ .entryInfo.EntryHash}}	<br>
-		{{range .entry.ExtHashes}}
-			External Hash: {{hexEncode .Bytes}}	<br>	
+		{{range $ind, $extID := .entry.ExtIDs}}
+			External ID: {{bytesToString $extID}}	<br>	
 		{{end}}	
 				
 		Entry Data: {{ .entryData}}	<br>	

@@ -42,6 +42,8 @@ var  (
 	//chainNameMap map[string]*notaryapi.Chain // ChainNameMap with chain name string as key	
 	fchain *notaryapi.FChain	//Factom Chain
 	
+	eCreditMap map[string]int // eCreditMap with public key string([32]byte) as key	
+	
 //	fbBatches []*notaryapi.FBBatch
 	fbBatches *FBBatches
 	fbBatch *notaryapi.FBBatch
@@ -735,6 +737,8 @@ func initChains() {
 	
 	chainIDMap = make(map[string]*notaryapi.Chain)
 	//chainNameMap = make(map[string]*notaryapi.Chain)
+	
+	eCreditMap = make(map[string]int)
 
 	chains, err := db.FetchAllChainsByName(nil)
 	

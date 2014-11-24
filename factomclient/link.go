@@ -1,4 +1,4 @@
-package factomclient
+package main
 
 import (
 	"github.com/firelizzard18/gocoding"

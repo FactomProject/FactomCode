@@ -76,7 +76,8 @@ func newEntryDataOfType(dataType EntryDataType, version EntryDataVersion) EntryD
 
 type ClientEntry struct {
 	ChainID []byte
-	ExtHashes *[]notaryapi.Hash	
+	//ExtHashes *[]notaryapi.Hash	
+	ExtIDs	[][]byte	
 	EntryData
 	unixTime int64
 

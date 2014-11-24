@@ -1,21 +1,22 @@
-package factomclient
+package notaryapi
 
 import (
 	"net/http"
 	"net/url"
 	"fmt"
 	"encoding/hex"	
-	"github.com/FactomProject/FactomCode/notaryapi"
+
 )
 
-func CommitChain(name [][]byte) (*notaryapi.Hash, error) {
-	c := new(notaryapi.Chain)
+var serverAddr = "localhost:8083"	
+func CommitChain(name [][]byte) (*Hash, error) {
+	c := new(Chain)
 	c.Name = name	
 	c.GenerateIDFromName()
 	return c.ChainID, nil
 }
 
-func RevealChain(version uint16, c *notaryapi.Chain, e *notaryapi.Entry) error {
+func RevealChain(version uint16, c *Chain, e *Entry) error {
 	bChain,_ := c.MarshalBinary()
 	
 	data := url.Values {}	
@@ -23,13 +24,15 @@ func RevealChain(version uint16, c *notaryapi.Chain, e *notaryapi.Entry) error {
 	data.Set("format", "binary")
 	data.Set("chain", hex.EncodeToString(bChain))
 	
+	fmt.Println("chain name[0]:%s", string(c.Name[0]))
+	
 	server := fmt.Sprintf(`http://%s/v1`, serverAddr)
 	_, err := http.PostForm(server, data)
 
 	return err
 }
 /*
-func CreateEntry(cid *notaryapi.Hash) (*notaryapi.Entry, error) {
+func CommitEntry(cid *notaryapi.Hash) (*notaryapi.Entry, error) {
 	e := new(notaryapi.Entry)
 	e.ChainID := cid
 	e.ExtHashes := h
@@ -38,13 +41,16 @@ func CreateEntry(cid *notaryapi.Hash) (*notaryapi.Entry, error) {
 	return e
 }
 */
-func RevealEntry(version uint16, e *notaryapi.Entry) error {
+func RevealEntry(version uint16, e *Entry) error {
 	bEntry,_ := e.MarshalBinary()
 
 	data := url.Values{}
 	data.Set("format", "binary")
 	data.Set("entry", hex.EncodeToString(bEntry))
 	
+	
+	fmt.Println("Entry extid[0]:%s", string(e.ExtIDs[0]))
+		
 	server := fmt.Sprintf(`http://%s/v1`, serverAddr)
 	_, err := http.PostForm(server, data)
 
@@ -57,3 +63,5 @@ func SetServerAddr(addr string) error {
 	
 	return nil
 }
+
+

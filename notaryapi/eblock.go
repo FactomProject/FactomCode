@@ -22,6 +22,7 @@ type Chain struct {
 	Blocks 		[]*Block
 	BlockMutex 	sync.Mutex	
 	NextBlockID uint64	
+	FirstEntry *Entry
 }
 
 type Block struct {
@@ -264,6 +265,7 @@ func (b *Chain) MarshalledSize() uint64 {
 	
 	return size
 }
+
 
 func (b *Chain) UnmarshalBinary(data []byte) (err error) {
 	b.ChainID = new(Hash)

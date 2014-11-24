@@ -1,4 +1,4 @@
-package factomclient
+package main
 
 import (
 	"bytes"
@@ -270,7 +270,7 @@ main:
 	return keyIDs, nil
 }
 
-func bytesToString(bytes string) string {
+func bytesToString(bytes []byte) string {
 	return string(bytes)
 
 }
