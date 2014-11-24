@@ -13,13 +13,17 @@ var server string = "http://demo.factom.org/v1"
 
 func CreateChain(name [][]byte) (*core.Chain, error) {
 	c := new(core.Chain)
-	c.Name := name	
+	c.Name := name
 	c.GenerateID()
 	
+	return c
+}
+
+func CommitChain(c *core.Chain) error {	
+
 	data := url.Values{}
-	data.Set("datatype", "createchain")
+	data.Set("type", "commitchain")
 	data.Set("format", "binary")
-	data.Set("chainid", c.ChainID)
 	
 	resp, err := http.PostForm(server, data)
 	if err != nil {
@@ -29,9 +33,8 @@ func CreateChain(name [][]byte) (*core.Chain, error) {
 	if err != nil {
 		return err
 	}
-	
-	return c
 }
+
 
 func CreateEntry(cid *Hash) (*core.Entry, error) {
 	e := new(core.Entry)
