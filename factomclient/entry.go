@@ -13,7 +13,7 @@ import (
 	"time"
 	"github.com/FactomProject/FactomCode/notaryapi"
 	
-)
+) 
 
 /*
 type BEntry interface {

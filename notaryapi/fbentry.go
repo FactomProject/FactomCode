@@ -69,8 +69,8 @@ func (e *FBEntry) StampTime() {
 
 func (e *FBEntry) EncodableFields() map[string]reflect.Value {
 	fields := map[string]reflect.Value{
-		`TimeStamp`: reflect.ValueOf(e.TimeStamp()),
-		`Hash`: reflect.ValueOf(e.Hash()),
+		`MerkleRoot`: reflect.ValueOf(e.MerkleRoot),
+		`ChainID`: reflect.ValueOf(e.ChainID),
 	}
 	return fields
 }

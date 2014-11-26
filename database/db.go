@@ -3,9 +3,9 @@ package database
 import (
 
 	"github.com/FactomProject/FactomCode/notaryapi"	
-)
+) 
  
-
+ 
 // AllShas is a special value that can be used as the final sha when requesting
 // a range of shas by height to request them all.
 const AllShas = int64(^uint64(0) >> 1)

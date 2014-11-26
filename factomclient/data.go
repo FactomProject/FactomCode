@@ -8,6 +8,7 @@ import (
 	"github.com/firelizzard18/gocoding/json"
 	"github.com/firelizzard18/gocoding/html"
 	"github.com/FactomProject/FactomCode/notaryapi"
+	"github.com/FactomProject/FactomCode/factomapi"	
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -84,7 +85,7 @@ func loadStore() {
 		
 		entry := new(FlaggedEntry)
 		reader := gocoding.ReadBytes(data)
-		err = notaryapi.SafeUnmarshal(reader, entry)
+		err = factomapi.SafeUnmarshal(reader, entry)
 		if err != nil { panic(err) }
 		
 		entries[int(num)] = entry
@@ -205,7 +206,7 @@ func storeEntry(id int) {
 		return
 	}
 	
-	err := notaryapi.SafeMarshal(buf, entry)
+	err := factomapi.SafeMarshal(buf, entry)
 	if err != nil { fmt.Fprintln(os.Stderr, err); return }
 	
 	err = ioutil.WriteFile(gobundle.ConfigFile(fmt.Sprintf(`store/entry%d`, id)), buf.Bytes(), 0755)

@@ -8,6 +8,7 @@ import (
 	"github.com/firelizzard18/gocoding"
 	"github.com/hoisie/web"
 	"github.com/FactomProject/FactomCode/notaryapi"
+	"github.com/FactomProject/FactomCode/factomapi"
 	"net/http"
 //	"net/url"
 //	"io/ioutil"
@@ -15,7 +16,7 @@ import (
 	"sort"
 //	"strings"
 	
-
+ 
 )
 
 var server = web.NewServer()
@@ -33,6 +34,9 @@ func serve_init() {
 	
 	server.Post(`/v1/submitentry/?`, handleEntryPost)
 	server.Post(`/v1/addchain/?`, handleChainPost)	
+	
+	server.Get(`/v1/dblocksbyrange/([^/]+)(?:/([^/]+))?`, handleDBlocksByRange)
+	server.Get(`/v1/dblock/([^/]+)(?)`, handleDBlockByHash)	
 	
 //	server.Get(`/entries/(?:add|\+)`, handleAddEntry)
 	server.Get(`/entries/(?:add|\+)`, handleClientEntry)	
@@ -111,7 +115,7 @@ func handleExplore(ctx *web.Context, rest string) {
 	if err != nil { handleError(ctx, notaryapi.CreateError(notaryapi.ErrorHTTPDoRequestFailure, err.Error())); return }
 	
 	data := &map[string]interface{} {}
-	err = notaryapi.SafeUnmarshal(gocoding.Read(resp.Body, 1024), data)
+	err = factomapi.SafeUnmarshal(gocoding.Read(resp.Body, 1024), data)
 	resp.Body.Close()
 	if err != nil { handleError(ctx, notaryapi.CreateError(notaryapi.ErrorJSONUnmarshal, err.Error())); return }
 	
@@ -125,7 +129,7 @@ func handleExplore(ctx *web.Context, rest string) {
 	}
 	
 	buf := new(bytes.Buffer); //buf.ReadFrom(resp.Body)
-	err = notaryapi.SafeMarshalHTML(buf, data)
+	err = factomapi.SafeMarshalHTML(buf, data)
 	if err != nil { handleError(ctx, notaryapi.CreateError(notaryapi.ErrorHTMLMarshal, err.Error())); return }
 	
 	safeWrite200(ctx, map[string]interface{} {
@@ -175,9 +179,9 @@ func handleEntryPost(ctx *web.Context) {
 	
 	entry := new (notaryapi.Entry)
 	reader := gocoding.ReadBytes([]byte(ctx.Params["entry"]))
-	err := notaryapi.SafeUnmarshal(reader, entry)
+	err := factomapi.SafeUnmarshal(reader, entry)
 
-	err = notaryapi.RevealEntry(1, entry)
+	err = factomapi.RevealEntry(1, entry)
 		
 	if err != nil {
 		abortMessage = fmt.Sprint("An error occured while submitting the entry (entry may have been accepted by the server but was not locally flagged as such): ", err.Error())
@@ -235,9 +239,9 @@ func handleChainPost(ctx *web.Context) {
 	fmt.Println("In handlechainPost")	
 	chain := new (notaryapi.Chain)
 	reader := gocoding.ReadBytes([]byte(ctx.Params["chain"]))
-	err := notaryapi.SafeUnmarshal(reader, chain)
+	err := factomapi.SafeUnmarshal(reader, chain)
 
-	err = notaryapi.RevealChain(1, chain, nil)
+	err = factomapi.RevealChain(1, chain, nil)
 		
 	if err != nil {
 		abortMessage = fmt.Sprint("An error occured while adding the chain ", err.Error())
@@ -469,6 +473,73 @@ func handleChains(ctx *web.Context) {
 	
 }
 
+func handleDBlocksByRange(ctx *web.Context, fromHeightStr string, toHeightStr string) {
+	var httpcode int = 200
+	buf := new(bytes.Buffer)
+
+	defer func() {
+		ctx.WriteHeader(httpcode)
+		ctx.Write(buf.Bytes())
+	}()
+	
+	fromBlockHeight, err := strconv.Atoi(fromHeightStr)
+	if err != nil{
+		httpcode = 400
+		buf.WriteString("Bad fromBlockHeight")
+		return
+	}
+	toBlockHeight, err := strconv.Atoi(toHeightStr)
+	if err != nil{
+		httpcode = 400
+		buf.WriteString("Bad toBlockHeight")
+		return		
+	}	
+	
+	dBlocks, err := factomapi.GetDirectoryBloks(uint64(fromBlockHeight), uint64(toBlockHeight))
+	if err != nil{
+		httpcode = 400
+		buf.WriteString("Bad request")
+		return		
+	}	
+
+	// Send back JSON response
+	err = factomapi.SafeMarshal(buf, dBlocks)
+	if err != nil{
+		httpcode = 400
+		buf.WriteString("Bad request")
+		return		
+	}	
+	
+}
+
+
+func handleDBlockByHash(ctx *web.Context, hashStr string) {
+	var httpcode int = 200
+	buf := new(bytes.Buffer)
+
+	defer func() {
+		ctx.WriteHeader(httpcode)
+		ctx.Write(buf.Bytes())
+	}()
+	
+	dBlock, err := factomapi.GetDirectoryBlokByHashStr(hashStr)
+	if err != nil{
+		httpcode = 400
+		buf.WriteString("Bad Request")
+		return
+	}
+
+	// Send back JSON response
+	err = factomapi.SafeMarshal(buf, dBlock)
+	if err != nil{
+		httpcode = 400
+		buf.WriteString("Bad request")
+		return		
+	}	
+	
+}
+
+
 func handleKey(ctx *web.Context, key_id_str string, action string) {
 	var err error
 	var title, error_str string
@@ -663,25 +734,25 @@ func handleSearch(ctx *web.Context) {
 	
 }
 
-// array sorting implementation
+// array sorting implementation - assending
 type byBlockID []notaryapi.FBlock
 func (f byBlockID) Len() int { 
   return len(f) 
 } 
 func (f byBlockID) Less(i, j int) bool { 
-  return f[i].Header.BlockID > f[j].Header.BlockID
+  return f[i].Header.BlockID < f[j].Header.BlockID
 } 
 func (f byBlockID) Swap(i, j int) { 
   f[i], f[j] = f[j], f[i] 
 } 
 
-// array sorting implementation
+// array sorting implementation - assending
 type byEBlockID []notaryapi.Block
 func (f byEBlockID) Len() int { 
   return len(f) 
 } 
 func (f byEBlockID) Less(i, j int) bool { 
-  return f[i].Header.BlockID > f[j].Header.BlockID
+  return f[i].Header.BlockID < f[j].Header.BlockID
 } 
 func (f byEBlockID) Swap(i, j int) { 
   f[i], f[j] = f[j], f[i] 

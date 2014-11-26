@@ -11,11 +11,11 @@ import (
 	"code.google.com/p/gcfg"
 	"github.com/FactomProject/FactomCode/database"	
 	"github.com/FactomProject/FactomCode/database/ldb"	
-	"github.com/FactomProject/FactomCode/notaryapi"
+	"github.com/FactomProject/FactomCode/factomapi"
 	"strings"
 	"time"	
 	"encoding/csv"
-)
+) 
 
 //var portNumber = flag.Int("p", 8087, "Set the port to listen on")
 var (
@@ -31,7 +31,6 @@ var (
 	
 )
 
-
 func watchError(err error) {
 	panic(err)
 }
@@ -43,9 +42,11 @@ func readError(err error) {
 func init() {
 	
 	loadConfigurations()
-	notaryapi.SetServerAddr(serverAddr)
 	
 	initDB()
+	
+	factomapi.SetServerAddr(serverAddr)
+	factomapi.SetDB(db)	
 		
 	gobundle.Setup.Application.Name = applicationName
 	gobundle.Init()

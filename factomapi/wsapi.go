@@ -1,10 +1,11 @@
-package notaryapi
+package factomapi
 
 import (
 	"io"
 	"github.com/firelizzard18/gocoding"
 	"github.com/firelizzard18/gocoding/json"
 	"github.com/firelizzard18/gocoding/html"
+	"github.com/FactomProject/FactomCode/notaryapi"	
 	"fmt"	
 	"errors"	
 )
@@ -29,7 +30,7 @@ func SafeMarshalHTML(writer io.Writer, obj interface{}) error {
 func SafeUnmarshal(reader gocoding.SliceableRuneReader, obj interface{}) error {
 	scanner := json.Scan(reader)
 	scanner.SetRecoverHandler(EXPLODE)
-	unmarshaller := NewJSONUnmarshaller()	
+	unmarshaller := notaryapi.NewJSONUnmarshaller()	
 	return unmarshaller.Unmarshal(scanner, obj)
 }
 func safeRecover(obj interface{}) error {

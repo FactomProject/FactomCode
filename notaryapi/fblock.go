@@ -5,6 +5,7 @@ import (
 	"errors"
 	"encoding/binary"
 	"sync"
+	"reflect"	
 )
 
 type FChain struct {
@@ -160,6 +161,14 @@ func (b *FBlock) UnmarshalBinary(data []byte) (err error) {
 	data = data[b.Salt.MarshalledSize():]
 	
 	return nil
+}
+
+func (b *FBlock) EncodableFields() map[string]reflect.Value {
+	fields := map[string]reflect.Value{
+		`Header`: reflect.ValueOf(b.Header),
+		`FBEntries`: reflect.ValueOf(b.FBEntries),
+	}
+	return fields
 }
 
 

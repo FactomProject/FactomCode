@@ -1,4 +1,4 @@
-package notaryapi
+package factomapi
 
 import (
 	"testing"
@@ -6,16 +6,19 @@ import (
 	"net/http"
 	"net/url"
 	"fmt"
-//	"encoding/hex"	
+	"encoding/hex"	
 //	"encoding/json"	
 	"github.com/firelizzard18/gocoding"	
+	"github.com/FactomProject/FactomCode/notaryapi"	
 	"encoding/base64"
+	"io/ioutil"
+	"os" 	
 	
 )
 
 func TestAddChain(t *testing.T) {
 
-	chain := new (Chain)
+	chain := new (notaryapi.Chain)
 	bName := make ([][]byte, 0, 5)
 	bName = append(bName, []byte("myCompany"))	
 	bName = append(bName, []byte("bookkeeping"))		
@@ -23,7 +26,7 @@ func TestAddChain(t *testing.T) {
 	chain.Name = bName
 	chain.GenerateIDFromName()
 	
-	entry := new (Entry)
+	entry := new (notaryapi.Entry)
 	entry.ExtIDs = make ([][]byte, 0, 5)
 	entry.ExtIDs = append(entry.ExtIDs, []byte("1001"))	
 	entry.ExtIDs = append(entry.ExtIDs, []byte("570b9e3fb2f5ae823685eb4422d4fd83f3f0d9e7ce07d988bd17e665394668c6"))	
@@ -57,7 +60,7 @@ func TestAddChain(t *testing.T) {
 	}			
 	// JSON ws test done ----------------------------------------------------------------------------
 
-	chain3 := new (Chain)
+	chain3 := new (notaryapi.Chain)
 	reader := gocoding.ReadBytes([]byte(jsonstr))
 	err = SafeUnmarshal(reader, chain3)
 
@@ -72,7 +75,7 @@ func TestAddChain(t *testing.T) {
 
 func TestAddEntry(t *testing.T) {
 
-	entry := new (Entry)
+	entry := new (notaryapi.Entry)
 	entry.ExtIDs = make ([][]byte, 0, 5)
 	entry.ExtIDs = append(entry.ExtIDs, []byte("1001"))	
 	entry.ExtIDs = append(entry.ExtIDs, []byte("570b9e3fb2f5ae823685eb4422d4fd83f3f0d9e7ce07d988bd17e665394668c6"))	
@@ -101,7 +104,7 @@ func TestAddEntry(t *testing.T) {
 	// JSON ws test done ----------------------------------------------------------------------------
 
 
-	entry2 := new (Entry)
+	entry2 := new (notaryapi.Entry)
 	reader := gocoding.ReadBytes([]byte(jsonstr))
 	err = SafeUnmarshal(reader, entry2)
 	
@@ -114,3 +117,59 @@ func TestAddEntry(t *testing.T) {
 	}
 } 
 
+
+func TestGetDBlocksByRange(t *testing.T) {
+
+
+	// Send request to FactomClient web server	--------------------------------------	
+	resp, err := http.Get("http://localhost:8088/v1/dblocksbyrange/0/1")	
+	if err != nil {
+		t.Errorf("Error:%v", err)
+	} else{
+		fmt.Println("Request dblocksbyrange successfully submitted to factomclient.")
+	}		
+
+	contents, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Printf("after contents: %s", err)
+		os.Exit(1)
+	}
+	fmt.Printf("Http Resp Body:%s\n", string(contents)) 
+	fmt.Println("status code:%v", resp.StatusCode)
+	
+	if err != nil {
+		t.Errorf("Error:%v", err)
+	}
+
+} 
+
+
+func TestGetDBlockByHash(t *testing.T) {
+
+
+	// Send request to FactomClient web server	---------------------------------------
+	// Copy it from explorer
+	bytes, _ := hex.DecodeString("e6354e9cb2d1e14f18f61c002f02d8ab978ccf56ad716f9f8ad6ce2a807d2614")
+	
+	base64str := base64.StdEncoding.EncodeToString(bytes)
+	
+	resp, err := http.Get("http://localhost:8088/v1/dblock/"+base64str)	
+	if err != nil {
+		t.Errorf("Error:%v", err)
+	} else{
+		fmt.Println("Request TestGetDBlockByHash successfully submitted to factomclient.")
+	}		
+
+	contents, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Printf("after contents: %s", err)
+		os.Exit(1)
+	}
+	fmt.Printf("Http Resp Body:%s\n", string(contents)) 
+	fmt.Println("status code:%v", resp.StatusCode)
+			
+	if err != nil {
+		t.Errorf("Error:%v", err)
+	}
+	 
+} 

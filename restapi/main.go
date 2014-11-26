@@ -29,7 +29,7 @@ import (
 	"github.com/FactomProject/FactomCode/database/ldb"	
 	"code.google.com/p/gcfg"	
 
-)
+) 
 
 var  (
 	wclient *btcrpcclient.Client	//rpc client for btcwallet rpc server
