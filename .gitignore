@@ -6,6 +6,8 @@
 # Folders
 _obj
 _test
+bin
+pkg
 
 # Architecture specific extensions/prefixes
 *.[568vq]
@@ -21,3 +23,5 @@ _testmain.go
 
 *.exe
 *.test
+
+.DS_Store

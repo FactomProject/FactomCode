@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>{{.Title}} - Factom Client</title>
+		<link rel="stylesheet" type="text/css" href="/style.css" />
+		<script>
+			function tree(data) {
+		    	var string
+			    if (typeof(data) == "object") {
+			    	string = "<ul>";
+			        for (var i in data) {
+			        	string += "<li>" + i + tree(data[i]);
+			        }
+			        string += "</ul>";
+			    } else {
+			    	string = " => " + data;
+			    }
+		    	return string
+			}
+			
+			window.onload = function() {
+				ksel = document.getElementById('key_select')
+				ksel.remove(0)
+				ksel.selectedIndex = ksel.dataset.keyId
+
+				esel = document.getElementById('entry_select')
+				esel.remove(0)
+				esel.selectedIndex = esel.dataset.entryId
+				
+				{{unnil .OnLoad ""}}
+			}
+		</script>
+	</head>
+	<body>
+		<div class="wrapper">
+			<header>{{template "header.md" .}}</header>
+			<section>{{if .ContentWith}}{{tmplref .ContentTmpl .ContentWith}}{{else}}{{tmplref .ContentTmpl .}}{{end}}</section>
+		</div>
+	</body>
+</html>

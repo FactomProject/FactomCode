@@ -1,0 +1,20 @@
+<h1>New Entry</h1>
+<br />
+<br />
+<label for="datatype">Submit your entry to: </label>
+
+
+<form id="genform" method="post" action="/entries">
+	<select name="chainid">
+		{{range .chains}}
+			{{with .}}<li><div>	
+				<option value="{{.ChainID}}" >{{chainNameToString .Name}}</option>
+			{{end}}
+		{{end}}
+	</select>
+<br />
+<br />	
+	<input type="hidden" name="datatype" value="1" />
+	<input type="hidden" name="action" value="genEntry" />
+	<input type="submit" value="Create" />
+</form>

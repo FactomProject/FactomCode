@@ -1,0 +1,5 @@
+<h1>Application Chains</h1>
+<br><br>
+<ul>
+	{{range .chains}}{{with .}}<li><div><a href="/chain/{{.ChainID}}">{{chainNameToString .Name}}</a></div></li>{{end}}{{end}}
+</ul>

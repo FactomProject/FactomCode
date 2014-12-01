@@ -1,0 +1,18 @@
+<h1>Find a Factom Record</h1>
+<br />
+<br />
+<label for="hashtype">Select type: </label>
+
+
+<form id="searchform" method="post" action="/search">
+	<select name="hashtype">
+		<option value="entry" selected>Entry Hash</option>
+		<option value="eblock">Entry Block Hash</option>
+		<option value="fblock">Factom Block Hash</option>
+		<option value="extHash" selected>External ID</option>
+	</select> 	<input type="text" name="inputhash" size="60" MAXLENGTH="64">
+<br />
+<br />	
+
+	<input type="submit" value="Search" class="button"/>
+</form>

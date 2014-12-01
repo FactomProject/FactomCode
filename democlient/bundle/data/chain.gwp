@@ -1,0 +1,25 @@
+	<div class="entry">
+		<h2>Application Chain: </h2>	
+		<br>			
+		<div class="data">			
+				ID: {{.chain.ChainID}}<br>
+		</div>
+		<div class="submitted">
+				Name: {{chainNameToString .chain.Name}}
+		</div>
+		<hr />
+		<h2>Entry Blocks: </h2>	
+				<br>
+		<hr />		
+		
+		<div class="submitted">
+			<ul>
+				{{range .eBlocks}}
+					{{with .}}<li><div>
+						<a href="/eblock/{{.EBHash}}">Block ID: {{.Header.BlockID}} Hash: {{.EBHash}} </a> <br>
+						</div></li>
+					{{end}}
+				{{end}}
+			</ul>
+		</div>
+	</div>

@@ -1,0 +1,16 @@
+{{if isValidEntryID .EntryID}}
+	<form id="submitEntryForm" method="post" action="/entries">
+		<input type="hidden" name="id" value="{{.EntryID}}" />
+		<input type="hidden" name="action" value="submitEntry" />
+	</form>
+	<h1>Submit Entry {{.EntryID}}</h1>
+	{{if isEntrySubmitted .EntryID}}<div class="error">Entry has already been submitted. Confirm resubmission.</div>{{end}}
+	<input class="button" type="submit" value="Send" form="submitEntryForm" />
+	<a class="button" href="/entries/{{.EntryID}}">Cancel</a>
+{{else}}
+	<div class="error">Entry not found</div>resubmission
+	{{if .Error}}
+		<hr />
+		<div class="error">{{.Error}}</div>
+	{{end}}
+{{end}}
