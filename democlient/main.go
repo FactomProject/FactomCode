@@ -11,7 +11,7 @@ import (
 	"code.google.com/p/gcfg"
 	"github.com/FactomProject/FactomCode/database"	
 	"github.com/FactomProject/FactomCode/database/ldb"		
-	"github.com/FactomProject/FactomCode/notaryapi"	
+	"github.com/FactomProject/FactomCode/factomapi"	
 	"strings"
 	"time"	
 	"encoding/csv"
@@ -41,7 +41,7 @@ func readError(err error) {
 func init() {
 	
 	loadConfigurations()
-	notaryapi.SetServerAddr(serverAddr)
+	factomapi.SetServerAddr(serverAddr)
 	
 	initDB()
 		

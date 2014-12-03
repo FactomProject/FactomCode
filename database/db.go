@@ -3,7 +3,7 @@ package database
 import (
 
 	"github.com/FactomProject/FactomCode/notaryapi"	
-) 
+)  
  
  
 // AllShas is a special value that can be used as the final sha when requesting

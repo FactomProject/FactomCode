@@ -8,6 +8,7 @@ import (
 	"github.com/firelizzard18/gocoding"
 	"github.com/hoisie/web"
 	"github.com/FactomProject/FactomCode/notaryapi"
+	"github.com/FactomProject/FactomCode/factomapi"	
 	"net/http"
 	"strconv"
 	"sort"
@@ -272,7 +273,7 @@ func handleEntriesPost(ctx *web.Context) {
 		serverEntry.ExtIDs = externalHashes
 		serverEntry.Data = entry.Data()
 		
-		err = notaryapi.RevealEntry(1, serverEntry)
+		err = factomapi.RevealEntry(1, serverEntry)
 
 		if err != nil {
 			abortMessage = fmt.Sprint("An error occured while submitting the entry (entry may have been accepted by the server but was not locally flagged as such): ", err.Error())
@@ -488,7 +489,7 @@ func handleChainPost(ctx *web.Context) {
 		*/
 		
 
-		err := notaryapi.RevealChain(1, chain, nil)
+		err := factomapi.RevealChain(1, chain, nil)
 				
 		if err != nil {
 			abortMessage = fmt.Sprint("An error occured while submitting the entry (entry may have been accepted by the server but was not locally flagged as such): ", err.Error())
