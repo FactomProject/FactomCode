@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/firelizzard18/gocoding"
+	"github.com/FactomProject/gocoding"
 	"reflect"
 )
 

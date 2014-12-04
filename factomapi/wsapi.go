@@ -2,9 +2,9 @@ package factomapi
 
 import (
 	"io"
-	"github.com/firelizzard18/gocoding"
-	"github.com/firelizzard18/gocoding/json"
-	"github.com/firelizzard18/gocoding/html"
+	"github.com/FactomProject/gocoding"
+	"github.com/FactomProject/gocoding/json"
+	"github.com/FactomProject/gocoding/html"
 	"github.com/FactomProject/FactomCode/notaryapi"	
 	"fmt"	
 	"errors"	

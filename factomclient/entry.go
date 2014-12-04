@@ -5,7 +5,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
-	"github.com/firelizzard18/gocoding"
+	"github.com/FactomProject/gocoding"
 	"io"
 	"reflect"
 	"regexp"

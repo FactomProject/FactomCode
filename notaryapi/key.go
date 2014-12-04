@@ -13,7 +13,7 @@ import (
 	"encoding/binary"
 	"math/big"
 	
-	"github.com/firelizzard18/gocoding"
+	"github.com/FactomProject/gocoding"
 )
 
 const (

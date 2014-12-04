@@ -3,8 +3,8 @@ package main
 import (
 	//"flag"
 	"fmt"
-	"github.com/firelizzard18/dynrsrc"
-	"github.com/firelizzard18/gobundle"
+	"github.com/FactomProject/dynrsrc"
+	"github.com/FactomProject/gobundle"
 	"os"
 	"io/ioutil"	
 	"log"

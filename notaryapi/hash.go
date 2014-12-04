@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"crypto/sha256"
-	"github.com/firelizzard18/gocoding"
+	"github.com/FactomProject/gocoding"
 	"reflect"
 	"encoding/hex"	
 

@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"encoding/hex"	
 //	"encoding/json"	
-	"github.com/firelizzard18/gocoding"	
+	"github.com/FactomProject/gocoding"	
 	"github.com/FactomProject/FactomCode/notaryapi"	
 	"encoding/base64"
 	"io/ioutil"
