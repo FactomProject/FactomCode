@@ -238,7 +238,7 @@ func (db *LevelDb) 	FetchChainByHash(chainID *notaryapi.Hash) (chain *notaryapi.
 	data, err := db.lDb.Get(key, db.ro)
 	
 	if data != nil{
-		chain = new (notaryapi.Chain)
+		chain = new (notaryapi.Chain) 
 		chain.UnmarshalBinary(data)
 	}
 	return chain, nil

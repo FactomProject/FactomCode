@@ -41,8 +41,10 @@ var  (
 	chainIDMap map[string]*notaryapi.Chain // ChainIDMap with chainID string([32]byte) as key
 	//chainNameMap map[string]*notaryapi.Chain // ChainNameMap with chain name string as key	
 	fchain *notaryapi.FChain	//Factom Chain
+	cchain *notaryapi.CChain	//Entry Credit Chain
 	
 	eCreditMap map[string]int // eCreditMap with public key string([32]byte) as key	
+	prePaidEntryMap map[string]byte // Paid but unrevealed entries string(Pubkey + Etnry Hash + Nounce) as key		
 	
 //	fbBatches []*notaryapi.FBBatch
 	fbBatches *FBBatches
