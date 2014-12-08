@@ -31,7 +31,7 @@ type EntryInfoBranch struct {
 	
 	EntryInfo *EntryInfo
 	EBInfo *EBInfo
-	FBBatch *FBBatch
+	DBBatch *DBBatch
     
 }
 

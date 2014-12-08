@@ -35,7 +35,7 @@ var M = struct {Main, Alt gocoding.Marshaller}{
 var hashEncoder = M.Alt.FindEncoder(reflect.TypeOf(new(Hash)))
 
 func init() {
-	M.Alt.CacheEncoder(reflect.TypeOf(new(Block)), AltBlockEncoder)
+	M.Alt.CacheEncoder(reflect.TypeOf(new(EBlock)), AltBlockEncoder)
 	//M.Alt.CacheEncoder(reflect.TypeOf(new(Entry)), AltEntryEncoder)
 }
 

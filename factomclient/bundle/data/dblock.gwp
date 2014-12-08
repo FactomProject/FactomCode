@@ -1,21 +1,21 @@
 	<div class="entry">
-		<h2>Factom Block ID: {{ .fBlock.Header.BlockID}}</h2>	
+		<h2>Factom Block ID: {{ .dBlock.Header.BlockID}}</h2>	
 		<br>			
 
-		Block Hash: {{ .fbHash}}	<br>			
+		Block Hash: {{ .dbHash}}	<br>			
 		
 		<div class="data">
-			{{with .fBlock.Header}}	
+			{{with .dBlock.Header}}	
 				{{if eq .PrevBlockHash.String "0000000000000000000000000000000000000000000000000000000000000000"}}	
 					Previous Block: n/a <br>
 				{{else}}		
-					Previous Block: <a href="/fblock/{{.PrevBlockHash}}">{{ .PrevBlockHash}}</a>	<br>
+					Previous Block: <a href="/dblock/{{.PrevBlockHash}}">{{ .PrevBlockHash}}</a>	<br>
 				{{end}}					
 				Merkle Root: {{ .MerkleRoot}}		<br>
 				Created Time: {{ .RealTime}}		<br>
 			{{end}}		
-			{{if eq .fbBatchStatus "existing"}}					
-				BTC transaction: <a href="http://blockexplorer.com/testnet/tx/{{.fbBatch.BTCTxHash.BTCString}}"> {{.fbBatch.BTCTxHash.BTCString}}</a> <br>
+			{{if eq .dbBatchStatus "existing"}}					
+				BTC transaction: <a href="http://blockexplorer.com/testnet/tx/{{.dbBatch.BTCTxHash.BTCString}}"> {{.dbBatch.BTCTxHash.BTCString}}</a> <br>
 			{{end}}		
 		</div>
 
@@ -23,7 +23,7 @@
 				<div class="submitted">
 					<h2>Factom Block Entries</h2> <br>
 					<ul>
-						{{range .fBlock.FBEntries}}
+						{{range .dBlock.DBEntries}}
 							{{with .}}<li><div>
 								<a href="/eblock/{{.Hash}}">{{.Hash}} </a> <br>
 								Chain: {{.ChainID}}

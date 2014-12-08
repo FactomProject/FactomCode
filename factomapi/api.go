@@ -18,13 +18,13 @@ var db database.Db // database
 
 
 func CommitChain(name [][]byte) (*notaryapi.Hash, error) {
-	c := new(notaryapi.Chain)
+	c := new(notaryapi.EChain)
 	c.Name = name	
 	c.GenerateIDFromName()
 	return c.ChainID, nil
 }
 
-func RevealChain(version uint16, c *notaryapi.Chain, e *notaryapi.Entry) error {
+func RevealChain(version uint16, c *notaryapi.EChain, e *notaryapi.Entry) error {
 	bChain,_ := c.MarshalBinary()
 	
 	data := url.Values {}	
@@ -65,43 +65,43 @@ func RevealEntry(version uint16, e *notaryapi.Entry) error {
 	return err
 }
 
-func GetDirectoryBloks(fromBlockHeight uint64, toBlockHeight uint64) (fBlocks []notaryapi.FBlock, err error) {
+func GetDirectoryBloks(fromBlockHeight uint64, toBlockHeight uint64) (dBlocks []notaryapi.DBlock, err error) {
 	//needs to be improved ??
-	fBlocks, _ = db.FetchAllFBlocks()
-	sort.Sort(byBlockID(fBlocks))
+	dBlocks, _ = db.FetchAllDBlocks()
+	sort.Sort(byBlockID(dBlocks))
 	
-	if fromBlockHeight > uint64(len(fBlocks)-1) {
+	if fromBlockHeight > uint64(len(dBlocks)-1) {
 		return nil, nil
-	} else if toBlockHeight > uint64(len(fBlocks)-1) {
-		toBlockHeight = uint64(len(fBlocks)-1)
+	} else if toBlockHeight > uint64(len(dBlocks)-1) {
+		toBlockHeight = uint64(len(dBlocks)-1)
 	}
 	
-	return fBlocks[fromBlockHeight:toBlockHeight+1], nil
+	return dBlocks[fromBlockHeight:toBlockHeight+1], nil
 }
 
 
-func GetDirectoryBlokByHash(fBlockHash *notaryapi.Hash) (fBlock *notaryapi.FBlock, err error) {
+func GetDirectoryBlokByHash(dBlockHash *notaryapi.Hash) (dBlock *notaryapi.DBlock, err error) {
 
-	fBlock, err = db.FetchFBlockByHash(fBlockHash)
+	dBlock, err = db.FetchDBlockByHash(dBlockHash)
 	
-	return fBlock, err
+	return dBlock, err
 }
 
-func GetDirectoryBlokByHashStr(fBlockHashBase64 string) (fBlock *notaryapi.FBlock, err error) {
+func GetDirectoryBlokByHashStr(dBlockHashBase64 string) (dBlock *notaryapi.DBlock, err error) {
 	
-	bytes, err := base64.StdEncoding.DecodeString(fBlockHashBase64)
+	bytes, err := base64.StdEncoding.DecodeString(dBlockHashBase64)
 	
 	
 	if err != nil || len(bytes) != notaryapi.HashSize{
 		return nil, err
 	}
-	fBlockHash := new (notaryapi.Hash)
-	fBlockHash.Bytes = bytes
+	dBlockHash := new (notaryapi.Hash)
+	dBlockHash.Bytes = bytes
 	
 	
-	fBlock, _ = db.FetchFBlockByHash(fBlockHash)
+	dBlock, _ = db.FetchDBlockByHash(dBlockHash)
 	
-	return fBlock, nil
+	return dBlock, nil
 }
 
 
@@ -121,7 +121,7 @@ func SetDB(database database.Db) error {
 //-=-----------------------------------------
 
 // array sorting implementation
-type byBlockID []notaryapi.FBlock
+type byBlockID []notaryapi.DBlock
 func (f byBlockID) Len() int { 
   return len(f) 
 } 
@@ -133,7 +133,7 @@ func (f byBlockID) Swap(i, j int) {
 } 
 
 // array sorting implementation
-type byEBlockID []notaryapi.Block
+type byEBlockID []notaryapi.EBlock
 func (f byEBlockID) Len() int { 
   return len(f) 
 } 

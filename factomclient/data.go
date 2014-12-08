@@ -31,7 +31,7 @@ type Submission struct {
 
 var entries map[int]*FlaggedEntry
 var keys map[int]notaryapi.Key
-var chains map[int]notaryapi.Chain
+var chains map[int]notaryapi.EChain
 
 var marshaller gocoding.Marshaller
 var marshallerHTML gocoding.Marshaller
@@ -61,7 +61,7 @@ func EXPLODE(obj interface{}) error {
 func loadStore() {
 	keys = make(map[int]notaryapi.Key)
 	
-	chains = make(map[int]notaryapi.Chain)
+	chains = make(map[int]notaryapi.EChain)
 
 	err := os.MkdirAll(gobundle.ConfigFile("store"), 0755)
 	if err != nil { panic(err) }
@@ -165,7 +165,7 @@ func RefreshPendingEntries(){
 		hash := new (notaryapi.Hash)	
 		hash.Bytes, _ = notaryapi.DecodeBinary(&entries[id].Submitted.EntryHash)
 		entryInfoBranch, _ := db.FetchEntryInfoBranchByHash(hash)
-		if entryInfoBranch.FBBatch != nil {
+		if entryInfoBranch.DBBatch != nil {
 			entries[id].Submitted.Confirmed =2
 			storeEntry(id)
 		} else if entryInfoBranch.EBInfo != nil{
@@ -246,7 +246,7 @@ func getKey(id int) notaryapi.Key {
 	return keys[id]
 }
 
-func getChain(id int) notaryapi.Chain {
+func getChain(id int) notaryapi.EChain {
 	return chains[id]
 }
 
@@ -256,7 +256,7 @@ func addKey(key notaryapi.Key) {
 	Settings.NextKeyID++
 }
 
-func addChain(chain notaryapi.Chain) {
+func addChain(chain notaryapi.EChain) {
 	chains[Settings.NextChainID] = chain
 	storeKey(Settings.NextChainID)
 	Settings.NextChainID++

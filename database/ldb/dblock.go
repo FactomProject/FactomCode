@@ -12,8 +12,8 @@ import (
 )
 
 
-// FetchFBEntriesFromQueue gets all of the fbentries that have not been processed
-func (db *LevelDb) FetchFBEntriesFromQueue(startTime *[]byte) (fbentries []*notaryapi.FBEntry, err error){	
+// FetchDBEntriesFromQueue gets all of the dbentries that have not been processed
+func (db *LevelDb) FetchDBEntriesFromQueue(startTime *[]byte) (dbentries []*notaryapi.DBEntry, err error){	
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -25,7 +25,7 @@ func (db *LevelDb) FetchFBEntriesFromQueue(startTime *[]byte) (fbentries []*nota
 	binary.BigEndian.PutUint64(binaryTimestamp, uint64(time.Now().Unix()))	
 	tokey = append(tokey, binaryTimestamp ...) 							// Timestamp  (8 bytes)
 	
-	fbEntrySlice := make([]*notaryapi.FBEntry, 0, 10) 	
+	fbEntrySlice := make([]*notaryapi.DBEntry, 0, 10) 	
 	
 	iter := db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
 	
@@ -33,15 +33,15 @@ func (db *LevelDb) FetchFBEntriesFromQueue(startTime *[]byte) (fbentries []*nota
 		if  bytes.Equal(iter.Value(), []byte{byte(STATUS_IN_QUEUE)}) {
 			key := make([]byte, len(iter.Key()))			
 			copy(key, iter.Key())
-			fbEntry := new (notaryapi.FBEntry)
+			dbEntry := new (notaryapi.DBEntry)
 	
-			fbEntry.SetTimeStamp(key[1:9])							// Timestamp (8 bytes)
+			dbEntry.SetTimeStamp(key[1:9])							// Timestamp (8 bytes)
 			cid := key[9:41]				
-			fbEntry.ChainID = new (notaryapi.Hash)
-			fbEntry.ChainID.Bytes = cid								// Chain id (32 bytes)
-			fbEntry.SetHash(key[41:73])								// Entry Hash (32 bytes)
+			dbEntry.ChainID = new (notaryapi.Hash)
+			dbEntry.ChainID.Bytes = cid								// Chain id (32 bytes)
+			dbEntry.SetHash(key[41:73])								// Entry Hash (32 bytes)
 
-			fbEntrySlice = append(fbEntrySlice, fbEntry)		
+			fbEntrySlice = append(fbEntrySlice, dbEntry)		
 		}
 	}
 	iter.Release()
@@ -49,47 +49,47 @@ func (db *LevelDb) FetchFBEntriesFromQueue(startTime *[]byte) (fbentries []*nota
 	
 	return fbEntrySlice, nil
 }	
-// ProcessFBlockBatche inserts the FBlock and update all it's fbentries in DB
-func (db *LevelDb) ProcessFBlockBatch(fblock *notaryapi.FBlock) error {
+// ProcessDBlockBatche inserts the DBlock and update all it's dbentries in DB
+func (db *LevelDb) ProcessDBlockBatch(dblock *notaryapi.DBlock) error {
 
-	if fblock !=  nil {
+	if dblock !=  nil {
 		if db.lbatch == nil {
 			db.lbatch = new(leveldb.Batch)
 		}
 
 		defer db.lbatch.Reset()
 		
-		if len(fblock.FBEntries) < 1 {
-			return errors.New("Empty fblock!")
+		if len(dblock.DBEntries) < 1 {
+			return errors.New("Empty dblock!")
 		}
 				
-		binaryFblock, err := fblock.MarshalBinary()
+		binaryDblock, err := dblock.MarshalBinary()
 		if err != nil{
 			return err
 		}
 		
 		// Insert the binary factom block
-		var key [] byte = []byte{byte(TBL_FB)} 
-		key = append (key, fblock.FBHash.Bytes ...)			
-		db.lbatch.Put(key, binaryFblock)
+		var key [] byte = []byte{byte(TBL_DB)} 
+		key = append (key, dblock.DBHash.Bytes ...)			
+		db.lbatch.Put(key, binaryDblock)
 		
-		// Update FBEntry process queue for each fbEntry in fblock
-		for i:=0; i< len(fblock.FBEntries); i++  {
-			var fbEntry notaryapi.FBEntry = *fblock.FBEntries[i] 
+		// Update DBEntry process queue for each dbEntry in dblock
+		for i:=0; i< len(dblock.DBEntries); i++  {
+			var dbEntry notaryapi.DBEntry = *dblock.DBEntries[i] 
 			var fbEntryKey [] byte = []byte{byte(TBL_EB_QUEUE)} 		  			// Table Name (1 bytes)
-			fbEntryKey = append(fbEntryKey, fbEntry.GetBinaryTimeStamp() ...) 		// Timestamp (8 bytes)
-			fbEntryKey = append(fbEntryKey, fbEntry.ChainID.Bytes ...) 				// Chain id (32 bytes)
-			fbEntryKey = append(fbEntryKey, fbEntry.Hash().Bytes ...) 				// Entry Hash (32 bytes)
+			fbEntryKey = append(fbEntryKey, dbEntry.GetBinaryTimeStamp() ...) 		// Timestamp (8 bytes)
+			fbEntryKey = append(fbEntryKey, dbEntry.ChainID.Bytes ...) 				// Chain id (32 bytes)
+			fbEntryKey = append(fbEntryKey, dbEntry.Hash().Bytes ...) 				// Entry Hash (32 bytes)
 			db.lbatch.Put(fbEntryKey, []byte{byte(STATUS_PROCESSED)})
 			
 			if isLookupDB {
 				// Create an EBInfo and insert it into db
 				var ebInfo = new (notaryapi.EBInfo)
-				ebInfo.EBHash = fbEntry.Hash()
-				ebInfo.MerkleRoot = fbEntry.MerkleRoot
-				ebInfo.FBHash = fblock.FBHash
-				ebInfo.FBBlockNum = fblock.Header.BlockID
-				ebInfo.ChainID = fbEntry.ChainID
+				ebInfo.EBHash = dbEntry.Hash()
+				ebInfo.MerkleRoot = dbEntry.MerkleRoot
+				ebInfo.DBHash = dblock.DBHash
+				ebInfo.DBBlockNum = dblock.Header.BlockID
+				ebInfo.ChainID = dbEntry.ChainID
 			 	var ebInfoKey [] byte = []byte{byte(TBL_EB_INFO)} 
 			 	ebInfoKey = append(ebInfoKey, ebInfo.EBHash.Bytes ...) 
 			 	binaryEbInfo, _ := ebInfo.MarshalBinary()
@@ -108,9 +108,9 @@ func (db *LevelDb) ProcessFBlockBatch(fblock *notaryapi.FBlock) error {
 }
 
 
-// Insert the Factom Block meta data into db
-func (db *LevelDb)InsertFBBatch(fbBatch *notaryapi.FBBatch) (err error){
-	if fbBatch.BTCBlockHash == nil || fbBatch.BTCTxHash == nil {
+// Insert the Directory Block meta data into db
+func (db *LevelDb)InsertDBBatch(dbBatch *notaryapi.DBBatch) (err error){
+	if dbBatch.BTCBlockHash == nil || dbBatch.BTCTxHash == nil {
 		return
 	}
 	
@@ -122,20 +122,20 @@ func (db *LevelDb)InsertFBBatch(fbBatch *notaryapi.FBBatch) (err error){
 	}
 	defer db.lbatch.Reset()	
 	
-	// Insert FBBatch - using the first block id in the batch as the key
-	var Key [] byte = []byte{byte(TBL_FBATCH)} 
+	// Insert DBBatch - using the first block id in the batch as the key
+	var Key [] byte = []byte{byte(TBL_DBATCH)} 
 	var buf bytes.Buffer
-	binary.Write(&buf, binary.BigEndian, fbBatch.FBlocks[0].Header.BlockID)	
+	binary.Write(&buf, binary.BigEndian, dbBatch.DBlocks[0].Header.BlockID)	
 	Key = append (Key, buf.Bytes() ...)
 	
-	binaryFBBatch, _ := fbBatch.MarshalBinary()
-	db.lbatch.Put(Key, binaryFBBatch)	
+	binaryDBBatch, _ := dbBatch.MarshalBinary()
+	db.lbatch.Put(Key, binaryDBBatch)	
 
-	// Insert  fblock - FBBatch cross reference
-	for _, fBlock := range (fbBatch.FBlocks) {
-		var fbKey [] byte = []byte{byte(TBL_FB_BATCH)} 		  			// Table Name (1 bytes)
-		fbKey = append(fbKey, fBlock.FBHash.Bytes ...) 		
-		db.lbatch.Put(fbKey, buf.Bytes())
+	// Insert  dblock - DBBatch cross reference
+	for _, dblock := range (dbBatch.DBlocks) {
+		var dbKey [] byte = []byte{byte(TBL_DB_BATCH)} 		  			// Table Name (1 bytes)
+		dbKey = append(dbKey, dblock.DBHash.Bytes ...) 		
+		db.lbatch.Put(dbKey, buf.Bytes())
 	}
 	
 	err = db.lDb.Write(db.lbatch, db.wo)
@@ -147,130 +147,130 @@ func (db *LevelDb)InsertFBBatch(fbBatch *notaryapi.FBBatch) (err error){
 	return nil
 } 
 
-// FetchFBBatchByHash gets an FBBatch obj
-func (db *LevelDb) FetchFBBatchByHash(fbHash *notaryapi.Hash) (fbBatch *notaryapi.FBBatch, err error) {
+// FetchDBBatchByHash gets an DBBatch obj
+func (db *LevelDb) FetchDBBatchByHash(dbHash *notaryapi.Hash) (dbBatch *notaryapi.DBBatch, err error) {
 
-	fBlockID,_ := db.FetchFBlockIDByHash(fbHash)
-	if fBlockID > -1 {
-		fbBatch, err = db.FetchFBBatchByFBlockID(uint64(fBlockID))
+	dBlockID,_ := db.FetchDBlockIDByHash(dbHash)
+	if dBlockID > -1 {
+		dbBatch, err = db.FetchDBBatchByDBlockID(uint64(dBlockID))
 	}
 	
-	return fbBatch, err
+	return dbBatch, err
 } 
 
-// FetchFBBatchByFBlockID gets an FBBatch obj
-func (db *LevelDb) FetchFBBatchByFBlockID(fBlockID uint64) (fbBatch *notaryapi.FBBatch, err error) {
+// FetchDBBatchByDBlockID gets an DBBatch obj
+func (db *LevelDb) FetchDBBatchByDBlockID(dBlockID uint64) (dbBatch *notaryapi.DBBatch, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 	
 	var buf bytes.Buffer
-	binary.Write(&buf, binary.BigEndian, fBlockID)	
+	binary.Write(&buf, binary.BigEndian, dBlockID)	
 	
-	var key [] byte = []byte{byte(TBL_FBATCH)} 
+	var key [] byte = []byte{byte(TBL_DBATCH)} 
 	key = append (key, buf.Bytes() ...)	
 	data, err := db.lDb.Get(key, db.ro)
 	
 	if data != nil{
-		fbBatch	= new (notaryapi.FBBatch)
-		fbBatch.UnmarshalBinary(data)
+		dbBatch	= new (notaryapi.DBBatch)
+		dbBatch.UnmarshalBinary(data)
 	}
 	
-	return fbBatch, nil
+	return dbBatch, nil
 } 
 
-// FetchFBlockIDByHash gets an fBlockID 
-func (db *LevelDb) FetchFBlockIDByHash(fbHash *notaryapi.Hash) (fBlockID int64, err error) {
+// FetchDBlockIDByHash gets an dBlockID 
+func (db *LevelDb) FetchDBlockIDByHash(dbHash *notaryapi.Hash) (dBlockID int64, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 	
-	var key [] byte = []byte{byte(TBL_FB_BATCH)} 
-	key = append (key, fbHash.Bytes ...)	
+	var key [] byte = []byte{byte(TBL_DB_BATCH)} 
+	key = append (key, dbHash.Bytes ...)	
 	data, err := db.lDb.Get(key, db.ro)
 	
 	if data != nil{
-		fBlockID = int64(binary.BigEndian.Uint64(data[:8]))
+		dBlockID = int64(binary.BigEndian.Uint64(data[:8]))
 	} else {
-		fBlockID = int64(-1)
+		dBlockID = int64(-1)
 	}
 	
 	
-	return fBlockID, nil
+	return dBlockID, nil
 } 
 
-// FetchFBlock gets an entry by hash from the database.
-func (db *LevelDb) FetchFBlockByHash(fBlockHash *notaryapi.Hash) (fBlock *notaryapi.FBlock, err error) {
+// FetchDBlock gets an entry by hash from the database.
+func (db *LevelDb) FetchDBlockByHash(dBlockHash *notaryapi.Hash) (dBlock *notaryapi.DBlock, err error) {
 	db.dbLock.Lock() 
 	defer db.dbLock.Unlock()
 	
-	var key [] byte = []byte{byte(TBL_FB)} 
-	key = append (key, fBlockHash.Bytes ...)	
+	var key [] byte = []byte{byte(TBL_DB)} 
+	key = append (key, dBlockHash.Bytes ...)	
 	data, err := db.lDb.Get(key, db.ro)
 	
 	if data != nil{
-		fBlock = new (notaryapi.FBlock)
-		fBlock.UnmarshalBinary(data)
+		dBlock = new (notaryapi.DBlock)
+		dBlock.UnmarshalBinary(data)
 	}
 	
-	log.Println("fBlock.Header.MerkleRoot:%v", fBlock.Header.MerkleRoot.String())
+	log.Println("dBlock.Header.MerkleRoot:%v", dBlock.Header.MerkleRoot.String())
 	
-	for _, entry := range fBlock.FBEntries{
+	for _, entry := range dBlock.DBEntries{
 		log.Println("entry.MerkleRoot:%v", entry.MerkleRoot.String())
 	}
 	
-	return fBlock, nil
+	return dBlock, nil
 } 
 
-// FetchAllFBInfo gets all of the fbInfo 
-func (db *LevelDb) FetchAllFBlocks() (fBlocks []notaryapi.FBlock, err error){	
+// FetchAllDBInfo gets all of the fbInfo 
+func (db *LevelDb) FetchAllDBlocks() (dBlocks []notaryapi.DBlock, err error){	
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
-	var fromkey [] byte = []byte{byte(TBL_FB)} 		  			// Table Name (1 bytes)						// Timestamp  (8 bytes)
-	var tokey [] byte = []byte{byte(TBL_FB+1)} 		  			// Table Name (1 bytes)	
+	var fromkey [] byte = []byte{byte(TBL_DB)} 		  			// Table Name (1 bytes)						// Timestamp  (8 bytes)
+	var tokey [] byte = []byte{byte(TBL_DB+1)} 		  			// Table Name (1 bytes)	
 		
-	fBlockSlice := make([]notaryapi.FBlock, 0, 10) 	
+	dBlockSlice := make([]notaryapi.DBlock, 0, 10) 	
 	
 	iter := db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
 	
 	for iter.Next() {		
-		var fBlock notaryapi.FBlock
-		fBlock.UnmarshalBinary(iter.Value())
-		fBlock.FBHash = notaryapi.Sha(iter.Value()) //to be optimized??
+		var dBlock notaryapi.DBlock
+		dBlock.UnmarshalBinary(iter.Value())
+		dBlock.DBHash = notaryapi.Sha(iter.Value()) //to be optimized??
 		
-		fBlockSlice = append(fBlockSlice, fBlock)		
+		dBlockSlice = append(dBlockSlice, dBlock)		
 
 	}
 	iter.Release()
 	err = iter.Error()
 	
-	return fBlockSlice, nil
+	return dBlockSlice, nil
 }	
 
-// FetchFBInfoByHash gets an FBInfo obj
-func (db *LevelDb) FetchAllDBRecordsByFBHash(fbHash *notaryapi.Hash) (ldbMap map[string]string, err error) {
+// FetchDBInfoByHash gets an DBInfo obj
+func (db *LevelDb) FetchAllDBRecordsByDBHash(dbHash *notaryapi.Hash) (ldbMap map[string]string, err error) {
 //	db.dbLock.Lock()
 //	defer db.dbLock.Unlock()
 	if ldbMap == nil {
 		ldbMap = make(map[string]string)
 	}
 	
-	var fblock notaryapi.FBlock
-	var eblock notaryapi.Block
+	var dblock notaryapi.DBlock
+	var eblock notaryapi.EBlock
 	
-	//FBlock 
-	var key [] byte = []byte{byte(TBL_FB)} 
-	key = append (key, fbHash.Bytes ...)	
+	//DBlock 
+	var key [] byte = []byte{byte(TBL_DB)} 
+	key = append (key, dbHash.Bytes ...)	
 	data, err := db.lDb.Get(key, db.ro)
 		
 	
 	if data == nil {
-		return nil, errors.New("FBlock not found for FBHash: " + fbHash.String())
+		return nil, errors.New("DBlock not found for DBHash: " + dbHash.String())
 	} else {
-		fblock.UnmarshalBinary(data)
+		dblock.UnmarshalBinary(data)
 		ldbMap[notaryapi.EncodeBinary(&key)] = notaryapi.EncodeBinary(&data)
 	}
 	
-	f, _:=db.FetchEBInfoByHash(fbHash)
+	f, _:=db.FetchEBInfoByHash(dbHash)
 	if f==nil{
 		log.Println("f is null")
 	}
@@ -289,37 +289,37 @@ func (db *LevelDb) FetchAllDBRecordsByFBHash(fbHash *notaryapi.Hash) (ldbMap map
 	err = iter.Error()		
 	
 	//EBlocks
-	for _, fbentry := range fblock.FBEntries{
+	for _, dbEntry := range dblock.DBEntries{
 		
 		//EB Merkle root and EBHash Cross Reference
 		key = []byte{byte(TBL_EB_MR)}
-		key = append (key, fbentry.MerkleRoot.Bytes ...)	
+		key = append (key, dbEntry.MerkleRoot.Bytes ...)	
 		data, err = db.lDb.Get(key, db.ro)
 		if data == nil {
-			return nil, errors.New("EBHash not found for MR: " + fbentry.MerkleRoot.String())
+			return nil, errors.New("EBHash not found for MR: " + dbEntry.MerkleRoot.String())
 		} else {
-			fbHash := new(notaryapi.Hash) 
-			fbHash.UnmarshalBinary(data)
-			fbentry.SetHash(fbHash.Bytes)			
+			dbHash := new(notaryapi.Hash) 
+			dbHash.UnmarshalBinary(data)
+			dbEntry.SetHash(dbHash.Bytes)			
 			ldbMap[notaryapi.EncodeBinary(&key)] = notaryapi.EncodeBinary(&data)
 		}		
 		
 		//EBlock
 		key = []byte{byte(TBL_EB)}
-		key = append (key, fbentry.Hash().Bytes ...)	
+		key = append (key, dbEntry.Hash().Bytes ...)	
 		data, err = db.lDb.Get(key, db.ro)
 		if data == nil {
-			return nil, errors.New("EBlock not found for EBHash: " + fbentry.Hash().String())
+			return nil, errors.New("EBlock not found for EBHash: " + dbEntry.Hash().String())
 		} else {
 			eblock.UnmarshalBinary(data)
 			ldbMap[notaryapi.EncodeBinary(&key)] = notaryapi.EncodeBinary(&data)
 		}		
 		//EBInfo
 		key = []byte{byte(TBL_EB_INFO)}
-		key = append (key, fbentry.Hash().Bytes ...)	
+		key = append (key, dbEntry.Hash().Bytes ...)	
 		data, err = db.lDb.Get(key, db.ro)
 		if data == nil {
-			return nil, errors.New("EBInfo not found for EBHash: " + fbentry.Hash().String())
+			return nil, errors.New("EBInfo not found for EBHash: " + dbEntry.Hash().String())
 		} else {
 			ldbMap[notaryapi.EncodeBinary(&key)] = notaryapi.EncodeBinary(&data)
 		}		
@@ -400,9 +400,9 @@ func (db *LevelDb) FetchSupportDBRecords() (ldbMap map[string]string, err error)
 	err = iter.Error()	
 	
 	
-	//FBBatch -- to be optimized??
-	fromkey = []byte{byte(TBL_FBATCH)} 	
-	tokey = []byte{byte(TBL_FBATCH+1)} 	  			
+	//DBBatch -- to be optimized??
+	fromkey = []byte{byte(TBL_DBATCH)} 	
+	tokey = []byte{byte(TBL_DBATCH+1)} 	  			
 	iter = db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
 	
 	for iter.Next() {		
@@ -414,9 +414,9 @@ func (db *LevelDb) FetchSupportDBRecords() (ldbMap map[string]string, err error)
 	err = iter.Error()	
 	
 	
-	// FB_Batch -- to be optimized??
-	fromkey = []byte{byte(TBL_FB_BATCH)} 	
-	tokey = []byte{byte(TBL_FB_BATCH+1)} 	  			
+	// DB_Batch -- to be optimized??
+	fromkey = []byte{byte(TBL_DB_BATCH)} 	
+	tokey = []byte{byte(TBL_DB_BATCH+1)} 	  			
 	iter = db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
 	
 	for iter.Next() {		

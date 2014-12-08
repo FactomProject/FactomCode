@@ -117,7 +117,7 @@ func findV1(context string, path []string) (interface{}, *notaryapi.Error) {
 	return findV1InBlocks(context + "/" + root, path, blocks)
 }
 */
-func findV1InBlocks(context string, path []string, blocks []*notaryapi.Block) (interface{}, *notaryapi.Error) {
+func findV1InBlocks(context string, path []string, blocks []*notaryapi.EBlock) (interface{}, *notaryapi.Error) {
 	if len(path) == 0 {
 		return blocks, nil
 	}
@@ -151,7 +151,7 @@ func findV1InBlocks(context string, path []string, blocks []*notaryapi.Block) (i
 	return findV1InBlock(context + "/" + sid, path, blocks[id])
 }
 
-func findV1InBlock(context string, path []string, block *notaryapi.Block) (interface{}, *notaryapi.Error) {
+func findV1InBlock(context string, path []string, block *notaryapi.EBlock) (interface{}, *notaryapi.Error) {
 	if len(path) == 0 {
 		return block, nil
 	}

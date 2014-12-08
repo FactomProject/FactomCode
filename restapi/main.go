@@ -38,24 +38,24 @@ var  (
  	currentAddr btcutil.Address
 	tickers [2]*time.Ticker
 	db database.Db // database
-	chainIDMap map[string]*notaryapi.Chain // ChainIDMap with chainID string([32]byte) as key
+	chainIDMap map[string]*notaryapi.EChain // ChainIDMap with chainID string([32]byte) as key
 	//chainNameMap map[string]*notaryapi.Chain // ChainNameMap with chain name string as key	
-	fchain *notaryapi.FChain	//Factom Chain
+	dchain *notaryapi.DChain	//Directory Block Chain
 	cchain *notaryapi.CChain	//Entry Credit Chain
 	
 	eCreditMap map[string]int // eCreditMap with public key string([32]byte) as key	
 	prePaidEntryMap map[string]byte // Paid but unrevealed entries string(Pubkey + Etnry Hash + Nounce) as key		
 	
-//	fbBatches []*notaryapi.FBBatch
-	fbBatches *FBBatches
-	fbBatch *notaryapi.FBBatch
+//	dbBatches []*notaryapi.FBBatch
+	dbBatches *DBBatches
+	dbBatch *notaryapi.DBBatch
 )
 
 var (
  	logLevel = "DEBUG"
 	portNumber int = 8083  	
 	sendToBTCinSeconds = 600
-	factomBlockInSeconds = 60
+	directoryBlockInSeconds = 60
 	applicationName = "factom/restapi"
 	dataStorePath = "/tmp/store/seed/"
 	ldbpath = "/tmp/ldb9"
@@ -74,8 +74,8 @@ var (
 	
 )
 
-type FBBatches struct {
-	batches []*notaryapi.FBBatch
+type DBBatches struct {
+	batches []*notaryapi.DBBatch
 	batchMutex 	sync.Mutex
 }
 
@@ -86,7 +86,7 @@ func loadConfigurations(){
 			ApplicationName string
 			LdbPath	string
 			DataStorePath string
-			FactomBlockInSeconds int				
+			DirectoryBlockInSeconds int				
 	    }
 		Btc struct{
 			BTCPubAddr string
@@ -120,7 +120,7 @@ func loadConfigurations(){
 		portNumber = cfg.App.PortNumber
 		dataStorePath = cfg.App.DataStorePath
 		ldbpath = cfg.App.LdbPath
-		factomBlockInSeconds = cfg.App.FactomBlockInSeconds
+		directoryBlockInSeconds = cfg.App.DirectoryBlockInSeconds
 //		addrStr = cfg.Btc.BTCPubAddr
 		sendToBTCinSeconds = cfg.Btc.SendToBTCinSeconds 
 		walletPassphrase = cfg.Btc.WalletPassphrase
@@ -143,13 +143,13 @@ func readError(err error) {
 }
 
 
-func initWithBinary(chain *notaryapi.Chain) {
+func initWithBinary(chain *notaryapi.EChain) {
 	matches, err := filepath.Glob(dataStorePath + chain.ChainID.String() + "/store.*.block") // need to get it from a property file??
 	if err != nil {
 		panic(err)
 	}
 
-	chain.Blocks = make([]*notaryapi.Block, len(matches))
+	chain.Blocks = make([]*notaryapi.EBlock, len(matches))
 
 	num := 0
 	for _, match := range matches {
@@ -158,7 +158,7 @@ func initWithBinary(chain *notaryapi.Chain) {
 			panic(err)
 		}
 
-		block := new(notaryapi.Block)
+		block := new(notaryapi.EBlock)
 		err = block.UnmarshalBinary(data)
 		if err != nil {
 			panic(err)
@@ -238,22 +238,21 @@ func init() {
 	
 	}
 
-	// init FactomChain
-	initFChain()
-	fmt.Println("Loaded", len(fchain.Blocks)-1, "Factom blocks for chain: "+ notaryapi.EncodeBinary(fchain.ChainID))
+	// init Directory Block Chain
+	initDChain()
+	fmt.Println("Loaded", len(dchain.Blocks)-1, "Directory blocks for chain: "+ notaryapi.EncodeBinary(dchain.ChainID))
 	
-	// init fbBatches, fbBatch
-//	fbBatches = make([]*notaryapi.FBBatch, 0, 100)
-	fbBatches = &FBBatches {
-		batches: make([]*notaryapi.FBBatch, 0, 100),
+	// init dbBatches, dbBatch
+	dbBatches = &DBBatches {
+		batches: make([]*notaryapi.DBBatch, 0, 100),
 	}
-	fbBatch := &notaryapi.FBBatch {
-		FBlocks: make([]*notaryapi.FBlock, 0, 10),
+	dbBatch := &notaryapi.DBBatch {
+		DBlocks: make([]*notaryapi.DBlock, 0, 10),
 	}
-	fbBatches.batches = append(fbBatches.batches, fbBatch)
+	dbBatches.batches = append(dbBatches.batches, dbBatch)
 
 	// create EBlocks and FBlock every 60 seconds
-	tickers[0] = time.NewTicker(time.Second * time.Duration(factomBlockInSeconds)) 
+	tickers[0] = time.NewTicker(time.Second * time.Duration(directoryBlockInSeconds)) 
 
 	// write 10 FBlock in a batch to BTC every 10 minutes
 	tickers[1] = time.NewTicker(time.Second * time.Duration(sendToBTCinSeconds))	
@@ -265,46 +264,46 @@ func init() {
 			for _, chain := range chainIDMap {
 				eblock := newEntryBlock(chain)
 				if eblock != nil{
-					fchain.AddFBEntry(eblock)
+					dchain.AddDBEntry(eblock)
 				}
 				save(chain)
 			}
 			
-			fbBlock := newFactomBlock(fchain)
-			if fbBlock != nil {
-				// mark the start block of a FBBatch
-				fmt.Println("in tickers[0]: len(fbBatch.FBlocks)=", len(fbBatch.FBlocks))
-				if len(fbBatch.FBlocks) == 0 {
-					fbBlock.Header.BatchFlag = byte(1)
+			dbBlock := newDirectoryBlock(dchain)
+			if dbBlock != nil {
+				// mark the start block of a DBBatch
+				fmt.Println("in tickers[0]: len(dbBatch.DBlocks)=", len(dbBatch.DBlocks))
+				if len(dbBatch.DBlocks) == 0 {
+					dbBlock.Header.BatchFlag = byte(1)
 				}
-				fbBatch.FBlocks = append(fbBatch.FBlocks, fbBlock)
-				fmt.Println("in tickers[0]: ADDED FBBLOCK: len(fbBatch.FBlocks)=", len(fbBatch.FBlocks))
+				dbBatch.DBlocks = append(dbBatch.DBlocks, dbBlock)
+				fmt.Println("in tickers[0]: ADDED FBBLOCK: len(dbBatch.DBlocks)=", len(dbBatch.DBlocks))
 			}
 			
-			saveFChain(fchain)									
+			saveDChain(dchain)									
 		}
 	}()
 
 	
 	go func() {
 		for _ = range tickers[1].C {
-			fmt.Println("in tickers[1]: new FBBatch. len(fbBatch.FBlocks)=", len(fbBatch.FBlocks))
+			fmt.Println("in tickers[1]: new FBBatch. len(dbBatch.DBlocks)=", len(dbBatch.DBlocks))
 			
-			// skip empty fbBatch.
-			if len(fbBatch.FBlocks) > 0 {
-				doneBatch := fbBatch
-				fbBatch = &notaryapi.FBBatch {
-					FBlocks: make([]*notaryapi.FBlock, 0, 10),
+			// skip empty dbBatch.
+			if len(dbBatch.DBlocks) > 0 {
+				doneBatch := dbBatch
+				dbBatch = &notaryapi.DBBatch {
+					DBlocks: make([]*notaryapi.DBlock, 0, 10),
 				}
 				
-				fbBatches.batchMutex.Lock()
-				fbBatches.batches = append(fbBatches.batches, doneBatch)
-				fbBatches.batchMutex.Unlock()
+				dbBatches.batchMutex.Lock()
+				dbBatches.batches = append(dbBatches.batches, doneBatch)
+				dbBatches.batchMutex.Unlock()
 			
 				fmt.Printf("in tickers[1]: doneBatch=%#v\n", doneBatch)
 			
 				// go routine here?
-				saveFBBatchMerkleRoottoBTC(doneBatch)
+				saveDBBatchMerkleRoottoBTC(doneBatch)
 			}
 		}
 	}()
@@ -355,13 +354,13 @@ func fileNotExists(name string) (bool) {
 }
 
 
-func save(chain *notaryapi.Chain) {
+func save(chain *notaryapi.EChain) {
 	if len(chain.Blocks)==0{
 		log.Println("no blocks to save for chain: " + chain.ChainID.String())
 		return
 	}
 	
-	bcp := make([]*notaryapi.Block, len(chain.Blocks))
+	bcp := make([]*notaryapi.EBlock, len(chain.Blocks))
 
 	chain.BlockMutex.Lock()
 	copy(bcp, chain.Blocks)
@@ -537,7 +536,7 @@ func processNewEntry(newEntry *notaryapi.Entry) ([]byte, *notaryapi.Error) {
 }
 
 func postChain(context string, form url.Values) (interface{}, *notaryapi.Error) {
-	newChain := new(notaryapi.Chain)
+	newChain := new(notaryapi.EChain)
 	format, data := form.Get("format"), form.Get("chain")
 
 	switch format {
@@ -589,13 +588,13 @@ func createNewChain(chainName string) (chain *notaryapi.Chain){
 }
 */
 
-func saveFChain(chain *notaryapi.FChain) {
+func saveDChain(chain *notaryapi.DChain) {
 	if len(chain.Blocks)==0{
 		//log.Println("no blocks to save for chain: " + string (*chain.ChainID))
 		return
 	}
 	
-	bcp := make([]*notaryapi.FBlock, len(chain.Blocks))
+	bcp := make([]*notaryapi.DBlock, len(chain.Blocks))
 
 	chain.BlockMutex.Lock()
 	copy(bcp, chain.Blocks)
@@ -628,18 +627,18 @@ func saveFChain(chain *notaryapi.FChain) {
 	}
 }
 
-func initFChain() {
-	fchain = new (notaryapi.FChain)
+func initDChain() {
+	dchain = new (notaryapi.DChain)
 
 	barray := (make([]byte, 32))
-	fchain.ChainID = &barray
+	dchain.ChainID = &barray
 	
-	matches, err := filepath.Glob(dataStorePath + notaryapi.EncodeBinary(fchain.ChainID) + "/store.*.block") // need to get it from a property file??
+	matches, err := filepath.Glob(dataStorePath + notaryapi.EncodeBinary(dchain.ChainID) + "/store.*.block") // need to get it from a property file??
 	if err != nil {
 		panic(err)
 	}
 
-	fchain.Blocks = make([]*notaryapi.FBlock, len(matches))
+	dchain.Blocks = make([]*notaryapi.DBlock, len(matches))
 
 	num := 0
 	for _, match := range matches {
@@ -648,52 +647,52 @@ func initFChain() {
 			panic(err)
 		}
 
-		block := new(notaryapi.FBlock)
+		block := new(notaryapi.DBlock)
 		err = block.UnmarshalBinary(data)
 		if err != nil {
 			panic(err)
 		}
-		block.Chain = fchain
+		block.Chain = dchain
 		block.IsSealed = true
 		
-		fchain.Blocks[num] = block
+		dchain.Blocks[num] = block
 		num++
 	}
 	//Create an empty block and append to the chain
-	if len(fchain.Blocks) == 0{
-		fchain.NextBlockID = 0
-		newblock, _ := notaryapi.CreateFBlock(fchain, nil, 10)
-		fchain.Blocks = append(fchain.Blocks, newblock)
+	if len(dchain.Blocks) == 0{
+		dchain.NextBlockID = 0
+		newblock, _ := notaryapi.CreateFBlock(dchain, nil, 10)
+		dchain.Blocks = append(dchain.Blocks, newblock)
 		
 	} else{
-		fchain.NextBlockID = uint64(len(fchain.Blocks))			
-		newblock,_ := notaryapi.CreateFBlock(fchain, fchain.Blocks[len(fchain.Blocks)-1], 10)	
-		fchain.Blocks = append(fchain.Blocks, newblock)		
+		dchain.NextBlockID = uint64(len(dchain.Blocks))			
+		newblock,_ := notaryapi.CreateFBlock(dchain, dchain.Blocks[len(dchain.Blocks)-1], 10)	
+		dchain.Blocks = append(dchain.Blocks, newblock)		
 	}	
 	
 	//Get the unprocessed entries in db for the past # of mins for the open block
 	binaryTimestamp := make([]byte, 8)
 	binary.BigEndian.PutUint64(binaryTimestamp, uint64(0))
-	if fchain.Blocks[fchain.NextBlockID].IsSealed == true {
-		panic ("fchain.Blocks[fchain.NextBlockID].IsSealed for chain:" + notaryapi.EncodeBinary(fchain.ChainID))
+	if dchain.Blocks[dchain.NextBlockID].IsSealed == true {
+		panic ("dchain.Blocks[dchain.NextBlockID].IsSealed for chain:" + notaryapi.EncodeBinary(dchain.ChainID))
 	}
-	fchain.Blocks[fchain.NextBlockID].FBEntries, _ = db.FetchFBEntriesFromQueue(&binaryTimestamp)			
+	dchain.Blocks[dchain.NextBlockID].DBEntries, _ = db.FetchDBEntriesFromQueue(&binaryTimestamp)			
 
 }
 
-func ExportDbToFile(fbHash *notaryapi.Hash) {
+func ExportDbToFile(dbHash *notaryapi.Hash) {
 	
 	if fileNotExists( dataStorePath+"csv/") {
 		os.MkdirAll(dataStorePath+"csv/" , 0755)
 	}
 	
 	//write the records to a csv file: 
-	file, err := os.Create(dataStorePath+"csv/" + fbHash.String() + ".csv")
+	file, err := os.Create(dataStorePath+"csv/" + dbHash.String() + ".csv")
 	if err != nil {panic(err)}
     defer file.Close()
     writer := csv.NewWriter(file)
  
- 	ldbMap, err := db.FetchAllDBRecordsByFBHash(fbHash)   
+ 	ldbMap, err := db.FetchAllDBRecordsByDBHash(dbHash)   
 	
  	if err != nil{
  		log.Println(err)
@@ -737,7 +736,7 @@ func initChains() {
 	//initChainIDs()
 	
 	
-	chainIDMap = make(map[string]*notaryapi.Chain)
+	chainIDMap = make(map[string]*notaryapi.EChain)
 	//chainNameMap = make(map[string]*notaryapi.Chain)
 	
 	eCreditMap = make(map[string]int)

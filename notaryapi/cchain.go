@@ -375,7 +375,7 @@ func (e *CBEntry) UnmarshalBinary(data []byte) (err error) {
 	
 	e.Type = data[0]
 	
-	if e.Type == TYPE_PAY {
+	if e.Type == TYPE_PAY { 
 		e.EntryHash = new(Hash)
 		e.EntryHash.UnmarshalBinary(data)
 		data = data[e.EntryHash.MarshalledSize():]

@@ -14,7 +14,7 @@
 				Created Time: {{ .RealTime}}	</br>
 			{{end}}						
 			{{end}}					
-				Factom Block: <a href="/fblock/{{.ebInfo.FBHash}}">{{ .ebInfo.FBHash}}</a><br>
+				Directory Block: <a href="/dblock/{{.ebInfo.DBHash}}">{{ .ebInfo.DBHash}}</a><br>
 		</div>
 		<br>
 	<hr />

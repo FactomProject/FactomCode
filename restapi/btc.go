@@ -406,30 +406,30 @@ func createBtcdNotificationHandlers() btcrpcclient.NotificationHandlers {
 			
 			if details != nil {
 				// do not block OnRedeemingTx callback
-				go saveFBBatch(transaction, details)
+				go saveDBBatch(transaction, details)
 			}
 		},
 	}
-	
+	 
 	return ntfnHandlers
 }
 
 
-func saveFBBatch(transaction *btcutil.Tx, details *btcws.BlockDetails) {
-	fmt.Println("In saveFBBatch, len(fbBatches.batches)=", len(fbBatches.batches))
+func saveDBBatch(transaction *btcutil.Tx, details *btcws.BlockDetails) {
+	fmt.Println("In saveDBBatch, len(dbBatches.batches)=", len(dbBatches.batches))
 	var i int
 	var found bool
-	for i = 0; i < len(fbBatches.batches); i++ {
-		fmt.Printf("i=%d, fbBatch=%#v\n", i, fbBatches.batches[i])
+	for i = 0; i < len(dbBatches.batches); i++ {
+		fmt.Printf("i=%d, dbBatch=%#v\n", i, dbBatches.batches[i])
 		
-		if fbBatches.batches[i].BTCTxHash != nil && 
-			bytes.Compare(fbBatches.batches[i].BTCTxHash.Bytes, transaction.Sha().Bytes()) == 0 {
+		if dbBatches.batches[i].BTCTxHash != nil && 
+			bytes.Compare(dbBatches.batches[i].BTCTxHash.Bytes, transaction.Sha().Bytes()) == 0 {
 			
-			fbBatches.batches[i].BTCTxOffset = details.Index
-			fbBatches.batches[i].BTCBlockHeight = details.Height
+			dbBatches.batches[i].BTCTxOffset = details.Index
+			dbBatches.batches[i].BTCBlockHeight = details.Height
 			
 			txHash, _ := btcwire.NewShaHashFromStr(details.Hash)
-			fbBatches.batches[i].BTCBlockHash = toHash(txHash)
+			dbBatches.batches[i].BTCBlockHash = toHash(txHash)
 			
 			found = true
 			break
@@ -438,24 +438,24 @@ func saveFBBatch(transaction *btcutil.Tx, details *btcws.BlockDetails) {
 	fmt.Println("In saveFBBatch, found=", found)
 
 	if found {
-		fmt.Printf("found in fbBatches: i=%d, len=%d, DELETE fbBatch%#v\n",i , len(fbBatches.batches), fbBatches.batches[i])
+		fmt.Printf("found in dbBatches: i=%d, len=%d, DELETE dbBatch%#v\n",i , len(dbBatches.batches), dbBatches.batches[i])
 		
-		//delete fbBatches.batches[i]
-		fbBatch := fbBatches.batches[i]
-		fbBatches.batchMutex.Lock()
-		fbBatches.batches = append(fbBatches.batches[:i], fbBatches.batches[i+1:] ...)
+		//delete dbBatches.batches[i]
+		dbBatch := dbBatches.batches[i]
+		dbBatches.batchMutex.Lock()
+		dbBatches.batches = append(dbBatches.batches[:i], dbBatches.batches[i+1:] ...)
 		/*
-		copy(fbBatches.batches[i:], fbBatches.batches[i+1:])
-		fbBatches.batches[len(fbBatches.batches) - 1] = nil
-		fbBatches.batches = fbBatches.batches[:len(fbBatches.batches) - 1]
+		copy(dbBatches.batches[i:], dbBatches.batches[i+1:])
+		dbBatches.batches[len(dbBatches.batches) - 1] = nil
+		dbBatches.batches = dbBatches.batches[:len(dbBatches.batches) - 1]
 		*/
-		fbBatches.batchMutex.Unlock()
+		dbBatches.batchMutex.Unlock()
 		
-		// Update db with FBBatch
-		db.InsertFBBatch(fbBatch)
+		// Update db with DBBatch
+		db.InsertDBBatch(dbBatch)
 		ExportDataFromDbToFile()						
 
-		fmt.Println("found in fbBatches: after deletion, len=", len(fbBatches.batches))
+		fmt.Println("found in dbBatches: after deletion, len=", len(dbBatches.batches))
 	}
 }
 
@@ -522,7 +522,7 @@ func shutdown() {
 }
 
 
-func newEntryBlock(chain *notaryapi.Chain) (*notaryapi.Block){
+func newEntryBlock(chain *notaryapi.EChain) (*notaryapi.EBlock){
 
 	// acquire the last block
 	block := chain.Blocks[len(chain.Blocks)-1]
@@ -563,19 +563,19 @@ func newEntryBlock(chain *notaryapi.Chain) (*notaryapi.Block){
 }
 
 
-func newFactomBlock(chain *notaryapi.FChain) *notaryapi.FBlock {
+func newDirectoryBlock(chain *notaryapi.DChain) *notaryapi.DBlock {
 
 	// acquire the last block
 	block := chain.Blocks[len(chain.Blocks)-1]
 
- 	if len(block.FBEntries) < 1{
- 		//log.Println("No Factom block created for chain ... because no new entry is found.")
+ 	if len(block.DBEntries) < 1{
+ 		//log.Println("No Directory block created for chain ... because no new entry is found.")
  		return nil
  	} 
 	
 	// Create the block add a new block for new coming entries
 	chain.BlockMutex.Lock()
-	block.Header.EntryCount = uint32(len(block.FBEntries))	
+	block.Header.EntryCount = uint32(len(block.DBEntries))	
 	// Calculate Merkle Root for FBlock and store it in header
 	if block.Header.MerkleRoot == nil {
 		block.Header.MerkleRoot = block.CalculateMerkleRoot()
@@ -589,10 +589,10 @@ func newFactomBlock(chain *notaryapi.FChain) *notaryapi.FBlock {
 	chain.BlockMutex.Unlock()
 
 	//Store the block in db
-	block.FBHash = blkhash
-	db.ProcessFBlockBatch(block)  	
+	block.DBHash = blkhash
+	db.ProcessDBlockBatch(block)  	
 
-	log.Println("FactomBlock: block" + strconv.FormatUint(block.Header.BlockID, 10) +" created for factom chain: "  + notaryapi.EncodeBinary(chain.ChainID))
+	log.Println("DirectoryBlock: block" + strconv.FormatUint(block.Header.BlockID, 10) +" created for directory block chain: "  + notaryapi.EncodeBinary(chain.ChainID))
 
 	//update FBBlock with FBHash & FBlockID
 
@@ -605,18 +605,18 @@ func newFactomBlock(chain *notaryapi.FChain) *notaryapi.FBlock {
 }
 
 
-func saveFBBatchMerkleRoottoBTC(fbBatch *notaryapi.FBBatch) {
-	fmt.Println("in saveFBBatchMerkleRoottoBTC: len(fbBatch.FBlocks)=", len(fbBatch.FBlocks))
+func saveDBBatchMerkleRoottoBTC(dbBatch *notaryapi.DBBatch) {
+	fmt.Println("in saveFBBatchMerkleRoottoBTC: len(dbBatch.DBlocks)=", len(dbBatch.DBlocks))
 	
 	//calculate batch merkle root
-	hashes := make([]*notaryapi.Hash, 0, len(fbBatch.FBlocks))
-	for i:=0; i<len(fbBatch.FBlocks); i++ {
-		fmt.Printf("i=%d, merkle root: %s\n", i, fbBatch.FBlocks[i].Header.MerkleRoot.String())
-		hashes = append(hashes, fbBatch.FBlocks[i].Header.MerkleRoot)
+	hashes := make([]*notaryapi.Hash, 0, len(dbBatch.DBlocks))
+	for i:=0; i<len(dbBatch.DBlocks); i++ {
+		fmt.Printf("i=%d, merkle root: %s\n", i, dbBatch.DBlocks[i].Header.MerkleRoot.String())
+		hashes = append(hashes, dbBatch.DBlocks[i].Header.MerkleRoot)
 	}	
 	merkle := notaryapi.BuildMerkleTreeStore(hashes)
 	merkleRoot := merkle[len(merkle) - 1]
-	fbBatch.FBBatchMerkleRoot = merkleRoot
+	dbBatch.FBBatchMerkleRoot = merkleRoot
 
 	txHash, err := writeToBTC(merkleRoot.Bytes)		
 	if err != nil {
@@ -624,10 +624,10 @@ func saveFBBatchMerkleRoottoBTC(fbBatch *notaryapi.FBBatch) {
 		fmt.Println("failed to record ", merkleRoot.Bytes, " to BTC: ", err.Error())
 	}
 
-	//convert btc tx hash to factom hash, and update fbBatch
-	fbBatch.BTCTxHash = toHash(txHash)
+	//convert btc tx hash to factom hash, and update dbBatch
+	dbBatch.BTCTxHash = toHash(txHash)
 
-    fmt.Print("Recorded FBBatch merkle root in BTC tx hash:\n",txHash, "\nconverted hash: ", fbBatch.BTCTxHash.String(), "\n")
+    fmt.Print("Recorded FBBatch merkle root in BTC tx hash:\n",txHash, "\nconverted hash: ", dbBatch.BTCTxHash.String(), "\n")
 
 }
 

@@ -18,7 +18,7 @@ import (
 
 func TestAddChain(t *testing.T) {
 
-	chain := new (notaryapi.Chain)
+	chain := new (notaryapi.EChain)
 	bName := make ([][]byte, 0, 5)
 	bName = append(bName, []byte("myCompany"))	
 	bName = append(bName, []byte("bookkeeping"))		
@@ -60,7 +60,7 @@ func TestAddChain(t *testing.T) {
 	}			
 	// JSON ws test done ----------------------------------------------------------------------------
 
-	chain3 := new (notaryapi.Chain)
+	chain3 := new (notaryapi.EChain)
 	reader := gocoding.ReadBytes([]byte(jsonstr))
 	err = SafeUnmarshal(reader, chain3)
 

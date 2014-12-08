@@ -39,8 +39,8 @@ func serve_init() {
 	server.Get(`/entries/([^/]+)(?:/([^/]+)(?:/([^/]+))?)?`, handleEntry)
 	server.Get(`/keys/(?:add|\+)`, handleAddKey)
 	server.Get(`/keys/([^/]+)(?:/([^/]+))?`, handleKey)
-	server.Get(`/fblock/([^/]+)(?)`, handleFBlock)	
-	server.Get(`/fblock/?`, handleAllFBlocks)		
+	server.Get(`/dblock/([^/]+)(?)`, handleDBlock)	
+	server.Get(`/dblock/?`, handleAllDBlocks)		
 	server.Get(`/eblock/([^/]+)(?)`, handleEBlock)
 	server.Get(`/sentry/([^/]+)(?)`, handleSEntry)	
 	server.Get(`/search/?`, handleSearch)
@@ -90,7 +90,7 @@ func handleEntries(ctx *web.Context) {
 func handleExplore(ctx *web.Context, rest string) {
 	
 	if rest == "" || rest == "/" {
-		handleAllFBlocks(ctx)
+		handleAllDBlocks(ctx)
 		return
 	}	
 	if rest == "" || rest == "/" {
@@ -469,7 +469,7 @@ func handleChainPost(ctx *web.Context) {
 		}		
 		fmt.Println("level0:%v", level0)			
 		fmt.Println("bName[0]%v", string(bName[0]))
-		chain := new(notaryapi.Chain)
+		chain := new(notaryapi.EChain)
 		chain.Name = bName	
 		chain.GenerateIDFromName()			
 		
@@ -800,23 +800,23 @@ func handleMessage(ctx *web.Context, title string, message string) {
 		handleError(ctx, r)
 	}	
 }
-func handleFBlock(ctx *web.Context, hashStr string) {
+func handleDBlock(ctx *web.Context, hashStr string) {
 	
-	var title, error_str, fbBatchStatus string	
+	var title, error_str, dbBatchStatus string	
 	hash,_ := notaryapi.HexToHash(hashStr)
-	fBlock, _ := db.FetchFBlockByHash(hash)
-	fbBatch, _ := db.FetchFBBatchByHash(hash)
+	dBlock, _ := db.FetchDBlockByHash(hash)
+	dbBatch, _ := db.FetchDBBatchByHash(hash)
 	
-	for _, fbEntry := range fBlock.FBEntries {
-		fbHash, _ := db.FetchEBHashByMR(fbEntry.MerkleRoot)
-		fbEntry.SetHash(fbHash.Bytes)
+	for _, fbEntry := range dBlock.DBEntries {
+		dbHash, _ := db.FetchEBHashByMR(fbEntry.MerkleRoot)
+		fbEntry.SetHash(dbHash.Bytes)
 	}
 	
-	if fbBatch != nil {
-		fbBatchStatus = "existing"
+	if dbBatch != nil {
+		dbBatchStatus = "existing"
 	}
 	
-	if fBlock == nil {
+	if dBlock == nil {
 		handleMessage(ctx, "Not Found", "Factom Block not found for hash: " + hashStr)
 		return
 	}	
@@ -825,11 +825,11 @@ func handleFBlock(ctx *web.Context, hashStr string) {
 		r := safeWrite(ctx, 200, map[string]interface{} {
 			"Title": title,
 			"Error": error_str,
-			"ContentTmpl": "fblock.gwp",
-			"fBlock": fBlock,	
-			"fbHash": hashStr,	
-			"fbBatch": fbBatch,	
-			"fbBatchStatus": fbBatchStatus,
+			"ContentTmpl": "dblock.gwp",
+			"dBlock": dBlock,	
+			"dbHash": hashStr,	
+			"dbBatch": dbBatch,	
+			"dbBatchStatus": dbBatchStatus,
 		})
 		if r != nil {
 			handleError(ctx, r)
@@ -864,18 +864,18 @@ func handleChain(ctx *web.Context, chainIDstr string) {
 	
 }
 
-func handleAllFBlocks(ctx *web.Context) {
+func handleAllDBlocks(ctx *web.Context) {
 	var title, error_str string	
 
-	fBlocks, _ := db.FetchAllFBlocks()
-	sort.Sort(byBlockID(fBlocks))
+	dBlocks, _ := db.FetchAllDBlocks()
+	sort.Sort(byBlockID(dBlocks))
 	
 	defer func() {
 		r := safeWrite(ctx, 200, map[string]interface{} {
 			"Title": title,
 			"Error": error_str,
-			"ContentTmpl": "fblocks.gwp",
-			"fBlocks": fBlocks,		
+			"ContentTmpl": "dblocks.gwp",
+			"dBlocks": dBlocks,		
 		})
 		if r != nil {
 			handleError(ctx, r)
@@ -899,8 +899,8 @@ func handleSearch(ctx *web.Context) {
 	case "eblock":
 		handleEBlock(ctx, inputhash)
 			
-	case "fblock":
-		handleFBlock(ctx, inputhash)
+	case "dblock":
+		handleDBlock(ctx, inputhash)
 		
 	case "extHash":
 		handleMessage(ctx, "Not implemented yet", "Sorry this feature (External ID Search) is still under construction.")	
@@ -919,7 +919,7 @@ func handleSearch(ctx *web.Context) {
 }
 
 // array sorting implementation
-type byBlockID []notaryapi.FBlock
+type byBlockID []notaryapi.DBlock
 func (f byBlockID) Len() int { 
   return len(f) 
 } 
@@ -931,7 +931,7 @@ func (f byBlockID) Swap(i, j int) {
 } 
 
 // array sorting implementation
-type byEBlockID []notaryapi.Block
+type byEBlockID []notaryapi.EBlock
 func (f byEBlockID) Len() int { 
   return len(f) 
 } 
