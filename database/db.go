@@ -109,5 +109,19 @@ type Db interface {
 	
 	// FetchSupportDBRecords gets support db records
 	FetchSupportDBRecords() (ldbMap map[string]string, err error)	
-}
+	
+	
+	//---------------------------
+	
+	Put(key []byte, value []byte) error
+
+	Get(key []byte) ([]byte, error) 
+
+	Delete(key []byte) error 
+
+	LastKnownTD() []byte 
+
+ 	Print() 
+ 	
+ }	
 
