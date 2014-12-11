@@ -87,6 +87,7 @@ func loadConfigurations(){
 			ServerAddr string
 			DataStorePath string
 			RefreshInSeconds int
+			LdbPath string
 	    }
 		Log struct{
 	    	LogLevel string
@@ -116,6 +117,7 @@ func loadConfigurations(){
 		serverAddr = cfg.App.ServerAddr
 		dataStorePath = cfg.App.DataStorePath
 		refreshInSeconds = cfg.App.RefreshInSeconds
+		ldbpath = cfg.App.LdbPath
 	}
 	
 }
