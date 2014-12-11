@@ -40,7 +40,7 @@ func readError(err error) {
 }
 
 func init() {
-	
+
 	loadConfigurations()
 	
 	initDB()
@@ -92,16 +92,22 @@ func loadConfigurations(){
 	    	LogLevel string
 		}
     }{}
-	
+
+	var  sf = "factomclient.conf"	
 	wd, err := os.Getwd()
 	if err != nil{
 		log.Println(err)
+	} else {
+		sf =  wd+"/"+sf		
 	}	
-	err = gcfg.ReadFileInto(&cfg, wd+"/factomclient.conf")
+
+	err = gcfg.ReadFileInto(&cfg, sf)
 	if err != nil{
 		log.Println(err)
 		log.Println("Client starting with default settings...")
 	} else {
+		log.Println("Client starting with settings from: " + sf)
+		log.Println(cfg)
 	
 		//setting the variables by the valued form the config file
 		logLevel = cfg.Log.LogLevel	
