@@ -117,7 +117,10 @@ func loadConfigurations(){
 		serverAddr = cfg.App.ServerAddr
 		dataStorePath = cfg.App.DataStorePath
 		refreshInSeconds = cfg.App.RefreshInSeconds
-		ldbpath = cfg.App.LdbPath
+		log.Println(cfg.App.LdbPath)
+		if cfg.App.LdbPath != "" {
+			ldbpath = cfg.App.LdbPath
+		}
 	}
 	
 }
