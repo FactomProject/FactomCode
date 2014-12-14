@@ -158,5 +158,3 @@ func TestToHash(t *testing.T) {
 	fmt.Println("equal in bytes: ", bytes.Compare(txHash.Bytes(), h.Bytes))
 }
 
-
-

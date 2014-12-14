@@ -562,6 +562,35 @@ func newEntryBlock(chain *notaryapi.EChain) (*notaryapi.EBlock){
 	return block
 }
 
+func newEntryCreditBlock(chain *notaryapi.CChain) (*notaryapi.CBlock){
+
+	// acquire the last block
+	block := chain.Blocks[len(chain.Blocks)-1]
+
+ 	if len(block.CBEntries) < 1{
+ 		//log.Println("No new entry found. No block created for chain: "  + notaryapi.EncodeChainID(chain.ChainID))
+ 		return nil
+ 	}
+
+	// Create the block and add a new block for new coming entries
+	chain.BlockMutex.Lock()
+	block.Header.EntryCount = uint32(len(block.CBEntries))		
+	blkhash, _ := notaryapi.CreateHash(block)
+	log.Println("blkhash:%v", blkhash.Bytes)
+	block.IsSealed = true	
+	chain.NextBlockID++	
+	newblock, _ := notaryapi.CreateCBlock(chain, block, 10)
+	chain.Blocks = append(chain.Blocks, newblock)
+	chain.BlockMutex.Unlock()
+	block.CBHash = blkhash	
+	    
+    //Store the block in db
+	db.ProcessCBlockBatch(block)	   
+	log.Println("EntryCreditBlock: block" + strconv.FormatUint(block.Header.BlockID, 10) +" created for chain: "  + chain.ChainID.String())	
+	
+	return block
+}
+
 
 func newDirectoryBlock(chain *notaryapi.DChain) *notaryapi.DBlock {
 
@@ -584,7 +613,7 @@ func newDirectoryBlock(chain *notaryapi.DChain) *notaryapi.DBlock {
 	blkhash, _ := notaryapi.CreateHash(block)
 	block.IsSealed = true	
 	chain.NextBlockID++
-	newblock, _ := notaryapi.CreateFBlock(chain, block, 10)
+	newblock, _ := notaryapi.CreateDBlock(chain, block, 10)
 	chain.Blocks = append(chain.Blocks, newblock)
 	chain.BlockMutex.Unlock()
 

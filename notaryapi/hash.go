@@ -145,3 +145,17 @@ func (h *Hash) BTCString() string {
 
 	return hashstr
 }
+
+// Compare two Hashes
+func (a *Hash) IsSameAs(b *Hash) bool {
+
+	if a==nil || b==nil{
+		return false
+	}
+	
+	if bytes.Compare(a.Bytes, b.Bytes) == 0 {
+		return true
+	}
+	
+	return false
+}

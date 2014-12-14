@@ -22,6 +22,7 @@ type EChain struct {
 	
 	
 	Blocks 		[]*EBlock
+	CurrentBlock *EBlock	
 	BlockMutex 	sync.Mutex	
 	NextBlockID uint64	
 	FirstEntry *Entry

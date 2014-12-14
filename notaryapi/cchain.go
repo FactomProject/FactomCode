@@ -12,12 +12,14 @@ import (
 
 )
 
+
 type CChain struct {
 	ChainID 	*Hash
 	Name		[][]byte
 	//Status	uint8
 	
 	Blocks 		[]*CBlock
+	CurrentBlock *CBlock
 	BlockMutex 	sync.Mutex	
 	NextBlockID uint64	
 	//FirstEntry *Entry
@@ -27,7 +29,7 @@ type CBlock struct {
 
 	//Marshalized
 	Header *CBlockHeader
-	CBEntries []*CBEntry
+	CBEntries []CBEntry //Interface
 
 	//Not Marshalized
 	CBHash *Hash 	
@@ -37,8 +39,6 @@ type CBlock struct {
 	IsSealed bool
 }
 
-
-
 type CBInfo struct {
 
     CBHash *Hash 
@@ -47,7 +47,6 @@ type CBInfo struct {
     ChainID *Hash
     
 }
-
 
 func CreateCBlock(chain *CChain, prev *CBlock, capacity uint) (b *CBlock, err error) {
 	if prev == nil && chain.NextBlockID != 0 {
@@ -69,7 +68,7 @@ func CreateCBlock(chain *CChain, prev *CBlock, capacity uint) (b *CBlock, err er
 	
 	b.Chain = chain
 	
-	b.CBEntries = make([]*CBEntry, 0, capacity)
+	b.CBEntries = make([]CBEntry, 0, capacity)
 	
 	b.Salt = EmptyHash()
 	
@@ -78,7 +77,7 @@ func CreateCBlock(chain *CChain, prev *CBlock, capacity uint) (b *CBlock, err er
 	return b, err
 }
 
-func (b *CBlock) AddCBEntry(e *CBEntry) (err error) {
+func (b *CBlock) AddCBEntry(e CBEntry) (err error) {
 
 	b.CBEntries = append(b.CBEntries, e) 
 	
@@ -126,9 +125,15 @@ func (b *CBlock) UnmarshalBinary(data []byte) (err error) {
 	
 	count, data := binary.BigEndian.Uint64(data[0:8]), data[8:]
 	
-	b.CBEntries = make([]*CBEntry, count)
+	b.CBEntries = make([]CBEntry, count)
 	for i := uint64(0); i < count; i = i + 1 {
-		b.CBEntries[i] = new(CBEntry)
+		if data[0] == TYPE_BUY {
+			b.CBEntries[i] = new(BuyCBEntry)
+		} else if data[0] == TYPE_PAY_CHAIN {
+			b.CBEntries[i] = new(PayChainCBEntry)
+		} else if data[0] == TYPE_PAY_ENTRY {
+			b.CBEntries[i] = new(PayEntryCBEntry)
+		}
 		err = b.CBEntries[i].UnmarshalBinary(data)
 		if err != nil { return }
 		data = data[b.CBEntries[i].MarshalledSize():]
@@ -300,93 +305,254 @@ func NewCBlockHeader(blockId uint64, prevHash *Hash, merkle *Hash) *CBlockHeader
 	}
 }
 
-//-----------------------------------------------------------
-
+//---------------------------------------------------------------
+// Three types of entries (transactions) for Entry Credit Block
+//---------------------------------------------------------------
 const (
 	TYPE_BUY     uint8 = iota
-	TYPE_PAY
+	TYPE_PAY_ENTRY
+	TYPE_PAY_CHAIN
 )
 
-type CBEntry struct {
-	PublicKey *Hash 
-	Type byte
-	EntryHash * Hash
+type CBEntry interface {
+	Type() byte
+	PublicKey() *Hash 
+	Credits() int32	
+	MarshalBinary() ([]byte, error)
+	MarshalledSize() uint64
+	UnmarshalBinary(data []byte) (err error)	
+}
+
+type BuyCBEntry struct {
+	entryType byte
+	publicKey *Hash 
+	credits int32	
+	CBEntry //interface
+
 	FactomTxHash *Hash
-	Credits int
-
 }
 
-func NewPayCBEntry(pubKey *Hash, entryHash *Hash, credits int) *CBEntry {
-	e := &CBEntry{}
-	e.PublicKey = pubKey
-	e.Type = TYPE_PAY	
+type PayEntryCBEntry struct {
+	entryType byte
+	publicKey *Hash 
+	credits int32	
+	CBEntry //interface
+
+	EntryHash * Hash
+	Nonce uint32
+}
+
+type PayChainCBEntry struct {
+	entryType byte
+	publicKey *Hash 
+	credits int32	
+	CBEntry //interface
+
+	EntryHash *Hash
+	ChainIDHash *Hash
+	EntryChainIDHash *Hash //Hash(EntryHash+ChainIDHash)
+}
+
+func NewPayEntryCBEntry(pubKey *Hash, entryHash *Hash, credits int32, nonce uint32) *PayEntryCBEntry {
+	e := &PayEntryCBEntry{}
+	e.publicKey = pubKey
+	e.entryType = TYPE_PAY_ENTRY	
+	e.credits = credits	
 	e.EntryHash = entryHash
-	e.Credits = credits
+	e.Nonce = nonce
 	
 	return e
 }
 
-func NewBuyCBEntry(pubKey *Hash, factoidTxHash *Hash, credits int) *CBEntry {
-	e := &CBEntry{}
-	e.PublicKey = pubKey
-	e.Type = TYPE_BUY	
+func NewPayChainCBEntry(pubKey *Hash, entryHash *Hash, credits int32, chainIDHash *Hash, entryChainIDHash * Hash) *PayChainCBEntry {
+	e := &PayChainCBEntry{}
+	e.publicKey = pubKey
+	e.entryType = TYPE_PAY_CHAIN	
+	e.credits = credits	
+	e.EntryHash = entryHash
+	e.ChainIDHash = chainIDHash
+	e.EntryChainIDHash = entryChainIDHash
+	
+	return e
+}
+
+func NewBuyCBEntry(pubKey *Hash, factoidTxHash *Hash, credits int32) *BuyCBEntry {
+	e := &BuyCBEntry{}
+	e.publicKey = pubKey
+	e.entryType = TYPE_BUY	
 	e.FactomTxHash = factoidTxHash
-	e.Credits = credits
+	e.credits = credits
 	
 	return e
 }
 
-func (e *CBEntry) MarshalBinary() ([]byte, error) {
+func (e *BuyCBEntry) Type() byte{
+	return e.entryType
+}
+func (e *BuyCBEntry) PublicKey() *Hash{
+	return e.publicKey
+}
+func (e *BuyCBEntry) Credits() int32{
+	return e.credits
+}
+func (e *BuyCBEntry) MarshalBinary() ([]byte, error) {
 	var buf bytes.Buffer
 	
-	data, _ := e.PublicKey.MarshalBinary()
+	buf.Write([]byte{e.entryType})	
+	
+	data, _ := e.publicKey.MarshalBinary()
 	buf.Write(data)
 	
-	buf.Write([]byte{e.Type})
-	if e.Type == TYPE_PAY {
-		data, _ = e.EntryHash.MarshalBinary()
-	} else if e.Type == TYPE_BUY {
-		data, _ = e.FactomTxHash.MarshalBinary()
-	}
-	
+	binary.Write(&buf, binary.BigEndian, e.Credits())	
+		
+	data, _ = e.FactomTxHash.MarshalBinary()	
 	buf.Write(data)
-	
-	binary.Write(&buf, binary.BigEndian, e.Credits)	
 	
 	return buf.Bytes(), nil
 }
 
-func (e *CBEntry) MarshalledSize() uint64 {
+func (e *BuyCBEntry) MarshalledSize() uint64 {
 	var size uint64 = 0
-	
-	size += e.PublicKey.MarshalledSize() 	// PublicKey	
-	size += 1							// Type (byte)
-	size += e.EntryHash.MarshalledSize()// Entry Hash or Factoid Trans Hash
-	size += 4							// Credits (int)
+	size += 1								// Type (byte)	
+	size += e.publicKey.MarshalledSize() 	// PublicKey	
+	size += 4								// Credits (int32)
+	size += e.FactomTxHash.MarshalledSize()	// Factoid Trans Hash
 	
 	return size
 }
 
-func (e *CBEntry) UnmarshalBinary(data []byte) (err error) {
+func (e *BuyCBEntry) UnmarshalBinary(data []byte) (err error) {
+	e.entryType, data = data[0], data[1:]
+	e.publicKey = new(Hash)
+	
+	e.publicKey.UnmarshalBinary(data)
+	data = data[e.publicKey.MarshalledSize():]
+	
+	buf, data := bytes.NewBuffer(data[:4]), data[4:]
+	binary.Read(buf, binary.BigEndian, &e.credits)	
+	
+	e.FactomTxHash = new(Hash)
+	e.FactomTxHash.UnmarshalBinary(data)
+	
+	return nil
+}
 
-	e.PublicKey = new(Hash)
-	e.PublicKey.UnmarshalBinary(data)
-	data = data[e.PublicKey.MarshalledSize():]
+func (e *PayEntryCBEntry) Type() byte{
+	return e.entryType
+}
+func (e *PayEntryCBEntry) PublicKey() *Hash{
+	return e.publicKey
+}
+func (e *PayEntryCBEntry) Credits() int32{
+	return e.credits
+}
+func (e *PayEntryCBEntry) MarshalBinary() ([]byte, error) {
+	var buf bytes.Buffer
 	
-	e.Type = data[0]
+	buf.Write([]byte{e.entryType})	
 	
-	if e.Type == TYPE_PAY { 
-		e.EntryHash = new(Hash)
-		e.EntryHash.UnmarshalBinary(data)
-		data = data[e.EntryHash.MarshalledSize():]
-	} else if e.Type == TYPE_BUY {
-		e.FactomTxHash = new(Hash)
-		e.FactomTxHash.UnmarshalBinary(data)
-		data = data[e.FactomTxHash.MarshalledSize():]
-	}
+	data, _ := e.publicKey.MarshalBinary()
+	buf.Write(data)
 	
-	buf := bytes.NewBuffer(data[:4])
-	binary.Read(buf, binary.BigEndian, &e.Credits)
+	binary.Write(&buf, binary.BigEndian, e.credits)	
+		
+	data, _ = e.EntryHash.MarshalBinary()	
+	buf.Write(data)
+	
+	binary.Write(&buf, binary.BigEndian, e.Nonce)	
+		
+	return buf.Bytes(), nil
+}
 
+func (e *PayEntryCBEntry) MarshalledSize() uint64 {
+	var size uint64 = 0
+	size += 1								// Type (byte)	
+	size += e.publicKey.MarshalledSize() 	// PublicKey	
+	size += 4								// Credits (int32)
+	size += e.EntryHash.MarshalledSize()	// Entry Hash
+	size += 4								// Nonce (uint32)	
+	
+	return size
+}
+
+func (e *PayEntryCBEntry) UnmarshalBinary(data []byte) (err error) {
+
+	e.entryType, data = data[0], data[1:]
+	e.publicKey = new(Hash)
+	e.publicKey.UnmarshalBinary(data)
+	data = data[e.publicKey.MarshalledSize():]
+	buf, data := bytes.NewBuffer(data[:4]), data[4:]
+	binary.Read(buf, binary.BigEndian, &e.credits)	
+	e.EntryHash = new(Hash)
+	e.EntryHash.UnmarshalBinary(data)
+	data = data[e.EntryHash.MarshalledSize():]
+	buf = bytes.NewBuffer(data[:4])	
+	binary.Read(buf, binary.BigEndian, &e.Nonce)	
+
+	return nil
+}
+
+func (e *PayChainCBEntry) Type() byte{
+	return e.entryType
+}
+func (e *PayChainCBEntry) PublicKey() *Hash{
+	return e.publicKey
+}
+func (e *PayChainCBEntry) Credits() int32{
+	return e.credits
+}
+func (e *PayChainCBEntry) MarshalBinary() ([]byte, error) {
+	var buf bytes.Buffer
+	
+	buf.Write([]byte{e.entryType})	
+	
+	data, _ := e.publicKey.MarshalBinary()
+	buf.Write(data)
+	
+	binary.Write(&buf, binary.BigEndian, e.credits)	
+		
+	data, _ = e.EntryHash.MarshalBinary()	
+	buf.Write(data)
+	
+	data, _ = e.ChainIDHash.MarshalBinary()	
+	buf.Write(data)
+		
+	data, _ = e.EntryChainIDHash.MarshalBinary()	
+	buf.Write(data)
+	
+	fmt.Println("buf.Bytes():", buf.Bytes())
+			
+	return buf.Bytes(), nil
+}
+
+func (e *PayChainCBEntry) MarshalledSize() uint64 {
+	var size uint64 = 0
+	size += 1								// Type (byte)	
+	size += e.publicKey.MarshalledSize() 	// PublicKey	
+	size += 4								// Credits (int32)
+	size += e.EntryHash.MarshalledSize()	// Entry Hash
+	size += e.ChainIDHash.MarshalledSize()	// ChainID Hash
+	size += e.EntryChainIDHash.MarshalledSize()	// EntryChainID Hash	
+	
+	return size
+}
+
+func (e *PayChainCBEntry) UnmarshalBinary(data []byte) (err error) {
+
+	e.entryType, data = data[0], data[1:]
+	e.publicKey = new(Hash)
+	e.publicKey.UnmarshalBinary(data)
+	data = data[e.publicKey.MarshalledSize():]
+	buf, data := bytes.NewBuffer(data[:4]), data[4:]
+	binary.Read(buf, binary.BigEndian, &e.credits)	
+	e.EntryHash = new(Hash)
+	e.EntryHash.UnmarshalBinary(data)
+	data = data[e.EntryHash.MarshalledSize():]
+	e.ChainIDHash = new(Hash)
+	e.ChainIDHash.UnmarshalBinary(data)
+	data = data[e.ChainIDHash.MarshalledSize():]
+	e.EntryChainIDHash = new(Hash)
+	e.EntryChainIDHash.UnmarshalBinary(data)
+	
 	return nil
 }

@@ -14,6 +14,7 @@ const DBlockVersion = 1
 type DChain struct {
 	ChainID 	*[]byte
 	Blocks 		[]*DBlock
+	CurrentBlock *DBlock
 	BlockMutex 	sync.Mutex	
 	NextBlockID uint64	
 }
@@ -74,7 +75,6 @@ type DBEntry struct {
 	
 	// not marshalllized
 	hash *Hash
-	eblock *EBlock
 	status int8 //for future use??
 }
 
@@ -83,9 +83,19 @@ func NewDBEntry(eb *EBlock) *DBEntry {
 	e.StampTime() 
 	e.hash = eb.EBHash
 	
-	e.eblock = eb
 	e.ChainID = eb.Chain.ChainID
 	e.MerkleRoot = eb.MerkleRoot
+	
+	return e
+}
+
+func NewDBEntryFromCBlock(cb *CBlock) *DBEntry {
+	e := &DBEntry{}
+	e.StampTime() 
+	e.hash = cb.CBHash
+	
+	e.ChainID = cb.Chain.ChainID
+	e.MerkleRoot = cb.CBHash	//To use MerkleRoot??
 	
 	return e
 }
@@ -240,7 +250,7 @@ func (b *DBlockHeader) RealTime() time.Time {
 	return time.Unix(b.TimeStamp, 0)
 }
 
-func CreateFBlock(chain *DChain, prev *DBlock, capacity uint) (b *DBlock, err error) {
+func CreateDBlock(chain *DChain, prev *DBlock, capacity uint) (b *DBlock, err error) {
 	if prev == nil && chain.NextBlockID != 0 {
 		return nil, errors.New("Previous block cannot be nil")
 	} else if prev != nil && chain.NextBlockID == 0 {
@@ -281,6 +291,21 @@ func (dchain *DChain) AddDBEntry(eb *EBlock) (err error) {
 	return nil
 }
 
+// Add DBEntry from an Entry Credit Block
+func (dchain *DChain) AddCBlockToDBEntry(cb *CBlock) (err error) {
+	dBlock := dchain.Blocks[len(dchain.Blocks)-1]
+	
+	dbEntry := NewDBEntryFromCBlock(cb)
+	b := make([]byte, 8)
+	binary.BigEndian.PutUint64(b, uint64(cb.Header.TimeStamp)) 	
+	dbEntry.SetTimeStamp(b)
+	
+	dchain.BlockMutex.Lock()
+	dBlock.DBEntries = append(dBlock.DBEntries, dbEntry) 
+	dchain.BlockMutex.Unlock()
+
+	return nil
+}
 
 func (b *DBlock) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer

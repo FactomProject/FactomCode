@@ -32,17 +32,19 @@ const (
 	TBL_EB_QUEUE		//4	
 	TBL_EB_INFO			//5
 	TBL_EB_CHAIN_NUM
-	TBL_EB_MR	
-	
+	TBL_EB_MR		
 
 	TBL_DB				//8
 	TBL_DB_NUM
 	TBL_DBATCH
 	TBL_DB_BATCH
 	
-	
 	TBL_CHAIN_HASH		//12
 	TBL_CHAIN_NAME
+
+	TBL_CB				//14
+	TBL_CB_NUM
+	TBL_CB_INFO	
 )
 
 // the process status in db

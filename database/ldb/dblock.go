@@ -247,7 +247,7 @@ func (db *LevelDb) FetchAllDBlocks() (dBlocks []notaryapi.DBlock, err error){
 }	
 
 // FetchDBInfoByHash gets an DBInfo obj
-func (db *LevelDb) FetchAllDBRecordsByDBHash(dbHash *notaryapi.Hash) (ldbMap map[string]string, err error) {
+func (db *LevelDb) FetchAllDBRecordsByDBHash(dbHash *notaryapi.Hash, cChainID *notaryapi.Hash) (ldbMap map[string]string, err error) {
 //	db.dbLock.Lock()
 //	defer db.dbLock.Unlock()
 	if ldbMap == nil {
@@ -288,8 +288,22 @@ func (db *LevelDb) FetchAllDBRecordsByDBHash(dbHash *notaryapi.Hash) (ldbMap map
 	iter.Release()
 	err = iter.Error()		
 	
-	//EBlocks
+	//EBlocks or CBlock or FBlock
 	for _, dbEntry := range dblock.DBEntries{
+		
+		//CBlock
+		if dbEntry.ChainID.IsSameAs(cChainID) {
+			key = []byte{byte(TBL_CB)} 
+			key = append (key, dbEntry.MerkleRoot.Bytes ...)	
+			data, err = db.lDb.Get(key, db.ro)
+			
+			if data == nil {
+				return nil, errors.New("CBlock not found for cBHash: " + dbEntry.MerkleRoot.String())
+			} else {
+				ldbMap[notaryapi.EncodeBinary(&key)] = notaryapi.EncodeBinary(&data)
+			}
+			continue
+		}
 		
 		//EB Merkle root and EBHash Cross Reference
 		key = []byte{byte(TBL_EB_MR)}

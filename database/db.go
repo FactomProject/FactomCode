@@ -102,7 +102,7 @@ type Db interface {
 	FetchAllDBlocks() (fBlocks []notaryapi.DBlock, err error)	
 	
 	// FetchDBInfoByHash gets all db records related to a directory block
-	FetchAllDBRecordsByDBHash(dbHash *notaryapi.Hash) (ldbMap map[string]string, err error)	
+	FetchAllDBRecordsByDBHash(dbHash *notaryapi.Hash, cChainID *notaryapi.Hash) (ldbMap map[string]string, err error)	
 
 	// InsertAllDBRecords inserts all key value pairs from map into db
 	InsertAllDBRecords(ldbMap map[string]string) (err error)	
@@ -110,6 +110,10 @@ type Db interface {
 	// FetchSupportDBRecords gets support db records
 	FetchSupportDBRecords() (ldbMap map[string]string, err error)	
 	
+
+
+	// ProcessCBlockBatche inserts the CBlock and update all it's cbentries in DB
+	ProcessCBlockBatch(block *notaryapi.CBlock) (err error)
 	
 	//---------------------------
 	
