@@ -1,7 +1,7 @@
 Factom
 ===========
 
-Factom is an Open Source project that provides a way to build applications on the Bitcoin blockchain. 
+Factom is an Open-Source project that provides a way to build applications on the Bitcoin blockchain. 
 
 Factom began by providing proof of existence services, but then move on to provide proof of existence of transforms.  A list of such entries can be thought of as a Factom Chain.  Factom can be used to implement private tokens, smart contracts, smart properties, and more.
 
