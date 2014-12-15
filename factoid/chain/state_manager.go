@@ -97,8 +97,7 @@ func (self *StateManager) ProcessTransactions(coinbase *state.StateObject, state
 		handled = append(handled, tx)
 	}
 
-	block.TotalFee = totalFee  //???
-//	parent.GasUsed = totalUsedGas
+	block.TotalFee = totalFee  //??? parent.TotalFee
 
 	fmt.Println("receipts.len=", len(receipts), ", receipts=", receipts, ", totalFee=", totalFee)
 

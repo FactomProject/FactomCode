@@ -1,19 +1,15 @@
 package crypto
 
 import (
-	// "io/ioutil"
-//	"fmt"
 	"os"
-//	"path"
 	"testing"
 
-//	"github.com/FactomProject/FactomCode/factoid/db"
 	"github.com/FactomProject/FactomCode/factoid/crypto"
 )
 
 
 func TestFirstKeyStore(t *testing.T) {
-	basedir0 := "/tmp/ethkey"
+	basedir0 := "/tmp/factomkey"
 	os.RemoveAll(basedir0)
 	os.Mkdir(basedir0, 0777)
 	km := crypto.NewFileKeyManager(basedir0)

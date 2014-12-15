@@ -247,41 +247,6 @@ func CreateTests(uri string, cb func(Test)) map[string]Test {
 	return tests
 }
 
-func TestRemote(t *testing.T) {
-	CreateTests("https://raw.githubusercontent.com/ethereum/tests/develop/trietest.json", func(test Test) {
-		_, trie := NewTrie()
-		for key, value := range test.In {
-			trie.Update(get(key), get(value))
-		}
-
-		a := util.NewValue(h(test.Root)).Bytes()
-		b := util.NewValue(trie.Root).Bytes()
-		if bytes.Compare(a, b) != 0 {
-			t.Errorf("%-10s: %x %x", test.Name, a, b)
-		}
-	})
-}
-
-func TestTrieReplay(t *testing.T) {
-	CreateTests("https://raw.githubusercontent.com/ethereum/tests/develop/trietest.json", func(test Test) {
-		_, trie := NewTrie()
-		for key, value := range test.In {
-			trie.Update(get(key), get(value))
-		}
-
-		_, trie2 := NewTrie()
-		trie.NewIterator().Each(func(key string, v *util.Value) {
-			trie2.Update(key, v.Str())
-		})
-
-		a := util.NewValue(trie.Root).Bytes()
-		b := util.NewValue(trie2.Root).Bytes()
-		if bytes.Compare(a, b) != 0 {
-			t.Errorf("%s %x %x\n", test.Name, trie.Root, trie2.Root)
-		}
-	})
-}
-
 func RandomData() [][]string {
 	data := [][]string{
 		{"0x000000000000000000000000ec4f34c97e43fbb2816cfd95e388353c7181dab1", "0x4e616d6552656700000000000000000000000000000000000000000000000000"},

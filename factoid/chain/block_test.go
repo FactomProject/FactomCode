@@ -13,7 +13,7 @@ import (
 
 
 func TestTransaction(t *testing.T) {	
-	km := crypto.NewFileKeyManager("/tmp/ethkey")
+	km := crypto.NewFileKeyManager("/tmp/factomkey")
 
 	km.Init("Bo", 0, false)	
 	bo_addr := km.Address()
@@ -81,7 +81,6 @@ func (sm *StateManager) MineNewBlock(block *Block) {
 	// Error may be ignored. It's not important during mining
 //	parent := sm.BlockChain().GetBlock(block.PrevHash)
 	coinbase := block.State().GetOrNewStateObject(block.Coinbase)
-//	coinbase.SetGasPool(block.CalcGasLimit(parent))
 	receipts, txs, _, err := sm.ProcessTransactions(coinbase, block.State(), block, block, block.Transactions())
 	if err != nil {
 		statelogger.Debugln(err)
