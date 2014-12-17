@@ -104,6 +104,19 @@ func GetDirectoryBlokByHashStr(dBlockHashBase64 string) (dBlock *notaryapi.DBloc
 	return dBlock, nil
 }
 
+func GetEnytryBlokByHash(eBlockHash *notaryapi.Hash) (eBlock *notaryapi.EBlock, err error) {
+
+	eBlock, err = db.FetchEBlockByHash(eBlockHash)
+	
+	return eBlock, err
+}
+
+func GetEntryByHash(entrySha *notaryapi.Hash) (entry *notaryapi.Entry, err error) {
+
+	entry, err = db.FetchEntryByHash(entrySha)
+
+	return entry, err
+}
 
 
 // to be removed------------------------------
