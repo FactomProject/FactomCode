@@ -550,7 +550,7 @@ func handleEBlockByHash(ctx *web.Context, hashStr string) {
 		ctx.Write(buf.Bytes())
 	}()
 	
-	eBlock, err := factomapi.GetEnytryBlokByHashStr(hashStr)
+	eBlock, err := factomapi.GetEntryBlokByHashStr(hashStr)
 	if err != nil{
 		httpcode = 400
 		buf.WriteString("Bad Request")
@@ -576,7 +576,7 @@ func handleEntryByHash(ctx *web.Context, hashStr string) {
 		ctx.Write(buf.Bytes())
 	}()
 	
-	entry, err := factomapi.GetEnytryByHashStr(hashStr)
+	entry, err := factomapi.GetEntryByHashStr(hashStr)
 	if err != nil{
 		httpcode = 400
 		buf.WriteString("Bad Request")
