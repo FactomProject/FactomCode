@@ -40,8 +40,8 @@ func TestAddChain(t *testing.T) {
 	err := SafeMarshal(buf, chain)
 	
 	fmt.Println("chain:%v", string(buf.Bytes()))
-	
-
+	  
+ 
 
 	// Unmarshal the json string locally to compare
 	jsonstr := "{\"ChainID\":\"2FrgD2+vPP3yz5zLVaE5Tc2ViVv9fwZeR3/adzITjJc=\",\"Name\":[\"bXlDb21wYW55\",\"Ym9va2tlZXBpbmc=\"],\"FirstEntry\":{\"ExtIDs\":[\"MTAwMQ==\",\"NTcwYjllM2ZiMmY1YWU4MjM2ODVlYjQ0MjJkNGZkODNmM2YwZDllN2NlMDdkOTg4YmQxN2U2NjUzOTQ2NjhjNg==\",\"bXZSSnFNVE1mclkzS3RIMkE0cWRQZnEzUTZMNEt3OUNrNA==\"],\"Data\":\"Rmlyc3QgZW50cnkgZm9yIGNoYWluOiIyRnJnRDIrdlBQM3l6NXpMVmFFNVRjMlZpVnY5ZndaZVIzL2FkeklUakpjPSJSdWxlczoiYXNsO2RqZmFzbGRrZmphc2xkZmpsa3NvdWlld29wdXJ3Ig==\"}}"
@@ -158,6 +158,66 @@ func TestGetDBlockByHash(t *testing.T) {
 		t.Errorf("Error:%v", err)
 	} else{
 		fmt.Println("Request TestGetDBlockByHash successfully submitted to factomclient.")
+	}		
+
+	contents, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Printf("after contents: %s", err)
+		os.Exit(1)
+	}
+	fmt.Printf("Http Resp Body:%s\n", string(contents)) 
+	fmt.Println("status code:%v", resp.StatusCode)
+			
+	if err != nil {
+		t.Errorf("Error:%v", err)
+	}
+	 
+} 
+
+
+func TestGetEBlockByHash(t *testing.T) {
+
+	// Send request to FactomClient web server	---------------------------------------
+	// Copy it from explorer
+	bytes, _ := hex.DecodeString("e6354e9cb2d1e14f18f61c002f02d8ab978ccf56ad716f9f8ad6ce2a807d2614")
+	
+	base64str := base64.StdEncoding.EncodeToString(bytes)
+	
+	resp, err := http.Get("http://localhost:8088/v1/eblock/"+base64str)	
+	if err != nil {
+		t.Errorf("Error:%v", err)
+	} else{
+		fmt.Println("Request TestGetEBlockByHash successfully submitted to factomclient.")
+	}		
+
+	contents, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Printf("after contents: %s", err)
+		os.Exit(1)
+	}
+	fmt.Printf("Http Resp Body:%s\n", string(contents)) 
+	fmt.Println("status code:%v", resp.StatusCode)
+			
+	if err != nil {
+		t.Errorf("Error:%v", err)
+	}
+	 
+} 
+
+
+func TestGetEntryByHash(t *testing.T) {
+
+	// Send request to FactomClient web server	---------------------------------------
+	// Copy it from explorer
+	bytes, _ := hex.DecodeString("e6354e9cb2d1e14f18f61c002f02d8ab978ccf56ad716f9f8ad6ce2a807d2614")
+	
+	base64str := base64.StdEncoding.EncodeToString(bytes)
+	
+	resp, err := http.Get("http://localhost:8088/v1/entry/"+base64str)	
+	if err != nil {
+		t.Errorf("Error:%v", err)
+	} else{
+		fmt.Println("Request TestGetEBlockByHash successfully submitted to factomclient.")
 	}		
 
 	contents, err := ioutil.ReadAll(resp.Body)

@@ -104,11 +104,37 @@ func GetDirectoryBlokByHashStr(dBlockHashBase64 string) (dBlock *notaryapi.DBloc
 	return dBlock, nil
 }
 
+func GetEnytryBlokByHashStr(eBlockHashBase64 string) (eBlock *notaryapi.EBlock, err error) {
+	bytes, err := base64.StdEncoding.DecodeString(eBlockHashBase64)
+	
+	
+	if err != nil || len(bytes) != notaryapi.HashSize{
+		return nil, err
+	}
+	eBlockHash := new (notaryapi.Hash)
+	eBlockHash.Bytes = bytes
+
+	return GetEnytryBlokByHash(eBlockHash)
+}
+
 func GetEnytryBlokByHash(eBlockHash *notaryapi.Hash) (eBlock *notaryapi.EBlock, err error) {
 
 	eBlock, err = db.FetchEBlockByHash(eBlockHash)
 	
 	return eBlock, err
+}
+
+func GetEnytryByHashStr(entryHashBase64 string) (entry *notaryapi.Entry, err error) {
+	bytes, err := base64.StdEncoding.DecodeString(entryHashBase64)
+	
+	
+	if err != nil || len(bytes) != notaryapi.HashSize{
+		return nil, err
+	}
+	entryHash := new (notaryapi.Hash)
+	entryHash.Bytes = bytes
+
+	return GetEntryByHash(entryHash)
 }
 
 func GetEntryByHash(entrySha *notaryapi.Hash) (entry *notaryapi.Entry, err error) {
