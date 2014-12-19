@@ -5,16 +5,21 @@ import (
 	"fmt"
 	"github.com/FactomProject/dynrsrc"
 	"github.com/FactomProject/gobundle"
+	"github.com/FactomProject/gocoding"		
 	"os"
 	"io/ioutil"	
+	"io"
 	"log"
 	"code.google.com/p/gcfg"
 	"github.com/FactomProject/FactomCode/database"	
-	"github.com/FactomProject/FactomCode/database/ldb"	
-	"github.com/FactomProject/FactomCode/factomapi"
+	"github.com/FactomProject/FactomCode/database/ldb"		
+	"github.com/FactomProject/FactomCode/factomapi"	
+	"github.com/FactomProject/FactomCode/notaryapi"		
 	"strings"
 	"time"	
 	"encoding/csv"
+	"net/http"
+	"net/url"	
 ) 
 
 //var portNumber = flag.Int("p", 8087, "Set the port to listen on")
@@ -24,10 +29,13 @@ var (
 	applicationName = "factom/client"
 	serverAddr = "localhost:8083"	
 	ldbpath = "/tmp/factomclient/ldb9"	
-	dataStorePath = "/tmp/store/seed/csv"
+	dataStorePath = "/tmp/factomclient/seed/csv"
 	refreshInSeconds int = 60
 	
 	db database.Db // database
+	
+	//Map to store imported csv files
+	clientDataFileMap map[string]string		
 	
 )
 
@@ -58,12 +66,13 @@ func init() {
 	loadSettings()
 	templates_init()
 	serve_init()
+	initClientDataFileMap()	
 	
 	// Import data related to new factom blocks created on server
 	ticker := time.NewTicker(time.Second * time.Duration(refreshInSeconds)) 
 	go func() {
 		for _ = range ticker.C {
-			ImportDbRecordsFromFile()
+			downloadAndImportDbRecords()
 			RefreshPendingEntries()
 		}
 	}()		
@@ -147,51 +156,104 @@ func initDB() {
 	log.Println("Database started from: " + ldbpath)
 
 }
+func downloadAndImportDbRecords() {
 
-func ImportDbRecordsFromFile() {
-
- 	fileList, err := getCSVFiles()
  	
- 	if err != nil{
- 		log.Println(err)
- 		return
- 	}
- 	 	
- 	for _, filePath := range fileList{
- 		
-		file, err := os.Open(filePath)
-		if err != nil {panic(err)}
-	    defer file.Close()
-	    
-	    reader := csv.NewReader(file) 	
-	    //csv header: key, value
-	    records, err := reader.ReadAll()	    
-	    
-	    var ldbMap = make(map[string]string)	
-		for _, record := range records {
-			ldbMap[record[0]] = record[1]
-		}	    	
-	 	db.InsertAllDBRecords(ldbMap)   
-			
-		// rename the processed file
-		os.Rename(filePath, filePath + "." + time.Now().Format(time.RFC3339))	
+	data := url.Values {}	
+	data.Set("accept", "json")	
+	data.Set("datatype", "filelist")
+	data.Set("format", "binary")
+	data.Set("password", "opensesame")	
+	
+	server := fmt.Sprintf(`http://%s/v1`, serverAddr)
+	resp, err := http.PostForm(server, data)
+	
+	if err != nil {
+		fmt.Println("Error:%v", err)
+		return
+	} 	
+
+	contents, _ := ioutil.ReadAll(resp.Body)
+	if len(contents) < 5 {
+		fmt.Println("The server file list is empty")
+		return
 	}
+	
+	serverMap := new (map[string]string)
+	reader := gocoding.ReadBytes(contents)
+	err = factomapi.SafeUnmarshal(reader, serverMap)	
+	
+	for key, value := range *serverMap {
+		_, existing := clientDataFileMap[key]
+		if !existing {
+			data := url.Values {}	
+			data.Set("accept", "json")	
+			data.Set("datatype", "file")
+			data.Set("filekey", key)
+			data.Set("format", "binary")
+			data.Set("password", "opensesame")	
+			
+			server := fmt.Sprintf(`http://%s/v1`, serverAddr)
+			resp, err := http.PostForm(server, data)
+			
+			if fileNotExists( dataStorePath) {
+				os.MkdirAll(dataStorePath, 0755)
+			}	
+			out, err := os.Create(dataStorePath + "/" + value)
+			io.Copy(out, resp.Body)	
+			out.Close()					
+			
+			// import records from the file into db
+			file, err := os.Open(dataStorePath + "/" + value)
+			if err != nil {panic(err)}
+		    
+		    reader := csv.NewReader(file) 	
+		    //csv header: key, value
+		    records, err := reader.ReadAll()	    
+		    
+		    var ldbMap = make(map[string]string)	
+			for _, record := range records {
+				ldbMap[record[0]] = record[1]
+			}	    	
+		 	db.InsertAllDBRecords(ldbMap)   
+		 	file.Close()
+		 	
+		 	// add the file to the imported list
+		 	clientDataFileMap[key] = value
+		}
+
+	}
+ 	 
 			
 }
 
-// get csv files from csv directory
-func getCSVFiles() (fileList []string, err error) {
-
+// Initialize the imported file list
+func initClientDataFileMap() error {
+	clientDataFileMap = make(map[string]string)	
+	
 	fiList, err := ioutil.ReadDir(dataStorePath)
 	if err != nil {
-		return nil, err
+		fmt.Println("Error in initServerDataFileMap:", err.Error())
+		return err
 	}
-	fileList = make ([]string, 0, 10)
 
 	for _, file := range fiList{
 		if !file.IsDir() && strings.HasSuffix(file.Name(), ".csv") {
-			fileList = append(fileList, "/tmp/store/seed/csv/" + file.Name())
+			hash := notaryapi.Sha([]byte(file.Name()))
+				
+			clientDataFileMap[hash.String()] = file.Name()
+
 		}
 	}	
-	return fileList, nil
+	return nil	
+	
+}
+
+
+func fileNotExists(name string) (bool) {
+  _, err := os.Stat(name)
+  if os.IsNotExist(err) {
+    return true
+  }
+  return err != nil
 }

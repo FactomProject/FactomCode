@@ -38,7 +38,7 @@ func serve_init() {
 	server.Get(`/v1/dblocksbyrange/([^/]+)(?:/([^/]+))?`, handleDBlocksByRange)
 	server.Get(`/v1/dblock/([^/]+)(?)`, handleDBlockByHash)	
 	server.Get(`/v1/eblock/([^/]+)(?)`, handleEBlockByHash)	
-	server.Get(`/v1/entries/([^/]+)(?)`, handleEntryByHash)	
+	server.Get(`/v1/entry/([^/]+)(?)`, handleEntryByHash)	
 	
 //	server.Get(`/entries/(?:add|\+)`, handleAddEntry)
 	server.Get(`/entries/(?:add|\+)`, handleClientEntry)	

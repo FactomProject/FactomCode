@@ -342,7 +342,7 @@ func main() {
 
 	//addrStr := "muhXX7mXoMZUBvGLCgfjuoY2n2mziYETYC"
 	//addrStr := "movaFTARmsaTMk3j71MpX8HtMURpsKhdra"
-	
+/*	
 	err := initRPCClient()
 	if err != nil {
 		log.Fatalf("cannot init rpc client: %s", err)
@@ -354,7 +354,7 @@ func main() {
 	}
 	
 	//doEntries()
-
+*/
 	
 	flag.Parse()
 	defer func() {

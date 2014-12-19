@@ -179,7 +179,7 @@ func TestGetEBlockByHash(t *testing.T) {
 
 	// Send request to FactomClient web server	---------------------------------------
 	// Copy it from explorer
-	bytes, _ := hex.DecodeString("e6354e9cb2d1e14f18f61c002f02d8ab978ccf56ad716f9f8ad6ce2a807d2614")
+	bytes, _ := hex.DecodeString("4b8f64120d3631b03701c475571da06264792ab7923e8315a588d52c6b027888")
 	
 	base64str := base64.StdEncoding.EncodeToString(bytes)
 	
@@ -209,7 +209,7 @@ func TestGetEntryByHash(t *testing.T) {
 
 	// Send request to FactomClient web server	---------------------------------------
 	// Copy it from explorer
-	bytes, _ := hex.DecodeString("e6354e9cb2d1e14f18f61c002f02d8ab978ccf56ad716f9f8ad6ce2a807d2614")
+	bytes, _ := hex.DecodeString("392a14b90ad64a340514b869795a58ec5461b0cc2d31a735e388b62d9f7a77ee")
 	
 	base64str := base64.StdEncoding.EncodeToString(bytes)
 	
@@ -217,7 +217,7 @@ func TestGetEntryByHash(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error:%v", err)
 	} else{
-		fmt.Println("Request TestGetEBlockByHash successfully submitted to factomclient.")
+		fmt.Println("Request TestGetEntryByHash successfully submitted to factomclient.")
 	}		
 
 	contents, err := ioutil.ReadAll(resp.Body)
