@@ -21,7 +21,7 @@ type FlaggedEntry struct {
 	Entry *ClientEntry
 	Submitted *Submission
 	
-}
+} 
 
 type Submission struct {
 	Host string
@@ -170,7 +170,7 @@ func RefreshPendingEntries(){
 			storeEntry(id)
 		} else if entryInfoBranch.EBInfo != nil{
 			entries[id].Submitted.Confirmed =1
-			storeEntry(id)			
+			storeEntry(id)			 
 		}
 		
 	}

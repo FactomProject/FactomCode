@@ -16,7 +16,7 @@ import (
 	"sort"
 //	"strings"
 	
- 
+  
 )
 
 var server = web.NewServer()
@@ -281,7 +281,7 @@ func handleClientEntry(ctx *web.Context) {
 		"EntryID": entry_id,		
 		
 	})
-}
+} 
 
 func handleEntry(ctx *web.Context, entry_id_str string, action string, action_id_str string) {
 

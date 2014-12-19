@@ -51,6 +51,9 @@ var  (
 //	dbBatches []*notaryapi.FBBatch
 	dbBatches *DBBatches
 	dbBatch *notaryapi.DBBatch
+	
+	//Map to store export csv files
+	serverDataFileMap map[string]string
 )
 
 var (
@@ -216,6 +219,9 @@ func initDB() {
 }
 
 func init() { 
+	
+
+	
 	loadConfigurations()
 	gobundle.Setup.Application.Name = applicationName
 	gobundle.Init()
@@ -257,6 +263,10 @@ func init() {
 		DBlocks: make([]*notaryapi.DBlock, 0, 10),
 	}
 	dbBatches.batches = append(dbBatches.batches, dbBatch)
+	
+	// init the export file list for client distribution
+	initServerDataFileMap()
+		
 
 	// create EBlocks and FBlock every 60 seconds
 	tickers[0] = time.NewTicker(time.Second * time.Duration(directoryBlockInSeconds)) 
@@ -353,11 +363,18 @@ func main() {
 		dynrsrc.Stop()
 		db.Close()
 	}()
+/*	
+	err :=http.ListenAndServe(":8081", http.FileServer(http.Dir("/tmp/store/seed/csv")))
+	if err != nil {
+		panic(err)
+	}
+*/		
 	http.HandleFunc("/", serveRESTfulHTTP)
 	err1 := http.ListenAndServe(":"+strconv.Itoa(portNumber), nil)
 	if err1 != nil {
 		panic(err1)
 	}
+	
 
 }
 
@@ -417,7 +434,7 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 	var buf bytes.Buffer
 
 	path, method, accept, form, err := parse(r)
-
+/*
 	defer func() {
 		switch accept {
 		case "text":
@@ -452,10 +469,10 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte("\n\n"))
 		}
 	}()
-
+*/
 	switch method {
 	case "GET":
-		//resource, err = find(path)
+		//resource, err = getServerDataFileMap()
 
 	case "POST":
 		if len(path) != 1 {
@@ -467,6 +484,13 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 		switch datatype {
 			case "chain":
 				resource, err = postChain("/"+strings.Join(path, "/"), form)
+			case "filelist":
+				resource, err = getServerDataFileMapJSON()			
+			case "file":
+				fileKey := form.Get("filekey")
+				filename := serverDataFileMap[fileKey]
+				http.ServeFile(w, r, dataStorePath + "csv/"+filename)
+				return							
 			default:
 				resource, err = postEntry("/"+strings.Join(path, "/"), form)
 		}
@@ -490,6 +514,35 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = notaryapi.Marshal(resource, accept, &buf, alt)
+	
+	switch accept {
+	case "text":
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	case "json":
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	case "xml":
+		w.Header().Set("Content-Type", "application/xml; charset=utf-8")
+	case "html":
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	}
+
+	if err != nil {
+		var r *notaryapi.Error
+
+		buf.Reset()
+		r = notaryapi.Marshal(err, accept, &buf, false)
+		if r != nil {
+			err = r
+		}
+		w.WriteHeader(err.HTTPCode)
+	}
+	//buf.WriteTo(w)
+	if resource != nil {
+		//Send back entry hash
+		w.Write(resource.([]byte)) 
+	}else{
+		w.Write([]byte("\n\n"))
+	}	
 }
 
 
@@ -881,7 +934,9 @@ func ExportDbToFile(dbHash *notaryapi.Hash) {
 	}
 	
 	//write the records to a csv file: 
-	file, err := os.Create(dataStorePath+"csv/" + dbHash.String() + ".csv")
+	filename := time.Now().Format(time.RFC3339) + "." + dbHash.String() + ".csv"
+	file, err := os.Create(dataStorePath+"csv/" + filename)
+	
 	if err != nil {panic(err)}
     defer file.Close()
     writer := csv.NewWriter(file)
@@ -898,6 +953,10 @@ func ExportDbToFile(dbHash *notaryapi.Hash) {
 	    writer.Write([]string {key, value})
     }
 	writer.Flush()	    
+	
+	// Add the file to the distribution list
+	hash := notaryapi.Sha([]byte(filename))
+	serverDataFileMap[hash.String()] = filename	
 }
 
 func ExportDataFromDbToFile() {
@@ -907,7 +966,8 @@ func ExportDataFromDbToFile() {
 	}
 	
 	//write the records to a csv file: 
-	file, err := os.Create(dataStorePath+"csv/"  + "supportdata.csv")
+	filename := time.Now().Format(time.RFC3339) + ".supportdata.csv"
+	file, err := os.Create(dataStorePath+"csv/"  + filename)
 	if err != nil {panic(err)}
     defer file.Close()
     writer := csv.NewWriter(file)
@@ -924,6 +984,11 @@ func ExportDataFromDbToFile() {
 	    writer.Write([]string {key, value})
     }
 	writer.Flush()	    
+	
+	// Add the file to the distribution list
+	hash := notaryapi.Sha([]byte(filename))
+	serverDataFileMap[hash.String()] = filename
+	
 }
 
 func initChains() {
@@ -1032,4 +1097,38 @@ func printCChain(){
 		}
 	}
 
+}
+
+// Initialize the export file list
+func initServerDataFileMap() error {
+	serverDataFileMap = make(map[string]string)	
+	
+	fiList, err := ioutil.ReadDir(dataStorePath +"csv")
+	if err != nil {
+		fmt.Println("Error in initServerDataFileMap:", err.Error())
+		return err
+	}
+
+	for _, file := range fiList{
+		if !file.IsDir() && strings.HasSuffix(file.Name(), ".csv") {
+			hash := notaryapi.Sha([]byte(file.Name()))
+				
+			serverDataFileMap[hash.String()] = file.Name()
+
+		}
+	}	
+	return nil	
+	
+}
+
+
+func getServerDataFileMapJSON() (interface{}, *notaryapi.Error) {
+	buf := new(bytes.Buffer)
+	err := factomapi.SafeMarshal(buf, serverDataFileMap)
+
+	var e *notaryapi.Error
+	if err!=nil{	
+		e = notaryapi.CreateError(notaryapi.ErrorBadPOSTData, err.Error())
+	}
+	return buf.Bytes(), e
 }

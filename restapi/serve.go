@@ -117,6 +117,8 @@ func findV1(context string, path []string) (interface{}, *notaryapi.Error) {
 	return findV1InBlocks(context + "/" + root, path, blocks)
 }
 */
+
+
 func findV1InBlocks(context string, path []string, blocks []*notaryapi.EBlock) (interface{}, *notaryapi.Error) {
 	if len(path) == 0 {
 		return blocks, nil

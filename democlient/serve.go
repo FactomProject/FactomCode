@@ -471,7 +471,15 @@ func handleChainPost(ctx *web.Context) {
 		fmt.Println("bName[0]%v", string(bName[0]))
 		chain := new(notaryapi.EChain)
 		chain.Name = bName	
-		chain.GenerateIDFromName()			
+		chain.GenerateIDFromName()	
+/*		
+		//to be improved??
+		chain.FirstEntry = new (notaryapi.Entry)		
+		
+		chain.FirstEntry.ExtIDs = make ([][]byte, 0, 5)
+		chain.FirstEntry.ExtIDs = append(chain.FirstEntry.ExtIDs, []byte("1001"))	
+		chain.FirstEntry.Data = []byte("First entry for chain:\"2FrgD2+vPP3yz5zLVaE5Tc2ViVv9fwZeR3/adzITjJc=\"Rules:\"asl;djfasldkfjasldfjlksouiewopurw\"")
+*/		
 		
 		/*	
 		server := fmt.Sprintf(`http://%s/v1`, Settings.Server)

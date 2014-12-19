@@ -46,7 +46,5 @@ func (db *LevelDb) Print() {
 
 		fmt.Printf("%x(%d): ", key, len(key))
 		fmt.Println("%x(%d) ", value, len(value))		
-		//node := ethutil.NewValueFromBytes(value)
-		//fmt.Printf("%v\n", node)
 	}
 }
