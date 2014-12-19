@@ -37,6 +37,8 @@ func serve_init() {
 	
 	server.Get(`/v1/dblocksbyrange/([^/]+)(?:/([^/]+))?`, handleDBlocksByRange)
 	server.Get(`/v1/dblock/([^/]+)(?)`, handleDBlockByHash)	
+	server.Get(`/v1/eblock/([^/]+)(?)`, handleEBlockByHash)	
+	server.Get(`/v1/entries/([^/]+)(?)`, handleEntryByHash)	
 	
 //	server.Get(`/entries/(?:add|\+)`, handleAddEntry)
 	server.Get(`/entries/(?:add|\+)`, handleClientEntry)	
@@ -226,7 +228,7 @@ func handleKeysPost(ctx *web.Context) {
 		ctx.WriteHeader(303)
 	}
 }
-
+ 
 func handleChainPost(ctx *web.Context) {
 	var abortMessage, abortReturn string
 	defer func() {
@@ -533,11 +535,63 @@ func handleDBlockByHash(ctx *web.Context, hashStr string) {
 	err = factomapi.SafeMarshal(buf, dBlock)
 	if err != nil{
 		httpcode = 400
-		buf.WriteString("Bad request")
+		buf.WriteString("Bad request ")
 		return		
 	}	
 	
 }
+
+func handleEBlockByHash(ctx *web.Context, hashStr string) {
+	var httpcode int = 200
+	buf := new(bytes.Buffer)
+
+	defer func() {
+		ctx.WriteHeader(httpcode)
+		ctx.Write(buf.Bytes())
+	}()
+	
+	eBlock, err := factomapi.GetEntryBlokByHashStr(hashStr)
+	if err != nil{
+		httpcode = 400
+		buf.WriteString("Bad Request")
+		return
+	}
+
+	// Send back JSON response
+	err = factomapi.SafeMarshal(buf, eBlock)
+	if err != nil{
+		httpcode = 400
+		buf.WriteString("Bad request")
+		return		
+	}	
+	
+} 
+
+func handleEntryByHash(ctx *web.Context, hashStr string) {
+	var httpcode int = 200
+	buf := new(bytes.Buffer)
+
+	defer func() {
+		ctx.WriteHeader(httpcode)
+		ctx.Write(buf.Bytes())
+	}()
+	
+	entry, err := factomapi.GetEntryByHashStr(hashStr)
+	if err != nil{
+		httpcode = 400
+		buf.WriteString("Bad Request")
+		return
+	}
+
+	// Send back JSON response
+	err = factomapi.SafeMarshal(buf, entry)
+	if err != nil{
+		httpcode = 400
+		buf.WriteString("Bad request")
+		return		
+	}		
+}
+
 
 
 func handleKey(ctx *web.Context, key_id_str string, action string) {
