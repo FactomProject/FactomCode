@@ -7,7 +7,6 @@ import (
 	"net/url"
 	"fmt"
 	"encoding/hex"	
-//	"encoding/json"	
 	"github.com/FactomProject/gocoding"	
 	"github.com/FactomProject/FactomCode/notaryapi"	
 	"encoding/base64"
@@ -117,6 +116,25 @@ func TestAddEntry(t *testing.T) {
 	}
 } 
 
+func TestBuyCredit(t *testing.T) {
+
+	// Post the request to FactomClient web server	---------------------------------------
+	data := url.Values{}
+	barray := (make([]byte, 32))
+	barray[0] = 2
+	pubKey := new (notaryapi.Hash)
+	pubKey.SetBytes(barray)		
+	data.Set("to", base64.StdEncoding.EncodeToString(pubKey.Bytes))
+	data.Set("value", "1.123456789")
+	data.Set("password", "opensesame")
+	
+	_, err := http.PostForm("http://localhost:8088/v1/buycredit", data)	
+	if err != nil {
+		t.Errorf("Error:%v", err)
+	} else{
+		fmt.Println("Buy credit request successfully submitted to factomclient.")
+	}		
+} 
 
 func TestGetDBlocksByRange(t *testing.T) {
 

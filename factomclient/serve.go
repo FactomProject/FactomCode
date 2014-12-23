@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"sort"
 //	"strings"
+	"encoding/base64"
 	
   
 )
@@ -34,6 +35,7 @@ func serve_init() {
 	
 	server.Post(`/v1/submitentry/?`, handleEntryPost)
 	server.Post(`/v1/addchain/?`, handleChainPost)	
+	server.Post(`/v1/buycredit/?`, handleBuyCreditPost)		
 	
 	server.Get(`/v1/dblocksbyrange/([^/]+)(?:/([^/]+))?`, handleDBlocksByRange)
 	server.Get(`/v1/dblock/([^/]+)(?)`, handleDBlockByHash)	
@@ -187,6 +189,31 @@ func handleEntryPost(ctx *web.Context) {
 		
 	if err != nil {
 		abortMessage = fmt.Sprint("An error occured while submitting the entry (entry may have been accepted by the server but was not locally flagged as such): ", err.Error())
+		return
+	}
+		
+}
+func handleBuyCreditPost(ctx *web.Context) {
+	var abortMessage, abortReturn string
+	
+	defer func() {
+		if abortMessage != "" && abortReturn != "" {
+			ctx.Header().Add("Location", fmt.Sprint("/failed?message=", abortMessage, "&return=", abortReturn))
+			ctx.WriteHeader(303)
+		} 
+	}()
+
+	
+	ecPubKey := new (notaryapi.Hash)
+	ecPubKey.Bytes, _ = base64.StdEncoding.DecodeString(ctx.Params["to"])
+	
+	factoid, _ := strconv.ParseFloat(ctx.Params["value"], 10)
+	value := uint64(factoid*1000000000)
+	err := factomapi.BuyEntryCredit(1, ecPubKey, nil, value, 0, nil)
+
+		
+	if err != nil {
+		abortMessage = fmt.Sprint("An error occured while submitting the buycredit request: ", err.Error())
 		return
 	}
 		

@@ -45,6 +45,7 @@ var  (
 	
 	creditsPerChain int32 = -5
 	creditsPerEntry int32 = -1
+	creditsPerFactoid uint64 = 1000
 	eCreditMap map[string]int32 // eCreditMap with public key string([32]byte) as key, credit balance as value
 	prePaidEntryMap map[string]int64 // Paid but unrevealed entries string(Pubkey + Etnry Hash + Nonce) as key, timestamp as value		
 	
@@ -342,7 +343,7 @@ func main() {
 
 	//addrStr := "muhXX7mXoMZUBvGLCgfjuoY2n2mziYETYC"
 	//addrStr := "movaFTARmsaTMk3j71MpX8HtMURpsKhdra"
-/*	
+	
 	err := initRPCClient()
 	if err != nil {
 		log.Fatalf("cannot init rpc client: %s", err)
@@ -354,7 +355,7 @@ func main() {
 	}
 	
 	//doEntries()
-*/
+
 	
 	flag.Parse()
 	defer func() {
@@ -484,6 +485,18 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 		switch datatype {
 			case "chain":
 				resource, err = postChain("/"+strings.Join(path, "/"), form)
+			case "buycredit":
+				pubKey, err := notaryapi.HexToHash(form.Get("ECPubKey")) 
+				if err!=nil{
+					fmt.Println("Error in parsing pubKey:", err.Error())
+				}
+				value, err := strconv.ParseUint(form.Get("factoidbase"), 10, 64)
+				if err!=nil{
+					fmt.Println("Error in parsing value:", err.Error())
+				}	
+				credits := value * creditsPerFactoid / 1000000000
+				resource, err = processBuyEntryCredit(pubKey, int32(credits), pubKey)		
+				printCreditMap()
 			case "filelist":
 				resource, err = getServerDataFileMapJSON()			
 			case "file":

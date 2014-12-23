@@ -9,7 +9,8 @@ import (
 	"sort"
 	"github.com/FactomProject/FactomCode/database"	
 	"github.com/FactomProject/FactomCode/notaryapi"		
-	//"github.com/FactomProject/FactomCode/database/ldb"			
+	//"github.com/FactomProject/FactomCode/database/ldb"	
+	"strconv"		
 
 )
 //to be improved:
@@ -54,10 +55,27 @@ func RevealEntry(version uint16, e *notaryapi.Entry) error {
 
 	data := url.Values{}
 	data.Set("format", "binary")
-	data.Set("entry", hex.EncodeToString(bEntry))
+	data.Set("entry", hex.EncodeToString(bEntry)) 
 	
 	
 	fmt.Println("Entry extid[0]:%s", string(e.ExtIDs[0]))
+		
+	server := fmt.Sprintf(`http://%s/v1`, serverAddr)
+	_, err := http.PostForm(server, data)
+
+	return err
+}
+
+
+// This method will be replaced with a Factoid transaction once we have the factoid implementation in place
+func BuyEntryCredit(version uint16, ecPubKey *notaryapi.Hash, from *notaryapi.Hash, value uint64, fee uint64, sig *notaryapi.Signature) error {
+
+
+	data := url.Values{}
+	data.Set("format", "binary")
+	data.Set("datatype", "buycredit")
+	data.Set("ECPubKey", ecPubKey.String())
+	data.Set("factoidbase", strconv.FormatUint(value, 10))
 		
 	server := fmt.Sprintf(`http://%s/v1`, serverAddr)
 	_, err := http.PostForm(server, data)
