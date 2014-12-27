@@ -98,6 +98,14 @@ func TestVerify(t *testing.T) {
 		t.Fatalf("sig22.Verify retuned true")
 	}
 
+	if ( !priv1.Pub.Verify([]byte(msg1), sig11.Sig) ) {
+		t.Fatalf("Pub.Verify retuned false")
+	}
+
+	if ( !Verify(priv1.Pub.Key, []byte(msg1), sig11.Sig) ) {
+		t.Fatalf("Verify retuned false")
+	}
+
 }
 
 

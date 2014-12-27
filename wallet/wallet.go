@@ -5,13 +5,6 @@ import (
 	"crypto/rand"
 )
 
-//public / private key pair interface
-/*
-type ED25519_Key struct  {
-	Pub  *[ed25519.PublicKeySize]byte
-	Priv *[ed25519.PrivateKeySize]byte
-}
-*/
 
 // Verifyer objects can Verify signed messages  
 type Verifyer interface {
@@ -58,4 +51,11 @@ func (pk *PrivateKey) GenerateKey() (err error) {
 	return err
 }
 
+func (k PublicKey) Verify(msg []byte, sig *[ed25519.SignatureSize]byte) bool {
+	return ed25519.Verify(k.Key, msg, sig)
+}
 
+// Verify returns true iff sig is a valid signature of message by publicKey.
+func Verify(publicKey *[ed25519.PublicKeySize]byte, message []byte, sig *[ed25519.SignatureSize]byte) bool {
+	return ed25519.Verify(publicKey, message, sig)
+}
