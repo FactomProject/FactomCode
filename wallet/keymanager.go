@@ -26,7 +26,8 @@ func (km *KeyManager) LoadOrGenerateKeys() (err error) {
 
 	if ( err == nil ) {
 		//try loading keys from file
-		if ( km.LoadKeys(file) ) { return }
+		err = km.LoadKeys(file)
+		if ( err == nil ) { return } //we are good **
 
 		//failed to load keys, yet file exists, reopen in append mode
 		file.Close()
@@ -60,20 +61,23 @@ func (km *KeyManager) LoadOrGenerateKeys() (err error) {
 
 	file.Close()
 
-	return  //error
+	return  //err
 }
 
-func (km *KeyManager) LoadKeys(file *os.File) bool {
+func (km *KeyManager) LoadKeys(file *os.File) (err error) {
 	//load file
 	km.keyPair = new(PrivateKey)
 	km.keyPair.AllocateNew()
 
-	n, err := file.Read((*km.keyPair.Key)[:])
+	n, err := file.Read(km.keyPair.Key[:])
 	if ( err == nil ) {
 		if ( n != 64) {
 			err = errors.New(" n != ed25519.PrivateKeySize ")
 		}
 	}
+
+	if ( err != nil ) {return}
+
 	n, err = file.Read(km.keyPair.Pub.Key[:])
 	if ( err == nil ) {
 		if ( n != 32) {
@@ -81,7 +85,7 @@ func (km *KeyManager) LoadKeys(file *os.File) bool {
 		}
 	}
 
-	return err == nil
+	return
 }
 
 func (km *KeyManager) WriteKeys(file *os.File) (err error) {
