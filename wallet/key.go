@@ -22,6 +22,11 @@ type PrivateKey struct {
 	Pub PublicKey
 }
 
+func (pk *PrivateKey) AllocateNew() {
+	pk.Key = new([64]byte)
+	pk.Pub.Key = new([32]byte)
+}
+
 // PublicKey contains only Public part of Public/Private key pair   
 type PublicKey struct {
 	Key  *[ed25519.PublicKeySize]byte	
@@ -34,7 +39,7 @@ type Signature struct {
 }
 
 // Sign signs msg with PrivateKey and return Signature
-func (pk PrivateKey) Sign(msg []byte) (sig Signature) {
+func (pk PrivateKey) Sign(msg []byte) (sig Signature) {	
 	sig.Pub = pk.Pub
 	sig.Sig = ed25519.Sign(pk.Key, msg)
 	return

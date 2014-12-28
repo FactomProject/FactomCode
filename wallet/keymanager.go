@@ -2,6 +2,7 @@ package wallet
 
 import (
 	"os"
+	"errors"
 )
 
 type KeyManager struct {
@@ -11,7 +12,7 @@ type KeyManager struct {
 }
 
 
-func (km *KeyManager) NewKeyManager(path string, file string ) (err error) {
+func (km *KeyManager) InitKeyManager(path string, file string ) (err error) {
 	km.storePath = path
 	km.storeFile = file
 
@@ -22,6 +23,7 @@ func (km *KeyManager) NewKeyManager(path string, file string ) (err error) {
 
 func (km *KeyManager) LoadOrGenerateKeys() (err error) {
 	file, err := os.Open(km.FilePath())
+
 	if ( err == nil ) {
 		//try loading keys from file
 		if ( km.LoadKeys(file) ) { return }
@@ -31,7 +33,7 @@ func (km *KeyManager) LoadOrGenerateKeys() (err error) {
 		file, err = os.OpenFile(km.FilePath(),os.O_APPEND,os.FileMode(0666))
 		if ( err != nil) { return }
 
-	} else {
+	} else { // err != nil - probably file not exist
 
 		if ( !os.IsNotExist(err) ) { return }   //panic?
 
@@ -51,24 +53,53 @@ func (km *KeyManager) LoadOrGenerateKeys() (err error) {
 	}
 
 	err = km.GenerateNewKey()
-	if ( err != nil ) {return}
+	if ( err == nil ) {
+		//file is now open for writing, and new keys generated
+		err = km.WriteKeys(file) // write keys
+	}
 
-	//file is now open for writing, and new keys generated
-
-	err = km.WriteKeys(file) // write keys
 	file.Close()
-	return  //err
 
+	return  //error
 }
 
 func (km *KeyManager) LoadKeys(file *os.File) bool {
 	//load file
-	return false;
+	km.keyPair = new(PrivateKey)
+	km.keyPair.AllocateNew()
+
+	n, err := file.Read((*km.keyPair.Key)[:])
+	if ( err == nil ) {
+		if ( n != 64) {
+			err = errors.New(" n != ed25519.PrivateKeySize ")
+		}
+	}
+	n, err = file.Read(km.keyPair.Pub.Key[:])
+	if ( err == nil ) {
+		if ( n != 32) {
+			err = errors.New(" n != ed25519.PublicSize ")
+		}
+	}
+
+	return err == nil
 }
 
 func (km *KeyManager) WriteKeys(file *os.File) (err error) {
 	//write file
-	return nil;
+	n, err := file.Write(km.keyPair.Key[:])
+	if ( err == nil ) {
+		if ( n != 64) {
+			err = errors.New(" n != ed25519.PrivateKeySize ")
+		}
+	}
+	n, err = file.Write(km.keyPair.Pub.Key[:])
+	if ( err == nil ) {
+		if ( n != 32) {
+			err = errors.New(" n != ed25519.PublicSize ")
+		}
+	}
+
+	return 
 }
 
 func (km *KeyManager) GenerateNewKey() (err error) {

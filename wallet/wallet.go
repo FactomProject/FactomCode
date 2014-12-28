@@ -12,7 +12,7 @@ var (
 	walletStorePath = "c:/tmp/wallet"
 
 	//defaultPrivKey PrivateKey
-	keymanager KeyManager
+	keyManager KeyManager
 )
 
 
@@ -22,7 +22,7 @@ func init() {
 }
 
 func loadKeys() {
-	err := keymanager.NewKeyManager(walletStorePath,walletFile)
+	err := keyManager.InitKeyManager(walletStorePath,walletFile)
 	if ( err != nil) {
 		panic(err)
 	}
