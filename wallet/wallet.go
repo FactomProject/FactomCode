@@ -9,7 +9,7 @@ import (
 
 var (
 	walletFile = "wallet.dat"
-	walletStorePath = "c:/tmp/wallet"
+	walletStorePath = "/tmp/wallet"
 
 	//defaultPrivKey PrivateKey
 	keyManager KeyManager
@@ -57,3 +57,18 @@ func loadConfigurations(){
 	}
 	
 }
+
+/*
+func SignData1(data []byte) (signed []byte, pubkey []byte) {
+	sig := keyManager.keyPair.Sign(data)
+
+	signed = (*sig.Sig)[:]
+	pubkey = (*sig.Pub.Key)[:]
+	return 
+}
+*/
+
+func SignData(data []byte) Signature {
+	return keyManager.keyPair.Sign(data)
+}
+

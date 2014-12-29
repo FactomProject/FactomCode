@@ -59,3 +59,14 @@ func TestKeyManager(t *testing.T) {
 	}
 
 }
+
+
+func TestSignData(t *testing.T) {
+
+	msg := "Test Message Sign"
+
+	if sig := SignData([]byte(msg)); !sig.Verify([]byte(msg)) {
+		t.Fatalf("TestSignData sig.Verify retuned false")
+
+	}
+}
