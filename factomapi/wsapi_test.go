@@ -16,7 +16,7 @@ import (
 )
 
 func TestAddChain(t *testing.T) {
-
+	fmt.Println("\nTestAddChain===========================================================================")
 	chain := new (notaryapi.EChain)
 	bName := make ([][]byte, 0, 5)
 	bName = append(bName, []byte("myCompany"))	
@@ -73,7 +73,7 @@ func TestAddChain(t *testing.T) {
 } 
 
 func TestAddEntry(t *testing.T) {
-
+	fmt.Println("\nTestAddEntry===========================================================================")
 	entry := new (notaryapi.Entry)
 	entry.ExtIDs = make ([][]byte, 0, 5)
 	entry.ExtIDs = append(entry.ExtIDs, []byte("1001"))	
@@ -117,7 +117,7 @@ func TestAddEntry(t *testing.T) {
 } 
 
 func TestBuyCredit(t *testing.T) {
-
+	fmt.Println("\nTestBuyCredit===========================================================================")
 	// Post the request to FactomClient web server	---------------------------------------
 	data := url.Values{}
 	barray := (make([]byte, 32))
@@ -136,8 +136,32 @@ func TestBuyCredit(t *testing.T) {
 	}		
 } 
 
-func TestGetDBlocksByRange(t *testing.T) {
 
+func TestGetCreditBalance(t *testing.T) {
+	fmt.Println("\nTestGetCreditBalance===========================================================================")
+	// Post the request to FactomClient web server	---------------------------------------
+	data := url.Values{}
+	barray := (make([]byte, 32))
+	barray[0] = 2
+	pubKey := new (notaryapi.Hash)
+	pubKey.SetBytes(barray)		
+	data.Set("pubkey", base64.StdEncoding.EncodeToString(pubKey.Bytes))
+	data.Set("password", "opensesame")
+	
+	resp, err := http.PostForm("http://localhost:8088/v1/creditbalance", data)	
+	contents, err := ioutil.ReadAll(resp.Body)	
+	
+	fmt.Printf("Http Resp Body:%s\n", string(contents)) 
+	fmt.Println("status code:%v", resp.StatusCode)	
+	if err != nil {
+		t.Errorf("Error:%v", err)
+	} else{
+		fmt.Println("Get Credit Balance request successfully submitted to factomclient.")
+	}		
+} 
+
+func TestGetDBlocksByRange(t *testing.T) {
+	fmt.Println("\nTestGetDBlocksByRange===========================================================================")
 
 	// Send request to FactomClient web server	--------------------------------------	
 	resp, err := http.Get("http://localhost:8088/v1/dblocksbyrange/0/1")	
@@ -163,7 +187,7 @@ func TestGetDBlocksByRange(t *testing.T) {
 
 
 func TestGetDBlockByHash(t *testing.T) {
-
+	fmt.Println("\nTestGetDBlockByHash===========================================================================")
 
 	// Send request to FactomClient web server	---------------------------------------
 	// Copy it from explorer
@@ -194,7 +218,7 @@ func TestGetDBlockByHash(t *testing.T) {
 
 
 func TestGetEBlockByHash(t *testing.T) {
-
+	fmt.Println("\nTestGetEBlockByHash===========================================================================")
 	// Send request to FactomClient web server	---------------------------------------
 	// Copy it from explorer
 	bytes, _ := hex.DecodeString("4b8f64120d3631b03701c475571da06264792ab7923e8315a588d52c6b027888")
@@ -224,7 +248,7 @@ func TestGetEBlockByHash(t *testing.T) {
 
 
 func TestGetEntryByHash(t *testing.T) {
-
+	fmt.Println("\nTestGetEntryByHash===========================================================================")
 	// Send request to FactomClient web server	---------------------------------------
 	// Copy it from explorer
 	bytes, _ := hex.DecodeString("392a14b90ad64a340514b869795a58ec5461b0cc2d31a735e388b62d9f7a77ee")

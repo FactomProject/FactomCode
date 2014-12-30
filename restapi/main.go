@@ -496,7 +496,13 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 				}	
 				credits := value * creditsPerFactoid / 1000000000
 				resource, err = processBuyEntryCredit(pubKey, int32(credits), pubKey)		
-				printCreditMap()
+				printCreditMap()				
+			case "getbalance":
+				pubKey, err := notaryapi.HexToHash(form.Get("ECPubKey")) 
+				if err!=nil{
+					fmt.Println("Error in parsing pubKey:", err.Error())
+				}
+				resource, err = getEntryCreditBalance(pubKey)			
 			case "filelist":
 				resource, err = getServerDataFileMapJSON()			
 			case "file":
@@ -720,6 +726,12 @@ func processRevealChain(newChain *notaryapi.EChain, pubKey *notaryapi.Hash) ([]b
 	ExportDataFromDbToFile()
 	
 	return newChain.ChainID.Bytes, nil	
+}
+
+func getEntryCreditBalance(pubKey *notaryapi.Hash) ([]byte, error) {
+	var buf bytes.Buffer
+	binary.Write(&buf, binary.BigEndian, eCreditMap[pubKey.String()])		 
+	return buf.Bytes(), nil
 }
 func postChain(context string, form url.Values) (interface{}, *notaryapi.Error) {
 	newChain := new(notaryapi.EChain)

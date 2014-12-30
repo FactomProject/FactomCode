@@ -11,6 +11,9 @@ import (
 	"github.com/FactomProject/FactomCode/notaryapi"		
 	//"github.com/FactomProject/FactomCode/database/ldb"	
 	"strconv"		
+	"io/ioutil"	
+	"bytes"
+	"encoding/binary"	
 
 )
 //to be improved:
@@ -83,11 +86,28 @@ func BuyEntryCredit(version uint16, ecPubKey *notaryapi.Hash, from *notaryapi.Ha
 	return err
 }
 
+func GetEntryCreditBalance(ecPubKey *notaryapi.Hash) (credits int32, err error) {
+	data := url.Values{}
+	data.Set("format", "binary")
+	data.Set("datatype", "getbalance")
+	data.Set("ECPubKey", ecPubKey.String())
+		
+	server := fmt.Sprintf(`http://%s/v1`, serverAddr)
+	resp, err := http.PostForm(server, data)
+
+	contents, err := ioutil.ReadAll(resp.Body)
+	
+	buf := bytes.NewBuffer(contents)
+	binary.Read(buf, binary.BigEndian, &credits)		
+		
+	return credits, err
+}
+
 func GetDirectoryBloks(fromBlockHeight uint64, toBlockHeight uint64) (dBlocks []notaryapi.DBlock, err error) {
 	//needs to be improved ??
 	dBlocks, _ = db.FetchAllDBlocks()
 	sort.Sort(byBlockID(dBlocks))
-	
+	 
 	if fromBlockHeight > uint64(len(dBlocks)-1) {
 		return nil, nil
 	} else if toBlockHeight > uint64(len(dBlocks)-1) {

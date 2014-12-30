@@ -353,6 +353,12 @@ type PayChainCBEntry struct {
 	EntryChainIDHash *Hash //Hash(EntryHash+ChainIDHash)
 }
 
+type ECBalance struct {
+
+	PublicKey *Hash 
+	Credits int32
+}
+
 func NewPayEntryCBEntry(pubKey *Hash, entryHash *Hash, credits int32, nonce uint32) *PayEntryCBEntry {
 	e := &PayEntryCBEntry{}
 	e.publicKey = pubKey

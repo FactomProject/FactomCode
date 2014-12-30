@@ -4,7 +4,7 @@ import (
 	"github.com/agl/ed25519"
 	"crypto/rand"
 )
-
+ 
 
 // Verifyer objects can Verify signed messages  
 type Verifyer interface {
