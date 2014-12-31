@@ -47,7 +47,7 @@ var  (
 	creditsPerEntry int32 = -1
 	creditsPerFactoid uint64 = 1000
 	eCreditMap map[string]int32 // eCreditMap with public key string([32]byte) as key, credit balance as value
-	prePaidEntryMap map[string]int64 // Paid but unrevealed entries string(Pubkey + Etnry Hash + Nonce) as key, timestamp as value		
+	prePaidEntryMap map[string]int32 // Paid but unrevealed entries string(Etnry Hash) as key, Number of payments as value		
 	
 //	dbBatches []*notaryapi.FBBatch
 	dbBatches *DBBatches
@@ -593,11 +593,11 @@ func postEntry(context string, form url.Values) (interface{}, *notaryapi.Error) 
 		return nil, notaryapi.CreateError(notaryapi.ErrorUnsupportedUnmarshal, fmt.Sprintf(`The format "%s" is not supported`, format))
 	}
 
-	return processRevealEntry(newEntry, nil, 0) //Plase fill in the right parameters??
+	return processRevealEntry(newEntry)
 }
 
 
-func processRevealEntry(newEntry *notaryapi.Entry, pubKey *notaryapi.Hash, nonce uint32) ([]byte, *notaryapi.Error) {
+func processRevealEntry(newEntry *notaryapi.Entry) ([]byte, *notaryapi.Error) {
 
 	if newEntry == nil {
 		return nil, notaryapi.CreateError(notaryapi.ErrorInternal, `Entity to be POSTed is nil`)
@@ -615,12 +615,16 @@ func processRevealEntry(newEntry *notaryapi.Entry, pubKey *notaryapi.Hash, nonce
 	db.InsertEntryAndQueue( entryHash, &entryBinary, newEntry, &chain.ChainID.Bytes)
 
 	// Precalculate the key for prePaidEntryMap
-	key := getPrePaidEntryKey(entryHash, pubKey, nonce)
+	key := entryHash.String()
 	chain.BlockMutex.Lock()
 	// Delete the entry in the prePaidEntryMap in memory
-	_, ok := prePaidEntryMap[key]
+	payments, ok := prePaidEntryMap[key]
 	if ok {
-		delete (prePaidEntryMap, key)	
+		if payments > 1 {
+			prePaidEntryMap[key] = payments - 1
+		} else {
+			delete (prePaidEntryMap, key)	
+		}
 	} else{
 		return nil, notaryapi.CreateError(notaryapi.ErrorInternal, `Credit needs to paid first before reveal an entry:` + entryHash.String())
 	}	
@@ -634,15 +638,10 @@ func processRevealEntry(newEntry *notaryapi.Entry, pubKey *notaryapi.Hash, nonce
 	return entryHash.Bytes, nil
 }
 
-func processCommitEntry(entryHash *notaryapi.Hash, pubKey *notaryapi.Hash, nonce uint32) ([]byte, error) {
-	
-	// Precalculate the key and value pair for prePaidEntryMap
-	key := getPrePaidEntryKey(entryHash, pubKey, nonce)
-	value := time.Now().Unix()
+func processCommitEntry(entryHash *notaryapi.Hash, pubKey *notaryapi.Hash, 	timeStamp int64) ([]byte, error) {
 	
 	// Create PayEntryCBEntry
-	cbEntry := notaryapi.NewPayEntryCBEntry(pubKey, entryHash, creditsPerEntry, nonce)
-	
+	cbEntry := notaryapi.NewPayEntryCBEntry(pubKey, entryHash, creditsPerEntry, timeStamp)
 	
 	cchain.BlockMutex.Lock()
 	// Update the credit balance in memory
@@ -653,7 +652,8 @@ func processCommitEntry(entryHash *notaryapi.Hash, pubKey *notaryapi.Hash, nonce
 	eCreditMap[pubKey.String()] = credits + creditsPerEntry
 	err := cchain.Blocks[len(cchain.Blocks)-1].AddCBEntry(cbEntry)
 	// Update the prePaidEntryMapin memory
-	prePaidEntryMap[key] = value		
+	payments, _ := prePaidEntryMap[entryHash.String()]	
+	prePaidEntryMap[entryHash.String()]	= payments + 1
 	cchain.BlockMutex.Unlock()	 
 
 	return entryHash.Bytes, err
@@ -662,8 +662,7 @@ func processCommitEntry(entryHash *notaryapi.Hash, pubKey *notaryapi.Hash, nonce
 func processCommitChain(entryHash *notaryapi.Hash, chainIDHash *notaryapi.Hash, entryChainIDHash *notaryapi.Hash, pubKey *notaryapi.Hash) ([]byte, error) {
 	
 	// Precalculate the key and value pair for prePaidEntryMap
-	key := getPrePaidChainKey(entryHash, chainIDHash, pubKey)
-	value := time.Now().Unix()
+	key := getPrePaidChainKey(entryHash, chainIDHash)
 		
 	// Create PayChainCBEntry
 	cbEntry := notaryapi.NewPayChainCBEntry(pubKey, entryHash, creditsPerChain, chainIDHash, entryChainIDHash)
@@ -677,9 +676,9 @@ func processCommitChain(entryHash *notaryapi.Hash, chainIDHash *notaryapi.Hash, 
 	eCreditMap[pubKey.String()] = credits + creditsPerChain
 	err := cchain.Blocks[len(cchain.Blocks)-1].AddCBEntry(cbEntry)
 	// Update the prePaidEntryMapin memory
-	prePaidEntryMap[key] = value	
+	payments, _ := prePaidEntryMap[key]	
+	prePaidEntryMap[key] = payments + 1
 	cchain.BlockMutex.Unlock()	 
-
  
 	return chainIDHash.Bytes, err
 }
@@ -696,7 +695,7 @@ func processBuyEntryCredit(pubKey *notaryapi.Hash, credits int32, factoidTxHash 
  
 	return pubKey.Bytes, err
 }
-func processRevealChain(newChain *notaryapi.EChain, pubKey *notaryapi.Hash) ([]byte, *notaryapi.Error) {
+func processRevealChain(newChain *notaryapi.EChain) ([]byte, *notaryapi.Error) {
 
 	chain := chainIDMap[newChain.ChainID.String()]
 	if chain != nil{
@@ -706,7 +705,7 @@ func processRevealChain(newChain *notaryapi.EChain, pubKey *notaryapi.Hash) ([]b
 	// Remove the entry for prePaidEntryMap
 	binaryEntry, _ := newChain.FirstEntry.MarshalBinary()
 	firstEntryHash := notaryapi.Sha(binaryEntry)
-	key := getPrePaidChainKey(firstEntryHash, newChain.ChainID, pubKey)	
+	key := getPrePaidChainKey(firstEntryHash, newChain.ChainID)	
 	_, ok := prePaidEntryMap[key]
 	if ok {
 		delete(prePaidEntryMap, key)
@@ -753,7 +752,7 @@ func postChain(context string, form url.Values) (interface{}, *notaryapi.Error) 
 		return nil, notaryapi.CreateError(notaryapi.ErrorInternal, `Chain is nil`)
 	}
 		
-	return processRevealChain(newChain, nil) //Plase fill in the right parameters??
+	return processRevealChain(newChain) 
 }
 
 func saveDChain(chain *notaryapi.DChain) {
@@ -890,7 +889,7 @@ func initDChain() {
 func initCChain() {
 	
 	eCreditMap = make(map[string]int32)
-	prePaidEntryMap = make(map[string]int64)
+	prePaidEntryMap = make(map[string]int32)
 	
 	cchain = new (notaryapi.CChain)
 
@@ -1045,12 +1044,8 @@ func initializeECreditMap(block *notaryapi.CBlock) {
 	}
 }
 
-func getPrePaidEntryKey(entryHash *notaryapi.Hash, pubKey *notaryapi.Hash, nonce uint32) string {
-	return pubKey.String() + entryHash.String() + fmt.Sprint(nonce)
-}
-
-func getPrePaidChainKey(entryHash *notaryapi.Hash, chainIDHash *notaryapi.Hash, pubKey *notaryapi.Hash) string {
-	return pubKey.String() + chainIDHash.String() + entryHash.String()
+func getPrePaidChainKey(entryHash *notaryapi.Hash, chainIDHash *notaryapi.Hash) string {
+	return chainIDHash.String() + entryHash.String()
 }
 
 func printCreditMap(){

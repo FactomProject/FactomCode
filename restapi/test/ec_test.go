@@ -71,7 +71,7 @@ func TestAddChain(t *testing.T) {
 	}
 	
 	// Reveal new chain
-	_, err = processRevealChain(chain, pubKey)	
+	_, err = processRevealChain(chain)	
 	fmt.Println("after processNewChain:")
 	printPaidEntryMap()
 	if err != nil {
@@ -109,9 +109,9 @@ func TestAddEntry(t *testing.T) {
 	
 		binaryEntry, _ := entry.MarshalBinary()
 		entryHash := notaryapi.Sha(binaryEntry)		
-		nounce := uint32(i)
+		timestamp := int64(i)
 			
-		_, err := processCommitEntry(entryHash, pubKey, nounce)
+		_, err := processCommitEntry(entryHash, pubKey, timestamp)
 		fmt.Println("after processCommitEntry:")			
 		printCreditMap()
 		printPaidEntryMap()
@@ -121,7 +121,7 @@ func TestAddEntry(t *testing.T) {
 		}
 		
 		// Reveal new entry
-		processRevealEntry(entry, pubKey, nounce)
+		processRevealEntry(entry)
 		fmt.Println("after processRevealEntry:")	
 		printPaidEntryMap()	
 		if err != nil {
