@@ -339,7 +339,7 @@ type PayEntryCBEntry struct {
 	CBEntry //interface
 
 	EntryHash * Hash
-	Nonce uint32
+	TimeStamp int64
 }
 
 type PayChainCBEntry struct {
@@ -359,13 +359,13 @@ type ECBalance struct {
 	Credits int32
 }
 
-func NewPayEntryCBEntry(pubKey *Hash, entryHash *Hash, credits int32, nonce uint32) *PayEntryCBEntry {
+func NewPayEntryCBEntry(pubKey *Hash, entryHash *Hash, credits int32, 	timeStamp int64) *PayEntryCBEntry {
 	e := &PayEntryCBEntry{}
 	e.publicKey = pubKey
 	e.entryType = TYPE_PAY_ENTRY	
 	e.credits = credits	
 	e.EntryHash = entryHash
-	e.Nonce = nonce
+	e.TimeStamp = timeStamp
 	
 	return e
 }
@@ -465,7 +465,7 @@ func (e *PayEntryCBEntry) MarshalBinary() ([]byte, error) {
 	data, _ = e.EntryHash.MarshalBinary()	
 	buf.Write(data)
 	
-	binary.Write(&buf, binary.BigEndian, e.Nonce)	
+	binary.Write(&buf, binary.BigEndian, e.TimeStamp)	
 		
 	return buf.Bytes(), nil
 }
@@ -476,7 +476,7 @@ func (e *PayEntryCBEntry) MarshalledSize() uint64 {
 	size += e.publicKey.MarshalledSize() 	// PublicKey	
 	size += 4								// Credits (int32)
 	size += e.EntryHash.MarshalledSize()	// Entry Hash
-	size += 4								// Nonce (uint32)	
+	size += 8								// 	TimeStamp int64	
 	
 	return size
 }
@@ -493,7 +493,7 @@ func (e *PayEntryCBEntry) UnmarshalBinary(data []byte) (err error) {
 	e.EntryHash.UnmarshalBinary(data)
 	data = data[e.EntryHash.MarshalledSize():]
 	buf = bytes.NewBuffer(data[:4])	
-	binary.Read(buf, binary.BigEndian, &e.Nonce)	
+	binary.Read(buf, binary.BigEndian, &e.TimeStamp)	
 
 	return nil
 }
