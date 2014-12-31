@@ -64,3 +64,7 @@ func SignData(data []byte) Signature {
 
 //impliment Signer 
 func Sign(d []byte) Signature {return SignData(d)}
+
+func ClientPublicKey() PublicKey {
+	return keyManager.keyPair.Pub
+}
