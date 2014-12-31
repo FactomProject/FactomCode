@@ -136,6 +136,26 @@ func TestBuyCredit(t *testing.T) {
 	}		
 } 
 
+func TestBuyCreditWallet(t *testing.T) {
+	fmt.Println("\nTestBuyCreditWallet===========================================================================")
+	// Post the request to FactomClient web server	---------------------------------------
+	data := url.Values{}
+	barray := (make([]byte, 32))
+	barray[0] = 2
+	pubKey := new (notaryapi.Hash)
+	pubKey.SetBytes(barray)		
+	data.Set("to", "wallet")
+	data.Set("value", "11.123456789")
+	data.Set("password", "opensesame")
+	
+	_, err := http.PostForm("http://localhost:8088/v1/buycredit", data)	
+	if err != nil {
+		t.Errorf("Error:%v", err)
+	} else{
+		fmt.Println("Buy credit request successfully submitted to factomclient.")
+	}		
+} 
+
 
 func TestGetCreditBalance(t *testing.T) {
 	fmt.Println("\nTestGetCreditBalance===========================================================================")
@@ -159,6 +179,30 @@ func TestGetCreditBalance(t *testing.T) {
 		fmt.Println("Get Credit Balance request successfully submitted to factomclient.")
 	}		
 } 
+
+func TestGetCreditWalletBalance(t *testing.T) {
+	fmt.Println("\nTestGetCreditWalletBalance===========================================================================")
+	// Post the request to FactomClient web server	---------------------------------------
+	data := url.Values{}
+	barray := (make([]byte, 32))
+	barray[0] = 2
+	pubKey := new (notaryapi.Hash)
+	pubKey.SetBytes(barray)		
+	data.Set("pubkey", "wallet")
+	data.Set("password", "opensesame")
+	
+	resp, err := http.PostForm("http://localhost:8088/v1/creditbalance", data)	
+	contents, err := ioutil.ReadAll(resp.Body)	
+	
+	fmt.Printf("Http Resp Body:%s\n", string(contents)) 
+	fmt.Println("status code:%v", resp.StatusCode)	
+	if err != nil {
+		t.Errorf("Error:%v", err)
+	} else{
+		fmt.Println("Get Credit Balance request successfully submitted to factomclient.")
+	}		
+} 
+
 
 func TestGetDBlocksByRange(t *testing.T) {
 	fmt.Println("\nTestGetDBlocksByRange===========================================================================")

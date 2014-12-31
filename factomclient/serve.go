@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/FactomProject/FactomCode/wallet"
 	"bytes"
 	"crypto/rand"
 	"fmt"
@@ -206,8 +207,14 @@ func handleBuyCreditPost(ctx *web.Context) {
 
 	
 	ecPubKey := new (notaryapi.Hash)
-	ecPubKey.Bytes, _ = base64.StdEncoding.DecodeString(ctx.Params["to"])
-	
+	if ctx.Params["to"] == "wallet" {
+		ecPubKey.Bytes = (*wallet.ClientPublicKey().Key)[:]
+	} else {
+		ecPubKey.Bytes, _ = base64.StdEncoding.DecodeString(ctx.Params["to"])
+	}
+
+	fmt.Println("handleBuyCreditPost using pubkey: ", ecPubKey, " requested",ctx.Params["to"])
+
 	factoid, _ := strconv.ParseFloat(ctx.Params["value"], 10)
 	value := uint64(factoid*1000000000)
 	err := factomapi.BuyEntryCredit(1, ecPubKey, nil, value, 0, nil)
@@ -229,14 +236,20 @@ func handleGetCreditBalancePost(ctx *web.Context) {
 	}()
 	
 	ecPubKey := new (notaryapi.Hash)
-	ecPubKey.Bytes, _ = base64.StdEncoding.DecodeString(ctx.Params["pubkey"])
+	if ctx.Params["pubkey"] == "wallet" {
+		ecPubKey.Bytes = (*wallet.ClientPublicKey().Key)[:]
+	} else {
+		ecPubKey.Bytes, _ = base64.StdEncoding.DecodeString(ctx.Params["pubkey"])
+	}
+
+	fmt.Println("handleGetCreditBalancePost using pubkey: ", ecPubKey, " requested",ctx.Params["pubkey"])
 	
 	balance, err := factomapi.GetEntryCreditBalance(ecPubKey)
 	
 	ecBalance := new(notaryapi.ECBalance)
 	ecBalance.Credits = balance
 	ecBalance.PublicKey = ecPubKey
-	
+
 	fmt.Println("Balance for pubkey ", ctx.Params["pubkey"], " is: ", balance)
 	
 	// Send back JSON response
