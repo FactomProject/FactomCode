@@ -58,17 +58,9 @@ func loadConfigurations(){
 	
 }
 
-/*
-func SignData1(data []byte) (signed []byte, pubkey []byte) {
-	sig := keyManager.keyPair.Sign(data)
-
-	signed = (*sig.Sig)[:]
-	pubkey = (*sig.Pub.Key)[:]
-	return 
-}
-*/
-
 func SignData(data []byte) Signature {
 	return keyManager.keyPair.Sign(data)
 }
 
+//impliment Signer 
+func Sign(d []byte) Signature {return SignData(d)}
