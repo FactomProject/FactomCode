@@ -3,10 +3,10 @@ package notaryapi
 import (
 	"encoding/xml"
 	"fmt"
-	"github.com/firelizzard18/dynrsrc"
-	"github.com/firelizzard18/gocoding"
-	"github.com/firelizzard18/gocoding/html"
-	"github.com/firelizzard18/gocoding/json"
+	"github.com/FactomProject/dynrsrc"
+	"github.com/FactomProject/gocoding"
+	"github.com/FactomProject/gocoding/html"
+	"github.com/FactomProject/gocoding/json"
 	"io"
 	"reflect"
 	"text/template"
@@ -35,7 +35,7 @@ var M = struct {Main, Alt gocoding.Marshaller}{
 var hashEncoder = M.Alt.FindEncoder(reflect.TypeOf(new(Hash)))
 
 func init() {
-	M.Alt.CacheEncoder(reflect.TypeOf(new(Block)), AltBlockEncoder)
+	M.Alt.CacheEncoder(reflect.TypeOf(new(EBlock)), AltBlockEncoder)
 	//M.Alt.CacheEncoder(reflect.TypeOf(new(Entry)), AltEntryEncoder)
 }
 

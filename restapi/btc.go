@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 //	"sort"
-	"fmt"
+	"fmt" 
 	"log"
 	"io/ioutil"
 	"path/filepath"
@@ -24,7 +24,7 @@ import (
 	"github.com/FactomProject/FactomCode/notaryapi"
 	
 )
-
+  
 
 // fee is paid to miner for tx written into btc
 var fee btcutil.Amount
@@ -247,7 +247,7 @@ func addTxIn(msgtx *btcwire.MsgTx, b balance) error {
 	}
  
 	sigScript, err := btcscript.SignatureScript(msgtx, 0, subscript,
-		btcscript.SigHashAll, b.wif.PrivKey.ToECDSA(), true)
+		btcscript.SigHashAll, b.wif.PrivKey, true)	//.ToECDSA(), true)
 	if err != nil {
 		return fmt.Errorf("cannot create scriptSig: %s", err)
 	}
@@ -373,11 +373,6 @@ func createBtcwalletNotificationHandlers() btcrpcclient.NotificationHandlers {
 			fmt.Println("wclient: OnWalletLockState, locked=", locked)
 		},
 
-		// OnUnknownNotification is invoked when an unrecognized notification
-		// is received.  This typically means the notification handling code
-		// for this package needs to be updated for a new notification type or
-		// the caller is using a custom notification this package does not know
-		// about.
 		OnUnknownNotification: func(method string, params []json.RawMessage) {
 			//fmt.Println("wclient: OnUnknownNotification: method=", method, "\nparams[0]=", 
 			//	string(params[0]), "\nparam[1]=", string(params[1]))
@@ -393,36 +388,17 @@ func createBtcdNotificationHandlers() btcrpcclient.NotificationHandlers {
 
 	ntfnHandlers := btcrpcclient.NotificationHandlers{
 
-		// OnBlockConnected is invoked when a block is connected to the longest
-		// (best) chain.  It will only be invoked if a preceding call to
-		// NotifyBlocks has been made to register for the notification and the
-		// function is non-nil.
 		OnBlockConnected: func(hash *btcwire.ShaHash, height int32) {
 			//fmt.Println("dclient: OnBlockConnected: hash=", hash, ", height=", height)
 			//go newBlock(hash, height)	// no need
 		},
 
-		// OnRecvTx is invoked when a transaction that receives funds to a
-		// registered address is received into the memory pool and also
-		// connected to the longest (best) chain.  It will only be invoked if a
-		// preceding call to NotifyReceived, Rescan, or RescanEndHeight has been
-		// made to register for the notification and the function is non-nil.
 		OnRecvTx: func(transaction *btcutil.Tx, details *btcws.BlockDetails) {
 			//fmt.Printf("dclient: OnRecvTx: details=%#v\n", details)
 			//fmt.Printf("dclient: OnRecvTx: tx=%#v,  tx.Sha=%#v, tx.index=%d\n", 
 				//transaction, transaction.Sha().String(), transaction.Index())
 		},
 
-		// OnRedeemingTx is invoked when a transaction that spends a registered
-		// outpoint is received into the memory pool and also connected to the
-		// longest (best) chain.  It will only be invoked if a preceding call to
-		// NotifySpent, Rescan, or RescanEndHeight has been made to register for
-		// the notification and the function is non-nil.
-		//
-		// NOTE: The NotifyReceived will automatically register notifications
-		// for the outpoints that are now "owned" as a result of receiving
-		// funds to the registered addresses.  This means it is possible for
-		// this to invoked indirectly as the result of a NotifyReceived call.
 		OnRedeemingTx: func(transaction *btcutil.Tx, details *btcws.BlockDetails) {
 			fmt.Printf("dclient: OnRedeemingTx: details=%#v\n", details)
 			fmt.Printf("dclient: OnRedeemingTx: tx.Sha=%#v,  tx.index=%d\n", 
@@ -430,30 +406,30 @@ func createBtcdNotificationHandlers() btcrpcclient.NotificationHandlers {
 			
 			if details != nil {
 				// do not block OnRedeemingTx callback
-				go saveFBBatch(transaction, details)
+				go saveDBBatch(transaction, details)
 			}
 		},
 	}
-	
+	 
 	return ntfnHandlers
 }
 
 
-func saveFBBatch(transaction *btcutil.Tx, details *btcws.BlockDetails) {
-	fmt.Println("In saveFBBatch, len(fbBatches.batches)=", len(fbBatches.batches))
+func saveDBBatch(transaction *btcutil.Tx, details *btcws.BlockDetails) {
+	fmt.Println("In saveDBBatch, len(dbBatches.batches)=", len(dbBatches.batches))
 	var i int
 	var found bool
-	for i = 0; i < len(fbBatches.batches); i++ {
-		fmt.Printf("i=%d, fbBatch=%#v\n", i, fbBatches.batches[i])
+	for i = 0; i < len(dbBatches.batches); i++ {
+		fmt.Printf("i=%d, dbBatch=%#v\n", i, dbBatches.batches[i])
 		
-		if fbBatches.batches[i].BTCTxHash != nil && 
-			bytes.Compare(fbBatches.batches[i].BTCTxHash.Bytes, transaction.Sha().Bytes()) == 0 {
+		if dbBatches.batches[i].BTCTxHash != nil && 
+			bytes.Compare(dbBatches.batches[i].BTCTxHash.Bytes, transaction.Sha().Bytes()) == 0 {
 			
-			fbBatches.batches[i].BTCTxOffset = details.Index
-			fbBatches.batches[i].BTCBlockHeight = details.Height
+			dbBatches.batches[i].BTCTxOffset = details.Index
+			dbBatches.batches[i].BTCBlockHeight = details.Height
 			
 			txHash, _ := btcwire.NewShaHashFromStr(details.Hash)
-			fbBatches.batches[i].BTCBlockHash = toHash(txHash)
+			dbBatches.batches[i].BTCBlockHash = toHash(txHash)
 			
 			found = true
 			break
@@ -462,20 +438,24 @@ func saveFBBatch(transaction *btcutil.Tx, details *btcws.BlockDetails) {
 	fmt.Println("In saveFBBatch, found=", found)
 
 	if found {
-		fmt.Printf("found in fbBatches: i=%d, len=%d, DELETE fbBatch%#v\n",i , len(fbBatches.batches), fbBatches.batches[i])
+		fmt.Printf("found in dbBatches: i=%d, len=%d, DELETE dbBatch%#v\n",i , len(dbBatches.batches), dbBatches.batches[i])
 		
-		//delete fbBatches.batches[i]
-		fbBatches.batchMutex.Lock()
-		copy(fbBatches.batches[i:], fbBatches.batches[i+1:])
-		fbBatches.batches[len(fbBatches.batches) - 1] = nil
-		fbBatches.batches = fbBatches.batches[:len(fbBatches.batches) - 1]
-		fbBatches.batchMutex.Unlock()
+		//delete dbBatches.batches[i]
+		dbBatch := dbBatches.batches[i]
+		dbBatches.batchMutex.Lock()
+		dbBatches.batches = append(dbBatches.batches[:i], dbBatches.batches[i+1:] ...)
+		/*
+		copy(dbBatches.batches[i:], dbBatches.batches[i+1:])
+		dbBatches.batches[len(dbBatches.batches) - 1] = nil
+		dbBatches.batches = dbBatches.batches[:len(dbBatches.batches) - 1]
+		*/
+		dbBatches.batchMutex.Unlock()
 		
-		// Update db with FBBatch
-		db.InsertFBBatch(fbBatches.batches[i])
+		// Update db with DBBatch
+		db.InsertDBBatch(dbBatch)
 		ExportDataFromDbToFile()						
 
-		fmt.Println("found in fbBatches: after deletion, len=", len(fbBatches.batches))
+		fmt.Println("found in dbBatches: after deletion, len=", len(dbBatches.batches))
 	}
 }
 
@@ -542,14 +522,14 @@ func shutdown() {
 }
 
 
-func newEntryBlock(chain *notaryapi.Chain) (*notaryapi.Block, *notaryapi.Hash){
+func newEntryBlock(chain *notaryapi.EChain) (*notaryapi.EBlock){
 
 	// acquire the last block
 	block := chain.Blocks[len(chain.Blocks)-1]
 
  	if len(block.EBEntries) < 1{
  		//log.Println("No new entry found. No block created for chain: "  + notaryapi.EncodeChainID(chain.ChainID))
- 		return nil, nil
+ 		return nil
  	}
 
 	// Create the block and add a new block for new coming entries
@@ -573,41 +553,78 @@ func newEntryBlock(chain *notaryapi.Chain) (*notaryapi.Block, *notaryapi.Hash){
 	hashes = append (hashes, notaryapi.Sha(binaryEBHeader))	
 	merkle := notaryapi.BuildMerkleTreeStore(hashes)
 	block.MerkleRoot = merkle[len(merkle) - 1]	// MerkleRoot is not marshalized in Entry Block
+	fmt.Println("block.MerkleRoot:%v", block.MerkleRoot.String())
 	    
     //Store the block in db
 	db.ProcessEBlockBatch(block)	 
 	log.Println("EntryBlock: block" + strconv.FormatUint(block.Header.BlockID, 10) +" created for chain: "  + chain.ChainID.String())	
 	
-	return block, blkhash
+	return block
 }
 
-
-func newFactomBlock(chain *notaryapi.FChain) *notaryapi.FBlock {
+func newEntryCreditBlock(chain *notaryapi.CChain) (*notaryapi.CBlock){
 
 	// acquire the last block
 	block := chain.Blocks[len(chain.Blocks)-1]
 
- 	if len(block.FBEntries) < 1{
- 		//log.Println("No Factom block created for chain ... because no new entry is found.")
+ 	if len(block.CBEntries) < 1{
+ 		//log.Println("No new entry found. No block created for chain: "  + notaryapi.EncodeChainID(chain.ChainID))
+ 		return nil
+ 	}
+
+	// Create the block and add a new block for new coming entries
+	chain.BlockMutex.Lock()
+	block.Header.EntryCount = uint32(len(block.CBEntries))		
+	blkhash, _ := notaryapi.CreateHash(block)
+	log.Println("blkhash:%v", blkhash.Bytes)
+	block.IsSealed = true	
+	chain.NextBlockID++	
+	newblock, _ := notaryapi.CreateCBlock(chain, block, 10)
+	chain.Blocks = append(chain.Blocks, newblock)
+	chain.BlockMutex.Unlock()
+	block.CBHash = blkhash	
+	    
+    //Store the block in db
+	db.ProcessCBlockBatch(block)	   
+	log.Println("EntryCreditBlock: block" + strconv.FormatUint(block.Header.BlockID, 10) +" created for chain: "  + chain.ChainID.String())	
+	
+	return block
+}
+
+
+func newDirectoryBlock(chain *notaryapi.DChain) *notaryapi.DBlock {
+
+	// acquire the last block
+	block := chain.Blocks[len(chain.Blocks)-1]
+
+ 	if len(block.DBEntries) < 1{
+ 		//log.Println("No Directory block created for chain ... because no new entry is found.")
  		return nil
  	} 
 	
 	// Create the block add a new block for new coming entries
 	chain.BlockMutex.Lock()
+	block.Header.EntryCount = uint32(len(block.DBEntries))	
+	// Calculate Merkle Root for FBlock and store it in header
+	if block.Header.MerkleRoot == nil {
+		block.Header.MerkleRoot = block.CalculateMerkleRoot()
+		fmt.Println("block.Header.MerkleRoot:%v", block.Header.MerkleRoot.String())
+	}	
 	blkhash, _ := notaryapi.CreateHash(block)
 	block.IsSealed = true	
 	chain.NextBlockID++
-	newblock, _ := notaryapi.CreateFBlock(chain, block, 10)
+	newblock, _ := notaryapi.CreateDBlock(chain, block, 10)
 	chain.Blocks = append(chain.Blocks, newblock)
 	chain.BlockMutex.Unlock()
 
 	//Store the block in db
-	db.ProcessFBlockBatch(blkhash, block) 	
+	block.DBHash = blkhash
+	db.ProcessDBlockBatch(block)  	
 
-	log.Println("FactomBlock: block" + strconv.FormatUint(block.Header.BlockID, 10) +" created for factom chain: "  + notaryapi.EncodeBinary(chain.ChainID))
+	log.Println("DirectoryBlock: block" + strconv.FormatUint(block.Header.BlockID, 10) +" created for directory block chain: "  + notaryapi.EncodeBinary(chain.ChainID))
 
 	//update FBBlock with FBHash & FBlockID
-	block.FBHash = blkhash
+
 	//block.FBlockID = block.Header.BlockID
 	
 	//Export all db records associated w/ this new factom block
@@ -617,18 +634,18 @@ func newFactomBlock(chain *notaryapi.FChain) *notaryapi.FBlock {
 }
 
 
-func saveFBBatchMerkleRoottoBTC(fbBatch *notaryapi.FBBatch) {
-	fmt.Println("in saveFBBatchMerkleRoottoBTC: len(fbBatch.FBlocks)=", len(fbBatch.FBlocks))
+func saveDBBatchMerkleRoottoBTC(dbBatch *notaryapi.DBBatch) {
+	fmt.Println("in saveFBBatchMerkleRoottoBTC: len(dbBatch.DBlocks)=", len(dbBatch.DBlocks))
 	
 	//calculate batch merkle root
-	hashes := make([]*notaryapi.Hash, 0, len(fbBatch.FBlocks))
-	for i:=0; i<len(fbBatch.FBlocks); i++ {
-		fmt.Printf("i=%d, merkle root: %s\n", i, fbBatch.FBlocks[i].Header.MerkleRoot.String())
-		hashes = append(hashes, fbBatch.FBlocks[i].Header.MerkleRoot)
+	hashes := make([]*notaryapi.Hash, 0, len(dbBatch.DBlocks))
+	for i:=0; i<len(dbBatch.DBlocks); i++ {
+		fmt.Printf("i=%d, merkle root: %s\n", i, dbBatch.DBlocks[i].Header.MerkleRoot.String())
+		hashes = append(hashes, dbBatch.DBlocks[i].Header.MerkleRoot)
 	}	
 	merkle := notaryapi.BuildMerkleTreeStore(hashes)
 	merkleRoot := merkle[len(merkle) - 1]
-	fbBatch.FBBatchMerkleRoot = merkleRoot
+	dbBatch.FBBatchMerkleRoot = merkleRoot
 
 	txHash, err := writeToBTC(merkleRoot.Bytes)		
 	if err != nil {
@@ -636,10 +653,10 @@ func saveFBBatchMerkleRoottoBTC(fbBatch *notaryapi.FBBatch) {
 		fmt.Println("failed to record ", merkleRoot.Bytes, " to BTC: ", err.Error())
 	}
 
-	//convert btc tx hash to factom hash, and update fbBatch
-	fbBatch.BTCTxHash = toHash(txHash)
+	//convert btc tx hash to factom hash, and update dbBatch
+	dbBatch.BTCTxHash = toHash(txHash)
 
-    fmt.Print("Recorded FBBatch merkle root in BTC tx hash:\n",txHash, "\nconverted hash: ", fbBatch.BTCTxHash.String(), "\n")
+    fmt.Print("Recorded FBBatch merkle root in BTC tx hash:\n",txHash, "\nconverted hash: ", dbBatch.BTCTxHash.String(), "\n")
 
 }
 

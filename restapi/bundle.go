@@ -3,7 +3,7 @@ package main
 import (
 	"bytes"
 	"compress/gzip"
-	"github.com/firelizzard18/gobundle"
+	"github.com/FactomProject/gobundle"
 )
 
 var _data = []byte{

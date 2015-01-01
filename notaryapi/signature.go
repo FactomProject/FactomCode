@@ -8,7 +8,7 @@ import (
 	
 	"math/big"
 	
-	"github.com/firelizzard18/gocoding"
+	"github.com/FactomProject/gocoding"
 )
 
 type Signature interface {

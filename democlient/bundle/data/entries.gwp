@@ -1,0 +1,24 @@
+<h1>Entries</h1>
+<ul>
+	{{range activeEntryIDs}}{{with entry .}}<li><div><a href="/entries/{{.ID}}">Entry {{.ID}} ({{.Type}})</a></div></li>{{end}}{{end}}
+</ul>
+<h2>Pending</h2>
+<ul>
+	{{range pendingEntryIDs}}{{with entry .}}<li><div><a href="/entries/{{.ID}}">Entry {{.ID}} ({{.Type}})</a></div></li>{{end}}{{end}}
+</ul>
+<h2>Confirmed</h2>
+<ul>
+{{range confirmedEntryIDs}}
+	{{with entry .}}
+	<li><div><a href="/entries/{{.ID}}">Entry {{.ID}} ({{.Type}})</a> --> 
+		<a href="/sentry/{{.Submitted.EntryHash}}">
+		{{if eq .Submitted.Confirmed 1}}		
+			Confirmed by Factom
+		{{else}}
+			Confirmed by Factom and Bitcoin
+		{{end}}	
+		</a>
+	</div></li>
+	{{end}}
+{{end}}
+</ul>

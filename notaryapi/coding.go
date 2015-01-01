@@ -1,8 +1,8 @@
 package notaryapi
 
 import (
-	"github.com/firelizzard18/gocoding"
-	"github.com/firelizzard18/gocoding/json"
+	"github.com/FactomProject/gocoding"
+	"github.com/FactomProject/gocoding/json"
 	"reflect"
 	"strings"
 	"encoding/hex"	

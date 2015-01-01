@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"crypto/sha256"
-	"github.com/firelizzard18/gocoding"
+	"github.com/FactomProject/gocoding"
 	"reflect"
 	"encoding/hex"	
 
@@ -117,12 +117,16 @@ func Sha(data []byte) (h *Hash) {
 	
 	h = new(Hash)
 	h.Bytes = sha.Sum(nil)	
-	return
+	return h
 }
 
 
 func (h *Hash) String() string {
 	return hex.EncodeToString(h.Bytes)
+}
+
+func (h *Hash) ByteString() string {
+	return string(h.Bytes)
 }
 
 func HexToHash(hexStr string) (h *Hash, err error)  {
@@ -140,4 +144,18 @@ func (h *Hash) BTCString() string {
 	}
 
 	return hashstr
+}
+
+// Compare two Hashes
+func (a *Hash) IsSameAs(b *Hash) bool {
+
+	if a==nil || b==nil{
+		return false
+	}
+	
+	if bytes.Compare(a.Bytes, b.Bytes) == 0 {
+		return true
+	}
+	
+	return false
 }

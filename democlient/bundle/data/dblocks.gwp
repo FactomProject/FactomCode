@@ -1,0 +1,16 @@
+	<div class="entry">
+		<h2>Directory Blocks ({{len .dBlocks}}): 	</h2>
+			<br>
+				<div class="submitted">
+					<ul>
+						{{range .dBlocks}}
+							{{with .}}<li><div>
+								<a href="/dblock/{{.DBHash}}">Block ID: {{.Header.BlockID}} Hash: {{.DBHash}} </a> <br>
+							</div></li>
+							{{end}}
+						{{end}}
+					</ul>
+				</div>
+				<br><br>
+				<br><br>
+		</div>

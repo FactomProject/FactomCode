@@ -18,11 +18,11 @@ func doEntry(cid *notaryapi.Hash, data []byte) {
 	entry.ChainID = hash
 	entry.Data = data
 	
-	_, err := processNewEntry(entry)
+	_, err := processRevealEntry(entry) //Need to update ??
 	if err != nil {
 		fmt.Println(err.Error())
 	}
-}
+} 
 
 func doEntries() {
 	fmt.Println("** chainmap.len=", len(chainIDMap))
