@@ -208,7 +208,7 @@ func TestGetDBlocksByRange(t *testing.T) {
 	fmt.Println("\nTestGetDBlocksByRange===========================================================================")
 
 	// Send request to FactomClient web server	--------------------------------------	
-	resp, err := http.Get("http://localhost:8088/v1/dblocksbyrange/0/1")	
+	resp, err := http.Get("http://localhost:8088/v1/dblocksbyrange/0/5")	
 	if err != nil {
 		t.Errorf("Error:%v", err)
 	} else{
@@ -239,6 +239,9 @@ func TestGetDBlockByHash(t *testing.T) {
 	
 	base64str := base64.StdEncoding.EncodeToString(bytes)
 	
+	// copy "prevBlockHash" from the output of the TestGetDBlocksByRange
+	base64str = "Zr7xq63W+DTXfNr8mowMoRpVJWZm9ZKyind5Ma8wzz8="
+	
 	resp, err := http.Get("http://localhost:8088/v1/dblock/"+base64str)	
 	if err != nil {
 		t.Errorf("Error:%v", err)
@@ -260,14 +263,51 @@ func TestGetDBlockByHash(t *testing.T) {
 	 
 } 
 
+func TestGetEBlockByMR(t *testing.T) {
+	fmt.Println("\nTestGetEBlockByMR===========================================================================")
+	// Send request to FactomClient web server	---------------------------------------
+	// Copy it from explorer
+	bytes, _ := hex.DecodeString("e91657e97c3c0854707dc7af808936c57a75de0f4d2beb353caeb9fb1aadbdd4")
+	
+	base64str := base64.StdEncoding.EncodeToString(bytes)
+	
+	// copy "MerkleRoot" from the output of the TestGetDBlocksByRange
+	url, _ := url.Parse("O0KhBq34a+cNnGBhcI7lG/oQewmYWFUm2GETAAdwZrI=")	
+	fmt.Println("url:", url.RequestURI())
+	
+	
+	
+	resp, err := http.Get("http://localhost:8088/v1/eblockbymr/"+base64str)	
+	if err != nil {
+		t.Errorf("Error:%v", err)
+	} else{
+		fmt.Println("Request TestGetEBlockByMR successfully submitted to factomclient.")
+	}		
+
+	contents, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Printf("after contents: %s", err)
+		os.Exit(1)
+	}
+	fmt.Printf("Http Resp Body:%s\n", string(contents)) 
+	fmt.Println("status code:%v", resp.StatusCode)
+			
+	if err != nil {
+		t.Errorf("Error:%v", err)
+	}
+	 
+} 
 
 func TestGetEBlockByHash(t *testing.T) {
 	fmt.Println("\nTestGetEBlockByHash===========================================================================")
 	// Send request to FactomClient web server	---------------------------------------
 	// Copy it from explorer
-	bytes, _ := hex.DecodeString("4b8f64120d3631b03701c475571da06264792ab7923e8315a588d52c6b027888")
+	bytes, _ := hex.DecodeString("e91657e97c3c0854707dc7af808936c57a75de0f4d2beb353caeb9fb1aadbdd4")
 	
 	base64str := base64.StdEncoding.EncodeToString(bytes)
+	
+	// copy "prevBlockHash" from the output of the TestGetDBlocksByRange
+	//base64str = "Zr7xq63W+DTXfNr8mowMoRpVJWZm9ZKyind5Ma8wzz8="	
 	
 	resp, err := http.Get("http://localhost:8088/v1/eblock/"+base64str)	
 	if err != nil {

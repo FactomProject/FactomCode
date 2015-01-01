@@ -1,10 +1,8 @@
 package main
 
 import (
-	//"flag"
 	"fmt"
 	"github.com/FactomProject/dynrsrc"
-	"github.com/FactomProject/gobundle"
 	"github.com/FactomProject/gocoding"		
 	"os"
 	"io/ioutil"	
@@ -22,7 +20,6 @@ import (
 	"net/url"	
 ) 
 
-//var portNumber = flag.Int("p", 8087, "Set the port to listen on")
 var (
  	logLevel = "DEBUG"
 	portNumber int = 8088 	
@@ -55,16 +52,10 @@ func init() {
 	
 	factomapi.SetServerAddr(serverAddr)
 	factomapi.SetDB(db)	
-		
-	gobundle.Setup.Application.Name = applicationName
-	gobundle.Init()
 	
 	err := dynrsrc.Start(watchError, readError)
 	if err != nil { panic(err) }
 	
-	loadStore()
-	loadSettings()
-	templates_init()
 	serve_init()
 	initClientDataFileMap()	
 	
@@ -73,7 +64,6 @@ func init() {
 	go func() {
 		for _ = range ticker.C {
 			downloadAndImportDbRecords()
-			RefreshPendingEntries()
 		}
 	}()		
 }
@@ -156,9 +146,9 @@ func initDB() {
 	log.Println("Database started from: " + ldbpath)
 
 }
-func downloadAndImportDbRecords() {
 
- 	
+// to be replaced by DHT
+func downloadAndImportDbRecords() {
 	data := url.Values {}	
 	data.Set("accept", "json")	
 	data.Set("datatype", "filelist")
@@ -221,10 +211,7 @@ func downloadAndImportDbRecords() {
 		 	// add the file to the imported list
 		 	clientDataFileMap[key] = value
 		}
-
-	}
- 	 
-			
+	}			
 }
 
 // Initialize the imported file list
@@ -245,10 +232,8 @@ func initClientDataFileMap() error {
 
 		}
 	}	
-	return nil	
-	
+	return nil		
 }
-
 
 func fileNotExists(name string) (bool) {
   _, err := os.Stat(name)

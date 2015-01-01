@@ -162,6 +162,18 @@ func GetEntryBlokByHash(eBlockHash *notaryapi.Hash) (eBlock *notaryapi.EBlock, e
 	return eBlock, err
 }
 
+func GetEntryBlokByMRStr(eBlockMRBase64 string) (eBlock *notaryapi.EBlock, err error) {
+	bytes, err := base64.StdEncoding.DecodeString(eBlockMRBase64)
+		
+	if err != nil || len(bytes) != notaryapi.HashSize{
+		return nil, err
+	}
+	eBlockMR := new (notaryapi.Hash)
+	eBlockMR.Bytes = bytes
+
+	return db.FetchEBlockByMR(eBlockMR)
+}
+
 func GetEntryByHashStr(entryHashBase64 string) (entry *notaryapi.Entry, err error) {
 	bytes, err := base64.StdEncoding.DecodeString(entryHashBase64)
 	
