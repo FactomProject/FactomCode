@@ -8,6 +8,7 @@ import (
 	"github.com/hoisie/web"
 	"github.com/FactomProject/FactomCode/notaryapi"
 	"github.com/FactomProject/FactomCode/factomapi"
+	"github.com/FactomProject/factom"
 	"net/url"
 	"strconv"
 	"encoding/base64"
@@ -19,7 +20,7 @@ var server = web.NewServer()
 
 func serve_init() {
 	
-	server.Post(`/v1/submitentry/?`, handleEntryPost)
+	server.Post(`/v1/submitentry/?`, handleSubmitEntry)
 	server.Post(`/v1/addchain/?`, handleChainPost)	
 	server.Post(`/v1/buycredit/?`, handleBuyCreditPost)		
 	server.Post(`/v1/creditbalance/?`, handleGetCreditBalancePost)			
@@ -32,31 +33,49 @@ func serve_init() {
 
 } 
 
-func handleEntryPost(ctx *web.Context) {
-	var abortMessage, abortReturn string
-	
-	defer func() {
-		if abortMessage != "" && abortReturn != "" {
-			ctx.Header().Add("Location", fmt.Sprint("/failed?message=", abortMessage, "&return=", abortReturn))
-			ctx.WriteHeader(303)
-		} else if abortReturn != "" {
-			ctx.Header().Add("Location", abortReturn)
-			ctx.WriteHeader(303)
+func handleSubmitEntry(ctx *web.Context) {
+	// convert a json post to a factom.Entry then submit the entry to factom
+	switch ctx.Params["format"] {
+	case "json":
+		j := []byte(ctx.Params["entry"])
+		e := new(factom.Entry)
+		e.UnmarshalJSON(j)
+		err := factom.Submit(e)
+		if err != nil {
+			fmt.Fprintln(ctx,
+				"there was a problem with submitting the entry:", err)
 		}
-	}()
-	
-	entry := new (notaryapi.Entry)
-	reader := gocoding.ReadBytes([]byte(ctx.Params["entry"]))
-	err := factomapi.SafeUnmarshal(reader, entry)
-
-	err = factomapi.RevealEntry(1, entry)
-		
-	if err != nil {
-		abortMessage = fmt.Sprint("An error occured while submitting the entry (entry may have been accepted by the server but was not locally flagged as such): ", err.Error())
-		return
+		fmt.Fprintln(ctx, "Entry Submitted")
+	default:
+		ctx.WriteHeader(403)
 	}
-		
 }
+
+//func handleEntryPost(ctx *web.Context) {
+//	var abortMessage, abortReturn string
+//	
+//	defer func() {
+//		if abortMessage != "" && abortReturn != "" {
+//			ctx.Header().Add("Location", fmt.Sprint("/failed?message=", abortMessage, "&return=", abortReturn))
+//			ctx.WriteHeader(303)
+//		} else if abortReturn != "" {
+//			ctx.Header().Add("Location", abortReturn)
+//			ctx.WriteHeader(303)
+//		}
+//	}()
+//	
+//	entry := new (notaryapi.Entry)
+//	reader := gocoding.ReadBytes([]byte(ctx.Params["entry"]))
+//	err := factomapi.SafeUnmarshal(reader, entry)
+//
+//	err = factomapi.RevealEntry(1, entry)
+//		
+//	if err != nil {
+//		abortMessage = fmt.Sprint("An error occured while submitting the entry (entry may have been accepted by the server but was not locally flagged as such): ", err.Error())
+//		return
+//	}
+//		
+//}
 func handleBuyCreditPost(ctx *web.Context) {
 	var abortMessage, abortReturn string
 	
