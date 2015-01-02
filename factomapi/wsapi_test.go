@@ -2,19 +2,19 @@ package factomapi
 
 import (
 	"testing"
-	"bytes"	
+//	"bytes"	
 	"net/http"
 	"net/url"
 	"fmt"
-	"encoding/hex"	
-	"github.com/FactomProject/gocoding"	
+//	"encoding/hex"	
+//	"github.com/FactomProject/gocoding"	
 	"github.com/FactomProject/FactomCode/notaryapi"	
 	"encoding/base64"
 	"io/ioutil"
 	"os" 	
 	
 )
-
+/* need to call commit first because we added payment logic on server
 func TestAddChain(t *testing.T) {
 	fmt.Println("\nTestAddChain===========================================================================")
 	chain := new (notaryapi.EChain)
@@ -26,6 +26,7 @@ func TestAddChain(t *testing.T) {
 	chain.GenerateIDFromName()
 	
 	entry := new (notaryapi.Entry)
+	entry.ChainID = *chain.ChainID	
 	entry.ExtIDs = make ([][]byte, 0, 5)
 	entry.ExtIDs = append(entry.ExtIDs, []byte("1001"))	
 	entry.ExtIDs = append(entry.ExtIDs, []byte("570b9e3fb2f5ae823685eb4422d4fd83f3f0d9e7ce07d988bd17e665394668c6"))	
@@ -34,15 +35,12 @@ func TestAddChain(t *testing.T) {
 	
 	chain.FirstEntry = entry
 	
-	
 	buf := new(bytes.Buffer)
 	err := SafeMarshal(buf, chain)
 	
 	fmt.Println("chain:%v", string(buf.Bytes()))
 	  
- 
-
-	// Unmarshal the json string locally to compare
+ 	// Unmarshal the json string locally to compare
 	jsonstr := "{\"ChainID\":\"2FrgD2+vPP3yz5zLVaE5Tc2ViVv9fwZeR3/adzITjJc=\",\"Name\":[\"bXlDb21wYW55\",\"Ym9va2tlZXBpbmc=\"],\"FirstEntry\":{\"ExtIDs\":[\"MTAwMQ==\",\"NTcwYjllM2ZiMmY1YWU4MjM2ODVlYjQ0MjJkNGZkODNmM2YwZDllN2NlMDdkOTg4YmQxN2U2NjUzOTQ2NjhjNg==\",\"bXZSSnFNVE1mclkzS3RIMkE0cWRQZnEzUTZMNEt3OUNrNA==\"],\"Data\":\"Rmlyc3QgZW50cnkgZm9yIGNoYWluOiIyRnJnRDIrdlBQM3l6NXpMVmFFNVRjMlZpVnY5ZndaZVIzL2FkeklUakpjPSJSdWxlczoiYXNsO2RqZmFzbGRrZmphc2xkZmpsa3NvdWlld29wdXJ3Ig==\"}}"
 	fmt.Println(jsonstr)
 
@@ -107,7 +105,7 @@ func TestAddEntry(t *testing.T) {
 	reader := gocoding.ReadBytes([]byte(jsonstr))
 	err = SafeUnmarshal(reader, entry2)
 	
-	fmt.Println("chainid:%v", base64.StdEncoding.EncodeToString(entry2.ChainID.Bytes))
+	fmt.Println("chainid:%v", base64.URLEncoding.EncodeToString(entry2.ChainID.Bytes))
 	fmt.Println("ExtIDs0:%v", string(entry2.ExtIDs[0]))	
 	fmt.Println("entrydata:%v", string(entry2.Data))	
 			
@@ -115,7 +113,7 @@ func TestAddEntry(t *testing.T) {
 		t.Errorf("Error:%v", err)
 	}
 } 
-
+*/
 func TestBuyCredit(t *testing.T) {
 	fmt.Println("\nTestBuyCredit===========================================================================")
 	// Post the request to FactomClient web server	---------------------------------------
@@ -124,7 +122,7 @@ func TestBuyCredit(t *testing.T) {
 	barray[0] = 2
 	pubKey := new (notaryapi.Hash)
 	pubKey.SetBytes(barray)		
-	data.Set("to", base64.StdEncoding.EncodeToString(pubKey.Bytes))
+	data.Set("to", base64.URLEncoding.EncodeToString(pubKey.Bytes))
 	data.Set("value", "1.123456789")
 	data.Set("password", "opensesame")
 	
@@ -165,7 +163,7 @@ func TestGetCreditBalance(t *testing.T) {
 	barray[0] = 2
 	pubKey := new (notaryapi.Hash)
 	pubKey.SetBytes(barray)		
-	data.Set("pubkey", base64.StdEncoding.EncodeToString(pubKey.Bytes))
+	data.Set("pubkey", base64.URLEncoding.EncodeToString(pubKey.Bytes))
 	data.Set("password", "opensesame")
 	
 	resp, err := http.PostForm("http://localhost:8088/v1/creditbalance", data)	
@@ -235,12 +233,16 @@ func TestGetDBlockByHash(t *testing.T) {
 
 	// Send request to FactomClient web server	---------------------------------------
 	// Copy it from explorer
-	bytes, _ := hex.DecodeString("e6354e9cb2d1e14f18f61c002f02d8ab978ccf56ad716f9f8ad6ce2a807d2614")
+//	bytes, _ := hex.DecodeString("e6354e9cb2d1e14f18f61c002f02d8ab978ccf56ad716f9f8ad6ce2a807d2614")
 	
-	base64str := base64.StdEncoding.EncodeToString(bytes)
+//	base64str := base64.URLEncoding.EncodeToString(bytes)
 	
 	// copy "prevBlockHash" from the output of the TestGetDBlocksByRange
-	base64str = "Zr7xq63W+DTXfNr8mowMoRpVJWZm9ZKyind5Ma8wzz8="
+	var base64str = "oPpQqM+k8ur/ilakzyb+NYt1WJ1F9Zf9kiP9fcdT9og="
+	
+	bytes, _ := base64.StdEncoding.DecodeString(base64str)
+	
+	base64str = base64.URLEncoding.EncodeToString(bytes)
 	
 	resp, err := http.Get("http://localhost:8088/v1/dblock/"+base64str)	
 	if err != nil {
@@ -267,15 +269,15 @@ func TestGetEBlockByMR(t *testing.T) {
 	fmt.Println("\nTestGetEBlockByMR===========================================================================")
 	// Send request to FactomClient web server	---------------------------------------
 	// Copy it from explorer
-	bytes, _ := hex.DecodeString("e91657e97c3c0854707dc7af808936c57a75de0f4d2beb353caeb9fb1aadbdd4")
+//	bytes, _ := hex.DecodeString("e91657e97c3c0854707dc7af808936c57a75de0f4d2beb353caeb9fb1aadbdd4")
 	
-	base64str := base64.StdEncoding.EncodeToString(bytes)
+//	base64str := base64.URLEncoding.EncodeToString(bytes)
 	
 	// copy "MerkleRoot" from the output of the TestGetDBlocksByRange
-	url, _ := url.Parse("O0KhBq34a+cNnGBhcI7lG/oQewmYWFUm2GETAAdwZrI=")	
-	fmt.Println("url:", url.RequestURI())
+	var base64str = "jNWm5hEt9knuNnytr3sQbikBd7mZJVmdl9GyG0oAuHI="
+	bytes, _ := base64.StdEncoding.DecodeString(base64str)
 	
-	
+	base64str = base64.URLEncoding.EncodeToString(bytes)
 	
 	resp, err := http.Get("http://localhost:8088/v1/eblockbymr/"+base64str)	
 	if err != nil {
@@ -302,12 +304,15 @@ func TestGetEBlockByHash(t *testing.T) {
 	fmt.Println("\nTestGetEBlockByHash===========================================================================")
 	// Send request to FactomClient web server	---------------------------------------
 	// Copy it from explorer
-	bytes, _ := hex.DecodeString("e91657e97c3c0854707dc7af808936c57a75de0f4d2beb353caeb9fb1aadbdd4")
+//	bytes, _ := hex.DecodeString("e91657e97c3c0854707dc7af808936c57a75de0f4d2beb353caeb9fb1aadbdd4")
 	
-	base64str := base64.StdEncoding.EncodeToString(bytes)
+//	base64str := base64.StdEncoding.EncodeToString(bytes)
 	
 	// copy "prevBlockHash" from the output of the TestGetDBlocksByRange
-	//base64str = "Zr7xq63W+DTXfNr8mowMoRpVJWZm9ZKyind5Ma8wzz8="	
+	var base64str = "7kqwJnHZLhvE3jPdhBSerAYb+0WZ8RIz2NFRoUDrfEY="
+	bytes, _ := base64.StdEncoding.DecodeString(base64str)
+	
+	base64str = base64.URLEncoding.EncodeToString(bytes)
 	
 	resp, err := http.Get("http://localhost:8088/v1/eblock/"+base64str)	
 	if err != nil {
@@ -335,9 +340,16 @@ func TestGetEntryByHash(t *testing.T) {
 	fmt.Println("\nTestGetEntryByHash===========================================================================")
 	// Send request to FactomClient web server	---------------------------------------
 	// Copy it from explorer
-	bytes, _ := hex.DecodeString("392a14b90ad64a340514b869795a58ec5461b0cc2d31a735e388b62d9f7a77ee")
+	//bytes, _ := hex.DecodeString("392a14b90ad64a340514b869795a58ec5461b0cc2d31a735e388b62d9f7a77ee")
 	
-	base64str := base64.StdEncoding.EncodeToString(bytes)
+	//base64str := base64.StdEncoding.EncodeToString(bytes)
+	
+	//copy it from the output of the tests above
+	var base64str = "x6vjCOeND2NLtkDK16cc/VU1hKqGol/GYsygUQTpjXU="
+	bytes, _ := base64.StdEncoding.DecodeString(base64str)
+	
+	base64str = base64.URLEncoding.EncodeToString(bytes)	
+	
 	
 	resp, err := http.Get("http://localhost:8088/v1/entry/"+base64str)	
 	if err != nil {

@@ -4,6 +4,7 @@ import (
 	"testing"
 	"github.com/FactomProject/FactomCode/notaryapi"		
 	"fmt"
+	"time"
 	
 )
 func TestBuyCredit(t *testing.T) {
@@ -18,7 +19,7 @@ func TestBuyCredit(t *testing.T) {
 	factoidTxHash := new (notaryapi.Hash)
 	factoidTxHash.SetBytes(barray1)	
 		
-	_, err := processBuyEntryCredit(pubKey, 100, factoidTxHash)
+	_, err := processBuyEntryCredit(pubKey, 200000, factoidTxHash)
 	
 	
 	printCreditMap()
@@ -36,12 +37,13 @@ func TestAddChain(t *testing.T) {
 	chain := new (notaryapi.EChain)
 	bName := make ([][]byte, 0, 5)
 	bName = append(bName, []byte("myCompany"))	
-	bName = append(bName, []byte("bookkeeping2"))		
+	bName = append(bName, []byte("bookkeeping"))		
 	
 	chain.Name = bName
 	chain.GenerateIDFromName()
 	
 	entry := new (notaryapi.Entry)
+	entry.ChainID = *chain.ChainID		
 	entry.ExtIDs = make ([][]byte, 0, 5)
 	entry.ExtIDs = append(entry.ExtIDs, []byte("1001"))	
 	//entry.ExtIDs = append(entry.Extcd IDs, []byte("570b9e3fb2f5ae823685eb4422d4fd83f3f0d9e7ce07d988bd17e665394668c6"))	
@@ -84,7 +86,7 @@ func TestAddEntry(t *testing.T) {
 	chain := new (notaryapi.EChain)
 	bName := make ([][]byte, 0, 5)
 	bName = append(bName, []byte("myCompany"))	
-	bName = append(bName, []byte("bookkeeping2"))		
+	bName = append(bName, []byte("bookkeeping"))		
 	
 	chain.Name = bName
 	chain.GenerateIDFromName()
@@ -96,16 +98,15 @@ func TestAddEntry(t *testing.T) {
 	pubKey := new (notaryapi.Hash)
 	pubKey.SetBytes(barray)	
 	
-	for i:=1; i<20; i++{
+	for i:=1; i<200; i++{
 		
-		entry := new (notaryapi.Entry)
+		entry := new (notaryapi.Entry)	
 		entry.ExtIDs = make ([][]byte, 0, 5)
 		entry.ExtIDs = append(entry.ExtIDs, []byte(string(i)))	
 		entry.ExtIDs = append(entry.ExtIDs, []byte("570b9e3fb2f5ae823685eb4422d4fd83f3f0d9e7ce07d988bd17e665394668c6"))	
 		entry.ExtIDs = append(entry.ExtIDs, []byte("mvRJqMTMfrY3KtH2A4qdPfq3Q6L4Kw9Ck4"))
 		entry.Data = []byte("Entry data: asl;djfasldkfjasldfjlksouiewopurw\"")
-		entry.ChainID = notaryapi.Hash{}
-		entry.ChainID.Bytes = 	chain.ChainID.Bytes
+		entry.ChainID = *chain.ChainID	
 	
 		binaryEntry, _ := entry.MarshalBinary()
 		entryHash := notaryapi.Sha(binaryEntry)		
@@ -127,6 +128,8 @@ func TestAddEntry(t *testing.T) {
 		if err != nil {
 			t.Errorf("Error:%v", err)
 		}	
+		time.Sleep(time.Second * 1)
+		
 	}
 	
 } 

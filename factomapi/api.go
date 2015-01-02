@@ -30,7 +30,7 @@ func CommitChain(name [][]byte) (*notaryapi.Hash, error) {
 
 func RevealChain(version uint16, c *notaryapi.EChain, e *notaryapi.Entry) error {
 	bChain,_ := c.MarshalBinary()
-	
+	 
 	data := url.Values {}	
 	data.Set("datatype", "chain")
 	data.Set("format", "binary")
@@ -127,7 +127,7 @@ func GetDirectoryBlokByHash(dBlockHash *notaryapi.Hash) (dBlock *notaryapi.DBloc
 
 func GetDirectoryBlokByHashStr(dBlockHashBase64 string) (dBlock *notaryapi.DBlock, err error) {
 	
-	bytes, err := base64.StdEncoding.DecodeString(dBlockHashBase64)
+	bytes, err := base64.URLEncoding.DecodeString(dBlockHashBase64)
 	
 	
 	if err != nil || len(bytes) != notaryapi.HashSize{
@@ -143,7 +143,7 @@ func GetDirectoryBlokByHashStr(dBlockHashBase64 string) (dBlock *notaryapi.DBloc
 }
 
 func GetEntryBlokByHashStr(eBlockHashBase64 string) (eBlock *notaryapi.EBlock, err error) {
-	bytes, err := base64.StdEncoding.DecodeString(eBlockHashBase64)
+	bytes, err := base64.URLEncoding.DecodeString(eBlockHashBase64)
 	
 	
 	if err != nil || len(bytes) != notaryapi.HashSize{
@@ -158,12 +158,12 @@ func GetEntryBlokByHashStr(eBlockHashBase64 string) (eBlock *notaryapi.EBlock, e
 func GetEntryBlokByHash(eBlockHash *notaryapi.Hash) (eBlock *notaryapi.EBlock, err error) {
 
 	eBlock, err = db.FetchEBlockByHash(eBlockHash)
-	
+	 
 	return eBlock, err
 }
-
+ 
 func GetEntryBlokByMRStr(eBlockMRBase64 string) (eBlock *notaryapi.EBlock, err error) {
-	bytes, err := base64.StdEncoding.DecodeString(eBlockMRBase64)
+	bytes, err := base64.URLEncoding.DecodeString(eBlockMRBase64)
 		
 	if err != nil || len(bytes) != notaryapi.HashSize{
 		return nil, err
@@ -175,7 +175,7 @@ func GetEntryBlokByMRStr(eBlockMRBase64 string) (eBlock *notaryapi.EBlock, err e
 }
 
 func GetEntryByHashStr(entryHashBase64 string) (entry *notaryapi.Entry, err error) {
-	bytes, err := base64.StdEncoding.DecodeString(entryHashBase64)
+	bytes, err := base64.URLEncoding.DecodeString(entryHashBase64)
 	
 	
 	if err != nil || len(bytes) != notaryapi.HashSize{

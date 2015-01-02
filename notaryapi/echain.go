@@ -16,16 +16,17 @@ import (
 const Separator = "/"
 
 type EChain struct {
+	//Marshalized
 	ChainID 	*Hash
 	Name		[][]byte
+	FirstEntry *Entry	
 	//Status	uint8
 	
-	
+	//Not Marshalized	
 	Blocks 		[]*EBlock
 	CurrentBlock *EBlock	
 	BlockMutex 	sync.Mutex	
 	NextBlockID uint64	
-	FirstEntry *Entry
 }
 
 type EBlock struct {
@@ -435,7 +436,10 @@ func (b *EChain) MarshalBinary() (data []byte, err error) {
 		binary.Write(&buf, binary.BigEndian, uint64(count))	
 		buf.Write(bytes)
 	}
-
+	
+	data, _ = b.FirstEntry.MarshalBinary()
+	buf.Write(data)
+	
 	return buf.Bytes(), err
 }
 
@@ -447,6 +451,7 @@ func (b *EChain) MarshalledSize() uint64 {
 		size += 8
 		size += uint64(len(bytes))
 	}
+	size += b.FirstEntry.MarshalledSize()
 	
 	return size
 }
@@ -468,7 +473,8 @@ func (b *EChain) UnmarshalBinary(data []byte) (err error) {
 		b.Name[i] = data[:length]
 		data = data[length:]
 	}
-	
+	b.FirstEntry = new(Entry)
+	b.FirstEntry.UnmarshalBinary(data)	
 	return nil
 }
 

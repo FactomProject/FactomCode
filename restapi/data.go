@@ -23,7 +23,7 @@ func doEntry(cid *notaryapi.Hash, data []byte) {
 		fmt.Println(err.Error())
 	}
 } 
-
+ 
 func doEntries() {
 	fmt.Println("** chainmap.len=", len(chainIDMap))
 	
