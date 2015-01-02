@@ -436,9 +436,10 @@ func (b *EChain) MarshalBinary() (data []byte, err error) {
 		binary.Write(&buf, binary.BigEndian, uint64(count))	
 		buf.Write(bytes)
 	}
-	
-	data, _ = b.FirstEntry.MarshalBinary()
-	buf.Write(data)
+	if b.FirstEntry != nil {
+		data, _ = b.FirstEntry.MarshalBinary()
+		buf.Write(data)
+	}
 	
 	return buf.Bytes(), err
 }
@@ -451,8 +452,9 @@ func (b *EChain) MarshalledSize() uint64 {
 		size += 8
 		size += uint64(len(bytes))
 	}
-	size += b.FirstEntry.MarshalledSize()
-	
+	if b.FirstEntry != nil {	
+		size += b.FirstEntry.MarshalledSize()
+	}
 	return size
 }
 
@@ -473,8 +475,11 @@ func (b *EChain) UnmarshalBinary(data []byte) (err error) {
 		b.Name[i] = data[:length]
 		data = data[length:]
 	}
-	b.FirstEntry = new(Entry)
-	b.FirstEntry.UnmarshalBinary(data)	
+	
+	if len(data) > HashSize{
+		b.FirstEntry = new(Entry)
+		b.FirstEntry.UnmarshalBinary(data)	
+	}
 	return nil
 }
 
