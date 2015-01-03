@@ -1,6 +1,6 @@
 # Factom
 
-Demo Client
+Block Explorer
 
   * {{if eq .Title "Home"}}
       <div>Home</div>

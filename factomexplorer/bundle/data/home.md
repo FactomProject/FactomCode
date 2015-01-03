@@ -1,3 +1,3 @@
 # Home
 
-Welcome to the Factom Demo Client!
+Welcome to the Factom Block Explorer!

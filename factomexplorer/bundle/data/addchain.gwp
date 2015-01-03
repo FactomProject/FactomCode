@@ -8,11 +8,25 @@
 <form id="chainform" method="post" action="/addchain">
 
 <br />	
-	<label>Name Level 0: </label><input type="text" name="level0" value="" /> <br /><br />
-	<label>Name Level 1: </label><input type="text" name="level1" value="" /> <br /><br />
-	<label>Name Level 2: </label><input type="text" name="level2" value="" /> <br /><br />
-	<label>Name Level 3: </label><input type="text" name="level3" value="" /> <br /><br />
-	<label>Name Level 4: </label><input type="text" name="level4" value="" /> <br /><br />
+	<label>Name Level 0: </label><input type="text" name="level0" value="" /> <br />
+	<label>Name Level 1: </label><input type="text" name="level1" value="" /> <br />
+	<label>Name Level 2: </label><input type="text" name="level2" value="" /> <br />
+	<label>Name Level 3: </label><input type="text" name="level3" value="" /> <br />
+	<label>Name Level 4: </label><input type="text" name="level4" value="" /> <br />
 	<label>...</label> <br /><br />	
+	<h4>First Entry:</h4>
+	<div class="entry">
+			<h4>External IDs:</h4>	
+			<label>External ID 0: </label><input type="text" name="ehash0" value="" /> <br />
+			<label>External ID 1: </label><input type="text" name="ehash1" value="" /> <br />
+			<label>External ID 2: </label><input type="text" name="ehash2" value="" /> <br />
+			<label>...</label> <br />
+		<hr />			
+		<div class="data">
+			<h4>Data:</h4>
+			<div><textarea name="data"></textarea></div>
+		</div>
+	</div>
+
 	<div align = "left" ><input type="submit" value="Submit" class="button"/></div>
 </form>

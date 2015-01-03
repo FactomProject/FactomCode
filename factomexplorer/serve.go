@@ -472,9 +472,34 @@ func handleChainPost(ctx *web.Context) {
 		chain := new(notaryapi.EChain)
 		chain.Name = bName	
 		chain.GenerateIDFromName()	
-/*		
+
+		entry := new (notaryapi.Entry)
+		entry.ChainID = *chain.ChainID
+		//entry.ExtIDs = externalHashes
+		//entry.Data = entry.Data()
+
+		externalHashes :=  make ([][]byte, 0, 5)
+		ehash0 := strings.TrimSpace(ctx.Params["ehash0"])
+		if len(ehash0)>0{
+			externalHashes = append(externalHashes, []byte(ehash0))
+		}	
+		
+		ehash1 := strings.TrimSpace(ctx.Params["ehash1"])
+		if len(ehash1)>0{
+			externalHashes = append(externalHashes, []byte(ehash1))
+		}	
+		
+		ehash2 := strings.TrimSpace(ctx.Params["ehash2"])
+		if len(ehash2)>0{
+			externalHashes = append(externalHashes, []byte(ehash2))
+		}	
+		
+		entry.ExtIDs = externalHashes
+		entry.Data = []byte(ctx.Params["data"])
+
+/*	
 		//to be improved??
-		chain.FirstEntry = new (notaryapi.Entry)		
+		chain.FirstEntry = 		
 		
 		chain.FirstEntry.ExtIDs = make ([][]byte, 0, 5)
 		chain.FirstEntry.ExtIDs = append(chain.FirstEntry.ExtIDs, []byte("1001"))	
@@ -497,7 +522,7 @@ func handleChainPost(ctx *web.Context) {
 		*/
 		
 
-		err := factomapi.RevealChain(1, chain, nil)
+		err := factomapi.RevealChain(1, chain, entry)
 				
 		if err != nil {
 			abortMessage = fmt.Sprint("An error occured while submitting the entry (entry may have been accepted by the server but was not locally flagged as such): ", err.Error())
