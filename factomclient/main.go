@@ -17,9 +17,9 @@ import (
 	"time"	
 	"encoding/csv"
 	"net/http"
-	"net/url"	
-) 
-
+	"net/url"	 
+)  
+ 
 var (
  	logLevel = "DEBUG"
 	portNumber int = 8088 	

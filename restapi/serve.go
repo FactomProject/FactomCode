@@ -27,7 +27,7 @@ func parse(r *http.Request) (path []string, method string, accept string, form u
 	if len(path) > 0 && len(path[0]) == 0 {
 		path = path[1:]
 	}
-	
+	 
 	if len(path) > 0 && len(path[len(path) - 1]) == 0 {
 		path = path[:len(path) - 1]
 	}

@@ -91,7 +91,7 @@ func handleBuyCreditPost(ctx *web.Context) {
 	if ctx.Params["to"] == "wallet" {
 		ecPubKey.Bytes = (*wallet.ClientPublicKey().Key)[:]
 	} else {
-		ecPubKey.Bytes, _ = base64.StdEncoding.DecodeString(ctx.Params["to"])
+		ecPubKey.Bytes, _ = base64.URLEncoding.DecodeString(ctx.Params["to"])
 	}
 
 	fmt.Println("handleBuyCreditPost using pubkey: ", ecPubKey, " requested",ctx.Params["to"])
@@ -164,7 +164,7 @@ func handleChainPost(ctx *web.Context) {
 		return
 	}
 	
-		
+		 
 }
 
 func handleDBlocksByRange(ctx *web.Context, fromHeightStr string, toHeightStr string) {

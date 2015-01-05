@@ -702,6 +702,9 @@ func processRevealChain(newChain *notaryapi.EChain) ([]byte, *notaryapi.Error) {
 		return nil, notaryapi.CreateError(notaryapi.ErrorInternal, `This chain is already existing`) //ErrorInternal?
 	}	
 	
+	if newChain.FirstEntry == nil{
+		return nil, notaryapi.CreateError(notaryapi.ErrorInternal, `The first entry is required to create a new chain.`) //ErrorInternal?
+	}	
 	// Remove the entry for prePaidEntryMap
 	binaryEntry, _ := newChain.FirstEntry.MarshalBinary()
 	firstEntryHash := notaryapi.Sha(binaryEntry)
@@ -721,7 +724,18 @@ func processRevealChain(newChain *notaryapi.EChain) ([]byte, *notaryapi.Error) {
 	
 	// Add the new chain in the chainIDMap
 	chainIDMap[newChain.ChainID.String()] = newChain	
+	
+	// store the new entry in db
+	entryBinary, _ := newChain.FirstEntry.MarshalBinary()
+	entryHash := notaryapi.Sha(entryBinary)
+	db.InsertEntryAndQueue( entryHash, &entryBinary, newChain.FirstEntry, &newChain.ChainID.Bytes)
 
+	newChain.BlockMutex.Lock()	
+	err := newChain.Blocks[len(newChain.Blocks)-1].AddEBEntry(newChain.FirstEntry)
+	newChain.BlockMutex.Unlock()	
+	if err != nil {
+		return nil, notaryapi.CreateError(notaryapi.ErrorInternal, fmt.Sprintf(`Error while adding the First Entry to Block: %s`, err.Error()))
+	}
 	ExportDataFromDbToFile()
 	
 	return newChain.ChainID.Bytes, nil	

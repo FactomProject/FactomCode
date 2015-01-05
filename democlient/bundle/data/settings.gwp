@@ -1,6 +1,0 @@
-<h1>
-	Settings
-</h1>
-<form method="post" id="settingsForm"></form>
-<input type="text" name="server" value="{{.Server}}" form="settingsForm" /> <br><br>
-<input class="button" type="submit" value="Save" form="settingsForm" />
