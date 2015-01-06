@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/hex"
 	"encoding/xml"
 	"errors"
 	"flag"
@@ -483,6 +484,36 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 
 		datatype := form.Get("datatype") 
 		switch datatype {
+			case "commitentry":
+				var (
+					hash, pub *notaryapi.Hash
+					timestamp uint64
+				)
+				
+				sig, err := hex.DecodeString(form.Get("signature"))
+				if err != nil {
+					fmt.Println("Commit: signature: ", err)
+				}
+				pub.Bytes = sig[:32]
+				
+				data, err := hex.DecodeString(form.Get("data"))
+				if err != nil {
+					fmt.Println("Commit: data: ", err)
+				}
+				timestamp = binary.BigEndian.Uint64(data[0:8])
+				hash.Bytes = data[8:]
+				
+				processCommitEntry(hash, pub, int64(timestamp))
+			case "revealentry":
+				var entry *notaryapi.Entry
+				data, err := hex.DecodeString(form.Get("data"))
+				if err != nil {
+					fmt.Println("Reveal: data: ", err)
+				}
+				entry.UnmarshalBinary(data)
+				if _, err := processRevealEntry(entry); err != nil {
+					fmt.Println("Reveal: ", err)
+				}	
 			case "chain":
 				resource, err = postChain("/"+strings.Join(path, "/"), form)
 			case "buycredit":
