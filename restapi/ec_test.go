@@ -28,7 +28,7 @@ func TestBuyCredit(t *testing.T) {
 	printCChain()
 				
 	if err != nil {
-		t.Errorf("Error:%v", err)
+		t.Errorf("Error:", err)
 	}
 } 
 
@@ -69,7 +69,7 @@ func TestAddChain(t *testing.T) {
 	printPaidEntryMap()
 
 	if err != nil {
-		fmt.Println("Error:%v", err)
+		fmt.Println("Error:", err)
 	}
 	
 	// Reveal new chain
@@ -77,7 +77,7 @@ func TestAddChain(t *testing.T) {
 	fmt.Println("after processNewChain:")
 	printPaidEntryMap()
 	if err != nil {
-		fmt.Println("Error:%v", err)
+		fmt.Println("Error:", err)
 	}		
 
 } 
@@ -98,7 +98,7 @@ func TestAddEntry(t *testing.T) {
 	pubKey := new (notaryapi.Hash)
 	pubKey.SetBytes(barray)	
 	
-	for i:=1; i<200; i++{
+	for i:=1; i<2; i++{
 		
 		entry := new (notaryapi.Entry)	
 		entry.ExtIDs = make ([][]byte, 0, 5)
@@ -116,9 +116,9 @@ func TestAddEntry(t *testing.T) {
 		fmt.Println("after processCommitEntry:")			
 		printCreditMap()
 		printPaidEntryMap()
-		printCChain()			
+//		printCChain()			
 		if err != nil {
-			t.Errorf("Error:%v", err)
+			t.Errorf("Error:", err)
 		}
 		
 		// Reveal new entry
@@ -126,10 +126,11 @@ func TestAddEntry(t *testing.T) {
 		fmt.Println("after processRevealEntry:")	
 		printPaidEntryMap()	
 		if err != nil {
-			t.Errorf("Error:%v", err)
+			t.Errorf("Error:", err)
 		}	
 		time.Sleep(time.Second * 1)
 		
 	}
 	
 } 
+

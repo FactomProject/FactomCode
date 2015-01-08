@@ -621,7 +621,7 @@ func newDirectoryBlock(chain *notaryapi.DChain) *notaryapi.DBlock {
 	block.DBHash = blkhash
 	db.ProcessDBlockBatch(block)  	
 
-	log.Println("DirectoryBlock: block" + strconv.FormatUint(block.Header.BlockID, 10) +" created for directory block chain: "  + notaryapi.EncodeBinary(chain.ChainID))
+	log.Println("DirectoryBlock: block" + strconv.FormatUint(block.Header.BlockID, 10) +" created for directory block chain: "  + chain.ChainID.String())
 
 	//update FBBlock with FBHash & FBlockID
 

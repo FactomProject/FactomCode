@@ -249,12 +249,12 @@ func init() {
 
 	// init Directory Block Chain
 	initDChain()
-	fmt.Println("Loaded", len(dchain.Blocks)-1, "Directory blocks for chain: "+ notaryapi.EncodeBinary(dchain.ChainID))
+	fmt.Println("Loaded", len(dchain.Blocks)-1, "Directory blocks for chain: "+ dchain.ChainID.String())
 	
 	
 	// init Entry Credit Chain
 	initCChain()
-	fmt.Println("Loaded", len(cchain.Blocks)-1, "Entry Credit blocks for chain: "+ cchain.ChainID.String())
+	fmt.Println("Loaded", len(cchain.Blocks)-1, "Entry Credit blocks for chain: "+ cchain.ChainID.String())	
 	
 	// init dbBatches, dbBatch
 	dbBatches = &DBBatches {
@@ -343,7 +343,7 @@ func main() {
 
 	//addrStr := "muhXX7mXoMZUBvGLCgfjuoY2n2mziYETYC"
 	//addrStr := "movaFTARmsaTMk3j71MpX8HtMURpsKhdra"
-	
+/*	
 	err := initRPCClient()
 	if err != nil {
 		log.Fatalf("cannot init rpc client: %s", err)
@@ -353,7 +353,7 @@ func main() {
 	if err := initWallet(); err != nil {
 		log.Fatalf("cannot init wallet: %s", err)
 	}
-	
+*/	
 	//doEntries()
 
 	
@@ -603,7 +603,7 @@ func processRevealEntry(newEntry *notaryapi.Entry) ([]byte, *notaryapi.Error) {
 		return nil, notaryapi.CreateError(notaryapi.ErrorInternal, `Entity to be POSTed is nil`)
 	}
 
-	fmt.Println("chainID:", newEntry.ChainID.String())
+
 	chain := chainIDMap[newEntry.ChainID.String()]
 	if chain == nil{
 		return nil, notaryapi.CreateError(notaryapi.ErrorInternal, `This chain is not supported`) //ErrorInternal?
@@ -660,6 +660,17 @@ func processCommitEntry(entryHash *notaryapi.Hash, pubKey *notaryapi.Hash, 	time
 }
 
 func processCommitChain(entryHash *notaryapi.Hash, chainIDHash *notaryapi.Hash, entryChainIDHash *notaryapi.Hash, pubKey *notaryapi.Hash) ([]byte, error) {
+
+	// Check if the chain id already exists
+	_, existing := chainIDMap[chainIDHash.String()]
+	if !existing {
+		if chainIDHash.IsSameAs(dchain.ChainID) || chainIDHash.IsSameAs(cchain.ChainID) {
+			existing = true
+		}	
+	}
+	if existing {
+		return nil, errors.New("Already existing chain id:" + chainIDHash.String())
+	}
 	
 	// Precalculate the key and value pair for prePaidEntryMap
 	key := getPrePaidChainKey(entryHash, chainIDHash)
@@ -675,7 +686,7 @@ func processCommitChain(entryHash *notaryapi.Hash, chainIDHash *notaryapi.Hash, 
 	}	
 	eCreditMap[pubKey.String()] = credits + creditsPerChain
 	err := cchain.Blocks[len(cchain.Blocks)-1].AddCBEntry(cbEntry)
-	// Update the prePaidEntryMapin memory
+	// Update the prePaidEntryMap in memory
 	payments, _ := prePaidEntryMap[key]	
 	prePaidEntryMap[key] = payments + 1
 	cchain.BlockMutex.Unlock()	 
@@ -697,8 +708,14 @@ func processBuyEntryCredit(pubKey *notaryapi.Hash, credits int32, factoidTxHash 
 }
 func processRevealChain(newChain *notaryapi.EChain) ([]byte, *notaryapi.Error) {
 
-	chain := chainIDMap[newChain.ChainID.String()]
-	if chain != nil{
+	// Check if the chain id already exists
+	_, existing := chainIDMap[newChain.ChainID.String()]
+	if !existing {
+		if newChain.ChainID.IsSameAs(dchain.ChainID) || newChain.ChainID.IsSameAs(cchain.ChainID) {
+			existing = true
+		}	
+	}
+	if existing{
 		return nil, notaryapi.CreateError(notaryapi.ErrorInternal, `This chain is already existing`) //ErrorInternal?
 	}	
 	
@@ -792,7 +809,7 @@ func saveDChain(chain *notaryapi.DChain) {
 			panic(err)
 		}
  
-		strChainID := notaryapi.EncodeBinary(chain.ChainID)
+		strChainID := chain.ChainID.String()
 		if fileNotExists (dataStorePath + strChainID){
 			err:= os.MkdirAll(dataStorePath + strChainID, 0777)
 			if err==nil{
@@ -850,10 +867,13 @@ func saveCChain(chain *notaryapi.CChain) {
 func initDChain() {
 	dchain = new (notaryapi.DChain)
 
+	//to be improved??
+	dchain.ChainID = new (notaryapi.Hash)	
 	barray := (make([]byte, 32))
-	dchain.ChainID = &barray
+	dchain.ChainID.SetBytes(barray)	
 	
-	matches, err := filepath.Glob(dataStorePath + notaryapi.EncodeBinary(dchain.ChainID) + "/store.*.block") // need to get it from a property file??
+	
+	matches, err := filepath.Glob(dataStorePath + dchain.ChainID.String() + "/store.*.block") // need to get it from a property file??
 	if err != nil {
 		panic(err)
 	}
@@ -894,7 +914,7 @@ func initDChain() {
 	binaryTimestamp := make([]byte, 8)
 	binary.BigEndian.PutUint64(binaryTimestamp, uint64(0))
 	if dchain.Blocks[dchain.NextBlockID].IsSealed == true {
-		panic ("dchain.Blocks[dchain.NextBlockID].IsSealed for chain:" + notaryapi.EncodeBinary(dchain.ChainID))
+		panic ("dchain.Blocks[dchain.NextBlockID].IsSealed for chain:" + dchain.ChainID.String())
 	}
 	dchain.Blocks[dchain.NextBlockID].DBEntries, _ = db.FetchDBEntriesFromQueue(&binaryTimestamp)			
 
@@ -1048,6 +1068,7 @@ func initChains() {
 		chainIDMap[newChain.ChainID.String()] = &newChain	
 		//chainIDMap[string(chain.ChainID.Bytes)] = &chain			
 	}
+	
 }
 
 
