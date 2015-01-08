@@ -40,8 +40,7 @@ func handleSubmitEntry(ctx *web.Context) {
 		j := []byte(ctx.Params["entry"])
 		e := new(factom.Entry)
 		e.UnmarshalJSON(j)
-		err := factom.Submit(e)
-		if err != nil {
+		if err := factom.Submit(e); err != nil {
 			fmt.Fprintln(ctx,
 				"there was a problem with submitting the entry:", err)
 		}
