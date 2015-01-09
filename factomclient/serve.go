@@ -12,7 +12,7 @@ import (
 	"net/url"
 	"strconv"
 	"encoding/base64"
-	
+	"time"
   
 )
 
@@ -40,7 +40,12 @@ func handleSubmitEntry(ctx *web.Context) {
 		j := []byte(ctx.Params["entry"])
 		e := new(factom.Entry)
 		e.UnmarshalJSON(j)
-		if err := factom.Submit(e); err != nil {
+		if err := factom.CommitEntry(e); err != nil {
+			fmt.Fprintln(ctx,
+				"there was a problem with submitting the entry:", err)
+		}
+		time.Sleep(1 * time.Second)
+		if err := factom.RevealEntry(e); err != nil {
 			fmt.Fprintln(ctx,
 				"there was a problem with submitting the entry:", err)
 		}
