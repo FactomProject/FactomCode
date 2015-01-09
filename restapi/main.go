@@ -461,7 +461,7 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 			hash.Bytes = data[8:]
 			_, err = processCommitEntry(hash, pub, int64(timestamp))
 			if err != nil {
-				fmt.Println(err)
+				fmt.Println("Error:", err)
 			}
 		case "revealentry":
 			e := new(notaryapi.Entry)
@@ -472,7 +472,7 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 			e.UnmarshalBinary(bin)
 			_, err = processRevealEntry(e)
 			if err != nil {
-				fmt.Println(err)
+				fmt.Println("Error:", err)
 			}
 		case "chain":
 			resource, err = postChain("/"+strings.Join(path, "/"), form)
