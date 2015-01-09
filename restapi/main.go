@@ -459,7 +459,7 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 			timestamp := binary.BigEndian.Uint64(data[:8])
 			hash.Bytes = data[8:]
-			_, err = processCommitEntry(hash, pub, int64(timestamp))
+			resource, err = processCommitEntry(hash, pub, int64(timestamp))
 			if err != nil {
 				fmt.Println("Error:", err)
 			}
@@ -470,7 +470,7 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 				fmt.Println("hex:", err)
 			}
 			e.UnmarshalBinary(bin)
-			_, err = processRevealEntry(e)
+			resource, err = processRevealEntry(e)
 			if err != nil {
 				fmt.Println("Error:", err)
 			}
