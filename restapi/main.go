@@ -436,55 +436,24 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 	var buf bytes.Buffer
 
 	path, method, accept, form, err := parse(r)
-/*
-	defer func() {
-		switch accept {
-		case "text":
-			w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-
-		case "json":
-			w.Header().Set("Content-Type", "application/json; charset=utf-8")
-
-		case "xml":
-			w.Header().Set("Content-Type", "application/xml; charset=utf-8")
-
-		case "html":
-			w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		}
-
-		if err != nil {
-			var r *notaryapi.Error
-
-			buf.Reset()
-			r = notaryapi.Marshal(err, accept, &buf, false)
-			if r != nil {
-				err = r
-			}
-			w.WriteHeader(err.HTTPCode)
-		}
-
-		//buf.WriteTo(w)
-		if resource != nil {
-			//Send back entry hash
-			w.Write(resource.([]byte)) 
-		}else{
-			w.Write([]byte("\n\n"))
-		}
-	}()
-*/
 	switch method {
 	case "GET":
 		//resource, err = getServerDataFileMap()
 
+	case"POSTFORM":
+		fmt.Println("POSTFORM")
 	case "POST":
+		fmt.Println("Got to POST")
 		if len(path) != 1 {
 			err = notaryapi.CreateError(notaryapi.ErrorBadMethod, `POST can only be used in the root context: /v1`)
 			return
 		}
 
-		datatype := form.Get("datatype") 
+		datatype := form.Get("datatype")
+		fmt.Println("set datatype:", datatype)
 		switch datatype {
 			case "commitentry":
+			fmt.Println("Got to commitentry")
 				var (
 					hash, pub *notaryapi.Hash
 					timestamp uint64
@@ -503,17 +472,20 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 				timestamp = binary.BigEndian.Uint64(data[0:8])
 				hash.Bytes = data[8:]
 				
-				processCommitEntry(hash, pub, int64(timestamp))
+				_, err = processCommitEntry(hash, pub, int64(timestamp))
+				fmt.Println("got Commit")
+				fmt.Println("err=", err)
 			case "revealentry":
+				fmt.Println("got to revealentry")
 				var entry *notaryapi.Entry
 				data, err := hex.DecodeString(form.Get("data"))
 				if err != nil {
 					fmt.Println("Reveal: data: ", err)
 				}
 				entry.UnmarshalBinary(data)
-				if _, err := processRevealEntry(entry); err != nil {
-					fmt.Println("Reveal: ", err)
-				}	
+				_, err = processRevealEntry(entry)
+				fmt.Println("got Reveal")
+				fmt.Println("err=", err)
 			case "chain":
 				resource, err = postChain("/"+strings.Join(path, "/"), form)
 			case "buycredit":
