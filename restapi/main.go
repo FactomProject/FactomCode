@@ -440,10 +440,9 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 	case "GET":
 		//resource, err = getServerDataFileMap()
 
-	case"POSTFORM":
-		fmt.Println("POSTFORM")
 	case "POST":
 		fmt.Println("Got to POST")
+		fmt.Println(form)
 		if len(path) != 1 {
 			err = notaryapi.CreateError(notaryapi.ErrorBadMethod, `POST can only be used in the root context: /v1`)
 			return
