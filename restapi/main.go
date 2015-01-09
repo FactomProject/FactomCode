@@ -441,15 +441,12 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 		//resource, err = getServerDataFileMap()
 
 	case "POST":
-		fmt.Println("Got to POST")
-		fmt.Println(form)
 		if len(path) != 1 {
 			err = notaryapi.CreateError(notaryapi.ErrorBadMethod, `POST can only be used in the root context: /v1`)
 			return
 		}
 
 		datatype := form.Get("datatype")
-		fmt.Println("set datatype:", datatype)
 		switch datatype {
 		case "commitentry":
 			var err error
@@ -466,37 +463,6 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				fmt.Println(err)
 			}
-//		case "commitentry":
-//			fmt.Println("Got to commitentry")
-//			var timestamp uint64
-//			hash := new(notaryapi.Hash)
-//			pub := new(notaryapi.Hash)
-//			
-//			pub.Bytes = func() []byte {
-//				b := make([]byte, 32, 32)
-//				for i := range b {
-//					b[i] = 0
-//				}
-//				b[0] = 2
-//				return b
-//			}()
-////			sig, err := hex.DecodeString(form.Get("signature"))
-////			if err != nil {
-////				fmt.Println("Commit: signature: ", err)
-////			}
-////			fmt.Println(sig)
-////			pub.Bytes = sig
-//			
-//			data, err := hex.DecodeString(form.Get("data"))
-//			if err != nil {
-//				fmt.Println("Commit: data: ", err)
-//			}
-//			timestamp = binary.BigEndian.Uint64(data[:8])
-//			hash.Bytes = data[8:]
-//			
-//			_, err = processCommitEntry(hash, pub, int64(timestamp))
-//			fmt.Println("got Commit")
-//			fmt.Println("err=", err)
 		case "revealentry":
 			e := new(notaryapi.Entry)
 			bin, err := hex.DecodeString(r.Form.Get("entry"))
@@ -508,17 +474,6 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				fmt.Println(err)
 			}
-//		case "revealentry":
-//			fmt.Println("got to revealentry")
-//			entry := new(notaryapi.Entry)
-//			data, err := hex.DecodeString(form.Get("data"))
-//			if err != nil {
-//				fmt.Println("Reveal: data: ", err)
-//			}
-//			entry.UnmarshalBinary(data)
-//			_, err = processRevealEntry(entry)
-//			fmt.Println("got Reveal")
-//			fmt.Println("err=", err)
 		case "chain":
 			resource, err = postChain("/"+strings.Join(path, "/"), form)
 		case "buycredit":
