@@ -98,7 +98,7 @@ func TestAddEntry(t *testing.T) {
 	pubKey := new (notaryapi.Hash)
 	pubKey.SetBytes(barray)	
 	
-	for i:=1; i<2; i++{
+	for i:=1; i<200; i++{
 		
 		entry := new (notaryapi.Entry)	
 		entry.ExtIDs = make ([][]byte, 0, 5)
