@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/hex"
 	"encoding/xml"
 	"errors"
 	"flag"
@@ -343,6 +344,7 @@ func main() {
 
 	//addrStr := "muhXX7mXoMZUBvGLCgfjuoY2n2mziYETYC"
 	//addrStr := "movaFTARmsaTMk3j71MpX8HtMURpsKhdra"
+<<<<<<< HEAD
 /*	
 	err := initRPCClient()
 	if err != nil {
@@ -354,6 +356,19 @@ func main() {
 		log.Fatalf("cannot init wallet: %s", err)
 	}
 */	
+=======
+	
+//	err := initRPCClient()
+//	if err != nil {
+//		log.Fatalf("cannot init rpc client: %s", err)
+//	}
+//	defer shutdown()
+//	
+//	if err := initWallet(); err != nil {
+//		log.Fatalf("cannot init wallet: %s", err)
+//	}
+	
+>>>>>>> mjb
 	//doEntries()
 
 	
@@ -435,42 +450,6 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 	var buf bytes.Buffer
 
 	path, method, accept, form, err := parse(r)
-/*
-	defer func() {
-		switch accept {
-		case "text":
-			w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-
-		case "json":
-			w.Header().Set("Content-Type", "application/json; charset=utf-8")
-
-		case "xml":
-			w.Header().Set("Content-Type", "application/xml; charset=utf-8")
-
-		case "html":
-			w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		}
-
-		if err != nil {
-			var r *notaryapi.Error
-
-			buf.Reset()
-			r = notaryapi.Marshal(err, accept, &buf, false)
-			if r != nil {
-				err = r
-			}
-			w.WriteHeader(err.HTTPCode)
-		}
-
-		//buf.WriteTo(w)
-		if resource != nil {
-			//Send back entry hash
-			w.Write(resource.([]byte)) 
-		}else{
-			w.Write([]byte("\n\n"))
-		}
-	}()
-*/
 	switch method {
 	case "GET":
 		//resource, err = getServerDataFileMap()
@@ -481,38 +460,64 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		datatype := form.Get("datatype") 
+		datatype := form.Get("datatype")
 		switch datatype {
-			case "chain":
-				resource, err = postChain("/"+strings.Join(path, "/"), form)
-			case "buycredit":
-				pubKey, err := notaryapi.HexToHash(form.Get("ECPubKey")) 
-				if err!=nil{
-					fmt.Println("Error in parsing pubKey:", err.Error())
-				}
-				value, err := strconv.ParseUint(form.Get("factoidbase"), 10, 64)
-				if err!=nil{
-					fmt.Println("Error in parsing value:", err.Error())
-				}	
-				credits := value * creditsPerFactoid / 1000000000
-				resource, err = processBuyEntryCredit(pubKey, int32(credits), pubKey)		
-				printCreditMap()				
-			case "getbalance":
-				pubKey, err := notaryapi.HexToHash(form.Get("ECPubKey")) 
-				if err!=nil{
-					fmt.Println("Error in parsing pubKey:", err.Error())
-				}
-				resource, err = getEntryCreditBalance(pubKey)			
-			case "filelist":
-				resource, err = getServerDataFileMapJSON()			
-			case "file":
-				fileKey := form.Get("filekey")
-				filename := serverDataFileMap[fileKey]
-				http.ServeFile(w, r, dataStorePath + "csv/"+filename)
-				return							
-			default:
-				resource, err = postEntry("/"+strings.Join(path, "/"), form)
-		}
+		case "commitentry":
+			var err error
+			pub := new(notaryapi.Hash)
+			hash := new(notaryapi.Hash)
+			data, err := hex.DecodeString(r.Form.Get("data"))
+			pub.Bytes, err = hex.DecodeString(r.Form.Get("signature"))
+			if err != nil {
+				fmt.Println("hex:", err)
+			}
+			timestamp := binary.BigEndian.Uint64(data[:8])
+			hash.Bytes = data[8:]
+			resource, err = processCommitEntry(hash, pub, int64(timestamp))
+			if err != nil {
+				fmt.Println("Error:", err)
+			}
+		case "revealentry":
+			e := new(notaryapi.Entry)
+			bin, err := hex.DecodeString(r.Form.Get("entry"))
+			if err != nil {
+				fmt.Println("hex:", err)
+			}
+			e.UnmarshalBinary(bin)
+			resource, err = processRevealEntry(e)
+			if err != nil {
+				fmt.Println("Error:", err)
+			}
+		case "chain":
+			resource, err = postChain("/"+strings.Join(path, "/"), form)
+		case "buycredit":
+			pubKey, err := notaryapi.HexToHash(form.Get("ECPubKey")) 
+			if err!=nil{
+				fmt.Println("Error in parsing pubKey:", err.Error())
+			}
+			value, err := strconv.ParseUint(form.Get("factoidbase"), 10, 64)
+			if err!=nil{
+				fmt.Println("Error in parsing value:", err.Error())
+			}	
+			credits := value * creditsPerFactoid / 1000000000
+			resource, err = processBuyEntryCredit(pubKey, int32(credits), pubKey)		
+			printCreditMap()				
+		case "getbalance":
+			pubKey, err := notaryapi.HexToHash(form.Get("ECPubKey")) 
+			if err!=nil{
+				fmt.Println("Error in parsing pubKey:", err.Error())
+			}
+			resource, err = getEntryCreditBalance(pubKey)			
+		case "filelist":
+			resource, err = getServerDataFileMapJSON()			
+		case "file":
+			fileKey := form.Get("filekey")
+			filename := serverDataFileMap[fileKey]
+			http.ServeFile(w, r, dataStorePath + "csv/"+filename)
+			return							
+		default:
+			resource, err = postEntry("/"+strings.Join(path, "/"), form)
+	}
 
 	default:
 		err = notaryapi.CreateError(notaryapi.ErrorBadMethod, fmt.Sprintf(`The HTTP %s method is not supported`, method))
