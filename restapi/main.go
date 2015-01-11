@@ -474,6 +474,7 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				fmt.Println("Error:", err)
 			}
+		// (commit|reveal)chain
 		case "chain":
 			resource, err = postChain("/"+strings.Join(path, "/"), form)
 		case "buycredit":
