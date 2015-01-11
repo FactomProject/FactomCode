@@ -344,20 +344,6 @@ func main() {
 
 	//addrStr := "muhXX7mXoMZUBvGLCgfjuoY2n2mziYETYC"
 	//addrStr := "movaFTARmsaTMk3j71MpX8HtMURpsKhdra"
-<<<<<<< HEAD
-/*	
-	err := initRPCClient()
-	if err != nil {
-		log.Fatalf("cannot init rpc client: %s", err)
-	}
-	defer shutdown()
-	
-	if err := initWallet(); err != nil {
-		log.Fatalf("cannot init wallet: %s", err)
-	}
-*/	
-=======
-	
 //	err := initRPCClient()
 //	if err != nil {
 //		log.Fatalf("cannot init rpc client: %s", err)
@@ -368,7 +354,6 @@ func main() {
 //		log.Fatalf("cannot init wallet: %s", err)
 //	}
 	
->>>>>>> mjb
 	//doEntries()
 
 	
