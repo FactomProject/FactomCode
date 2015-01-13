@@ -5,7 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/xml"
 	"errors"
-	"flag"
+//	"flag"
 	"fmt"
 	"github.com/FactomProject/FactomCode/notaryapi"
 	"github.com/conformal/btcrpcclient"
