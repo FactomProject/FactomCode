@@ -345,7 +345,7 @@ func main() {
 
 	//addrStr := "muhXX7mXoMZUBvGLCgfjuoY2n2mziYETYC"
 	//addrStr := "movaFTARmsaTMk3j71MpX8HtMURpsKhdra"
-/*	err := initRPCClient()
+	err := initRPCClient()
 	if err != nil {
 		log.Fatalf("cannot init rpc client: %s", err)
 	}
@@ -354,7 +354,6 @@ func main() {
 	if err := initWallet(); err != nil {
 		log.Fatalf("cannot init wallet: %s", err)
 	}
-	*/
 	//doEntries()
 */
 	
@@ -480,7 +479,7 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 
 			entryhash.Bytes = data[i+1:i+32]
 
-			resource, err = processCommitChain(entryhash, chainhash, entrychainhash, pub)
+			resource, err = processCommitChain(entryhash, chainhash, entrychainhash, pub, 5)
 
 			if err != nil {
 				fmt.Println("Error:", err)
