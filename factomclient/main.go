@@ -131,7 +131,7 @@ func initDB() {
 	db, err = ldb.OpenLevelDB(ldbpath, false)
 	
 	if err != nil{
-		log.Println("err opening db: %v", err)
+		log.Println("err opening db: ", err)
 	}
 	
 	if db == nil{
@@ -159,7 +159,7 @@ func downloadAndImportDbRecords() {
 	resp, err := http.PostForm(server, data)
 	
 	if err != nil {
-		fmt.Println("Error:%v", err)
+		fmt.Println("Error:", err)
 		return
 	} 	
 
