@@ -276,7 +276,7 @@ func (b *EBlock) AddEBEntry(e *Entry) (err error) {
 
 
  	ebEntry := NewEBEntry(h, &b.Chain.ChainID.Bytes)	
- 	ebEntry.SetIntTimeStamp(e.TimeStamp())
+ 	//ebEntry.SetIntTimeStamp(e.TimeStamp())
 	
 	b.EBEntries = append(b.EBEntries, ebEntry) 
 	b.Salt = s

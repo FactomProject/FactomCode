@@ -6,17 +6,17 @@ import (
 	"net/http"
 	"net/url"
 	"fmt"
-//	"encoding/hex"	
+	"encoding/hex"	
 //	"github.com/FactomProject/gocoding"	
 	"github.com/FactomProject/FactomCode/notaryapi"	
 	"github.com/FactomProject/factom"	
 
-	"encoding/base64"
+	//"encoding/base64"
 	//"io/ioutil"
 	//"os" 	
 	
 )
-
+/*
 func TestBuyCredit(t *testing.T) {
 	fmt.Println("\nTestBuyCredit===========================================================================")
 	// Post the request to FactomClient web server	---------------------------------------
@@ -36,7 +36,7 @@ func TestBuyCredit(t *testing.T) {
 		fmt.Println("Buy credit request successfully submitted to factomclient.")
 	}		
 } 
-
+*/
 func TestBuyCreditWallet(t *testing.T) {
 	fmt.Println("\nTestBuyCreditWallet===========================================================================")
 	// Post the request to FactomClient web server	---------------------------------------
@@ -55,10 +55,10 @@ func TestBuyCreditWallet(t *testing.T) {
 	} else{
 		fmt.Println("Buy credit request successfully submitted to factomclient.")
 	}		
+
 } 
 
 func TestCommitChain(t *testing.T) {
-
  	chain, err := factom.NewChain([]string{"mytestchain"},[]string{"mytestchainid"},[]byte("mytestchain-firstentry"))
 
 	buf := new(bytes.Buffer)
@@ -68,9 +68,11 @@ func TestCommitChain(t *testing.T) {
 	data := url.Values{}
 	data.Set("chain", string(buf.Bytes()))
 
-	factom.CommitChain(chain)
+	//factom.CommitChain(chain)
 
 	if err != nil {	t.Errorf("Error:%v", err) }
+
+	fmt.Println(" chainid" + hex.EncodeToString(chain.ChainID))
 	
 	/*
 	fmt.Println(string(buf.Bytes()))
@@ -86,8 +88,42 @@ func TestCommitChain(t *testing.T) {
 		fmt.Println("Chain successfully submitted to factomclient.")
 	}		
 	*/
-
 }
+/**/
+
+func TestRevealChain(t *testing.T) {
+ 	chain, err := factom.NewChain([]string{"mytestchain"},[]string{"mytestchainid"},[]byte("mytestchain-firstentry"))
+
+	buf := new(bytes.Buffer)
+	err = SafeMarshal(buf, chain)
+
+	// Post the chain JSON to FactomClient web server	---------------------------------------
+	data := url.Values{}
+	data.Set("chain", string(buf.Bytes()))
+
+	factom.RevealChain(chain)
+
+	if err != nil {	t.Errorf("Error:%v", err) }
+	
+		fmt.Println(" reveal chainid" + hex.EncodeToString(chain.ChainID))
+
+	/*
+	fmt.Println(string(buf.Bytes()))
+	resp, err := http.PostForm("http://localhost:8088/v1/submitchain", data)	
+	if err != nil {	t.Errorf("Error:%v", err) }
+	
+	contents, err := ioutil.ReadAll(resp.Body)	
+	fmt.Printf("Http Resp Body:%s\n", string(contents)) 
+	fmt.Println("status code:%v", resp.StatusCode)	
+	if err != nil {
+		t.Errorf("Error:%v", err)
+	} else{
+		fmt.Println("Chain successfully submitted to factomclient.")
+	}		
+	*/
+}
+
+
 /* need to call commit first because we added payment logic on server
 func TestAddChain(t *testing.T) {
 	fmt.Println("\nTestAddChain===========================================================================")
