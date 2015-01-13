@@ -44,8 +44,7 @@ var  (
 	dchain *notaryapi.DChain	//Directory Block Chain
 	cchain *notaryapi.CChain	//Entry Credit Chain
 	
-	creditsPerChain int32 = -5
-	creditsPerEntry int32 = -1
+	creditsPerChain int32 = 10
 	creditsPerFactoid uint64 = 1000
 	eCreditMap map[string]int32 // eCreditMap with public key string([32]byte) as key, credit balance as value
 	prePaidEntryMap map[string]int32 // Paid but unrevealed entries string(Etnry Hash) as key, Number of payments as value		
@@ -344,7 +343,7 @@ func main() {
 
 	//addrStr := "muhXX7mXoMZUBvGLCgfjuoY2n2mziYETYC"
 	//addrStr := "movaFTARmsaTMk3j71MpX8HtMURpsKhdra"
-	err := initRPCClient()
+/*	err := initRPCClient()
 	if err != nil {
 		log.Fatalf("cannot init rpc client: %s", err)
 	}
@@ -355,7 +354,7 @@ func main() {
 	}
 	
 	//doEntries()
-
+*/
 	
 	flag.Parse()
 	defer func() {
@@ -458,7 +457,7 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 			timestamp := binary.BigEndian.Uint64(data[:8])
 			hash.Bytes = data[8:]
-			resource, err = processCommitEntry(hash, pub, int64(timestamp))
+			resource, err = processCommitEntry(hash, pub, int64(timestamp), 1) // needs the credits from client ??
 			if err != nil {
 				fmt.Println("Error:", err)
 			}
@@ -604,18 +603,17 @@ func processRevealEntry(newEntry *notaryapi.Entry) ([]byte, *notaryapi.Error) {
 	entryBinary, _ := newEntry.MarshalBinary()
 	entryHash := notaryapi.Sha(entryBinary)
 	db.InsertEntryAndQueue( entryHash, &entryBinary, newEntry, &chain.ChainID.Bytes)
+	
+	// Calculate the required credits
+	credits := int32(binary.Size(entryBinary)/1000 + 1) 
 
 	// Precalculate the key for prePaidEntryMap
 	key := entryHash.String()
 	chain.BlockMutex.Lock()
 	// Delete the entry in the prePaidEntryMap in memory
-	payments, ok := prePaidEntryMap[key]
-	if ok {
-		if payments > 1 {
-			prePaidEntryMap[key] = payments - 1
-		} else {
-			delete (prePaidEntryMap, key)	
-		}
+	prepayment, ok := prePaidEntryMap[key]
+	if ok && prepayment >= credits {
+		delete (prePaidEntryMap, key)	// Only revealed once for multiple prepayments??
 	} else{
 		return nil, notaryapi.CreateError(notaryapi.ErrorInternal, `Credit needs to paid first before reveal an entry:` + entryHash.String())
 	}	
@@ -629,28 +627,36 @@ func processRevealEntry(newEntry *notaryapi.Entry) ([]byte, *notaryapi.Error) {
 	return entryHash.Bytes, nil
 }
 
-func processCommitEntry(entryHash *notaryapi.Hash, pubKey *notaryapi.Hash, 	timeStamp int64) ([]byte, error) {
-	
+func processCommitEntry(entryHash *notaryapi.Hash, pubKey *notaryapi.Hash, 	timeStamp int64, credits int32) ([]byte, error) {
+	// Make sure credits is negative
+	if credits > 0 {
+		credits = 0 - credits
+	}	
 	// Create PayEntryCBEntry
-	cbEntry := notaryapi.NewPayEntryCBEntry(pubKey, entryHash, creditsPerEntry, timeStamp)
+	cbEntry := notaryapi.NewPayEntryCBEntry(pubKey, entryHash, credits, timeStamp)
 	
 	cchain.BlockMutex.Lock()
 	// Update the credit balance in memory
-	credits, _ := eCreditMap[pubKey.String()]
-	if credits + creditsPerEntry < 0 {
+	creditBalance, _ := eCreditMap[pubKey.String()]
+	if creditBalance + credits < 0 {
 		return nil, errors.New("Not enough credit for public key:" + pubKey.String() + " Balance:" + fmt.Sprint(credits))
 	}
-	eCreditMap[pubKey.String()] = credits + creditsPerEntry
+	eCreditMap[pubKey.String()] = creditBalance + credits
 	err := cchain.Blocks[len(cchain.Blocks)-1].AddCBEntry(cbEntry)
 	// Update the prePaidEntryMapin memory
 	payments, _ := prePaidEntryMap[entryHash.String()]	
-	prePaidEntryMap[entryHash.String()]	= payments + 1
+	prePaidEntryMap[entryHash.String()]	= payments - credits
 	cchain.BlockMutex.Unlock()	 
 
 	return entryHash.Bytes, err
 }
 
-func processCommitChain(entryHash *notaryapi.Hash, chainIDHash *notaryapi.Hash, entryChainIDHash *notaryapi.Hash, pubKey *notaryapi.Hash) ([]byte, error) {
+func processCommitChain(entryHash *notaryapi.Hash, chainIDHash *notaryapi.Hash, entryChainIDHash *notaryapi.Hash, pubKey *notaryapi.Hash, credits int32) ([]byte, error) {
+	
+	// Make sure credits is negative
+	if credits > 0 {
+		credits = 0 - credits
+	}
 
 	// Check if the chain id already exists
 	_, existing := chainIDMap[chainIDHash.String()]
@@ -667,19 +673,19 @@ func processCommitChain(entryHash *notaryapi.Hash, chainIDHash *notaryapi.Hash, 
 	key := getPrePaidChainKey(entryHash, chainIDHash)
 		
 	// Create PayChainCBEntry
-	cbEntry := notaryapi.NewPayChainCBEntry(pubKey, entryHash, creditsPerChain, chainIDHash, entryChainIDHash)
+	cbEntry := notaryapi.NewPayChainCBEntry(pubKey, entryHash, credits, chainIDHash, entryChainIDHash)
 	
 	cchain.BlockMutex.Lock()
 	// Update the credit balance in memory
-	credits, _ := eCreditMap[pubKey.String()]
-	if credits + creditsPerEntry < 0 {
+	creditBalance, _ := eCreditMap[pubKey.String()]
+	if creditBalance + credits < 0 {
 		return nil, errors.New("Insufficient credits for public key:" + pubKey.String() + " Balance:" + fmt.Sprint(credits))
 	}	
-	eCreditMap[pubKey.String()] = credits + creditsPerChain
+	eCreditMap[pubKey.String()] = creditBalance + credits
 	err := cchain.Blocks[len(cchain.Blocks)-1].AddCBEntry(cbEntry)
 	// Update the prePaidEntryMap in memory
 	payments, _ := prePaidEntryMap[key]	
-	prePaidEntryMap[key] = payments + 1
+	prePaidEntryMap[key] = payments - credits
 	cchain.BlockMutex.Unlock()	 
  
 	return chainIDHash.Bytes, err
@@ -713,15 +719,19 @@ func processRevealChain(newChain *notaryapi.EChain) ([]byte, *notaryapi.Error) {
 	if newChain.FirstEntry == nil{
 		return nil, notaryapi.CreateError(notaryapi.ErrorInternal, `The first entry is required to create a new chain.`) //ErrorInternal?
 	}	
+	// Calculate the required credits
+	binaryChain, _ := newChain.MarshalBinary()
+	credits := int32(binary.Size(binaryChain)/1000 + 1) + creditsPerChain 
+	
 	// Remove the entry for prePaidEntryMap
 	binaryEntry, _ := newChain.FirstEntry.MarshalBinary()
 	firstEntryHash := notaryapi.Sha(binaryEntry)
 	key := getPrePaidChainKey(firstEntryHash, newChain.ChainID)	
-	_, ok := prePaidEntryMap[key]
-	if ok {
+	prepayment, ok := prePaidEntryMap[key]
+	if ok && prepayment >= credits {
 		delete(prePaidEntryMap, key)
 	} else{
-		return nil, notaryapi.CreateError(notaryapi.ErrorInternal, `Credit needs to paid first before creating a new chain:` + newChain.ChainID.String())
+		return nil, notaryapi.CreateError(notaryapi.ErrorInternal, `Enough credits need to paid first before creating a new chain:` + newChain.ChainID.String())
 	}
 	// Store the new chain in db
 	db.InsertChain(newChain)
