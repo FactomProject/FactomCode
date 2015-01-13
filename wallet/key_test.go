@@ -106,6 +106,10 @@ func TestVerify(t *testing.T) {
 		t.Fatalf("Verify retuned false")
 	}
 
+	if ( !VerifySlice(priv1.Pub.Key[:], []byte(msg1), sig11.Sig[:]) ) {
+		t.Fatalf("VerifySlice retuned false")
+	}
+
 }
 
 

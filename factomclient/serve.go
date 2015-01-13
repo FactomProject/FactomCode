@@ -4,7 +4,7 @@ import (
 	"github.com/FactomProject/FactomCode/wallet"
 	"bytes"
 	"fmt"
-	"github.com/FactomProject/gocoding"
+	//"github.com/FactomProject/gocoding"
 	"github.com/hoisie/web"
 	"github.com/FactomProject/FactomCode/notaryapi"
 	"github.com/FactomProject/FactomCode/factomapi"
@@ -21,7 +21,7 @@ var server = web.NewServer()
 func serve_init() {
 	
 	server.Post(`/v1/submitentry/?`, handleSubmitEntry)
-	server.Post(`/v1/addchain/?`, handleChainPost)	
+	server.Post(`/v1/addchain/?`, handleSubmitChain)	
 	server.Post(`/v1/buycredit/?`, handleBuyCreditPost)		
 	server.Post(`/v1/creditbalance/?`, handleGetCreditBalancePost)			
 	
@@ -50,6 +50,28 @@ func handleSubmitEntry(ctx *web.Context) {
 				"there was a problem with submitting the entry:", err)
 		}
 		fmt.Fprintln(ctx, "Entry Submitted")
+	default:
+		ctx.WriteHeader(403)
+	}
+}
+
+func handleSubmitChain(ctx *web.Context) {
+	// convert a json post to a factom.Chain then submit the entry to factom
+	switch ctx.Params["format"] {
+	case "json":
+		j := []byte(ctx.Params["chain"])
+		e := new(factom.Chain)
+		e.UnmarshalJSON(j)
+		if err := factom.CommitChain(e); err != nil {
+			fmt.Fprintln(ctx,
+				"there was a problem with submitting the chain:", err)
+		}
+		time.Sleep(1 * time.Second)
+		if err := factom.RevealChain(e); err != nil {
+			fmt.Fprintln(ctx,
+				"there was a problem with submitting the chain:", err)
+		}
+		fmt.Fprintln(ctx, "Chain Submitted")
 	default:
 		ctx.WriteHeader(403)
 	}
@@ -146,7 +168,7 @@ func handleGetCreditBalancePost(ctx *web.Context) {
 	}			
 }
 
- 
+/*
 func handleChainPost(ctx *web.Context) {
 	var abortMessage, abortReturn string
 	defer func() {
@@ -170,6 +192,7 @@ func handleChainPost(ctx *web.Context) {
 	
 		 
 }
+*/
 
 func handleDBlocksByRange(ctx *web.Context, fromHeightStr string, toHeightStr string) {
 	var httpcode int = 200
