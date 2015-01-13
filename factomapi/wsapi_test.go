@@ -2,18 +2,92 @@ package factomapi
 
 import (
 	"testing"
-//	"bytes"	
+	"bytes"	
 	"net/http"
 	"net/url"
 	"fmt"
 //	"encoding/hex"	
 //	"github.com/FactomProject/gocoding"	
 	"github.com/FactomProject/FactomCode/notaryapi"	
+	"github.com/FactomProject/factom"	
+
 	"encoding/base64"
-	"io/ioutil"
-	"os" 	
+	//"io/ioutil"
+	//"os" 	
 	
 )
+
+func TestBuyCredit(t *testing.T) {
+	fmt.Println("\nTestBuyCredit===========================================================================")
+	// Post the request to FactomClient web server	---------------------------------------
+	data := url.Values{}
+	barray := (make([]byte, 32))
+	barray[0] = 2
+	pubKey := new (notaryapi.Hash)
+	pubKey.SetBytes(barray)		
+	data.Set("to", base64.URLEncoding.EncodeToString(pubKey.Bytes))
+	data.Set("value", "1.123456789")
+	data.Set("password", "opensesame")
+	
+	_, err := http.PostForm("http://localhost:8088/v1/buycredit", data)	
+	if err != nil {
+		t.Errorf("Error:%v", err)
+	} else{
+		fmt.Println("Buy credit request successfully submitted to factomclient.")
+	}		
+} 
+
+func TestBuyCreditWallet(t *testing.T) {
+	fmt.Println("\nTestBuyCreditWallet===========================================================================")
+	// Post the request to FactomClient web server	---------------------------------------
+	data := url.Values{}
+	barray := (make([]byte, 32))
+	barray[0] = 2
+	pubKey := new (notaryapi.Hash)
+	pubKey.SetBytes(barray)		
+	data.Set("to", "wallet")
+	data.Set("value", "11.123456789")
+	data.Set("password", "opensesame")
+	
+	_, err := http.PostForm("http://localhost:8088/v1/buycredit", data)	
+	if err != nil {
+		t.Errorf("Error:%v", err)
+	} else{
+		fmt.Println("Buy credit request successfully submitted to factomclient.")
+	}		
+} 
+
+func TestCommitChain(t *testing.T) {
+
+ 	chain, err := factom.NewChain([]string{"mytestchain"},[]string{"mytestchainid"},[]byte("mytestchain-firstentry"))
+
+	buf := new(bytes.Buffer)
+	err = SafeMarshal(buf, chain)
+
+	// Post the chain JSON to FactomClient web server	---------------------------------------
+	data := url.Values{}
+	data.Set("chain", string(buf.Bytes()))
+
+	factom.CommitChain(chain)
+
+	if err != nil {	t.Errorf("Error:%v", err) }
+	
+	/*
+	fmt.Println(string(buf.Bytes()))
+	resp, err := http.PostForm("http://localhost:8088/v1/submitchain", data)	
+	if err != nil {	t.Errorf("Error:%v", err) }
+	
+	contents, err := ioutil.ReadAll(resp.Body)	
+	fmt.Printf("Http Resp Body:%s\n", string(contents)) 
+	fmt.Println("status code:%v", resp.StatusCode)	
+	if err != nil {
+		t.Errorf("Error:%v", err)
+	} else{
+		fmt.Println("Chain successfully submitted to factomclient.")
+	}		
+	*/
+
+}
 /* need to call commit first because we added payment logic on server
 func TestAddChain(t *testing.T) {
 	fmt.Println("\nTestAddChain===========================================================================")
@@ -114,6 +188,7 @@ func TestAddEntry(t *testing.T) {
 	}
 } 
 */
+/*
 func TestBuyCredit(t *testing.T) {
 	fmt.Println("\nTestBuyCredit===========================================================================")
 	// Post the request to FactomClient web server	---------------------------------------
@@ -134,25 +209,6 @@ func TestBuyCredit(t *testing.T) {
 	}		
 } 
 
-func TestBuyCreditWallet(t *testing.T) {
-	fmt.Println("\nTestBuyCreditWallet===========================================================================")
-	// Post the request to FactomClient web server	---------------------------------------
-	data := url.Values{}
-	barray := (make([]byte, 32))
-	barray[0] = 2
-	pubKey := new (notaryapi.Hash)
-	pubKey.SetBytes(barray)		
-	data.Set("to", "wallet")
-	data.Set("value", "11.123456789")
-	data.Set("password", "opensesame")
-	
-	_, err := http.PostForm("http://localhost:8088/v1/buycredit", data)	
-	if err != nil {
-		t.Errorf("Error:%v", err)
-	} else{
-		fmt.Println("Buy credit request successfully submitted to factomclient.")
-	}		
-} 
 
 
 func TestGetCreditBalance(t *testing.T) {
@@ -371,3 +427,4 @@ func TestGetEntryByHash(t *testing.T) {
 	}
 	 
 } 
+*/

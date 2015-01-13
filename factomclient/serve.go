@@ -21,7 +21,7 @@ var server = web.NewServer()
 func serve_init() {
 	
 	server.Post(`/v1/submitentry/?`, handleSubmitEntry)
-	server.Post(`/v1/addchain/?`, handleSubmitChain)	
+	server.Post(`/v1/submitchain/?`, handleSubmitChain)	
 	server.Post(`/v1/buycredit/?`, handleBuyCreditPost)		
 	server.Post(`/v1/creditbalance/?`, handleGetCreditBalancePost)			
 	
@@ -35,6 +35,8 @@ func serve_init() {
 
 func handleSubmitEntry(ctx *web.Context) {
 	// convert a json post to a factom.Entry then submit the entry to factom
+	fmt.Fprintln(ctx, "Entry Submitted")
+
 	switch ctx.Params["format"] {
 	case "json":
 		j := []byte(ctx.Params["entry"])
@@ -56,25 +58,29 @@ func handleSubmitEntry(ctx *web.Context) {
 }
 
 func handleSubmitChain(ctx *web.Context) {
+	fmt.Println("handleSubmitChain " + ctx.Params["chain"] + "|||||||||||||||||||||")
+
 	// convert a json post to a factom.Chain then submit the entry to factom
-	switch ctx.Params["format"] {
-	case "json":
+//	switch ctx.Params["format"] {
+//	case "json":
+		//gocoding.ReadBytes([]byte(ctx.Params["chain"]))
 		j := []byte(ctx.Params["chain"])
-		e := new(factom.Chain)
-		e.UnmarshalJSON(j)
-		if err := factom.CommitChain(e); err != nil {
+		c := new(factom.Chain)
+		c.UnmarshalJSON(j)
+		//factomapi.SafeUnmarshal(reader,c)
+		if err := factom.CommitChain(c); err != nil {
 			fmt.Fprintln(ctx,
 				"there was a problem with submitting the chain:", err)
 		}
 		time.Sleep(1 * time.Second)
-		if err := factom.RevealChain(e); err != nil {
+		if err := factom.RevealChain(c); err != nil {
 			fmt.Fprintln(ctx,
 				"there was a problem with submitting the chain:", err)
 		}
 		fmt.Fprintln(ctx, "Chain Submitted")
-	default:
-		ctx.WriteHeader(403)
-	}
+//	default:
+//		ctx.WriteHeader(403)
+//	}
 }
 
 //func handleEntryPost(ctx *web.Context) {

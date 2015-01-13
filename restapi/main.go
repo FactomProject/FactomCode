@@ -356,7 +356,7 @@ func main() {
 	}
 	*/
 	//doEntries()
-*/
+
 	
 	flag.Parse()
 	defer func() {
@@ -480,7 +480,8 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 
 			entryhash.Bytes = data[i+1:i+32]
 
-			resource, err = processCommitChain(entryhash, chainhash, entrychainhash, pub)
+			//add credits to spend 
+			resource, err = processCommitChain(entryhash, chainhash, entrychainhash, pub,1)
 
 			if err != nil {
 				fmt.Println("Error:", err)
