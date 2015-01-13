@@ -5,7 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/xml"
 	"errors"
-//	"flag"
+	//"flag"
 	"fmt"
 	"github.com/FactomProject/FactomCode/notaryapi"
 	"github.com/conformal/btcrpcclient"
@@ -31,6 +31,7 @@ import (
 	"reflect"
 	"github.com/FactomProject/FactomCode/factomapi"
 	"github.com/FactomProject/FactomCode/wallet"
+	"github.com/FactomProject/factom"
 
 ) 
 
@@ -486,13 +487,20 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 
 		case "revealchain":
-			e := new(notaryapi.EChain)
+			c := new(factom.Chain)
 			bin, err := hex.DecodeString(r.Form.Get("chain"))
 			if err != nil {
 				fmt.Println("hex:", err)
 			}
-			e.UnmarshalBinary(bin)
-			resource, err = processRevealChain(e)
+			c.UnmarshalBinary(bin)
+			fmt.Println("cid:", c.ChainID.String())
+
+			ec := new(notaryapi.EChain)
+			ec.Name = c.Name
+			ec.ChainID = new(notaryapi.Hash)
+			ec.ChainID.Bytes = c.ChainID
+			ec.FirstEntry = c.FirstEntry
+			resource, err = processRevealChain(ec)
 			if err != nil {
 				fmt.Println("Error:", err)
 			}
@@ -561,7 +569,8 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 			http.ServeFile(w, r, dataStorePath + "csv/"+filename)
 			return							
 		default:
-			resource, err = postEntry("/"+strings.Join(path, "/"), form)
+			err = notaryapi.CreateError(notaryapi.ErrorBadMethod, fmt.Sprintf(`The %s datatype is not supported`, datatype))
+			return
 	}
 
 	default:
@@ -1055,7 +1064,7 @@ func ExportDbToFile(dbHash *notaryapi.Hash) {
 	}
 	
 	//write the records to a csv file: 
-	filename := time.Now().Format(time.RFC3339) + "." + dbHash.String() + ".csv"
+	filename := string(time.Now().Unix()) + "." + dbHash.String() + ".csv"
 	file, err := os.Create(dataStorePath+"csv/" + filename)
 	
 	if err != nil {panic(err)}
@@ -1087,7 +1096,7 @@ func ExportDataFromDbToFile() {
 	}
 	
 	//write the records to a csv file: 
-	filename := time.Now().Format(time.RFC3339) + ".supportdata.csv"
+	filename := string(time.Now().Unix())  + ".supportdata.csv"
 	file, err := os.Create(dataStorePath+"csv/"  + filename)
 	if err != nil {panic(err)}
     defer file.Close()
