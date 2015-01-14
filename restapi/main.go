@@ -451,6 +451,7 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 			var err error
 			pub := new(notaryapi.Hash)
 			chainhash := new(notaryapi.Hash)
+			chainID := new(notaryapi.Hash)			
 			entrychainhash := new(notaryapi.Hash)
 			entryhash := new(notaryapi.Hash)
 
@@ -473,13 +474,19 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 
 			chainhash.Bytes = data[i+1:i+32]
 			i = i + 32
-
+			
+			chainID.Bytes = data[i+1:i+32]
+			i = i + 32
+			
 			entrychainhash.Bytes = data[i+1:i+32]
 			i = i + 32
 
 			entryhash.Bytes = data[i+1:i+32]
 
-			resource, err = processCommitChain(entryhash, chainhash, entrychainhash, pub, 5)
+			fmt.Println("entryHash:", entryhash.String())
+			fmt.Println("chainID:", chainID.String())
+			fmt.Println("entrychainhash:", entrychainhash.String())
+			resource, err = processCommitChain(entryhash, chainID, entrychainhash, pub, 5)
 
 			if err != nil {
 				fmt.Println("Error:", err)

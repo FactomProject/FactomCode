@@ -10,7 +10,7 @@ import (
 	"github.com/FactomProject/gocoding"	
 	"github.com/FactomProject/FactomCode/notaryapi"	
 
-	"encoding/base64"
+//	"encoding/base64"
 	//"io/ioutil"
 	//"os" 	
 	
@@ -148,15 +148,16 @@ func TestAddChain(t *testing.T) {
 	err := SafeMarshal(buf, chain)
 	
 	fmt.Println("chain:%v", string(buf.Bytes()))
-	jsonstr := string(buf.Bytes())
+	//jsonstr := string(buf.Bytes())
 		  
  	// Unmarshal the json string locally to compare
-	//jsonstr := "{\"ChainID\":\"2FrgD2+vPP3yz5zLVaE5Tc2ViVv9fwZeR3/adzITjJc=\",\"Name\":[\"bXlDb21wYW55\",\"Ym9va2tlZXBpbmc=\"],\"FirstEntry\":{\"ExtIDs\":[\"MTAwMQ==\",\"NTcwYjllM2ZiMmY1YWU4MjM2ODVlYjQ0MjJkNGZkODNmM2YwZDllN2NlMDdkOTg4YmQxN2U2NjUzOTQ2NjhjNg==\",\"bXZSSnFNVE1mclkzS3RIMkE0cWRQZnEzUTZMNEt3OUNrNA==\"],\"Data\":\"Rmlyc3QgZW50cnkgZm9yIGNoYWluOiIyRnJnRDIrdlBQM3l6NXpMVmFFNVRjMlZpVnY5ZndaZVIzL2FkeklUakpjPSJSdWxlczoiYXNsO2RqZmFzbGRrZmphc2xkZmpsa3NvdWlld29wdXJ3Ig==\"}}"
+	jsonstr := "{\"Name\":[\"bXlDb21wYW55\",\"Ym9va2tlZXBpbmc=\"],\"FirstEntry\":{\"ExtIDs\":[\"MTAwMQ==\",\"NTcwYjllM2ZiMmY1YWU4MjM2ODVlYjQ0MjJkNGZkODNmM2YwZDllN2NlMDdkOTg4YmQxN2U2NjUzOTQ2NjhjNg==\",\"bXZSSnFNVE1mclkzS3RIMkE0cWRQZnEzUTZMNEt3OUNrNA==\"],\"Data\":\"Rmlyc3QgZW50cnkgZm9yIGNoYWluOiIyRnJnRDIrdlBQM3l6NXpMVmFFNVRjMlZpVnY5ZndaZVIzL2FkeklUakpjPSJSdWxlczoiYXNsO2RqZmFzbGRrZmphc2xkZmpsa3NvdWlld29wdXJ3Ig==\"}}"
 	//fmt.Println(jsonstr)
 	
 	// Post the chain JSON to FactomClient web server	---------------------------------------
 	data := url.Values{}
 	data.Set("chain", jsonstr)
+	data.Set("format", "json")	
 	data.Set("password", "opensesame")
 	
 	_, err = http.PostForm("http://localhost:8088/v1/submitchain", data)	
@@ -164,14 +165,15 @@ func TestAddChain(t *testing.T) {
 		t.Errorf("Error:%v", err)
 	} else{
 		fmt.Println("Chain successfully submitted to factomclient.")
-	}			
+	}
+				
 	// JSON ws test done ----------------------------------------------------------------------------
 
 	chain3 := new (notaryapi.EChain)
 	reader := gocoding.ReadBytes([]byte(jsonstr))
 	err = SafeUnmarshal(reader, chain3)
 
-	fmt.Println("chainid:%v", base64.StdEncoding.EncodeToString(chain3.ChainID.Bytes))
+	//fmt.Println("chainid:%v", base64.StdEncoding.EncodeToString(chain3.ChainID.Bytes))
 	fmt.Println("name0:%v", string(chain3.Name[0]))	
 	fmt.Println("entrydata:%v", string(chain3.FirstEntry.Data))	
 		

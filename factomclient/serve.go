@@ -66,19 +66,23 @@ func handleSubmitChain(ctx *web.Context) {
 		c := new(notaryapi.EChain)
 		factomapi.SafeUnmarshal(reader,c)
 		
+		c.GenerateIDFromName()
+
 		fmt.Println("c.ChainID:", c.ChainID.String())
+				
 		if err := factomapi.CommitChain(c); err != nil {
 			fmt.Fprintln(ctx,
 				"there was a problem with submitting the chain:", err)
 		}
-		time.Sleep(1 * time.Second)
-/*		
+		
+		time.Sleep(1 * time.Second) //?? do we need to queue them up and look for the confirmation
+		
 		if err := factomapi.RevealChain(c); err != nil {
 			fmt.Fprintln(ctx,
 				"there was a problem with submitting the chain:", err)
 		}
 		
-		*/
+		
 		fmt.Fprintln(ctx, "Chain Submitted")
 	default:
 		ctx.WriteHeader(403)

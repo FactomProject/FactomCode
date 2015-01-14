@@ -8,70 +8,20 @@ import (
 	"encoding/base64"		
 	"sort"
 	"github.com/FactomProject/FactomCode/database"	
-	"github.com/FactomProject/FactomCode/notaryapi"		
+	"github.com/FactomProject/FactomCode/notaryapi"	
+	"github.com/FactomProject/FactomCode/wallet"
 	//"github.com/FactomProject/FactomCode/database/ldb"	
 	"strconv"		
 	"io/ioutil"	
 	"bytes"
 	"encoding/binary"	
+	"time"
 
 )
 //to be improved:
 var serverAddr = "localhost:8083"	
 var db database.Db // database
 var	creditsPerChain int32 = 10
-
-/*
-func CommitChain(name [][]byte) (*notaryapi.Hash, error) {
-	c := new(notaryapi.EChain)
-	c.Name = name	
-	c.GenerateIDFromName()
-	return c.ChainID, nil
-}
-*/
-/*
-func RevealChain(version uint16, c *notaryapi.EChain, e *notaryapi.Entry) error {
-	bChain,_ := c.MarshalBinary()
-	 
-	data := url.Values {}	
-	data.Set("datatype", "chain")
-	data.Set("format", "binary")
-	data.Set("chain", hex.EncodeToString(bChain))
-	
-	fmt.Println("chain name[0]:%s", string(c.Name[0]))
-	
-	server := fmt.Sprintf(`http://%s/v1`, serverAddr)
-	_, err := http.PostForm(server, data)
-
-	return err
-}
-*/
-/*
-func CommitEntry(cid *notaryapi.Hash) (*notaryapi.Entry, error) {
-	e := new(notaryapi.Entry)
-	e.ChainID := cid
-	e.ExtHashes := h
-	e.Data := data
-	
-	return e
-}
-*/
-/*func RevealEntry(version uint16, e *notaryapi.Entry) error {
-	bEntry,_ := e.MarshalBinary()
-
-	data := url.Values{}
-	data.Set("format", "binary")
-	data.Set("entry", hex.EncodeToString(bEntry)) 
-	
-	
-	fmt.Println("Entry extid[0]:%s", string(e.ExtIDs[0]))
-		
-	server := fmt.Sprintf(`http://%s/v1`, serverAddr)
-	_, err := http.PostForm(server, data)
-
-	return err
-}
-*/
 
 // This method will be replaced with a Factoid transaction once we have the factoid implementation in place
 func BuyEntryCredit(version uint16, ecPubKey *notaryapi.Hash, from *notaryapi.Hash, value uint64, fee uint64, sig *notaryapi.Signature) error {
@@ -238,7 +188,7 @@ func (f byEBlockID) Swap(i, j int) {
 
 
 //-------------------------------------
-
+/*
 
 // PrintEntry is a helper function for debugging entry transport and encoding
 func PrintEntry(e *Entry) {
@@ -314,12 +264,14 @@ func RevealEntry(e *Entry) error {
 	}
 	return nil
 }
-
+*/
 // CommitChain sends a message to the factom network containing a series of
 // hashes to be used to verify the later RevealChain.
 func CommitChain(c *notaryapi.EChain) error {
-	
+	var msg bytes.Buffer
+		
 	bChain,_ := c.MarshalBinary()
+	chainhash := notaryapi.Sha(bChain)	
 	// Calculate the required credits
 	credits := int32(binary.Size(bChain)/1000 + 1) + creditsPerChain 		
 	
@@ -327,18 +279,156 @@ func CommitChain(c *notaryapi.EChain) error {
 	entryHash := notaryapi.Sha(binaryEntry)
 	
 	entryChainIDHash := notaryapi.Sha(append(c.ChainID.Bytes, entryHash.Bytes ...))	
+	
+	binary.Write(&msg, binary.BigEndian, uint64(time.Now().Unix()))
+	//msg.Write(bChain) // we don't want to REVEAL the whole chain
+
+	msg.Write(chainhash.Bytes)//we might not need this??
+	msg.Write(c.ChainID.Bytes)
+	msg.Write(entryChainIDHash.Bytes)
+	msg.Write(entryHash.Bytes)
+	binary.Write(&msg, binary.BigEndian, credits)	
+
+	sig := wallet.SignData(msg.Bytes())	
 	 
 	// Need to put in a msg obj once we have the P2P networkd 
 	data := url.Values {}	
 	data.Set("datatype", "commitchain")
 	data.Set("format", "binary")
-	data.Set("entryHash", entryHash.String())	
-	data.Set("chainID", c.ChainID.String())
-	data.Set("entryChainIDHash", entryChainIDHash.String())
-	data.Set("credits", string(credits))
-	//Pls add pubkey and sig here...
+	data.Set("data", hex.EncodeToString(msg.Bytes()))
+	data.Set("signature", hex.EncodeToString((*sig.Sig)[:]))
+	data.Set("pubkey", hex.EncodeToString((*sig.Pub.Key)[:]))	
 
 	_, err := http.PostForm(serverAddr, data)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// RevealChain sends a message to the factom network containing the binary
+// encoded first entry for a chain to be used by the server to add a new factom
+// chain. It will be rejected if a CommitChain was not done.
+func RevealChain(c *notaryapi.EChain) error {
+/*	data := url.Values{
+		"datatype": {"entry"},
+		"format":   {"binary"},
+		"data":     {hex.EncodeToString(c.MarshalBinary())},
+	}
+	_, err := http.PostForm(server, data)
+	if err != nil {
+		return err
+	}
+	
+	*/
+	return nil
+}
+
+// PrintEntry is a helper function for debugging entry transport and encoding
+func PrintEntry(e *Entry) {
+	fmt.Println("ChainID:", hex.EncodeToString(e.ChainID))
+	fmt.Println("ExtIDs:")
+	for _, v := range e.ExtIDs {
+		fmt.Println("	", string(v))
+	}
+	fmt.Println("Data:", string(e.Data))
+}
+
+
+// NewEntry creates a factom entry. It is supplied a string chain id, a []byte
+// of data, and a series of string external ids for entry lookup
+func NewEntry(cid string, eids []string, data []byte) (e *Entry, err error) {
+	e = new(Entry)
+	e.ChainID, err = hex.DecodeString(cid)
+	if err != nil {
+		return nil, err
+	}
+	e.Data = data
+	for _, v := range eids {
+		e.ExtIDs = append(e.ExtIDs, []byte(v))
+	}
+	return
+}
+
+// NewChain creates a factom chain from a []string chain name and a new entry
+// to be the first entry of the new chain from []byte data, and a series of
+// string external ids
+func NewChain(name []string, eids []string, data []byte) (c *Chain, err error) {
+	c = new(Chain)
+	for _, v := range name {
+		c.Name = append(c.Name, []byte(v))
+	}
+	str_name := c.GenerateID()
+	c.FirstEntry, err = NewEntry(str_name,eids,data)
+	return
+}
+
+// CommitEntry sends a message to the factom network containing a hash of the
+// entry to be used to verify the later RevealEntry.
+func CommitEntry(e *Entry) error {
+	var msg bytes.Buffer
+
+	binary.Write(&msg, binary.BigEndian, uint64(time.Now().Unix()))
+	msg.Write([]byte(e.Hash()))
+
+	sig := wallet.SignData(msg.Bytes())
+	// msg.Bytes should be a int64 timestamp followed by a binary entry
+
+	data := url.Values{
+		"datatype":  {"commitentry"},
+		"format":    {"binary"},
+		"signature": {hex.EncodeToString((*sig.Sig)[:])},
+		"pubkey":	{hex.EncodeToString((*sig.Pub.Key)[:])},
+		"data":      {hex.EncodeToString(msg.Bytes())},
+	}
+	_, err := http.PostForm(serverAddr, data)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// RevealEntry sends a message to the factom network containing the binary
+// encoded entry for the server to add it to the factom blockchain. The entry
+// will be rejected if a CommitEntry was not done.
+func RevealEntry(e *Entry) error {
+	data := url.Values{
+		"datatype": {"revealentry"},
+		"format":   {"binary"},
+		"entry":    {hex.EncodeToString(e.MarshalBinary())},
+	}
+	_, err := http.PostForm(serverAddr, data)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// CommitChain sends a message to the factom network containing a series of
+// hashes to be used to verify the later RevealChain.
+/*func CommitChain(c *Chain) error {
+	var msg bytes.Buffer
+
+	binary.Write(&msg, binary.BigEndian, uint64(time.Now().Unix()))
+	msg.Write(c.MarshalBinary())
+
+	chainhash, chainentryhash, entryhash := c.Hash() 
+	msg.Write([]byte(chainhash))
+	msg.Write([]byte(chainentryhash))
+	msg.Write([]byte(entryhash))
+
+	sig := wallet.SignData(msg.Bytes())
+
+	data := url.Values{
+		"datatype": {"commitchain"},
+		"format":   {"binary"},
+		"signature": {hex.EncodeToString((*sig.Sig)[:])},
+		"pubkey": 	{hex.EncodeToString((*sig.Pub.Key)[:])},
+		"data":      {hex.EncodeToString(msg.Bytes())},
+
+	}
+
+	_, err := http.PostForm(server, data)
 	if err != nil {
 		return err
 	}
@@ -352,24 +442,24 @@ func RevealChain(c *Chain) error {
 	data := url.Values{
 		"datatype": {"entry"},
 		"format":   {"binary"},
-		"data":     {c.FirstEntry.Hex()},
+		"data":     {hex.EncodeToString(c.MarshalBinary())},
 	}
-	_, err := http.PostForm(serverAddr, data)
+	_, err := http.PostForm(server, data)
 	if err != nil {
 		return err
 	}
 	return nil
 }
-
+*/
 // Submit wraps CommitEntry and RevealEntry. Submit takes a FactomWriter (an
 // entry is a FactomWriter) and does a commit and reveal for the entry adding
 // it to the factom blockchain.
 func Submit(f FactomWriter) (err error) {
 	e := f.CreateFactomEntry()
-//	err = CommitEntry(e)
-//	if err != nil {
-//		return err
-//	}
+	err = CommitEntry(e)
+	if err != nil {
+		return err
+	}
 	err = RevealEntry(e)
 	if err != nil {
 		return err

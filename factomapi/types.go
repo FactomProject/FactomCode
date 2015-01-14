@@ -15,7 +15,6 @@ type jsonentry struct {
 	Data    string
 }
 
-
 // Objects implimenting the FactomWriter interface may be used in the Submit
 // call to create and add an entry to the factom network.
 type FactomWriter interface {
@@ -48,6 +47,7 @@ func (e *Entry) Hash() string {
 }
 
 // Hex return the hex encoded string of the binary entry.
+// Depricated!
 func (e *Entry) Hex() string {
 	return hex.EncodeToString(e.MarshalBinary())
 }
@@ -79,6 +79,10 @@ func (e *Entry) UnmarshalJSON(b []byte) (err error) {
 
 	json.Unmarshal(b, &j)
 	
+	return e.FromJsonEntry(j)
+}
+
+func (e *Entry) FromJsonEntry(j jsonentry) (err error) {
 	e.ChainID, err = hex.DecodeString(j.ChainID)
 	if err != nil {
 		return err
@@ -90,8 +94,38 @@ func (e *Entry) UnmarshalJSON(b []byte) (err error) {
 	if err != nil {
 		return err
 	}
+
+	return nil
+}
+
+// UnmarshalJSON makes satisfies the json.Unmarshaler interfact and populates
+// an entry with the data from a json entry.
+func (e *Chain) UnmarshalJSON(b []byte) (err error) {
+	var j jsonchain
+
+	json.Unmarshal(b, &j)
+	
+	e.ChainID, err = hex.DecodeString(j.ChainID)
+	if err != nil {
+		return err
+	}
+	for _, v := range j.Name {
+		e.Name = append(e.Name, []byte(v))
+	}
+
+	e.FirstEntry = new(Entry)
+	err = e.FirstEntry.FromJsonEntry(j.FirstEntry)
+	if err != nil {
+		return err
+	}
 	
 	return nil
+}
+
+type jsonchain struct {
+	ChainID string
+	Name  []string
+	FirstEntry jsonentry
 }
 
 // A Chain that can be submitted to the factom network.
@@ -121,9 +155,17 @@ func (c *Chain) GenerateID() string {
 
 // Hash will return a hex encoded hash of the chainid, a hash of the entry, and
 // a hash of the chainid + entry to be used by CommitChain.
-func (c *Chain) Hash() string {
-	// obviously this has not been implimented yet
-	return "abcdefg"
+func (c *Chain) Hash() (chain string, chain_entry string, entry string) {
+	s := sha256.New()
+	s.Write(c.MarshalBinary())
+	chain = hex.EncodeToString(s.Sum(nil))
+
+	s.Write(c.FirstEntry.MarshalBinary())
+	chain_entry = hex.EncodeToString(s.Sum(nil))
+
+	entry = c.FirstEntry.Hash()
+
+	return
 }
 
 // Hex will return a hex encoded string of the binary chain.
