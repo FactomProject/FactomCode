@@ -6,12 +6,11 @@ import (
 	"net/http"
 	"net/url"
 	"fmt"
-	"encoding/hex"	
-//	"github.com/FactomProject/gocoding"	
+//	"encoding/hex"	
+	"github.com/FactomProject/gocoding"	
 	"github.com/FactomProject/FactomCode/notaryapi"	
-	"github.com/FactomProject/factom"	
 
-	//"encoding/base64"
+	"encoding/base64"
 	//"io/ioutil"
 	//"os" 	
 	
@@ -36,7 +35,7 @@ func TestBuyCredit(t *testing.T) {
 		fmt.Println("Buy credit request successfully submitted to factomclient.")
 	}		
 } 
-*/
+
 func TestBuyCreditWallet(t *testing.T) {
 	fmt.Println("\nTestBuyCreditWallet===========================================================================")
 	// Post the request to FactomClient web server	---------------------------------------
@@ -74,7 +73,7 @@ func TestCommitChain(t *testing.T) {
 
 	fmt.Println(" chainid" + hex.EncodeToString(chain.ChainID))
 	
-	/*
+
 	fmt.Println(string(buf.Bytes()))
 	resp, err := http.PostForm("http://localhost:8088/v1/submitchain", data)	
 	if err != nil {	t.Errorf("Error:%v", err) }
@@ -87,10 +86,10 @@ func TestCommitChain(t *testing.T) {
 	} else{
 		fmt.Println("Chain successfully submitted to factomclient.")
 	}		
-	*/
-}
+	
+}*/
 /**/
-
+/*
 func TestRevealChain(t *testing.T) {
  	chain, err := factom.NewChain([]string{"mytestchain"},[]string{"mytestchainid"},[]byte("mytestchain-firstentry"))
 
@@ -120,11 +119,11 @@ func TestRevealChain(t *testing.T) {
 	} else{
 		fmt.Println("Chain successfully submitted to factomclient.")
 	}		
-	*/
+	
 }
 
-
-/* need to call commit first because we added payment logic on server
+*/
+///need to call commit first because we added payment logic on server
 func TestAddChain(t *testing.T) {
 	fmt.Println("\nTestAddChain===========================================================================")
 	chain := new (notaryapi.EChain)
@@ -149,17 +148,18 @@ func TestAddChain(t *testing.T) {
 	err := SafeMarshal(buf, chain)
 	
 	fmt.Println("chain:%v", string(buf.Bytes()))
-	  
+	jsonstr := string(buf.Bytes())
+		  
  	// Unmarshal the json string locally to compare
-	jsonstr := "{\"ChainID\":\"2FrgD2+vPP3yz5zLVaE5Tc2ViVv9fwZeR3/adzITjJc=\",\"Name\":[\"bXlDb21wYW55\",\"Ym9va2tlZXBpbmc=\"],\"FirstEntry\":{\"ExtIDs\":[\"MTAwMQ==\",\"NTcwYjllM2ZiMmY1YWU4MjM2ODVlYjQ0MjJkNGZkODNmM2YwZDllN2NlMDdkOTg4YmQxN2U2NjUzOTQ2NjhjNg==\",\"bXZSSnFNVE1mclkzS3RIMkE0cWRQZnEzUTZMNEt3OUNrNA==\"],\"Data\":\"Rmlyc3QgZW50cnkgZm9yIGNoYWluOiIyRnJnRDIrdlBQM3l6NXpMVmFFNVRjMlZpVnY5ZndaZVIzL2FkeklUakpjPSJSdWxlczoiYXNsO2RqZmFzbGRrZmphc2xkZmpsa3NvdWlld29wdXJ3Ig==\"}}"
-	fmt.Println(jsonstr)
-
+	//jsonstr := "{\"ChainID\":\"2FrgD2+vPP3yz5zLVaE5Tc2ViVv9fwZeR3/adzITjJc=\",\"Name\":[\"bXlDb21wYW55\",\"Ym9va2tlZXBpbmc=\"],\"FirstEntry\":{\"ExtIDs\":[\"MTAwMQ==\",\"NTcwYjllM2ZiMmY1YWU4MjM2ODVlYjQ0MjJkNGZkODNmM2YwZDllN2NlMDdkOTg4YmQxN2U2NjUzOTQ2NjhjNg==\",\"bXZSSnFNVE1mclkzS3RIMkE0cWRQZnEzUTZMNEt3OUNrNA==\"],\"Data\":\"Rmlyc3QgZW50cnkgZm9yIGNoYWluOiIyRnJnRDIrdlBQM3l6NXpMVmFFNVRjMlZpVnY5ZndaZVIzL2FkeklUakpjPSJSdWxlczoiYXNsO2RqZmFzbGRrZmphc2xkZmpsa3NvdWlld29wdXJ3Ig==\"}}"
+	//fmt.Println(jsonstr)
+	
 	// Post the chain JSON to FactomClient web server	---------------------------------------
 	data := url.Values{}
 	data.Set("chain", jsonstr)
 	data.Set("password", "opensesame")
 	
-	_, err = http.PostForm("http://localhost:8088/v1/addchain", data)	
+	_, err = http.PostForm("http://localhost:8088/v1/submitchain", data)	
 	if err != nil {
 		t.Errorf("Error:%v", err)
 	} else{
@@ -179,7 +179,7 @@ func TestAddChain(t *testing.T) {
 		t.Errorf("Error:%v", err)
 	}
 } 
-
+/*
 func TestAddEntry(t *testing.T) {
 	fmt.Println("\nTestAddEntry===========================================================================")
 	entry := new (notaryapi.Entry)

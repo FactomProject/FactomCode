@@ -31,9 +31,8 @@ import (
 	"reflect"
 	"github.com/FactomProject/FactomCode/factomapi"
 	"github.com/FactomProject/FactomCode/wallet"
-	"github.com/FactomProject/factom"
 
-) 
+)  
 
 var  (
 	wclient *btcrpcclient.Client	//rpc client for btcwallet rpc server
@@ -487,7 +486,7 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 
 		case "revealchain":
-			c := new(factom.Chain)
+/*			c := new(factomapi.Chain)
 			bin, err := hex.DecodeString(r.Form.Get("chain"))
 			if err != nil {
 				fmt.Println("hex:", err)
@@ -504,7 +503,7 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				fmt.Println("Error:", err)
 			}
-
+*/
 		case "commitentry":
 			var err error
 			pub := new(notaryapi.Hash)

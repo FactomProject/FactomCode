@@ -483,6 +483,16 @@ func (b *EChain) UnmarshalBinary(data []byte) (err error) {
 	return nil
 }
 
+// For Json marshaling
+func (b *EChain) EncodableFields() map[string]reflect.Value {
+	fields := map[string]reflect.Value{
+		`ChainID`: reflect.ValueOf(b.ChainID),
+		`Name`: reflect.ValueOf(b.Name),
+		`FirstEntry`: reflect.ValueOf(b.FirstEntry),		
+	}
+	return fields
+}
+
 // To generate a chain id (hash) from a binary array name
 // The algorithm is chainID = Sha(Sha(Name[0]) + Sha(Name[1] + ... + Sha(Name[n])
 func (b *EChain) GenerateIDFromName() (chainID *Hash, err error) {

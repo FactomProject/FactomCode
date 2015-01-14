@@ -4,11 +4,10 @@ import (
 	"github.com/FactomProject/FactomCode/wallet"
 	"bytes"
 	"fmt"
-	//"github.com/FactomProject/gocoding"
+	"github.com/FactomProject/gocoding"
 	"github.com/hoisie/web"
 	"github.com/FactomProject/FactomCode/notaryapi"
 	"github.com/FactomProject/FactomCode/factomapi"
-	"github.com/FactomProject/factom"
 	"net/url"
 	"strconv"
 	"encoding/base64"
@@ -40,14 +39,14 @@ func handleSubmitEntry(ctx *web.Context) {
 	switch ctx.Params["format"] {
 	case "json":
 		j := []byte(ctx.Params["entry"])
-		e := new(factom.Entry)
+		e := new(factomapi.Entry)
 		e.UnmarshalJSON(j)
-		if err := factom.CommitEntry(e); err != nil {
+		if err := factomapi.CommitEntry(e); err != nil {
 			fmt.Fprintln(ctx,
 				"there was a problem with submitting the entry:", err)
 		}
 		time.Sleep(1 * time.Second)
-		if err := factom.RevealEntry(e); err != nil {
+		if err := factomapi.RevealEntry(e); err != nil {
 			fmt.Fprintln(ctx,
 				"there was a problem with submitting the entry:", err)
 		}
@@ -60,27 +59,30 @@ func handleSubmitEntry(ctx *web.Context) {
 func handleSubmitChain(ctx *web.Context) {
 	fmt.Println("handleSubmitChain " + ctx.Params["chain"] + "|||||||||||||||||||||")
 
-	// convert a json post to a factom.Chain then submit the entry to factom
-//	switch ctx.Params["format"] {
-//	case "json":
-		//gocoding.ReadBytes([]byte(ctx.Params["chain"]))
-		j := []byte(ctx.Params["chain"])
-		c := new(factom.Chain)
-		c.UnmarshalJSON(j)
-		//factomapi.SafeUnmarshal(reader,c)
-		if err := factom.CommitChain(c); err != nil {
+	// convert a json post to a factomapi.Chain then submit the entry to factomapi
+	switch ctx.Params["format"] {
+	case "json":
+		reader := gocoding.ReadBytes([]byte(ctx.Params["chain"]))
+		c := new(notaryapi.EChain)
+		factomapi.SafeUnmarshal(reader,c)
+		
+		fmt.Println("c.ChainID:", c.ChainID.String())
+		if err := factomapi.CommitChain(c); err != nil {
 			fmt.Fprintln(ctx,
 				"there was a problem with submitting the chain:", err)
 		}
 		time.Sleep(1 * time.Second)
-		if err := factom.RevealChain(c); err != nil {
+/*		
+		if err := factomapi.RevealChain(c); err != nil {
 			fmt.Fprintln(ctx,
 				"there was a problem with submitting the chain:", err)
 		}
+		
+		*/
 		fmt.Fprintln(ctx, "Chain Submitted")
-//	default:
-//		ctx.WriteHeader(403)
-//	}
+	default:
+		ctx.WriteHeader(403)
+	}
 }
 
 //func handleEntryPost(ctx *web.Context) {
