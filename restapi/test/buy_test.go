@@ -19,12 +19,6 @@ func TestBuyCredit(t *testing.T) {
 		
 	_, err := processBuyEntryCredit(pubKey, 200000, factoidTxHash)
 	
-	
-	printCreditMap()
-	
-	printPaidEntryMap()
-	printCChain()
-				
 	if err != nil {
 		t.Errorf("Error:", err)
 	}
