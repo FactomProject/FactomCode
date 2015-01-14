@@ -154,7 +154,7 @@ func downloadAndImportDbRecords() {
 	data.Set("datatype", "filelist")
 	data.Set("format", "binary")
 	data.Set("password", "opensesame")	
-	
+	 
 	server := fmt.Sprintf(`http://%s/v1`, serverAddr)
 	resp, err := http.PostForm(server, data)
 	

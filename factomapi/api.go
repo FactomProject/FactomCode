@@ -242,7 +242,8 @@ func CommitEntry(e *Entry) error {
 		"format":   {"binary"},
 		"data":     {e.Hash()},
 	}
-	_, err := http.PostForm(serverAddr, data)
+	server := fmt.Sprintf(`http://%s/v1`, serverAddr)	
+	_, err := http.PostForm(server, data)
 	if err != nil {
 		return err
 	}
@@ -258,7 +259,8 @@ func RevealEntry(e *Entry) error {
 		"format":   {"binary"},
 		"entry":    {e.Hex()},
 	}
-	_, err := http.PostForm(serverAddr, data)
+	server := fmt.Sprintf(`http://%s/v1`, serverAddr)	
+	_, err := http.PostForm(server, data)
 	if err != nil {
 		return err
 	}
@@ -271,7 +273,7 @@ func CommitChain(c *notaryapi.EChain) error {
 	var msg bytes.Buffer
 		
 	bChain,_ := c.MarshalBinary()
-	chainhash := notaryapi.Sha(bChain)	
+	//chainhash := notaryapi.Sha(bChain)	
 	// Calculate the required credits
 	credits := int32(binary.Size(bChain)/1000 + 1) + creditsPerChain 		
 	
@@ -280,13 +282,14 @@ func CommitChain(c *notaryapi.EChain) error {
 	
 	entryChainIDHash := notaryapi.Sha(append(c.ChainID.Bytes, entryHash.Bytes ...))	
 	
-	binary.Write(&msg, binary.BigEndian, uint64(time.Now().Unix()))
 	//msg.Write(bChain) // we don't want to REVEAL the whole chain
-
-	msg.Write(chainhash.Bytes)//we might not need this??
+	//msg.Write(chainhash.Bytes)//we might not need this??
+	
+	binary.Write(&msg, binary.BigEndian, uint64(time.Now().Unix()))	
 	msg.Write(c.ChainID.Bytes)
-	msg.Write(entryChainIDHash.Bytes)
-	msg.Write(entryHash.Bytes)
+	msg.Write(entryHash.Bytes)	
+	msg.Write(entryChainIDHash.Bytes) 
+
 	binary.Write(&msg, binary.BigEndian, credits)	
 
 	sig := wallet.SignData(msg.Bytes())	
@@ -299,7 +302,8 @@ func CommitChain(c *notaryapi.EChain) error {
 	data.Set("signature", hex.EncodeToString((*sig.Sig)[:]))
 	data.Set("pubkey", hex.EncodeToString((*sig.Pub.Key)[:]))	
 
-	_, err := http.PostForm(serverAddr, data)
+	server := fmt.Sprintf(`http://%s/v1`, serverAddr)	
+	_, err := http.PostForm(server, data)
 	if err != nil {
 		return err
 	}
@@ -381,7 +385,8 @@ func CommitEntry(e *Entry) error {
 		"pubkey":	{hex.EncodeToString((*sig.Pub.Key)[:])},
 		"data":      {hex.EncodeToString(msg.Bytes())},
 	}
-	_, err := http.PostForm(serverAddr, data)
+	server := fmt.Sprintf(`http://%s/v1`, serverAddr)	
+	_, err := http.PostForm(server, data)
 	if err != nil {
 		return err
 	}
@@ -397,7 +402,9 @@ func RevealEntry(e *Entry) error {
 		"format":   {"binary"},
 		"entry":    {hex.EncodeToString(e.MarshalBinary())},
 	}
-	_, err := http.PostForm(serverAddr, data)
+	
+	server := fmt.Sprintf(`http://%s/v1`, serverAddr)	
+	_, err := http.PostForm(server, data)
 	if err != nil {
 		return err
 	}

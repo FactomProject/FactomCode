@@ -57,7 +57,6 @@ func handleSubmitEntry(ctx *web.Context) {
 }
 
 func handleSubmitChain(ctx *web.Context) {
-	fmt.Println("handleSubmitChain " + ctx.Params["chain"] + "|||||||||||||||||||||")
 
 	// convert a json post to a factomapi.Chain then submit the entry to factomapi
 	switch ctx.Params["format"] {
@@ -78,10 +77,10 @@ func handleSubmitChain(ctx *web.Context) {
 		time.Sleep(1 * time.Second) //?? do we need to queue them up and look for the confirmation
 		
 		if err := factomapi.RevealChain(c); err != nil {
+			fmt.Println(err.Error())
 			fmt.Fprintln(ctx,
 				"there was a problem with submitting the chain:", err)
 		}
-		
 		
 		fmt.Fprintln(ctx, "Chain Submitted")
 	default:

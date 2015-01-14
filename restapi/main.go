@@ -450,7 +450,7 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 		case "commitchain":
 			var err error
 			pub := new(notaryapi.Hash)
-			chainhash := new(notaryapi.Hash)
+			//chainhash := new(notaryapi.Hash)
 			chainID := new(notaryapi.Hash)			
 			entrychainhash := new(notaryapi.Hash)
 			entryhash := new(notaryapi.Hash)
@@ -469,23 +469,21 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 				break;
  			}
 
- 			i := 8
+ 			//i := 8
 			//timestamp := binary.BigEndian.Uint64(data[:i])
 
-			chainhash.Bytes = data[i+1:i+32]
-			i = i + 32
+			//chainhash.Bytes = data[i:i+32]
+			//i = i + 32
 			
-			chainID.Bytes = data[i+1:i+32]
-			i = i + 32
-			
-			entrychainhash.Bytes = data[i+1:i+32]
-			i = i + 32
+			data = data[8:]
+			chainID.Bytes = data[:32]
+			data = data[32:]
 
-			entryhash.Bytes = data[i+1:i+32]
+			entryhash.Bytes = data[:32]
+			data = data[32:]
+						
+			entrychainhash.Bytes = data[:32]
 
-			fmt.Println("entryHash:", entryhash.String())
-			fmt.Println("chainID:", chainID.String())
-			fmt.Println("entrychainhash:", entrychainhash.String())
 			resource, err = processCommitChain(entryhash, chainID, entrychainhash, pub, 5)
 
 			if err != nil {
