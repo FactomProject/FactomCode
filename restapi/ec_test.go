@@ -69,6 +69,39 @@ func TestBuyCredit(t *testing.T) {
 	}
 } 
 
+func TestAddChain(t *testing.T) {
+
+	chain := new (notaryapi.EChain)
+	bName := make ([][]byte, 0, 5)
+	bName = append(bName, []byte("factom"))	
+	bName = append(bName, []byte("gutenberg"))		
+	
+	chain.Name = bName
+	chain.GenerateIDFromName()
+	
+	entry := new (notaryapi.Entry)
+	entry.ChainID = *chain.ChainID		
+	entry.ExtIDs = make ([][]byte, 0, 5)
+	entry.ExtIDs = append(entry.ExtIDs, []byte("factom"))	
+	entry.ExtIDs = append(entry.ExtIDs, []byte("gutenberg"))	
+	entry.Data = []byte("Factom Project Gutenberg Demonstration")
+	
+	chain.FirstEntry = entry
+	
+	binaryEntry, _ := entry.MarshalBinary()
+	entryHash := notaryapi.Sha(binaryEntry)
+	
+	entryChainIDHash := notaryapi.Sha(append(chain.ChainID.Bytes, entryHash.Bytes ...))
+	
+	barray := (make([]byte, 32))
+	barray[0] = 2
+	pubKey := new (notaryapi.Hash)
+	pubKey.SetBytes(barray)	
+	processCommitChain(entryHash, chain.ChainID, entryChainIDHash, pubKey)
+	time.Sleep(time.Second / 100)
+	processRevealChain(chain)	
+} 
+
 func TestAddEntry(t *testing.T) {
 	barray := (make([]byte, 32))
 	barray[0] = 2
