@@ -23,6 +23,8 @@ func serve_init() {
 	server.Post(`/v1/submitchain/?`, handleSubmitChain)	
 	server.Post(`/v1/buycredit/?`, handleBuyCreditPost)		
 	server.Post(`/v1/creditbalance/?`, handleGetCreditBalancePost)			
+
+	server.Get(`/v1/creditbalance/?`, handleGetCreditBalancePost)			
 	
 	server.Get(`/v1/dblocksbyrange/([^/]+)(?:/([^/]+))?`, handleDBlocksByRange)
 	server.Get(`/v1/dblock/([^/]+)(?)`, handleDBlockByHash)	
