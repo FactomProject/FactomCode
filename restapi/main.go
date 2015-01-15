@@ -477,8 +477,17 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 			data = data[32:]
 						
 			entrychainhash.Bytes = data[:32]
+			data = data[32:]
 
-			resource, err = processCommitChain(entryhash, chainID, entrychainhash, pub, 11)
+			buf := bytes.NewBuffer(data)
+			var credits int32
+    		err = binary.Read(buf, binary.BigEndian, &credits)
+			if err != nil {
+				fmt.Println("binary credits err:", err.Error())
+			} else { fmt.Println("credits %v",credits)}
+
+
+			resource, err = processCommitChain(entryhash, chainID, entrychainhash, pub, credits)
 
 			if err != nil {
 				fmt.Println("Error:", err.Error())
