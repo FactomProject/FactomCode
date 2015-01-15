@@ -25,6 +25,7 @@ func serve_init() {
 	server.Post(`/v1/creditbalance/?`, handleGetCreditBalancePost)			
 
 	server.Get(`/v1/creditbalance/?`, handleGetCreditBalancePost)			
+	server.Get(`/v1/buycredit/?`, handleBuyCreditPost)		
 	
 	server.Get(`/v1/dblocksbyrange/([^/]+)(?:/([^/]+))?`, handleDBlocksByRange)
 	server.Get(`/v1/dblock/([^/]+)(?)`, handleDBlockByHash)	
@@ -124,6 +125,14 @@ func handleSubmitChain(ctx *web.Context) {
 //		
 //}
 func handleBuyCreditPost(ctx *web.Context) {
+	var httpcode int = 200
+	buf := new(bytes.Buffer)
+
+	defer func() {
+		ctx.WriteHeader(httpcode)
+		ctx.Write(buf.Bytes())
+	}()
+
 	var abortMessage, abortReturn string
 	
 	defer func() {
@@ -152,6 +161,23 @@ func handleBuyCreditPost(ctx *web.Context) {
 		abortMessage = fmt.Sprint("An error occured while submitting the buycredit request: ", err.Error())
 		return
 	}
+
+	balance, err := factomapi.GetEntryCreditBalance(ecPubKey)
+	
+	ecBalance := new(notaryapi.ECBalance)
+	ecBalance.Credits = balance
+	ecBalance.PublicKey = ecPubKey
+
+	fmt.Println("Balance for pubkey ", ctx.Params["pubkey"], " is: ", balance)
+	
+	// Send back JSON response
+	err = factomapi.SafeMarshal(buf, ecBalance)
+	if err != nil{
+		httpcode = 400
+		buf.WriteString("Bad request ")
+		return		
+	}			
+
 		 
 }
 func handleGetCreditBalancePost(ctx *web.Context) {	
