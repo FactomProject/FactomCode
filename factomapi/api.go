@@ -314,18 +314,22 @@ func CommitChain(c *notaryapi.EChain) error {
 // encoded first entry for a chain to be used by the server to add a new factom
 // chain. It will be rejected if a CommitChain was not done.
 func RevealChain(c *notaryapi.EChain) error {
-/*	data := url.Values{
-		"datatype": {"entry"},
+	bChain,_ := c.MarshalBinary()	
+	
+	data := url.Values{
+		"datatype": {"revealchain"},
 		"format":   {"binary"},
-		"data":     {hex.EncodeToString(c.MarshalBinary())},
+		"data":     {hex.EncodeToString(bChain)},
 	}
+				
+	server := fmt.Sprintf(`http://%s/v1`, serverAddr)		
 	_, err := http.PostForm(server, data)
 	if err != nil {
 		return err
 	}
 	
-	*/
-	return nil
+	
+	return nil 
 }
 
 // PrintEntry is a helper function for debugging entry transport and encoding

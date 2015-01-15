@@ -66,6 +66,14 @@ func handleSubmitChain(ctx *web.Context) {
 		factomapi.SafeUnmarshal(reader,c)
 		
 		c.GenerateIDFromName()
+		if c.FirstEntry == nil {
+			fmt.Fprintln(ctx,
+				"The first entry is required for submitting the chain:")
+			return			
+		} else {
+			c.FirstEntry.ChainID = *c.ChainID
+		}
+		
 
 		fmt.Println("c.ChainID:", c.ChainID.String())
 				
@@ -86,7 +94,7 @@ func handleSubmitChain(ctx *web.Context) {
 	default:
 		ctx.WriteHeader(403)
 	}
-}
+} 
 
 //func handleEntryPost(ctx *web.Context) {
 //	var abortMessage, abortReturn string

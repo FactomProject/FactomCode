@@ -16,10 +16,10 @@ import (
 	"strings"
 	"time"	
 	"encoding/csv"
-	"net/http"
+	"net/http" 
 	"net/url"	 
-)  
- 
+)     
+  
 var (
  	logLevel = "DEBUG"
 	portNumber int = 8088 	
@@ -33,7 +33,7 @@ var (
 	
 	//Map to store imported csv files
 	clientDataFileMap map[string]string		
-	
+	 
 )
 
 func watchError(err error) {
