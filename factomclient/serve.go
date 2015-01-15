@@ -19,14 +19,16 @@ var server = web.NewServer()
 
 func serve_init() {
 	
+
 	server.Post(`/v1/submitentry/?`, handleSubmitEntry)
 	server.Post(`/v1/submitchain/?`, handleSubmitChain)	
 	server.Post(`/v1/buycredit/?`, handleBuyCreditPost)		
 	server.Post(`/v1/creditbalance/?`, handleGetCreditBalancePost)			
+	server.Post(`/v1/addentry/?`, handleSubmitEntry2)	// Needs to be removed later??
 
 	server.Get(`/v1/creditbalance/?`, handleGetCreditBalancePost)			
 	server.Get(`/v1/buycredit/?`, handleBuyCreditPost)		
-	
+		
 	server.Get(`/v1/dblocksbyrange/([^/]+)(?:/([^/]+))?`, handleDBlocksByRange)
 	server.Get(`/v1/dblock/([^/]+)(?)`, handleDBlockByHash)	
 	server.Get(`/v1/eblock/([^/]+)(?)`, handleEBlockByHash)	
@@ -41,15 +43,45 @@ func handleSubmitEntry(ctx *web.Context) {
 
 	switch ctx.Params["format"] {
 	case "json":
+		entry := new (notaryapi.Entry)
+		reader := gocoding.ReadBytes([]byte(ctx.Params["entry"]))
+		err := factomapi.SafeUnmarshal(reader, entry)
+		if  err != nil {
+			fmt.Fprintln(ctx,
+				"there was a problem with submitting the entry:", err.Error())
+		}
+		
+		if err := factomapi.CommitEntry(entry); err != nil {
+			fmt.Fprintln(ctx,
+				"there was a problem with submitting the entry:", err.Error())
+		}
+
+		time.Sleep(1 * time.Second)
+		if err := factomapi.RevealEntry(entry); err != nil {
+			fmt.Fprintln(ctx,
+				"there was a problem with submitting the entry:", err.Error())
+		}
+		fmt.Fprintln(ctx, "Entry Submitted")
+	default:
+		ctx.WriteHeader(403)
+	}
+}
+
+func handleSubmitEntry2(ctx *web.Context) {
+	// convert a json post to a factom.Entry then submit the entry to factom
+	fmt.Fprintln(ctx, "Entry Submitted")
+
+	switch ctx.Params["format"] {
+	case "json":
 		j := []byte(ctx.Params["entry"])
 		e := new(factomapi.Entry)
 		e.UnmarshalJSON(j)
-		if err := factomapi.CommitEntry(e); err != nil {
+		if err := factomapi.CommitEntry2(e); err != nil {
 			fmt.Fprintln(ctx,
 				"there was a problem with submitting the entry:", err)
 		}
 		time.Sleep(1 * time.Second)
-		if err := factomapi.RevealEntry(e); err != nil {
+		if err := factomapi.RevealEntry2(e); err != nil {
 			fmt.Fprintln(ctx,
 				"there was a problem with submitting the entry:", err)
 		}

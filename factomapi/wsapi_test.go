@@ -10,7 +10,7 @@ import (
 	"github.com/FactomProject/gocoding"	
 	"github.com/FactomProject/FactomCode/notaryapi"	
 
-//	"encoding/base64"
+	"encoding/base64"
 	//"io/ioutil"
 	//"os" 	
 	
@@ -104,7 +104,7 @@ func TestRevealChain(t *testing.T) {
 }
 
 */
-
+/*
 func TestBuyCreditWallet(t *testing.T) {
 	fmt.Println("\nTestBuyCreditWallet===========================================================================")
 	// Post the request to FactomClient web server	---------------------------------------
@@ -184,7 +184,7 @@ func TestAddChain(t *testing.T) {
 		t.Errorf("Error:%v", err)
 	}
 } 
-/*
+*/
 func TestAddEntry(t *testing.T) {
 	fmt.Println("\nTestAddEntry===========================================================================")
 	entry := new (notaryapi.Entry)
@@ -205,6 +205,7 @@ func TestAddEntry(t *testing.T) {
 	// Post the entry JSON to FactomClient web server	---------------------------------------
 	data := url.Values{}
 	data.Set("entry", jsonstr)
+	data.Set("format", "json")		
 	data.Set("password", "opensesame")
 	
 	_, err = http.PostForm("http://localhost:8088/v1/submitentry", data)	
@@ -228,7 +229,7 @@ func TestAddEntry(t *testing.T) {
 		t.Errorf("Error:%v", err)
 	}
 } 
-*/
+
 /*
 func TestBuyCredit(t *testing.T) {
 	fmt.Println("\nTestBuyCredit===========================================================================")
