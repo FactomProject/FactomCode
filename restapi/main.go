@@ -501,6 +501,51 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 
 		case "commitentry":
 			var err error
+			var credits int32				
+			pub := new(notaryapi.Hash)
+			hash := new(notaryapi.Hash)
+			data, err := hex.DecodeString(r.Form.Get("data"))
+			if err != nil { fmt.Println("hex:data", err) }
+
+			sig, err := hex.DecodeString(r.Form.Get("signature"))
+ 			if err != nil { fmt.Println("hex:signature", err.Error()) }
+
+			pub.Bytes, err = hex.DecodeString(r.Form.Get("pubkey"))
+ 			if err != nil { fmt.Println("hex:pubkey", err.Error()) }
+
+ 			if ( !wallet.VerifySlice(pub.Bytes, data, sig) ) {
+				err = notaryapi.CreateError(notaryapi.ErrorVerifySignature, "commitentry Verify failed")
+				break;
+ 			}
+
+			timestamp := binary.BigEndian.Uint64(data[:8])
+			data = data[8:]
+			hash.Bytes = data[:32]
+			data = data[32:]
+			buf := bytes.NewBuffer(data[:4])
+			err = binary.Read(buf, binary.BigEndian, &credits)
+			if err != nil {
+				fmt.Println("Error:", err.Error())
+			}	
+			resource, err = processCommitEntry(hash, pub, int64(timestamp), credits) 
+			if err != nil {
+				fmt.Println("Error:", err.Error())
+			}
+		case "revealentry":
+			e := new(notaryapi.Entry)
+			bin, err := hex.DecodeString(r.Form.Get("entry"))
+			if err != nil {
+				fmt.Println("hex:", err.Error())
+			}
+			e.UnmarshalBinary(bin)
+			nerr := new(notaryapi.Error)			
+			resource, nerr = processRevealEntry(e)
+			if err  != nil {
+				fmt.Println("Error:", nerr.Error())
+			}
+			
+		case "commitentry2":
+			var err error
 			pub := new(notaryapi.Hash)
 			hash := new(notaryapi.Hash)
 			data, err := hex.DecodeString(r.Form.Get("data"))
@@ -523,7 +568,7 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				fmt.Println("Error:", err.Error())
 			}
-		case "revealentry":
+		case "revealentry2":
 			e := new(notaryapi.Entry)
 			bin, err := hex.DecodeString(r.Form.Get("entry"))
 			if err != nil {
@@ -533,7 +578,7 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 			resource, err = processRevealEntry(e)
 			if err != nil {
 				fmt.Println("Error:", err.Error())
-			}
+			}			
 		// (commit|reveal)chain
 		case "chain":
 			resource, err = postChain("/"+strings.Join(path, "/"), form)

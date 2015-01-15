@@ -373,7 +373,59 @@ func NewChain(name []string, eids []string, data []byte) (c *Chain, err error) {
 
 // CommitEntry sends a message to the factom network containing a hash of the
 // entry to be used to verify the later RevealEntry.
-func CommitEntry(e *Entry) error {
+func CommitEntry(e *notaryapi.Entry) error {
+	var msg bytes.Buffer
+
+	bEntry,_ := e.MarshalBinary()
+	entryHash := notaryapi.Sha(bEntry)	
+	// Calculate the required credits
+	credits := int32(binary.Size(bEntry)/1000 + 1)		
+	
+	binary.Write(&msg, binary.BigEndian, uint64(time.Now().Unix()))
+	msg.Write(entryHash.Bytes)
+	binary.Write(&msg, binary.BigEndian, credits)		
+
+	sig := wallet.SignData(msg.Bytes())
+	// msg.Bytes should be a int64 timestamp followed by a binary entry
+
+	data := url.Values{
+		"datatype":  {"commitentry"},
+		"format":    {"binary"},
+		"signature": {hex.EncodeToString((*sig.Sig)[:])},
+		"pubkey":	{hex.EncodeToString((*sig.Pub.Key)[:])},
+		"data":      {hex.EncodeToString(msg.Bytes())},
+	}
+	server := fmt.Sprintf(`http://%s/v1`, serverAddr)	
+	_, err := http.PostForm(server, data)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// RevealEntry sends a message to the factom network containing the binary
+// encoded entry for the server to add it to the factom blockchain. The entry
+// will be rejected if a CommitEntry was not done.
+func RevealEntry(e *notaryapi.Entry) error {
+	bEntry,_ := e.MarshalBinary()	
+	data := url.Values{
+		"datatype": {"revealentry"},
+		"format":   {"binary"},
+		"entry":    {hex.EncodeToString(bEntry)},
+	}
+	
+	server := fmt.Sprintf(`http://%s/v1`, serverAddr)	
+	_, err := http.PostForm(server, data)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+
+// CommitEntry sends a message to the factom network containing a hash of the
+// entry to be used to verify the later RevealEntry.
+func CommitEntry2(e *Entry) error {
 	var msg bytes.Buffer
 
 	binary.Write(&msg, binary.BigEndian, uint64(time.Now().Unix()))
@@ -397,10 +449,11 @@ func CommitEntry(e *Entry) error {
 	return nil
 }
 
+
 // RevealEntry sends a message to the factom network containing the binary
 // encoded entry for the server to add it to the factom blockchain. The entry
 // will be rejected if a CommitEntry was not done.
-func RevealEntry(e *Entry) error {
+func RevealEntry2(e *Entry) error {
 	data := url.Values{
 		"datatype": {"revealentry"},
 		"format":   {"binary"},
@@ -414,6 +467,7 @@ func RevealEntry(e *Entry) error {
 	}
 	return nil
 }
+
 
 // CommitChain sends a message to the factom network containing a series of
 // hashes to be used to verify the later RevealChain.
@@ -467,11 +521,11 @@ func RevealChain(c *Chain) error {
 // it to the factom blockchain.
 func Submit(f FactomWriter) (err error) {
 	e := f.CreateFactomEntry()
-	err = CommitEntry(e)
+	err = CommitEntry2(e)
 	if err != nil {
 		return err
 	}
-	err = RevealEntry(e)
+	err = RevealEntry2(e)
 	if err != nil {
 		return err
 	}
