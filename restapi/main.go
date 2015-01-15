@@ -341,7 +341,7 @@ func init() {
 
 
 func main() {
-/*
+/**/
 
 	//addrStr := "muhXX7mXoMZUBvGLCgfjuoY2n2mziYETYC"
 	//addrStr := "movaFTARmsaTMk3j71MpX8HtMURpsKhdra"
@@ -357,7 +357,7 @@ func main() {
 	//doEntries()
 
 	
-	flag.Parse()
+	//flag.Parse()
 	defer func() {
 		tickers[0].Stop()
 		tickers[1].Stop()
@@ -492,11 +492,13 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 			c.UnmarshalBinary(bin)
 			
-			resource, err = processRevealChain(c)
-			if err != nil {
-				fmt.Println("Error:", err.Error())
+			nerr := new(notaryapi.Error)
+			resource, nerr = processRevealChain(c)
+
+			if nerr != nil {
+				fmt.Println("Error:", nerr.Error())
 			}
-			
+
 		case "commitentry":
 			var err error
 			pub := new(notaryapi.Hash)
@@ -766,7 +768,6 @@ func processBuyEntryCredit(pubKey *notaryapi.Hash, credits int32, factoidTxHash 
 }
 
 func processRevealChain(newChain *notaryapi.EChain) ([]byte, *notaryapi.Error) {
-
 	// Check if the chain id already exists
 	_, existing := chainIDMap[newChain.ChainID.String()]
 	if !existing {
@@ -813,9 +814,11 @@ func processRevealChain(newChain *notaryapi.EChain) ([]byte, *notaryapi.Error) {
 	newChain.BlockMutex.Lock()	
 	err := newChain.Blocks[len(newChain.Blocks)-1].AddEBEntry(newChain.FirstEntry)
 	newChain.BlockMutex.Unlock()	
+
 	if err != nil {
 		return nil, notaryapi.CreateError(notaryapi.ErrorInternal, fmt.Sprintf(`Error while adding the First Entry to Block: %s`, err.Error()))
 	}
+
 	ExportDataFromDbToFile()
 	
 	return newChain.ChainID.Bytes, nil	
@@ -1056,7 +1059,7 @@ func ExportDbToFile(dbHash *notaryapi.Hash) {
 	}
 	
 	//write the records to a csv file: 
-	filename := string(time.Now().Unix()) + "." + dbHash.String() + ".csv"
+	filename := fmt.Sprintf("%v." + dbHash.String() + ".csv", time.Now().Unix())
 	file, err := os.Create(dataStorePath+"csv/" + filename)
 	
 	if err != nil {panic(err)}
@@ -1088,7 +1091,7 @@ func ExportDataFromDbToFile() {
 	}
 	
 	//write the records to a csv file: 
-	filename := string(time.Now().Unix())  + ".supportdata.csv"
+	filename := fmt.Sprintf("%v.supportdata.csv",time.Now().Unix())
 	file, err := os.Create(dataStorePath+"csv/"  + filename)
 	if err != nil {panic(err)}
     defer file.Close()
