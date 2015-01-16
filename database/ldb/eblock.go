@@ -10,7 +10,7 @@ import (
 	"encoding/binary"
 	"time"
 
-	"github.com/conformal/goleveldb/leveldb/util"
+	"github.com/btcsuite/goleveldb/leveldb/util"
 )
 
 
