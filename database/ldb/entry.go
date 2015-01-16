@@ -6,9 +6,9 @@ import (
 	"encoding/binary"
 
 	"github.com/FactomProject/FactomCode/notaryapi"
-	"github.com/conformal/goleveldb/leveldb"	
+	"github.com/btcsuite/goleveldb/leveldb"	
 	"log"
-	"github.com/conformal/goleveldb/leveldb/util"	
+	"github.com/btcsuite/goleveldb/leveldb/util"	
 	"strings"
 	"time"
 )

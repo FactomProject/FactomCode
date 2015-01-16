@@ -4,9 +4,9 @@ package main
 import (
 	"fmt"
 
-	"github.com/conformal/goleveldb/leveldb"
-	"github.com/conformal/goleveldb/leveldb/opt"
-	"github.com/conformal/goleveldb/leveldb/util"
+	"github.com/btcsuite/goleveldb/leveldb"
+	"github.com/btcsuite/goleveldb/leveldb/opt"
+	"github.com/btcsuite/goleveldb/leveldb/util"
 	"github.com/FactomProject/FactomCode/notaryapi"		
 	//"bytes"
 	//"encoding/binary"
