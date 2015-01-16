@@ -2,7 +2,7 @@ package ldb
 
 import (
 	"github.com/FactomProject/FactomCode/notaryapi"		
-	"github.com/btcsuite/goleveldb/leveldb"
+	"github.com/FactomProject/goleveldb/leveldb"
 	"errors"
 	"log"
 )

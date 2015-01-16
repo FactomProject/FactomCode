@@ -11,9 +11,9 @@ import (
 	"github.com/FactomProject/FactomCode/database"
 
 	"github.com/conformal/btcwire"
-	"github.com/btcsuite/goleveldb/leveldb"
-	"github.com/btcsuite/goleveldb/leveldb/cache"
-	"github.com/btcsuite/goleveldb/leveldb/opt"
+	"github.com/FactomProject/goleveldb/leveldb"
+	"github.com/FactomProject/goleveldb/leveldb/cache"
+	"github.com/FactomProject/goleveldb/leveldb/opt"
 )
 
 const (
