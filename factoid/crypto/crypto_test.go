@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/FactomProject/FactomCode/factoid/util"
 	"github.com/FactomProject/FactomCode/factoid/crypto"
+	"github.com/FactomProject/FactomCode/factoid/util"
 )
 
 // FIPS 202 test (reverted back to FIPS 180)

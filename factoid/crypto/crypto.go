@@ -2,6 +2,7 @@ package crypto
 
 import (
 	"github.com/FactomProject/FactomCode/factoid/util"
+
 	"github.com/obscuren/sha3"
 )
 

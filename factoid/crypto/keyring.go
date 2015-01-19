@@ -2,9 +2,10 @@ package crypto
 
 import (
 	"fmt"
-	"github.com/FactomProject/FactomCode/factoid/util"
 	"io/ioutil"
 	"strings"
+
+	"github.com/FactomProject/FactomCode/factoid/util"
 )
 
 type KeyRing struct {

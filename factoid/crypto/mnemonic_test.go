@@ -2,6 +2,7 @@ package crypto
 
 import (
 	"testing"
+
 	"github.com/FactomProject/FactomCode/factoid/crypto"
 )
 

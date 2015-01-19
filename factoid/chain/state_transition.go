@@ -1,4 +1,4 @@
-    package chain
+package chain
 
 import (
 	"fmt"
@@ -7,15 +7,13 @@ import (
 	"github.com/FactomProject/FactomCode/factoid/state"
 )
 
-
 type StateTransition struct {
 	coinbase, receiver []byte
 	tx                 *Transaction
 	value              *big.Int
 	state              *state.State
 	block              *Block
-
-	cb, rec, sen *state.StateObject
+	cb, rec, sen       *state.StateObject
 }
 
 func NewStateTransition(coinbase *state.StateObject, tx *Transaction, state *state.State, block *Block) *StateTransition {
@@ -30,6 +28,7 @@ func (self *StateTransition) Coinbase() *state.StateObject {
 	self.cb = self.state.GetOrNewStateObject(self.coinbase)
 	return self.cb
 }
+
 func (self *StateTransition) Sender() *state.StateObject {
 	if self.sen != nil {
 		return self.sen
@@ -38,6 +37,7 @@ func (self *StateTransition) Sender() *state.StateObject {
 	self.sen = self.state.GetOrNewStateObject(self.tx.Sender())
 	return self.sen
 }
+
 func (self *StateTransition) Receiver() *state.StateObject {
 	if self.rec != nil {
 		return self.rec
@@ -81,7 +81,7 @@ func (self *StateTransition) TransitionState() (err error) {
 
 	sender.Nonce += 1
 	receiver = self.Receiver()
-	
+
 	return self.transferValue(sender, receiver)
 }
 
@@ -96,5 +96,3 @@ func (self *StateTransition) transferValue(sender, receiver *state.StateObject) 
 
 	return nil
 }
-
-

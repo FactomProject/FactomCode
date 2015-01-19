@@ -6,8 +6,9 @@ import (
 	"math/big"
 
 	"github.com/FactomProject/FactomCode/factoid/crypto"
-//	"github.com/FactomProject/FactomCode/factoid/state"
 	"github.com/FactomProject/FactomCode/factoid/util"
+	//	"github.com/FactomProject/FactomCode/factoid/state"
+
 	"github.com/obscuren/secp256k1-go"
 )
 
@@ -73,7 +74,7 @@ func (tx *Transaction) PublicKey() []byte {
 
 func (tx *Transaction) Sender() []byte {
 	pubkey := tx.PublicKey()
-	
+
 	// Validate the returned key.
 	// Return nil if public key isn't in full format
 	if pubkey[0] != 4 {
@@ -149,8 +150,8 @@ func (tx *Transaction) String() string {
 }
 
 type Receipt struct {
-	Tx                *Transaction
-	PostState         []byte
+	Tx            *Transaction
+	PostState     []byte
 	CumulativeFee *big.Int
 }
 type Receipts []*Receipt

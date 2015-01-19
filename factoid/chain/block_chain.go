@@ -75,7 +75,6 @@ func (bc *BlockChain) HasBlockWithPrevHash(hash []byte) bool {
 	return false
 }
 
-
 func (bc *BlockChain) GenesisBlock() *Block {
 	return bc.genesisBlock
 }
@@ -145,7 +144,6 @@ func (bc *BlockChain) Add(block *Block) {
 	db.Db.Put([]byte("LastBlock"), encodedBlock)
 }
 
-
 func (bc *BlockChain) GetBlock(hash []byte) *Block {
 	data, _ := db.Db.Get(hash)
 	if len(data) == 0 {
@@ -169,4 +167,3 @@ func (self *BlockChain) GetBlockByNumber(num uint64) *Block {
 
 	return block
 }
-

@@ -1,16 +1,16 @@
 package main
 
 import (
-	"testing"
-	"fmt"
-	"time"
 	"bytes"
+	"fmt"
+	"testing"
+	"time"
 
-	"github.com/conformal/btcutil"
-	"github.com/conformal/btcwire"	
 	"github.com/FactomProject/FactomCode/notaryapi"
-)
 
+	"github.com/btcsuite/btcutil"
+	"github.com/btcsuite/btcwire"
+)
 
 func init() {
 	err := initRPCClient()
@@ -29,7 +29,7 @@ func TestWallet(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-//	fmt.Println("account & balance: ", accountMap)
+	//	fmt.Println("account & balance: ", accountMap)
 	if accountMap[""] <= 0 {
 		t.Errorf("wallet account name is not empty")
 	}
@@ -58,11 +58,11 @@ func TestWallet(t *testing.T) {
 			t.Fatal(err)
 		}
 		if len(balance) > 0 {
-//			fmt.Print(a, "  ")
-//			for _, b := range balance {
-//				fmt.Print(b.Amount, "  ")
-//			}
-//			fmt.Println()
+			//			fmt.Print(a, "  ")
+			//			for _, b := range balance {
+			//				fmt.Print(b.Amount, "  ")
+			//			}
+			//			fmt.Println()
 			i++
 		}
 	}
@@ -79,7 +79,7 @@ func TestListUnspent(t *testing.T) {
 	if len(balance) != 93 {
 		t.Errorf("test.listunspent.len==%d", len(balance), ", NOT 93")
 	}
-	
+
 	var i int
 	for _, b := range balance {
 		if b.Amount > float64(0.1) {
@@ -90,7 +90,7 @@ func TestListUnspent(t *testing.T) {
 	if i != 21 {
 		t.Errorf("qualified unspent len==%d", i, ", NOT 21")
 	}
-	
+
 	var included bool
 	for _, b := range balance {
 		if compareUnspentResult(spentResult, b) {
@@ -103,10 +103,9 @@ func TestListUnspent(t *testing.T) {
 	}
 }
 
-
 func TestUnconfirmedSpent(t *testing.T) {
-	b1, _ := client.ListUnspent()	//minConf=1
-	b2, _ := client.ListUnspentMin(0)	//minConf=0
+	b1, _ := client.ListUnspent()     //minConf=1
+	b2, _ := client.ListUnspentMin(0) //minConf=0
 
 	for _, b := range b1 {
 		var i int = len(b2) + 1
@@ -125,7 +124,7 @@ func TestUnconfirmedSpent(t *testing.T) {
 		t.Errorf("Unconfirmed unspent len=%d", len(b2), ", NOT 4")
 	}
 	var sum float64
-	for i:=0; i<len(b2); i++ {
+	for i := 0; i < len(b2); i++ {
 		sum += b2[i].Amount
 	}
 	// the same as unconfirmed balance in OnAccountBalance call back
@@ -135,9 +134,8 @@ func TestUnconfirmedSpent(t *testing.T) {
 
 }
 
-
 func TestRepeatedSpending(t *testing.T) {
-	for i:=0; i<100; i++ {
+	for i := 0; i < 100; i++ {
 		hash, err := writeToBTC(notaryapi.Sha([]byte{byte(i)}))
 		if err != nil {
 			t.Fatal(err)
@@ -147,14 +145,14 @@ func TestRepeatedSpending(t *testing.T) {
 	}
 }
 
-
 func TestToHash(t *testing.T) {
 	s := "e517043a9770aacc7406db5f2ae8b3d687ce9bca3c8f76bc0be1ed18aed7ad68"
 	txHash, err := btcwire.NewShaHashFromStr(s)
-	if err != nil {fmt.Println(err.Error()) }
+	if err != nil {
+		fmt.Println(err.Error())
+	}
 	h := toHash(txHash)
 	fmt.Println("txHash=", txHash.String(), ", toHash=", h.String())
 	fmt.Println("equal in string: ", txHash.String() == h.String())
 	fmt.Println("equal in bytes: ", bytes.Compare(txHash.Bytes(), h.Bytes))
 }
-
