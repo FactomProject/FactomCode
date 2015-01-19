@@ -7,54 +7,53 @@ import (
 	"github.com/FactomProject/FactomCode/factoid/crypto"
 )
 
-
 func TestFirstKeyStore(t *testing.T) {
 	basedir0 := "/tmp/factomkey"
 	os.RemoveAll(basedir0)
 	os.Mkdir(basedir0, 0777)
 	km := crypto.NewFileKeyManager(basedir0)
-	
+
 	err := km.Init("Bo", 0, false)
 	if err != nil {
 		t.Error("Unexpected error: ", err)
 	}
-	
+
 	err = km.Init("Jack", 0, false)
 	if err != nil {
 		t.Error("Unexpected error: ", err)
 	}
-	
+
 	err = km.Init("Paul", 0, false)
 	if err != nil {
 		t.Error("Unexpected error: ", err)
 	}
-	
+
 	err = km.Init("Exchange", 0, false)
 	if err != nil {
 		t.Error("Unexpected error: ", err)
 	}
-	
+
 	err = km.Init("Protocol", 0, false)
 	if err != nil {
 		t.Error("Unexpected error: ", err)
 	}
 
-/*	
-	pair := crypto.GenerateNewKeyPair()
-	km.save("Bo", crypto.NewKeyRing().AddKeyPair(pair))
-	
-	pair = crypto.GenerateNewKeyPair()
-	km.save("Jack", crypto.NewKeyRing().AddKeyPair(pair))
-	
-	pair = crypto.GenerateNewKeyPair()
-	km.save("Paul", crypto.NewKeyRing().AddKeyPair(pair))
-	
-	pair = crypto.GenerateNewKeyPair()
-	km.save("Exchange", crypto.NewKeyRing().AddKeyPair(pair))
-	
-	keyring := crypto.NewGeneratedKeyRing(3)
-	km.save("Protocol", keyring)
-*/
+	/*
+		pair := crypto.GenerateNewKeyPair()
+		km.save("Bo", crypto.NewKeyRing().AddKeyPair(pair))
+
+		pair = crypto.GenerateNewKeyPair()
+		km.save("Jack", crypto.NewKeyRing().AddKeyPair(pair))
+
+		pair = crypto.GenerateNewKeyPair()
+		km.save("Paul", crypto.NewKeyRing().AddKeyPair(pair))
+
+		pair = crypto.GenerateNewKeyPair()
+		km.save("Exchange", crypto.NewKeyRing().AddKeyPair(pair))
+
+		keyring := crypto.NewGeneratedKeyRing(3)
+		km.save("Protocol", keyring)
+	*/
 }
 
 /*
@@ -68,18 +67,18 @@ func TestDBKeyManager(t *testing.T) {
 	if err != nil {
 		t.Error("Unexpected error: ", err)
 	}
-	
+
 	keyManager1 := crypto.NewDBKeyManager(memdb)
 	err = keyManager1.Init("", 0, false)
 	if err != nil {
 		t.Error("Unexpected error: ", err)
 	}
-	
+
 	if string(keyManager0.PrivateKey()) != string(keyManager1.PrivateKey()) {
 		t.Error("Expected private keys %x, %x, to be identical via db persistence", keyManager0.PrivateKey(), keyManager1.PrivateKey())
 	}
 	fmt.Println("privKey0=", string(keyManager0.PrivateKey()))
-	
+
 	err = keyManager1.Init("", 0, true)
 	if err != nil {
 		t.Error("Unexpected error: ", err)

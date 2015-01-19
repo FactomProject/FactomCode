@@ -1,9 +1,11 @@
 package crypto
 
 import (
-	"github.com/FactomProject/FactomCode/factoid/util"
-	"github.com/obscuren/secp256k1-go"
 	"strings"
+
+	"github.com/FactomProject/FactomCode/factoid/util"
+
+	"github.com/obscuren/secp256k1-go"
 )
 
 type KeyPair struct {

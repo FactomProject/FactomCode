@@ -2,11 +2,12 @@ package crypto
 
 import (
 	"fmt"
-	"github.com/FactomProject/FactomCode/factoid/util"
 	"io/ioutil"
 	"os"
 	"path"
 	"strings"
+
+	"github.com/FactomProject/FactomCode/factoid/util"
 )
 
 type KeyStore interface {

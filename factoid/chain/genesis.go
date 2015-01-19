@@ -7,7 +7,6 @@ import (
 	"github.com/FactomProject/FactomCode/factoid/util"
 )
 
-
 var ZeroHash256 = make([]byte, 32)
 var ZeroHash160 = make([]byte, 20)
 var EmptyShaList = crypto.Sha3Bin(util.Encode([]interface{}{}))
@@ -32,4 +31,3 @@ var GenesisHeader = []interface{}{
 }
 
 var Genesis = []interface{}{GenesisHeader, []interface{}{}, []interface{}{}}
-

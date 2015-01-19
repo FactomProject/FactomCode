@@ -2,19 +2,19 @@ package notaryapi
 
 import (
 	"bytes"
-	"fmt"
 	"crypto/sha256"
-	"github.com/FactomProject/gocoding"
+	"encoding/hex"
+	"fmt"
 	"reflect"
-	"encoding/hex"	
 
+	"github.com/FactomProject/gocoding"
 )
 
 // Size of array used to store sha hashes.  See ShaHash.
 const HashSize = 32
 
 type Hash struct {
-	Bytes 		[]byte			`json:"bytes"`
+	Bytes []byte `json:"bytes"`
 }
 
 func EmptyHash() (h *Hash) {
@@ -23,15 +23,17 @@ func EmptyHash() (h *Hash) {
 	return
 }
 
-func CreateHash(entities...BinaryMarshallable) (h *Hash, err error) {
+func CreateHash(entities ...BinaryMarshallable) (h *Hash, err error) {
 	sha := sha256.New()
-	
+
 	for _, entity := range entities {
 		data, err := entity.MarshalBinary()
-		if err != nil { return nil, err }
+		if err != nil {
+			return nil, err
+		}
 		sha.Write(data)
 	}
-	
+
 	h = new(Hash)
 	h.Bytes = sha.Sum(nil)
 	return
@@ -39,10 +41,10 @@ func CreateHash(entities...BinaryMarshallable) (h *Hash, err error) {
 
 func (h *Hash) MarshalBinary() ([]byte, error) {
 	var buf bytes.Buffer
-	
+
 	buf.Write([]byte{byte(len(h.Bytes))})
 	buf.Write(h.Bytes)
-	
+
 	return buf.Bytes(), nil
 }
 
@@ -52,11 +54,11 @@ func (h *Hash) MarshalledSize() uint64 {
 
 func (h *Hash) UnmarshalBinary(data []byte) error {
 	h.Bytes = make([]byte, data[0])
-	if data[0] > byte(0){
+	if data[0] > byte(0) {
 		data = data[1:]
 		copy(h.Bytes, data)
 	}
-	
+
 	return nil
 }
 
@@ -109,17 +111,14 @@ func NewHash(newHash []byte) (*Hash, error) {
 	return &sh, err
 }
 
-
-
 func Sha(data []byte) (h *Hash) {
 	sha := sha256.New()
 	sha.Write(data)
-	
+
 	h = new(Hash)
-	h.Bytes = sha.Sum(nil)	
+	h.Bytes = sha.Sum(nil)
 	return h
 }
-
 
 func (h *Hash) String() string {
 	return hex.EncodeToString(h.Bytes)
@@ -129,8 +128,8 @@ func (h *Hash) ByteString() string {
 	return string(h.Bytes)
 }
 
-func HexToHash(hexStr string) (h *Hash, err error)  {
-	h = new (Hash)
+func HexToHash(hexStr string) (h *Hash, err error) {
+	h = new(Hash)
 	h.Bytes, err = hex.DecodeString(hexStr)
 	return h, err
 }
@@ -149,13 +148,13 @@ func (h *Hash) BTCString() string {
 // Compare two Hashes
 func (a *Hash) IsSameAs(b *Hash) bool {
 
-	if a==nil || b==nil{
+	if a == nil || b == nil {
 		return false
 	}
-	
+
 	if bytes.Compare(a.Bytes, b.Bytes) == 0 {
 		return true
 	}
-	
+
 	return false
 }

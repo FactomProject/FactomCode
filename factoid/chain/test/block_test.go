@@ -1,26 +1,25 @@
 package chain
 
-
 import (
 	"fmt"
-	"github.com/FactomProject/FactomCode/factoid/chain"
-	"github.com/FactomProject/FactomCode/factoid/crypto"
-//	"github.com/FactomProject/FactomCode/factoid/db"
-	"github.com/FactomProject/FactomCode/factoid/util"
 	"math/big"
 	"testing"
+
+	"github.com/FactomProject/FactomCode/factoid/chain"
+	"github.com/FactomProject/FactomCode/factoid/crypto"
+	//	"github.com/FactomProject/FactomCode/factoid/db"
+	"github.com/FactomProject/FactomCode/factoid/util"
 )
 
-
-func TestTransaction(t *testing.T) {	
+func TestTransaction(t *testing.T) {
 	km := crypto.NewFileKeyManager("/tmp/factomkey")
 
-	km.Init("Bo", 0, false)	
+	km.Init("Bo", 0, false)
 	bo_addr := km.Address()
 	bo_priv := km.PrivateKey()
 	fmt.Println("Bo.addr=", util.Bytes2Hex(bo_addr))
 
-	km.Init("Jack", 0, false)	
+	km.Init("Jack", 0, false)
 	jack_addr := km.Address()
 	jack_priv := km.PrivateKey()
 	fmt.Println("Jack.addr=", util.Bytes2Hex(jack_addr))
@@ -30,47 +29,46 @@ func TestTransaction(t *testing.T) {
 	proto_priv := km.PrivateKey()
 	fmt.Println("protocol=", util.Bytes2Hex(protocol))
 
-//	bc := chain.NewBlockChain()	
+	//	bc := chain.NewBlockChain()
 
-//	genesis := bc.Genesis()
-//	fmt.Println("genesis=", genesis)
-	
-	sm := chain.NewStateManager()	//bc)
-	
+	//	genesis := bc.Genesis()
+	//	fmt.Println("genesis=", genesis)
+
+	sm := chain.NewStateManager() //bc)
+
 	fmt.Println("send.balance=", sm.CurrentState().GetOrNewStateObject(protocol).Balance)
 	fmt.Println("rec.balance=", sm.CurrentState().GetOrNewStateObject(bo_addr).Balance)
 	fmt.Println("coinbase.balance=", sm.CurrentState().GetOrNewStateObject(jack_addr).Balance)
-			
-	block := chain.FChain.NewBlock(jack_addr)	//coinbase
-	
+
+	block := chain.FChain.NewBlock(jack_addr) //coinbase
+
 	tx := chain.NewTransaction(bo_addr, big.NewInt(100), big.NewInt(1))
 	tx.Sign(proto_priv)
-//	fmt.Println(tx.String())
+	//	fmt.Println(tx.String())
 	block.AddTransaction(tx)
-	
+
 	tx = chain.NewTransaction(jack_addr, big.NewInt(100), big.NewInt(1))
 	tx.Sign(bo_priv)
 	block.AddTransaction(tx)
-	
+
 	tx = chain.NewTransaction(protocol, big.NewInt(100), big.NewInt(1))
 	tx.Sign(jack_priv)
 	block.AddTransaction(tx)
-	
+
 	tx = chain.NewTransaction(bo_addr, big.NewInt(2), big.NewInt(1))
 	tx.Sign(jack_priv)
 	block.AddTransaction(tx)
-	
-	err := sm.Process(block)	
-//	sm.MineNewBlock(block)
+
+	err := sm.Process(block)
+	//	sm.MineNewBlock(block)
 	if err != nil {
 		fmt.Println("sm.process: ", err.Error())
 	}
-	
+
 	fmt.Println("send.balance=", sm.CurrentState().GetOrNewStateObject(protocol).Balance)
 	fmt.Println("rec.balance=", sm.CurrentState().GetOrNewStateObject(bo_addr).Balance)
 	fmt.Println("coinbase.balance=", sm.CurrentState().GetOrNewStateObject(jack_addr).Balance)
 }
-
 
 /*
 func (sm *StateManager) MineNewBlock(block *Block) {
@@ -108,5 +106,3 @@ func (sm *StateManager) MineNewBlock(block *Block) {
 	}
 }
 */
-
-

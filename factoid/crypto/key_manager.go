@@ -2,8 +2,9 @@ package crypto
 
 import (
 	"fmt"
-	"github.com/FactomProject/FactomCode/factoid/util"
 	"sync"
+
+	"github.com/FactomProject/FactomCode/factoid/util"
 )
 
 type KeyManager struct {
@@ -102,7 +103,7 @@ func (k *KeyManager) Init(session string, cursor int, force bool) error {
 		}
 	}
 	if keyRing == nil {
-		keyRing = NewGeneratedKeyRing(cursor + 1)	//1)
+		keyRing = NewGeneratedKeyRing(cursor + 1) //1)
 	}
 	return k.reset(session, cursor, keyRing)
 }

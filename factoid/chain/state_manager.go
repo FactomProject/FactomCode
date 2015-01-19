@@ -1,7 +1,7 @@
 package chain
 
 import (
-//	"bytes"
+	//	"bytes"
 	"fmt"
 	"math/big"
 	"sync"
@@ -13,11 +13,11 @@ import (
 
 var BlockReward *big.Int = big.NewInt(1)
 
-var statelogger = log.NewLogger("STATE")  
+var statelogger = log.NewLogger("STATE")
 
 type StateManager struct {
 	mutex sync.Mutex
-	bc *BlockChain
+	bc    *BlockChain
 	// The managed states
 	// Transiently state. The trans state isn't ever saved, validated and
 	// it could be used for setting account nonces without effecting
@@ -32,7 +32,7 @@ type StateManager struct {
 
 func NewStateManager() *StateManager {
 	sm := &StateManager{
-		bc:	  FChain,
+		bc: FChain,
 	}
 	sm.transState = FChain.CurrentBlock.State().Copy()
 
@@ -41,7 +41,7 @@ func NewStateManager() *StateManager {
 
 func (sm *StateManager) CurrentState() *state.State {
 	return sm.bc.CurrentBlock.State()
-}	
+}
 
 func (sm *StateManager) TransState() *state.State {
 	return sm.transState
@@ -51,13 +51,13 @@ func (self *StateManager) ProcessTransactions(coinbase *state.StateObject, state
 	var (
 		receipts           Receipts
 		handled, unhandled Transactions
-		totalFee       		= big.NewInt(0)
+		totalFee           = big.NewInt(0)
 		err                error
 	)
-	
-//	fmt.Println("block=", block)
-//	fmt.Println("parent=", parent)
-//	fmt.Println("len(txs)=", len(txs))
+
+	//	fmt.Println("block=", block)
+	//	fmt.Println("parent=", parent)
+	//	fmt.Println("len(txs)=", len(txs))
 
 	for i, tx := range txs {
 
@@ -97,7 +97,7 @@ func (self *StateManager) ProcessTransactions(coinbase *state.StateObject, state
 		handled = append(handled, tx)
 	}
 
-	block.TotalFee = totalFee  //??? parent.TotalFee
+	block.TotalFee = totalFee //??? parent.TotalFee
 
 	fmt.Println("receipts.len=", len(receipts), ", receipts=", receipts, ", totalFee=", totalFee)
 
@@ -145,8 +145,8 @@ func (sm *StateManager) Process(block *Block) (err error) {
 	}
 
 	state.Update()
-	block.SetState(state.Copy())	//added
-	
+	block.SetState(state.Copy()) //added
+
 	if !block.State().Cmp(state) {
 		err = fmt.Errorf("Invalid merkle root.\nrec: %x\nis:  %x", block.State().Trie.Root, state.Trie.Root)
 		return
@@ -159,7 +159,7 @@ func (sm *StateManager) Process(block *Block) (err error) {
 	sm.bc.Add(block)
 
 	sm.transState = state.Copy()
-	
+
 	fmt.Println("post mining: block=", block)
 	fmt.Println("post mining: parent=", parent)
 
@@ -198,10 +198,8 @@ func (sm *StateManager) AccumelateRewards(state *state.State, block, parent *Blo
 	account := state.GetAccount(block.Coinbase)
 	// Reward amount of factoid to the coinbase address
 	account.AddAmount(reward)
-	
+
 	account.AddAmount(block.TotalFee)
 
 	return nil
 }
-
-

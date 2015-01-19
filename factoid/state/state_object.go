@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math/big"
 
-//	"github.com/FactomProject/FactomCode/factoid/crypto"
+	//	"github.com/FactomProject/FactomCode/factoid/crypto"
 	"github.com/FactomProject/FactomCode/factoid/db"
 	"github.com/FactomProject/FactomCode/factoid/trie"
 	"github.com/FactomProject/FactomCode/factoid/util"
@@ -26,10 +26,10 @@ type StateObject struct {
 	// Address of the object
 	address []byte
 	// Shared attributes
-	Balance  *big.Int
-	Nonce    uint64
+	Balance *big.Int
+	Nonce   uint64
 	// Contract related attributes
-	State    *State
+	State *State
 
 	storage Storage
 
@@ -122,7 +122,7 @@ func (self *StateObject) EachStorage(cb trie.EachCallback) {
 
 func (self *StateObject) Sync() {
 	for key, value := range self.storage {
-		if value.Len() == 0 { 
+		if value.Len() == 0 {
 			//fmt.Printf("deleting %x %x 0x%x\n", self.Address(), []byte(key), data)
 			self.State.Trie.Delete(string(key))
 			continue
@@ -222,5 +222,3 @@ func (c *StateObject) RlpDecode(data []byte) {
 	c.State = New(trie.New(db.Db, decoder.Get(2).Interface()))
 	c.storage = make(map[string]*util.Value)
 }
-
-

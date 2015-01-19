@@ -14,7 +14,7 @@ import (
 	"github.com/FactomProject/FactomCode/factoid/util"
 )
 
-type Blocks []*Block 
+type Blocks []*Block
 
 const MAX_TX_NUM = 10000
 
@@ -44,7 +44,7 @@ func NewBlockFromBytes(raw []byte) *Block {
 	return block
 }
 
-// New block takes a raw encoded string 
+// New block takes a raw encoded string
 func NewBlockFromRlpValue(rlpValue *util.Value) *Block {
 	block := &Block{}
 	block.RlpValueDecode(rlpValue)
@@ -60,13 +60,13 @@ func CreateBlock(root interface{},
 	block := &Block{
 		PrevHash: prevHash,
 		Coinbase: base,
-		Nonce: Nonce,
-		Time:  time.Now().Unix(),
+		Nonce:    Nonce,
+		Time:     time.Now().Unix(),
 		TotalFee: new(big.Int),
 	}
 
 	block.state = state.New(trie.New(db.Db, root))
-	
+
 	block.transactions = make([]*Transaction, 0, 100)
 
 	return block
@@ -128,7 +128,6 @@ func (block *Block) rlpReceipts() interface{} {
 	return encR
 }
 
-
 func (self *Block) SetReceipts(receipts []*Receipt, txs []*Transaction) {
 	self.receipts = receipts
 	self.setTransactions(txs)
@@ -157,7 +156,7 @@ func CreateTxSha(receipts Receipts) (sha []byte) {
 }
 
 func (self *Block) SetTxHash(receipts Receipts) {
-	self.receipts = receipts	//added
+	self.receipts = receipts //added
 	self.TxSha = CreateTxSha(receipts)
 }
 
@@ -190,7 +189,6 @@ func (block *Block) RlpValueDecode(decoder *util.Value) {
 	block.Nonce = header.Get(7).Bytes()
 
 }
-
 
 func (block *Block) GetRoot() interface{} {
 	return block.state.Trie.Root
@@ -247,7 +245,6 @@ func (block *Block) String() string {
 	)
 }
 
-
 func (block *Block) AddTransaction(tx *Transaction) {
 	err := block.ValidateTransaction(tx)
 	if err == nil {
@@ -256,7 +253,6 @@ func (block *Block) AddTransaction(tx *Transaction) {
 		fmt.Println(err.Error())
 	}
 }
-
 
 func (block *Block) ValidateTransaction(tx *Transaction) error {
 	// Get the last block so we can retrieve the sender and receiver from
@@ -271,8 +267,8 @@ func (block *Block) ValidateTransaction(tx *Transaction) error {
 
 	// Get the sender
 	sender := FChain.CurrentBlock.State().GetAccount(tx.Sender())
-	
-	fmt.Println("sender=", util.Bytes2Hex(tx.Sender()), ", rec=%", util.Bytes2Hex(tx.Recipient),	", balance=", sender.Balance, ", payment=", tx.Value, ", fee=", tx.Fee)
+
+	fmt.Println("sender=", util.Bytes2Hex(tx.Sender()), ", rec=%", util.Bytes2Hex(tx.Recipient), ", balance=", sender.Balance, ", payment=", tx.Value, ", fee=", tx.Fee)
 
 	totalValue := new(big.Int).Add(tx.Value, tx.Fee)
 	if sender.Balance.Cmp(totalValue) < 0 {
@@ -281,4 +277,3 @@ func (block *Block) ValidateTransaction(tx *Transaction) error {
 
 	return nil
 }
-
