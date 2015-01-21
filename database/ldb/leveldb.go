@@ -10,7 +10,7 @@ import (
 
 	"github.com/FactomProject/FactomCode/database"
 
-	"github.com/conformal/btcwire"
+	"github.com/btcsuite/btcwire"
 	"github.com/FactomProject/goleveldb/leveldb"
 	"github.com/FactomProject/goleveldb/leveldb/cache"
 	"github.com/FactomProject/goleveldb/leveldb/opt"
