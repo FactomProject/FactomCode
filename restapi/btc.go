@@ -13,13 +13,13 @@ import (
 	"path/filepath"
 
  
-	"github.com/conformal/btcjson"
-	"github.com/conformal/btcnet"
-	"github.com/conformal/btcscript"
-	"github.com/conformal/btcutil"
-	"github.com/conformal/btcwire"
-	"github.com/conformal/btcws"
-	"github.com/conformal/btcrpcclient"
+	"github.com/btcsuite/btcjson"
+	"github.com/btcsuite/btcnet"
+	"github.com/btcsuite/btcscript"
+	"github.com/btcsuite/btcutil"
+	"github.com/btcsuite/btcwire"
+	"github.com/btcsuite/btcws"
+	"github.com/btcsuite/btcrpcclient"
 
 	"github.com/FactomProject/FactomCode/notaryapi"
 	
