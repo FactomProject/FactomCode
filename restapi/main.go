@@ -726,14 +726,16 @@ func processRevealEntry(newEntry *notaryapi.Entry) ([]byte, *notaryapi.Error) {
 
 	// Precalculate the key for prePaidEntryMap
 	key := entryHash.String()
-	chain.BlockMutex.Lock()
+
 	// Delete the entry in the prePaidEntryMap in memory
 	prepayment, ok := prePaidEntryMap[key]
 	if ok && prepayment >= credits {
 		delete (prePaidEntryMap, key)	// Only revealed once for multiple prepayments??
-	} else{
+	} else{	
 		return nil, notaryapi.CreateError(notaryapi.ErrorInternal, `Credit needs to paid first before reveal an entry:` + entryHash.String())
 	}	
+	
+	chain.BlockMutex.Lock()	
 	err := chain.Blocks[len(chain.Blocks)-1].AddEBEntry(newEntry)
 	chain.BlockMutex.Unlock()
 
@@ -756,6 +758,7 @@ func processCommitEntry(entryHash *notaryapi.Hash, pubKey *notaryapi.Hash, 	time
 	// Update the credit balance in memory
 	creditBalance, _ := eCreditMap[pubKey.String()]
 	if creditBalance + credits < 0 {
+		cchain.BlockMutex.Unlock()			
 		return nil, errors.New("Not enough credit for public key:" + pubKey.String() + " Balance:" + fmt.Sprint(credits))
 	}
 	eCreditMap[pubKey.String()] = creditBalance + credits
@@ -796,6 +799,7 @@ func processCommitChain(entryHash *notaryapi.Hash, chainIDHash *notaryapi.Hash, 
 	// Update the credit balance in memory
 	creditBalance, _ := eCreditMap[pubKey.String()]
 	if creditBalance + credits < 0 {
+		cchain.BlockMutex.Unlock()	 		
 		return nil, errors.New("Insufficient credits for public key:" + pubKey.String() + " Balance:" + fmt.Sprint(credits))
 	}	
 	eCreditMap[pubKey.String()] = creditBalance + credits
@@ -803,7 +807,7 @@ func processCommitChain(entryHash *notaryapi.Hash, chainIDHash *notaryapi.Hash, 
 	// Update the prePaidEntryMap in memory
 	payments, _ := prePaidEntryMap[key]	
 	prePaidEntryMap[key] = payments - credits
-	cchain.BlockMutex.Unlock()	 
+	cchain.BlockMutex.Unlock()	
  
 	return chainIDHash.Bytes, err
 }

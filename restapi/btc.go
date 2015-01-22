@@ -24,7 +24,7 @@ import (
 	"github.com/FactomProject/FactomCode/notaryapi"
 	
 )
-  
+   
 
 // fee is paid to miner for tx written into btc
 var fee btcutil.Amount
