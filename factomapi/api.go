@@ -1,27 +1,29 @@
 package factomapi
 
 import (
+	//"encoding/base64"
+	"encoding/hex"
+	"fmt"
+	"github.com/FactomProject/FactomCode/database"
+	"github.com/FactomProject/FactomCode/notaryapi"
+	"github.com/FactomProject/FactomCode/wallet"
 	"net/http"
 	"net/url"
-	"fmt"
-	"encoding/hex"	
-	"encoding/base64"		
 	"sort"
-	"github.com/FactomProject/FactomCode/database"	
-	"github.com/FactomProject/FactomCode/notaryapi"	
-	"github.com/FactomProject/FactomCode/wallet"
-	//"github.com/FactomProject/FactomCode/database/ldb"	
-	"strconv"		
-	"io/ioutil"	
+	//"github.com/FactomProject/FactomCode/database/ldb"
 	"bytes"
-	"encoding/binary"	
+	"encoding/binary"
+	"io/ioutil"
+	"strconv"
 	"time"
-
 )
-//to be improved:
-var serverAddr = "localhost:8083"	
-var db database.Db // database
-var	creditsPerChain int32 = 10
+
+//to be improved
+var (
+	serverAddr      = "localhost:8083"
+	db              database.Db
+	creditsPerChain int32 = 10
+)
 
 // This method will be replaced with a Factoid transaction once we have the factoid implementation in place
 func BuyEntryCredit(version uint16, ecPubKey *notaryapi.Hash, from *notaryapi.Hash, value uint64, fee uint64, sig *notaryapi.Signature) error {
@@ -78,74 +80,63 @@ func GetDirectoryBlokByHash(dBlockHash *notaryapi.Hash) (dBlock *notaryapi.DBloc
 	return dBlock, err
 }
 
-func GetDirectoryBlokByHashStr(dBlockHashBase64 string) (dBlock *notaryapi.DBlock, err error) {
-	
-	bytes, err := base64.URLEncoding.DecodeString(dBlockHashBase64)
-	
-	
-	if err != nil || len(bytes) != notaryapi.HashSize{
+func GetDirectoryBlokByHashStr(addr string) (*notaryapi.DBlock, error) {
+	hash := new(notaryapi.Hash)
+	a, err := hex.DecodeString(addr)
+	if err != nil {
 		return nil, err
 	}
-	dBlockHash := new (notaryapi.Hash)
-	dBlockHash.Bytes = bytes
+	hash.Bytes = a
 	
-	
-	dBlock, _ = db.FetchDBlockByHash(dBlockHash)
-	
-	return dBlock, nil
+	return db.FetchDBlockByHash(hash)
 }
 
-func GetEntryBlokByHashStr(eBlockHashBase64 string) (eBlock *notaryapi.EBlock, err error) {
-	bytes, err := base64.URLEncoding.DecodeString(eBlockHashBase64)
-	
-	
-	if err != nil || len(bytes) != notaryapi.HashSize{
+func GetEntryBlokByHashStr(addr string) (*notaryapi.EBlock, error) {
+	hash := new(notaryapi.Hash)
+	a, err := hex.DecodeString(addr)
+	if err != nil {
 		return nil, err
 	}
-	eBlockHash := new (notaryapi.Hash)
-	eBlockHash.Bytes = bytes
-
-	return GetEntryBlokByHash(eBlockHash)
+	hash.Bytes = a
+	
+	return db.FetchEBlockByHash(hash)
 }
 
-func GetEntryBlokByHash(eBlockHash *notaryapi.Hash) (eBlock *notaryapi.EBlock, err error) {
-
-	eBlock, err = db.FetchEBlockByHash(eBlockHash)
-	 
-	return eBlock, err
-}
+//func GetEntryBlokByHash(eBlockHash *notaryapi.Hash) (eBlock *notaryapi.EBlock, err error) {
+//
+//	eBlock, err = db.FetchEBlockByHash(eBlockHash)
+//	 
+//	return eBlock, err
+//}
  
-func GetEntryBlokByMRStr(eBlockMRBase64 string) (eBlock *notaryapi.EBlock, err error) {
-	bytes, err := base64.URLEncoding.DecodeString(eBlockMRBase64)
-		
-	if err != nil || len(bytes) != notaryapi.HashSize{
+func GetEntryBlokByMRStr(addr string) (eBlock *notaryapi.EBlock, err error) {
+	hash := new(notaryapi.Hash)
+	a, err := hex.DecodeString(addr)
+	if err != nil {
 		return nil, err
 	}
-	eBlockMR := new (notaryapi.Hash)
-	eBlockMR.Bytes = bytes
-
-	return db.FetchEBlockByMR(eBlockMR)
+	hash.Bytes = a
+	
+	return db.FetchEBlockByMR(hash)
 }
 
-func GetEntryByHashStr(entryHashBase64 string) (entry *notaryapi.Entry, err error) {
-	bytes, err := base64.URLEncoding.DecodeString(entryHashBase64)
-	
-	
-	if err != nil || len(bytes) != notaryapi.HashSize{
+func GetEntryByHashStr(addr string) (*notaryapi.Entry, error) {
+	hash := new(notaryapi.Hash)
+	a, err := hex.DecodeString(addr)
+	if err != nil {
 		return nil, err
 	}
-	entryHash := new (notaryapi.Hash)
-	entryHash.Bytes = bytes
-
-	return GetEntryByHash(entryHash)
+	hash.Bytes = a
+	
+	return db.FetchEntryByHash(hash)
 }
 
-func GetEntryByHash(entrySha *notaryapi.Hash) (entry *notaryapi.Entry, err error) {
-
-	entry, err = db.FetchEntryByHash(entrySha)
-
-	return entry, err
-}
+//func GetEntryByHash(entrySha *notaryapi.Hash) (entry *notaryapi.Entry, err error) {
+//
+//	entry, err = db.FetchEntryByHash(entrySha)
+//
+//	return entry, err
+//}
 
 
 // to be removed------------------------------
