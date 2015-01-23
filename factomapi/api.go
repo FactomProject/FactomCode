@@ -72,14 +72,6 @@ func GetDirectoryBloks(fromBlockHeight uint64, toBlockHeight uint64) (dBlocks []
 	return dBlocks[fromBlockHeight:toBlockHeight+1], nil
 }
 
-
-func GetDirectoryBlokByHash(dBlockHash *notaryapi.Hash) (dBlock *notaryapi.DBlock, err error) {
-
-	dBlock, err = db.FetchDBlockByHash(dBlockHash)
-	
-	return dBlock, err
-}
-
 func GetDirectoryBlokByHashStr(addr string) (*notaryapi.DBlock, error) {
 	hash := new(notaryapi.Hash)
 	a, err := hex.DecodeString(addr)
@@ -102,14 +94,7 @@ func GetEntryBlokByHashStr(addr string) (*notaryapi.EBlock, error) {
 	return db.FetchEBlockByHash(hash)
 }
 
-//func GetEntryBlokByHash(eBlockHash *notaryapi.Hash) (eBlock *notaryapi.EBlock, err error) {
-//
-//	eBlock, err = db.FetchEBlockByHash(eBlockHash)
-//	 
-//	return eBlock, err
-//}
- 
-func GetEntryBlokByMRStr(addr string) (eBlock *notaryapi.EBlock, err error) {
+func GetEntryBlokByMRStr(addr string) (*notaryapi.EBlock, error) {
 	hash := new(notaryapi.Hash)
 	a, err := hex.DecodeString(addr)
 	if err != nil {
@@ -131,6 +116,20 @@ func GetEntryByHashStr(addr string) (*notaryapi.Entry, error) {
 	return db.FetchEntryByHash(hash)
 }
 
+//func GetDirectoryBlokByHash(dBlockHash *notaryapi.Hash) (dBlock *notaryapi.DBlock, err error) {
+//
+//	dBlock, err = db.FetchDBlockByHash(dBlockHash)
+//	
+//	return dBlock, err
+//}
+
+//func GetEntryBlokByHash(eBlockHash *notaryapi.Hash) (eBlock *notaryapi.EBlock, err error) {
+//
+//	eBlock, err = db.FetchEBlockByHash(eBlockHash)
+//	 
+//	return eBlock, err
+//}
+ 
 //func GetEntryByHash(entrySha *notaryapi.Hash) (entry *notaryapi.Entry, err error) {
 //
 //	entry, err = db.FetchEntryByHash(entrySha)
