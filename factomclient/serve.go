@@ -10,7 +10,7 @@ import (
 	"github.com/FactomProject/FactomCode/factomapi"
 	"net/url"
 	"strconv"
-	"encoding/base64"
+	"encoding/hex"
 	"time"
   
 )
@@ -179,7 +179,7 @@ func handleBuyCreditPost(ctx *web.Context) {
 	if ctx.Params["to"] == "wallet" {
 		ecPubKey.Bytes = (*wallet.ClientPublicKey().Key)[:]
 	} else {
-		ecPubKey.Bytes, _ = base64.URLEncoding.DecodeString(ctx.Params["to"])
+		ecPubKey.Bytes, _ = hex.DecodeString(ctx.Params["to"])
 	}
 
 	fmt.Println("handleBuyCreditPost using pubkey: ", ecPubKey, " requested",ctx.Params["to"])
@@ -225,7 +225,7 @@ func handleGetCreditBalancePost(ctx *web.Context) {
 	if ctx.Params["pubkey"] == "wallet" {
 		ecPubKey.Bytes = (*wallet.ClientPublicKey().Key)[:]
 	} else {
-		ecPubKey.Bytes, _ = base64.StdEncoding.DecodeString(ctx.Params["pubkey"])
+		ecPubKey.Bytes, _ = hex.DecodeString(ctx.Params["pubkey"])
 	}
 
 	fmt.Println("handleGetCreditBalancePost using pubkey: ", ecPubKey, " requested",ctx.Params["pubkey"])
