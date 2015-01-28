@@ -50,7 +50,7 @@ func (h *Hash) MarshalledSize() uint64 {
 
 func (h *Hash) UnmarshalBinary(p []byte) error {
 	h.Bytes = make([]byte, p[0])
-	if p[0] > byte(0){
+	if p[0] > byte(0) {
 		p = p[1:]
 		copy(h.Bytes, p)
 	}
@@ -74,9 +74,9 @@ func (h *Hash) Decoding(m gocoding.Unmarshaller, t reflect.Type) gocoding.Decode
 	}
 }
 
-func (hash *Hash) GetBytes() []byte {
+func (h *Hash) GetBytes() []byte {
 	newHash := make([]byte, HashSize)
-	copy(newHash, hash.Bytes)
+	copy(newHash, h.Bytes)
 
 	return newHash
 }
@@ -86,8 +86,7 @@ func (hash *Hash) GetBytes() []byte {
 func (hash *Hash) SetBytes(newHash []byte) error {
 	nhlen := len(newHash)
 	if nhlen != HashSize {
-		return fmt.Errorf("invalid sha length of %v, want %v", nhlen,
-			HashSize)
+		return fmt.Errorf("invalid sha length of %v, want %v", nhlen, HashSize)
 	}
 
 	hash.Bytes = make([]byte, HashSize)
@@ -106,17 +105,14 @@ func NewShaHash(newHash []byte) (*Hash, error) {
 	return &sh, err
 }
 
-
-
-func Sha(data []byte) (h *Hash) {
+func Sha(p []byte) (h *Hash) {
 	sha := sha256.New()
-	sha.Write(data)
-	
+	sha.Write(p)
+
 	h = new(Hash)
-	h.Bytes = sha.Sum(nil)	
+	h.Bytes = sha.Sum(nil)
 	return h
 }
-
 
 func (h *Hash) String() string {
 	return hex.EncodeToString(h.Bytes)
@@ -126,8 +122,8 @@ func (h *Hash) ByteString() string {
 	return string(h.Bytes)
 }
 
-func HexToHash(hexStr string) (h *Hash, err error)  {
-	h = new (Hash)
+func HexToHash(hexStr string) (h *Hash, err error) {
+	h = new(Hash)
 	h.Bytes, err = hex.DecodeString(hexStr)
 	return h, err
 }
@@ -145,14 +141,13 @@ func (h *Hash) BTCString() string {
 
 // Compare two Hashes
 func (a *Hash) IsSameAs(b *Hash) bool {
-
-	if a==nil || b==nil{
+	if a == nil || b == nil {
 		return false
 	}
-	
+
 	if bytes.Compare(a.Bytes, b.Bytes) == 0 {
 		return true
 	}
-	
+
 	return false
 }
