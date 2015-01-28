@@ -261,7 +261,7 @@ func CreateDBlock(chain *DChain, prev *DBlock, capacity uint) (b *DBlock, err er
 	
 	var prevHash *Hash
 	if prev == nil {
-		prevHash = EmptyHash()
+		prevHash = NewHash()
 	} else {
 		prevHash, err = CreateHash(prev)
 	}
@@ -269,7 +269,7 @@ func CreateDBlock(chain *DChain, prev *DBlock, capacity uint) (b *DBlock, err er
 	b.Header = NewDBlockHeader(chain.NextBlockID, prevHash, DBlockVersion, uint32(0))
 	b.Chain = chain
 	b.DBEntries = make([]*DBEntry, 0, capacity)
-	b.Salt = EmptyHash()
+	b.Salt = NewHash()
 	b.IsSealed = false
 	
 	return b, err

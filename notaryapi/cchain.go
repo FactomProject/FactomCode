@@ -59,18 +59,18 @@ func CreateCBlock(chain *CChain, prev *CBlock, capacity uint) (b *CBlock, err er
 	
 	var prevHash *Hash
 	if prev == nil {
-		prevHash = EmptyHash()
+		prevHash = NewHash()
 	} else {
 		prevHash, err = CreateHash(prev)
 	}
 	
-	b.Header = NewCBlockHeader(chain.NextBlockID, prevHash, EmptyHash())
+	b.Header = NewCBlockHeader(chain.NextBlockID, prevHash, NewHash())
 	
 	b.Chain = chain
 	
 	b.CBEntries = make([]CBEntry, 0, capacity)
 	
-	b.Salt = EmptyHash()
+	b.Salt = NewHash()
 	
 	b.IsSealed = false
 	
