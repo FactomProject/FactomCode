@@ -47,6 +47,11 @@ const (
 	CmdFilterLoad  = "filterload"
 	CmdMerkleBlock = "merkleblock"
 	CmdReject      = "reject"
+	CmdBuyCredit   = "buycredit"
+	CmdCommitChain = "commitchain"
+	CmdRevealChain = "revealchain"
+	CmdCommitEntry = "commitentry"
+	CmdRevealEntry = "revealentry"		
 )
 
 // MaxBlockPayload is the maximum bytes a block message can be in bytes.
