@@ -5,7 +5,7 @@
 package main
 
 import (
-//	"bytes"
+	//	"bytes"
 	"container/list"
 	"fmt"
 	"io"
@@ -16,14 +16,14 @@ import (
 	"sync/atomic"
 	"time"
 
-//	"github.com/FactomProject/FactomCode/btcchain"
+	//	"github.com/FactomProject/FactomCode/btcchain"
 	"github.com/FactomProject/FactomCode/factomd/addrmgr"
-//	"github.com/FactomProject/FactomCode/btcdb"
-//	"github.com/FactomProject/FactomCode/btcutil"
-//	"github.com/FactomProject/FactomCode/btcutil/bloom"
+	//	"github.com/FactomProject/FactomCode/btcdb"
+	//	"github.com/FactomProject/FactomCode/btcutil"
+	//	"github.com/FactomProject/FactomCode/btcutil/bloom"
 	"github.com/FactomProject/FactomCode/factomwire"
-//	"github.com/FactomProject/FactomCode/go-socks/socks"
-//	"github.com/davecgh/go-spew/spew"
+	//	"github.com/FactomProject/FactomCode/go-socks/socks"
+	//	"github.com/davecgh/go-spew/spew"
 )
 
 const (
@@ -90,16 +90,16 @@ func newNetAddress(addr net.Addr, services factomwire.ServiceFlag) (*factomwire.
 	}
 
 	// addr will be a socks.ProxiedAddr when using a proxy.
-/*	if proxiedAddr, ok := addr.(*socks.ProxiedAddr); ok {
-		ip := net.ParseIP(proxiedAddr.Host)
-		if ip == nil {
-			ip = net.ParseIP("0.0.0.0")
+	/*	if proxiedAddr, ok := addr.(*socks.ProxiedAddr); ok {
+			ip := net.ParseIP(proxiedAddr.Host)
+			if ip == nil {
+				ip = net.ParseIP("0.0.0.0")
+			}
+			port := uint16(proxiedAddr.Port)
+			na := factomwire.NewNetAddressIPPort(ip, port, services)
+			return na, nil
 		}
-		port := uint16(proxiedAddr.Port)
-		na := factomwire.NewNetAddressIPPort(ip, port, services)
-		return na, nil
-	}
-*/
+	*/
 	// For the most part, addr should be one of the two above cases, but
 	// to be safe, fall back to trying to parse the information from the
 	// address string as a last resort.
@@ -142,53 +142,53 @@ type outMsg struct {
 // peer contains several functions which are of the form pushX, that are used
 // to push messages to the peer.  Internally they use QueueMessage.
 type peer struct {
-	server             *server
-	btcnet             factomwire.BitcoinNet
-	started            int32
-	connected          int32
-	disconnect         int32 // only to be used atomically
-	conn               net.Conn
-	addr               string
-	na                 *factomwire.NetAddress
-	inbound            bool
-	persistent         bool
-	knownAddresses     map[string]struct{}
-	knownInventory     *MruInventoryMap
-	knownInvMutex      sync.Mutex
-//	requestedTxns      map[factomwire.ShaHash]struct{} // owned by blockmanager
-//	requestedBlocks    map[factomwire.ShaHash]struct{} // owned by blockmanager
-	retryCount         int64
-//	prevGetBlocksBegin *factomwire.ShaHash // owned by blockmanager
-//	prevGetBlocksStop  *factomwire.ShaHash // owned by blockmanager
-//	prevGetHdrsBegin   *factomwire.ShaHash // owned by blockmanager
-//	prevGetHdrsStop    *factomwire.ShaHash // owned by blockmanager
-	requestQueue       []*factomwire.InvVect
-//	filter             *bloom.Filter
-	relayMtx           sync.Mutex
-//	disableRelayTx     bool
-	continueHash       *factomwire.ShaHash
-	outputQueue        chan outMsg
-	sendQueue          chan outMsg
-	sendDoneQueue      chan struct{}
-	queueWg            sync.WaitGroup // TODO(oga) wg -> single use channel?
-	outputInvChan      chan *factomwire.InvVect
-//	txProcessed        chan struct{}
-//	blockProcessed     chan struct{}
-	quit               chan struct{}
-	StatsMtx           sync.Mutex // protects all statistics below here.
-	versionKnown       bool
-	protocolVersion    uint32
-	services           factomwire.ServiceFlag
-	timeConnected      time.Time
-	lastSend           time.Time
-	lastRecv           time.Time
-	bytesReceived      uint64
-	bytesSent          uint64
-	userAgent          string
-	lastBlock          int32
-	lastPingNonce      uint64    // Set to nonce if we have a pending ping.
-	lastPingTime       time.Time // Time we sent last ping.
-	lastPingMicros     int64     // Time for last ping to return.
+	server         *server
+	btcnet         factomwire.BitcoinNet
+	started        int32
+	connected      int32
+	disconnect     int32 // only to be used atomically
+	conn           net.Conn
+	addr           string
+	na             *factomwire.NetAddress
+	inbound        bool
+	persistent     bool
+	knownAddresses map[string]struct{}
+	knownInventory *MruInventoryMap
+	knownInvMutex  sync.Mutex
+	//	requestedTxns      map[factomwire.ShaHash]struct{} // owned by blockmanager
+	//	requestedBlocks    map[factomwire.ShaHash]struct{} // owned by blockmanager
+	retryCount int64
+	//	prevGetBlocksBegin *factomwire.ShaHash // owned by blockmanager
+	//	prevGetBlocksStop  *factomwire.ShaHash // owned by blockmanager
+	//	prevGetHdrsBegin   *factomwire.ShaHash // owned by blockmanager
+	//	prevGetHdrsStop    *factomwire.ShaHash // owned by blockmanager
+	requestQueue []*factomwire.InvVect
+	//	filter             *bloom.Filter
+	relayMtx sync.Mutex
+	//	disableRelayTx     bool
+	continueHash  *factomwire.ShaHash
+	outputQueue   chan outMsg
+	sendQueue     chan outMsg
+	sendDoneQueue chan struct{}
+	queueWg       sync.WaitGroup // TODO(oga) wg -> single use channel?
+	outputInvChan chan *factomwire.InvVect
+	//	txProcessed        chan struct{}
+	//	blockProcessed     chan struct{}
+	quit            chan struct{}
+	StatsMtx        sync.Mutex // protects all statistics below here.
+	versionKnown    bool
+	protocolVersion uint32
+	services        factomwire.ServiceFlag
+	timeConnected   time.Time
+	lastSend        time.Time
+	lastRecv        time.Time
+	bytesReceived   uint64
+	bytesSent       uint64
+	userAgent       string
+	lastBlock       int32
+	lastPingNonce   uint64    // Set to nonce if we have a pending ping.
+	lastPingTime    time.Time // Time we sent last ping.
+	lastPingMicros  int64     // Time for last ping to return.
 }
 
 // String returns the peer's address and directionality as a human-readable
@@ -258,31 +258,31 @@ func (p *peer) RelayTxDisabled() bool {
 // pushVersionMsg sends a version message to the connected peer using the
 // current state.
 func (p *peer) pushVersionMsg() error {
-//	_, blockNum, err := p.server.db.NewestSha()
-//	if err != nil {
-//		return err
-//	}
+	//	_, blockNum, err := p.server.db.NewestSha()
+	//	if err != nil {
+	//		return err
+	//	}
 
 	theirNa := p.na
 
 	// If we are behind a proxy and the connection comes from the proxy then
 	// we return an unroutable address as their address. This is to prevent
 	// leaking the tor proxy address.
-/*	if cfg.Proxy != "" {
-		proxyaddress, _, err := net.SplitHostPort(cfg.Proxy)
-		// invalid proxy means poorly configured, be on the safe side.
-		if err != nil || p.na.IP.String() == proxyaddress {
-			theirNa = &factomwire.NetAddress{
-				Timestamp: time.Now(),
-				IP:        net.IP([]byte{0, 0, 0, 0}),
+	/*	if cfg.Proxy != "" {
+			proxyaddress, _, err := net.SplitHostPort(cfg.Proxy)
+			// invalid proxy means poorly configured, be on the safe side.
+			if err != nil || p.na.IP.String() == proxyaddress {
+				theirNa = &factomwire.NetAddress{
+					Timestamp: time.Now(),
+					IP:        net.IP([]byte{0, 0, 0, 0}),
+				}
 			}
 		}
-	}
-*/
+	*/
 	// Version message.
 	msg := factomwire.NewMsgVersion(
 		p.server.addrManager.GetBestLocalAddress(p.na), theirNa,
-		p.server.nonce, 0)	//int32(blockNum))
+		p.server.nonce, 0) //int32(blockNum))
 	msg.AddUserAgent(userAgentName, userAgentVersion)
 
 	// XXX: bitcoind appears to always enable the full node services flag
@@ -323,12 +323,12 @@ func (p *peer) updateAddresses(msg *factomwire.MsgVersion) {
 		// TODO(davec): Only do this if not doing the initial block
 		// download and the local address is routable.
 		//if !cfg.DisableListen /* && isCurrent? */ {
-			// Get address that best matches.
-			lna := p.server.addrManager.GetBestLocalAddress(p.na)
-			if addrmgr.IsRoutable(lna) {
-				addresses := []*factomwire.NetAddress{lna}
-				p.pushAddrMsg(addresses)
-			}
+		// Get address that best matches.
+		lna := p.server.addrManager.GetBestLocalAddress(p.na)
+		if addrmgr.IsRoutable(lna) {
+			addresses := []*factomwire.NetAddress{lna}
+			p.pushAddrMsg(addresses)
+		}
 		//}
 
 		// Request known addresses if the server address manager needs
@@ -360,7 +360,7 @@ func (p *peer) updateAddresses(msg *factomwire.MsgVersion) {
 func (p *peer) handleVersionMsg(msg *factomwire.MsgVersion) {
 	// Detect self connections.
 	if msg.Nonce == p.server.nonce {
-		fmt.Sprintf("Disconnecting peer connected to self %s", p)
+		fmt.Printf("Disconnecting peer connected to self %s\n", p)
 		p.Disconnect()
 		return
 	}
@@ -387,7 +387,7 @@ func (p *peer) handleVersionMsg(msg *factomwire.MsgVersion) {
 	// Negotiate the protocol version.
 	p.protocolVersion = minUint32(p.protocolVersion, uint32(msg.ProtocolVersion))
 	p.versionKnown = true
-	fmt.Sprintf("Negotiated protocol version %d for peer %s",
+	fmt.Printf("Negotiated protocol version %d for peer %s\n",
 		p.protocolVersion, p)
 	p.lastBlock = msg.LastBlock
 
@@ -402,9 +402,9 @@ func (p *peer) handleVersionMsg(msg *factomwire.MsgVersion) {
 
 	// Choose whether or not to relay transactions before a filter command
 	// is received.
-//	p.relayMtx.Lock()
-//	p.disableRelayTx = msg.DisableRelayTx
-//	p.relayMtx.Unlock()
+	//	p.relayMtx.Lock()
+	//	p.disableRelayTx = msg.DisableRelayTx
+	//	p.relayMtx.Unlock()
 
 	// Inbound connections.
 	if p.inbound {
@@ -413,7 +413,7 @@ func (p *peer) handleVersionMsg(msg *factomwire.MsgVersion) {
 		// at connection time and no point recomputing.
 		na, err := newNetAddress(p.conn.RemoteAddr(), p.services)
 		if err != nil {
-			fmt.Println("Can't get remote address: %v", err)
+			fmt.Printf("Can't get remote address: %v\n", err)
 			p.Disconnect()
 			return
 		}
@@ -422,7 +422,7 @@ func (p *peer) handleVersionMsg(msg *factomwire.MsgVersion) {
 		// Send version.
 		err = p.pushVersionMsg()
 		if err != nil {
-			fmt.Println("Can't send version message to %s: %v",
+			fmt.Printf("Can't send version message to %s: %v\n",
 				p, err)
 			p.Disconnect()
 			return
@@ -438,7 +438,7 @@ func (p *peer) handleVersionMsg(msg *factomwire.MsgVersion) {
 	// to specified peers and actively avoids advertising and connecting to
 	// discovered peers.
 	//if !cfg.SimNet {
-		p.updateAddresses(msg)
+	p.updateAddresses(msg)
 	//}
 
 	// Add the remote peer time as a sample for creating an offset against
@@ -450,6 +450,7 @@ func (p *peer) handleVersionMsg(msg *factomwire.MsgVersion) {
 
 	// TODO: Relay alerts.
 }
+
 /*
 // pushTxMsg sends a tx message for the provided transaction hash to the
 // connected peer.  An error is returned if the transaction hash is not known.
@@ -459,8 +460,8 @@ func (p *peer) pushTxMsg(sha *factomwire.ShaHash, doneChan, waitChan chan struct
 	// to fetch a missing transaction results in the same behavior.
 	tx, err := p.server.txMemPool.FetchTransaction(sha)
 	if err != nil {
-		fmt.Sprintf("Unable to fetch tx %v from transaction "+
-			"pool: %v", sha, err)
+		fmt.Printf("Unable to fetch tx %v from transaction "+
+			"pool: %v\n", sha, err)
 
 		if doneChan != nil {
 			doneChan <- struct{}{}
@@ -483,7 +484,7 @@ func (p *peer) pushTxMsg(sha *factomwire.ShaHash, doneChan, waitChan chan struct
 func (p *peer) pushBlockMsg(sha *factomwire.ShaHash, doneChan, waitChan chan struct{}) error {
 	blk, err := p.server.db.FetchBlockBySha(sha)
 	if err != nil {
-		fmt.Sprintf("Unable to fetch requested block sha %v: %v",
+		fmt.Printf("Unable to fetch requested block sha %v: %v\n",
 			sha, err)
 
 		if doneChan != nil {
@@ -541,7 +542,7 @@ func (p *peer) pushMerkleBlockMsg(sha *factomwire.ShaHash, doneChan, waitChan ch
 
 	blk, err := p.server.db.FetchBlockBySha(sha)
 	if err != nil {
-		fmt.Sprintf("Unable to fetch requested block sha %v: %v",
+		fmt.Printf("Unable to fetch requested block sha %v: %v\n",
 			sha, err)
 
 		if doneChan != nil {
@@ -562,13 +563,13 @@ func (p *peer) pushMerkleBlockMsg(sha *factomwire.ShaHash, doneChan, waitChan ch
 	finalValidTxIndex := -1
 	for i, txR := range txList {
 		if txR.Err != nil || txR.Tx == nil {
-			warnMsg := fmt.Sprintf("Failed to fetch transaction "+
-				"%v which was matched by merkle block %v",
+			warnMsg := fmt.Printf("Failed to fetch transaction "+
+				"%v which was matched by merkle block %v\n",
 				txR.Sha, sha)
 			if txR.Err != nil {
 				warnMsg += ": " + err.Error()
 			}
-			fmt.Sprintf(warnMsg)
+			fmt.Printf(warnMsg)
 			continue
 		}
 		finalValidTxIndex = i
@@ -618,8 +619,8 @@ func (p *peer) PushGetBlocksMsg(locator btcchain.BlockLocator, stopHash *factomw
 		beginHash != nil && stopHash.IsEqual(p.prevGetBlocksStop) &&
 		beginHash.IsEqual(p.prevGetBlocksBegin) {
 
-		fmt.Sprintf("Filtering duplicate [getblocks] with begin "+
-			"hash %v, stop hash %v", beginHash, stopHash)
+		fmt.Printf("Filtering duplicate [getblocks] with begin "+
+			"hash %v, stop hash %v\n", beginHash, stopHash)
 		return nil
 	}
 
@@ -655,8 +656,8 @@ func (p *peer) PushGetHeadersMsg(locator btcchain.BlockLocator, stopHash *factom
 		beginHash != nil && stopHash.IsEqual(p.prevGetHdrsStop) &&
 		beginHash.IsEqual(p.prevGetHdrsBegin) {
 
-		fmt.Sprintf("Filtering duplicate [getheaders] with begin "+
-			"hash %v", beginHash)
+		fmt.Printf("Filtering duplicate [getheaders] with begin "+
+			"hash %v\n", beginHash)
 		return nil
 	}
 
@@ -692,7 +693,7 @@ func (p *peer) PushRejectMsg(command string, code factomwire.RejectCode, reason 
 	msg := factomwire.NewMsgReject(command, code, reason)
 	if command == factomwire.CmdTx || command == factomwire.CmdBlock {
 		if hash == nil {
-			fmt.Sprintf("Sending a reject message for command "+
+			fmt.Printf("Sending a reject message for command "+
 				"type %v which should have specified a hash "+
 				"but does not", command)
 			hash = &zeroHash
@@ -782,7 +783,7 @@ func (p *peer) handleBlockMsg(msg *factomwire.MsgBlock, buf []byte) {
 	// Add the block to the known inventory for the peer.
 	hash, err := block.Sha()
 	if err != nil {
-		fmt.Sprintf("Unable to get block hash: %v", err)
+		fmt.Printf("Unable to get block hash: %v\n", err)
 		return
 	}
 	iv := factomwire.NewInvVect(factomwire.InvTypeBlock, hash)
@@ -848,7 +849,7 @@ func (p *peer) handleGetDataMsg(msg *factomwire.MsgGetData) {
 		case factomwire.InvTypeFilteredBlock:
 			err = p.pushMerkleBlockMsg(&iv.Hash, c, waitChan)
 		default:
-			fmt.Sprintf("Unknown type in inventory request %d",
+			fmt.Printf("Unknown type in inventory request %d\n",
 				iv.Type)
 			continue
 		}
@@ -927,7 +928,7 @@ func (p *peer) handleGetBlocksMsg(msg *factomwire.MsgGetBlocks) {
 		// Fetch the inventory from the block database.
 		hashList, err := p.server.db.FetchHeightRange(start, endIdx)
 		if err != nil {
-			fmt.Sprintf("Block lookup failed: %v", err)
+			fmt.Printf("Block lookup failed: %v\n", err)
 			return
 		}
 
@@ -984,7 +985,7 @@ func (p *peer) handleGetHeadersMsg(msg *factomwire.MsgGetHeaders) {
 		// Fetch and send the requested block header.
 		header, err := p.server.db.FetchBlockHeaderBySha(&msg.HashStop)
 		if err != nil {
-			fmt.Sprintf("Lookup of known block hash failed: %v",
+			fmt.Printf("Lookup of known block hash failed: %v\n",
 				err)
 			return
 		}
@@ -1026,7 +1027,7 @@ func (p *peer) handleGetHeadersMsg(msg *factomwire.MsgGetHeaders) {
 		// Fetch the inventory from the block database.
 		hashList, err := p.server.db.FetchHeightRange(start, endIdx)
 		if err != nil {
-			fmt.Sprintf("Header lookup failed: %v", err)
+			fmt.Printf("Header lookup failed: %v\n", err)
 			return
 		}
 
@@ -1040,8 +1041,8 @@ func (p *peer) handleGetHeadersMsg(msg *factomwire.MsgGetHeaders) {
 		for _, hash := range hashList {
 			header, err := p.server.db.FetchBlockHeaderBySha(&hash)
 			if err != nil {
-				fmt.Sprintf("Lookup of known block hash "+
-					"failed: %v", err)
+				fmt.Printf("Lookup of known block hash "+
+					"failed: %v\n", err)
 				continue
 			}
 			headersMsg.AddBlockHeader(header)
@@ -1060,7 +1061,7 @@ func (p *peer) handleGetHeadersMsg(msg *factomwire.MsgGetHeaders) {
 // message is received.
 func (p *peer) handleFilterAddMsg(msg *factomwire.MsgFilterAdd) {
 	if !p.filter.IsLoaded() {
-		fmt.Sprintf("%s sent a filteradd request with no filter "+
+		fmt.Printf("%s sent a filteradd request with no filter "+
 			"loaded -- disconnecting", p)
 		p.Disconnect()
 		return
@@ -1075,7 +1076,7 @@ func (p *peer) handleFilterAddMsg(msg *factomwire.MsgFilterAdd) {
 // received.
 func (p *peer) handleFilterClearMsg(msg *factomwire.MsgFilterClear) {
 	if !p.filter.IsLoaded() {
-		fmt.Sprintf("%s sent a filterclear request with no "+
+		fmt.Printf("%s sent a filterclear request with no "+
 			"filter loaded -- disconnecting", p)
 		p.Disconnect()
 		return
@@ -1219,8 +1220,8 @@ func (p *peer) handleAddrMsg(msg *factomwire.MsgAddr) {
 func (p *peer) handlePingMsg(msg *factomwire.MsgPing) {
 	// Only Reply with pong is message comes from a new enough client.
 	//if p.ProtocolVersion() > factomwire.BIP0031Version {
-		// Include nonce from ping so pong can be identified.
-		p.QueueMessage(factomwire.NewMsgPong(msg.Nonce), nil)
+	// Include nonce from ping so pong can be identified.
+	p.QueueMessage(factomwire.NewMsgPong(msg.Nonce), nil)
 	//}
 }
 
@@ -1241,10 +1242,10 @@ func (p *peer) handlePongMsg(msg *factomwire.MsgPong) {
 	// infrequently enough that if they overlap we would have timed out
 	// the peer.
 	//if p.protocolVersion > factomwire.BIP0031Version &&
-		//p.lastPingNonce != 0 && msg.Nonce == p.lastPingNonce {
-		p.lastPingMicros = time.Now().Sub(p.lastPingTime).Nanoseconds()
-		p.lastPingMicros /= 1000 // convert to usec.
-		p.lastPingNonce = 0
+	//p.lastPingNonce != 0 && msg.Nonce == p.lastPingNonce {
+	p.lastPingMicros = time.Now().Sub(p.lastPingTime).Nanoseconds()
+	p.lastPingMicros /= 1000 // convert to usec.
+	p.lastPingNonce = 0
 	//}
 }
 
@@ -1262,22 +1263,22 @@ func (p *peer) readMessage() (factomwire.Message, []byte, error) {
 
 	// Use closures to log expensive operations so they are only run when
 	// the logging level requires it.
-/*	fmt.Sprintf("%v", newLogClosure(func() string {
-		// Debug summary of message.
-		summary := messageSummary(msg)
-		if len(summary) > 0 {
-			summary = " (" + summary + ")"
-		}
-		return fmt.Sprintf("Received %v%s from %s",
-			msg.Command(), summary, p)
-	}))
-	fmt.Sprintf("%v", newLogClosure(func() string {
-		return spew.Sdump(msg)
-	}))
-	fmt.Sprintf("%v", newLogClosure(func() string {
-		return spew.Sdump(buf)
-	}))
-*/
+	/*	fmt.Printf("%v\n", newLogClosure(func() string {
+			// Debug summary of message.
+			summary := messageSummary(msg)
+			if len(summary) > 0 {
+				summary = " (" + summary + ")"
+			}
+			return fmt.Printf("Received %v%s from %s\n",
+				msg.Command(), summary, p)
+		}))
+		fmt.Printf("%v\n", newLogClosure(func() string {
+			return spew.Sdump(msg)
+		}))
+		fmt.Printf("%v\n", newLogClosure(func() string {
+			return spew.Sdump(buf)
+		}))
+	*/
 	return msg, buf, nil
 }
 
@@ -1292,7 +1293,7 @@ func (p *peer) writeMessage(msg factomwire.Message) {
 		case *factomwire.MsgVersion:
 			// This is OK.
 		//case *factomwire.MsgReject:
-			// This is OK.
+		// This is OK.
 		default:
 			// Drop all messages other than version and reject if
 			// the handshake has not already been done.
@@ -1302,28 +1303,28 @@ func (p *peer) writeMessage(msg factomwire.Message) {
 
 	// Use closures to log expensive operations so they are only run when
 	// the logging level requires it.
-/*	fmt.Sprintf("%v", newLogClosure(func() string {
-		// Debug summary of message.
-		summary := messageSummary(msg)
-		if len(summary) > 0 {
-			summary = " (" + summary + ")"
-		}
-		return fmt.Sprintf("Sending %v%s to %s", msg.Command(),
-			summary, p)
-	}))
-	fmt.Sprintf("%v", newLogClosure(func() string {
-		return spew.Sdump(msg)
-	}))
-	fmt.Sprintf("%v", newLogClosure(func() string {
-		var buf bytes.Buffer
-		err := factomwire.WriteMessage(&buf, msg, p.ProtocolVersion(),
-			p.btcnet)
-		if err != nil {
-			return err.Error()
-		}
-		return spew.Sdump(buf.Bytes())
-	}))
-*/
+	/*	fmt.Printf("%v\n", newLogClosure(func() string {
+			// Debug summary of message.
+			summary := messageSummary(msg)
+			if len(summary) > 0 {
+				summary = " (" + summary + ")"
+			}
+			return fmt.Printf("Sending %v%s to %s\n", msg.Command(),
+				summary, p)
+		}))
+		fmt.Printf("%v\n", newLogClosure(func() string {
+			return spew.Sdump(msg)
+		}))
+		fmt.Printf("%v\n", newLogClosure(func() string {
+			var buf bytes.Buffer
+			err := factomwire.WriteMessage(&buf, msg, p.ProtocolVersion(),
+				p.btcnet)
+			if err != nil {
+				return err.Error()
+			}
+			return spew.Sdump(buf.Bytes())
+		}))
+	*/
 	// Write the message to the peer.
 	n, err := factomwire.WriteMessageN(p.conn, msg, p.ProtocolVersion(),
 		p.btcnet)
@@ -1372,7 +1373,7 @@ func (p *peer) inHandler() {
 	// to idleTimeoutMinutes for all future messages.
 	idleTimer := time.AfterFunc(negotiateTimeoutSeconds*time.Second, func() {
 		if p.VersionKnown() {
-			fmt.Sprintf("Peer %s no answer for %d minutes, "+
+			fmt.Printf("Peer %s no answer for %d minutes, "+
 				"disconnecting", p, idleTimeoutMinutes)
 		}
 		p.Disconnect()
@@ -1387,9 +1388,9 @@ out:
 			// messages, don't disconnect the peer when we're in
 			// regression test mode and the error is one of the
 			// allowed errors.
-		/*	if cfg.RegressionTest && p.isAllowedByRegression(err) {
-				fmt.Sprintf("Allowed regression test "+
-					"error from %s: %v", p, err)
+			/*	if cfg.RegressionTest && p.isAllowedByRegression(err) {
+				fmt.Printf("Allowed regression test "+
+					"error from %s: %v\n", p, err)
 				idleTimer.Reset(idleTimeoutMinutes * time.Minute)
 				continue
 			}*/
@@ -1463,56 +1464,56 @@ out:
 		case *factomwire.MsgPong:
 			p.handlePongMsg(msg)
 
-/*		case *factomwire.MsgAlert:
-			p.server.BroadcastMessage(msg, p)
+			/*		case *factomwire.MsgAlert:
+						p.server.BroadcastMessage(msg, p)
 
-		case *factomwire.MsgMemPool:
-			p.handleMemPoolMsg(msg)
+					case *factomwire.MsgMemPool:
+						p.handleMemPoolMsg(msg)
 
-		case *factomwire.MsgTx:
-			p.handleTxMsg(msg)
+					case *factomwire.MsgTx:
+						p.handleTxMsg(msg)
 
-		case *factomwire.MsgBlock:
-			p.handleBlockMsg(msg, buf)
+					case *factomwire.MsgBlock:
+						p.handleBlockMsg(msg, buf)
 
-		case *factomwire.MsgInv:
-			p.handleInvMsg(msg)
-			markConnected = true
+					case *factomwire.MsgInv:
+						p.handleInvMsg(msg)
+						markConnected = true
 
-		case *factomwire.MsgHeaders:
-			p.handleHeadersMsg(msg)
+					case *factomwire.MsgHeaders:
+						p.handleHeadersMsg(msg)
 
-		case *factomwire.MsgNotFound:
-			// TODO(davec): Ignore this for now, but ultimately
-			// it should probably be used to detect when something
-			// we requested needs to be re-requested from another
-			// peer.
+					case *factomwire.MsgNotFound:
+						// TODO(davec): Ignore this for now, but ultimately
+						// it should probably be used to detect when something
+						// we requested needs to be re-requested from another
+						// peer.
 
-		case *factomwire.MsgGetData:
-			p.handleGetDataMsg(msg)
-			markConnected = true
+					case *factomwire.MsgGetData:
+						p.handleGetDataMsg(msg)
+						markConnected = true
 
-		case *factomwire.MsgGetBlocks:
-			p.handleGetBlocksMsg(msg)
+					case *factomwire.MsgGetBlocks:
+						p.handleGetBlocksMsg(msg)
 
-		case *factomwire.MsgGetHeaders:
-			p.handleGetHeadersMsg(msg)
+					case *factomwire.MsgGetHeaders:
+						p.handleGetHeadersMsg(msg)
 
-		case *factomwire.MsgFilterAdd:
-			p.handleFilterAddMsg(msg)
+					case *factomwire.MsgFilterAdd:
+						p.handleFilterAddMsg(msg)
 
-		case *factomwire.MsgFilterClear:
-			p.handleFilterClearMsg(msg)
+					case *factomwire.MsgFilterClear:
+						p.handleFilterClearMsg(msg)
 
-		case *factomwire.MsgFilterLoad:
-			p.handleFilterLoadMsg(msg)
+					case *factomwire.MsgFilterLoad:
+						p.handleFilterLoadMsg(msg)
 
-		case *factomwire.MsgReject:
-			// Nothing to do currently.  Logging of the rejected
-			// message is handled already in readMessage.
-*/
+					case *factomwire.MsgReject:
+						// Nothing to do currently.  Logging of the rejected
+						// message is handled already in readMessage.
+			*/
 		default:
-			fmt.Sprintf("Received unhandled message of type %v: Fix Me",
+			fmt.Printf("Received unhandled message of type %v: Fix Me",
 				rmsg.Command())
 		}
 
@@ -1520,7 +1521,7 @@ out:
 		// now if one of the messages that trigger it was processed.
 		if markConnected && atomic.LoadInt32(&p.disconnect) == 0 {
 			if p.na == nil {
-				fmt.Sprintf("we're getting stuff before we " +
+				fmt.Printf("we're getting stuff before we " +
 					"got a version message. that's bad")
 				continue
 			}
@@ -1544,7 +1545,7 @@ out:
 		//p.server.blockManager.DonePeer(p)
 	}
 
-	fmt.Sprintf("Peer input handler done for %s", p)
+	fmt.Printf("Peer input handler done for %s\n", p)
 }
 
 // queueHandler handles the queueing of outgoing data for the peer. This runs
@@ -1569,9 +1570,9 @@ func (p *peer) queueHandler() {
 	// To avoid duplication below.
 	queuePacket := func(msg outMsg, list *list.List, waiting bool) bool {
 		if !waiting {
-			fmt.Sprintf("%s: sending to outHandler", p)
+			fmt.Printf("%s: sending to outHandler", p)
 			p.sendQueue <- msg
-			fmt.Sprintf("%s: sent to outHandler", p)
+			fmt.Printf("%s: sent to outHandler", p)
 		} else {
 			list.PushBack(msg)
 		}
@@ -1587,7 +1588,7 @@ out:
 		// This channel is notified when a message has been sent across
 		// the network socket.
 		case <-p.sendDoneQueue:
-			fmt.Sprintf("%s: acked by outhandler", p)
+			fmt.Printf("%s: acked by outhandler", p)
 
 			// No longer waiting if there are no more messages
 			// in the pending messages queue.
@@ -1600,9 +1601,9 @@ out:
 			// Notify the outHandler about the next item to
 			// asynchronously send.
 			val := pendingMsgs.Remove(next)
-			fmt.Sprintf("%s: sending to outHandler", p)
+			fmt.Printf("%s: sending to outHandler", p)
 			p.sendQueue <- val.(outMsg)
-			fmt.Sprintf("%s: sent to outHandler", p)
+			fmt.Printf("%s: sent to outHandler", p)
 
 		case iv := <-p.outputInvChan:
 			// No handshake?  They'll find out soon enough.
@@ -1677,7 +1678,7 @@ cleanup:
 		}
 	}
 	p.queueWg.Done()
-	fmt.Sprintf("Peer queue handler done for %s", p)
+	fmt.Printf("Peer queue handler done for %s\n", p)
 }
 
 // outHandler handles all outgoing messages for the peer.  It must be run as a
@@ -1687,7 +1688,7 @@ func (p *peer) outHandler() {
 	pingTimer := time.AfterFunc(pingTimeoutMinutes*time.Minute, func() {
 		nonce, err := factomwire.RandomUint64()
 		if err != nil {
-			fmt.Sprintf("Not sending ping on timeout to %s: %v",
+			fmt.Printf("Not sending ping on timeout to %s: %v\n",
 				p, err)
 			return
 		}
@@ -1705,7 +1706,7 @@ out:
 			// the inv is of no interest explicitly solicited invs
 			// should elicit a reply but we don't track them
 			// specially.
-			fmt.Sprintf("%s: received from queuehandler", p)
+			fmt.Printf("%s: received from queuehandler", p)
 			reset := true
 			switch m := msg.msg.(type) {
 			case *factomwire.MsgVersion:
@@ -1717,17 +1718,17 @@ out:
 				// Also set up statistics.
 				p.StatsMtx.Lock()
 				//if p.protocolVersion > factomwire.BIP0031Version {
-					p.lastPingNonce = m.Nonce
-					p.lastPingTime = time.Now()
+				p.lastPingNonce = m.Nonce
+				p.lastPingTime = time.Now()
 				//}
 				p.StatsMtx.Unlock()
-/*			case *factomwire.MsgMemPool:
-				// Should return an inv.
-			case *factomwire.MsgGetData:
-				// Should get us block, tx, or not found.
-			case *factomwire.MsgGetHeaders:
-				// Should get us headers back.
-*/			default:
+				/*			case *factomwire.MsgMemPool:
+								// Should return an inv.
+							case *factomwire.MsgGetData:
+								// Should get us block, tx, or not found.
+							case *factomwire.MsgGetHeaders:
+								// Should get us headers back.
+				*/default:
 				// Not one of the above, no sure reply.
 				// We want to ping if nothing else
 				// interesting happens.
@@ -1743,9 +1744,9 @@ out:
 			if msg.doneChan != nil {
 				msg.doneChan <- struct{}{}
 			}
-			fmt.Sprintf("%s: acking queuehandler", p)
+			fmt.Printf("%s: acking queuehandler", p)
 			p.sendDoneQueue <- struct{}{}
-			fmt.Sprintf("%s: acked queuehandler", p)
+			fmt.Printf("%s: acked queuehandler", p)
 
 		case <-p.quit:
 			break out
@@ -1772,7 +1773,7 @@ cleanup:
 			break cleanup
 		}
 	}
-	fmt.Sprintf("Peer output handler done for %s", p)
+	fmt.Printf("Peer output handler done for %s\n", p)
 }
 
 // QueueMessage adds the passed bitcoin message to the peer send queue.  It
@@ -1828,7 +1829,7 @@ func (p *peer) Disconnect() {
 	if atomic.AddInt32(&p.disconnect, 1) != 1 {
 		return
 	}
-	fmt.Sprintf("disconnecting %s", p)
+	fmt.Printf("disconnecting %s\n", p)
 	close(p.quit)
 	if atomic.LoadInt32(&p.connected) != 0 {
 		p.conn.Close()
@@ -1843,7 +1844,7 @@ func (p *peer) Start() error {
 		return nil
 	}
 
-	fmt.Sprintf("Starting peer %s", p)
+	fmt.Printf("Starting peer %s\n", p)
 
 	// Send an initial version message if this is an outbound connection.
 	if !p.inbound {
@@ -1868,7 +1869,7 @@ func (p *peer) Start() error {
 
 // Shutdown gracefully shuts down the peer by disconnecting it.
 func (p *peer) Shutdown() {
-	fmt.Sprintf("Shutdown peer %s", p)
+	fmt.Printf("Shutdown peer %s\n", p)
 	p.Disconnect()
 }
 
@@ -1883,17 +1884,17 @@ func newPeerBase(s *server, inbound bool) *peer {
 		services:        factomwire.SFNodeNetwork,
 		inbound:         inbound,
 		knownAddresses:  make(map[string]struct{}),
-//		knownInventory:  NewMruInventoryMap(maxKnownInventory),
-//		requestedTxns:   make(map[factomwire.ShaHash]struct{}),
-//		requestedBlocks: make(map[factomwire.ShaHash]struct{}),
-//		filter:          bloom.LoadFilter(nil),
-		outputQueue:     make(chan outMsg, outputBufferSize),
-		sendQueue:       make(chan outMsg, 1),   // nonblocking sync
-		sendDoneQueue:   make(chan struct{}, 1), // nonblocking sync
-		outputInvChan:   make(chan *factomwire.InvVect, outputBufferSize),
-//		txProcessed:     make(chan struct{}, 1),
-//		blockProcessed:  make(chan struct{}, 1),
-		quit:            make(chan struct{}),
+		//		knownInventory:  NewMruInventoryMap(maxKnownInventory),
+		//		requestedTxns:   make(map[factomwire.ShaHash]struct{}),
+		//		requestedBlocks: make(map[factomwire.ShaHash]struct{}),
+		//		filter:          bloom.LoadFilter(nil),
+		outputQueue:   make(chan outMsg, outputBufferSize),
+		sendQueue:     make(chan outMsg, 1),   // nonblocking sync
+		sendDoneQueue: make(chan struct{}, 1), // nonblocking sync
+		outputInvChan: make(chan *factomwire.InvVect, outputBufferSize),
+		//		txProcessed:     make(chan struct{}, 1),
+		//		blockProcessed:  make(chan struct{}, 1),
+		quit: make(chan struct{}),
 	}
 	return &p
 }
@@ -1954,13 +1955,13 @@ func newOutboundPeer(s *server, addr string, persistent bool, retryCount int64) 
 		if p.retryCount > 0 {
 			scaledInterval := connectionRetryInterval.Nanoseconds() * p.retryCount / 2
 			scaledDuration := time.Duration(scaledInterval)
-			fmt.Sprintf("Retrying connection to %s in %s", addr, scaledDuration)
+			fmt.Printf("Retrying connection to %s in %s\n", addr, scaledDuration)
 			time.Sleep(scaledDuration)
 		}
-		fmt.Sprintf("Attempting to connect to %s", addr)
-		conn, err := net.Dial("tcp", addr)	//btcdDial("tcp", addr)
+		fmt.Printf("Attempting to connect to %s\n", addr)
+		conn, err := net.Dial("tcp", addr) //btcdDial("tcp", addr)
 		if err != nil {
-			fmt.Sprintf("Failed to connect to %s: %v", addr, err)
+			fmt.Printf("Failed to connect to %s: %v\n", addr, err)
 			p.server.donePeers <- p
 			return
 		}
@@ -1972,7 +1973,7 @@ func newOutboundPeer(s *server, addr string, persistent bool, retryCount int64) 
 			p.server.addrManager.Attempt(p.na)
 
 			// Connection was successful so log it and start peer.
-			fmt.Sprintf("Connected to %s", conn.RemoteAddr())
+			fmt.Printf("Connected to %s\n", conn.RemoteAddr())
 			p.conn = conn
 			atomic.AddInt32(&p.connected, 1)
 			p.Start()

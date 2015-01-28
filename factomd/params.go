@@ -31,20 +31,11 @@ var mainNetParams = params{
 	Params:  &factomnet.MainNetParams,
 	rpcPort: "8334",
 	dnsSeeds: []string{
-//		"seed.bitcoin.sipa.be",
+		//		"seed.bitcoin.sipa.be",
+		"devtest.factom.org",
+		"m21.duckdns.org",
 	},
 }
-
-/*
-// regressionNetParams contains parameters specific to the regression test
-// network (factomwire.TestNet).  NOTE: The RPC port is intentionally different
-// than the reference implementation - see the mainNetParams comment for
-// details.
-var regressionNetParams = params{
-	Params:   &factomnet.RegressionNetParams,
-	rpcPort:  "18334",
-	dnsSeeds: []string{},
-}*/
 
 // testNet3Params contains parameters specific to the test network (version 3)
 // (factomwire.TestNet3).  NOTE: The RPC port is intentionally different than the
@@ -53,18 +44,11 @@ var testNet3Params = params{
 	Params:  &factomnet.TestNet3Params,
 	rpcPort: "18334",
 	dnsSeeds: []string{
-//		"testnet-seed.alexykot.me",
+		//		"testnet-seed.alexykot.me",
+		"devtest.factom.org",
+		"m21.duckdns.org",
 	},
 }
-
-/*
-// simNetParams contains parameters specific to the simulation test network
-// (factomwire.SimNet).
-var simNetParams = params{
-	Params:   &factomnet.SimNetParams,
-	rpcPort:  "18556",
-	dnsSeeds: []string{}, // NOTE: There must NOT be any seeds.
-}*/
 
 // netName returns the name used when referring to a bitcoin network.  At the
 // time of writing, btcd currently places blocks for testnet version 3 in the
