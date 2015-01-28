@@ -5,8 +5,9 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"github.com/FactomProject/gocoding"
 	"reflect"
+
+	"github.com/FactomProject/gocoding"
 )
 
 // Size of array used to store sha hashes.  See ShaHash.
@@ -16,38 +17,30 @@ type Hash struct {
 	Bytes []byte `json:"bytes"`
 }
 
-func NewHash() (*Hash) {
+func NewHash() *Hash {
 	h := new(Hash)
 	h.Bytes = make([]byte, 32)
 	return h
 }
 
-func EmptyHash() (h *Hash) {
-	h = new(Hash)
-	h.Bytes = make([]byte, 32)
-	return
-}
-
-func CreateHash(entities...BinaryMarshallable) (h *Hash, err error) {
+func CreateHash(entities ...BinaryMarshallable) (h *Hash, err error) {
 	sha := sha256.New()
-	
+	h = new(Hash)
 	for _, entity := range entities {
 		data, err := entity.MarshalBinary()
-		if err != nil { return nil, err }
+		if err != nil {
+			return nil, err
+		}
 		sha.Write(data)
 	}
-	
-	h = new(Hash)
 	h.Bytes = sha.Sum(nil)
 	return
 }
 
 func (h *Hash) MarshalBinary() ([]byte, error) {
 	var buf bytes.Buffer
-	
 	buf.Write([]byte{byte(len(h.Bytes))})
 	buf.Write(h.Bytes)
-	
 	return buf.Bytes(), nil
 }
 
@@ -55,30 +48,29 @@ func (h *Hash) MarshalledSize() uint64 {
 	return uint64(len(h.Bytes)) + 1
 }
 
-func (h *Hash) UnmarshalBinary(data []byte) error {
-	h.Bytes = make([]byte, data[0])
-	if data[0] > byte(0){
-		data = data[1:]
-		copy(h.Bytes, data)
+func (h *Hash) UnmarshalBinary(p []byte) error {
+	h.Bytes = make([]byte, p[0])
+	if p[0] > byte(0){
+		p = p[1:]
+		copy(h.Bytes, p)
 	}
-	
 	return nil
 }
 
-func (h *Hash) Encoding(marshaller gocoding.Marshaller, theType reflect.Type) gocoding.Encoder {
+func (h *Hash) Encoding(m gocoding.Marshaller, t reflect.Type) gocoding.Encoder {
 	return func(scratch [64]byte, renderer gocoding.Renderer, value reflect.Value) {
 		hash := value.Interface().(*Hash)
-		marshaller.MarshalObject(renderer, hash.Bytes)
+		m.MarshalObject(renderer, hash.Bytes)
 	}
 }
 
-func (h *Hash) Decoding(unmarshaller gocoding.Unmarshaller, theType reflect.Type) gocoding.Decoder {
+func (h *Hash) Decoding(m gocoding.Unmarshaller, t reflect.Type) gocoding.Decoder {
 	return func(scratch [64]byte, scanner gocoding.Scanner, value reflect.Value) {
 		if value.IsNil() {
 			value.Set(reflect.ValueOf(new(Hash)))
 		}
 		hash := value.Interface().(*Hash)
-		unmarshaller.UnmarshalObject(scanner, &hash.Bytes)
+		m.UnmarshalObject(scanner, &hash.Bytes)
 	}
 }
 
