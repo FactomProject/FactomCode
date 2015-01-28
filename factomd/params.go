@@ -32,8 +32,8 @@ var mainNetParams = params{
 	rpcPort: "8334",
 	dnsSeeds: []string{
 		//		"seed.bitcoin.sipa.be",
-		"devtest.factom.org",
 		"m21.duckdns.org",
+		//		"devtest.factom.org",
 	},
 }
 
@@ -45,8 +45,8 @@ var testNet3Params = params{
 	rpcPort: "18334",
 	dnsSeeds: []string{
 		//		"testnet-seed.alexykot.me",
-		"devtest.factom.org",
 		"m21.duckdns.org",
+		//		"devtest.factom.org",
 	},
 }
 

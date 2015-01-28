@@ -360,7 +360,7 @@ func (p *peer) updateAddresses(msg *factomwire.MsgVersion) {
 func (p *peer) handleVersionMsg(msg *factomwire.MsgVersion) {
 	// Detect self connections.
 	if msg.Nonce == p.server.nonce {
-		fmt.Printf("Disconnecting peer connected to self %s\n", p)
+		fmt.Sprintf("Disconnecting peer connected to self %s", p)
 		p.Disconnect()
 		return
 	}
@@ -387,7 +387,7 @@ func (p *peer) handleVersionMsg(msg *factomwire.MsgVersion) {
 	// Negotiate the protocol version.
 	p.protocolVersion = minUint32(p.protocolVersion, uint32(msg.ProtocolVersion))
 	p.versionKnown = true
-	fmt.Printf("Negotiated protocol version %d for peer %s\n",
+	fmt.Sprintf("Negotiated protocol version %d for peer %s",
 		p.protocolVersion, p)
 	p.lastBlock = msg.LastBlock
 
@@ -413,7 +413,7 @@ func (p *peer) handleVersionMsg(msg *factomwire.MsgVersion) {
 		// at connection time and no point recomputing.
 		na, err := newNetAddress(p.conn.RemoteAddr(), p.services)
 		if err != nil {
-			fmt.Printf("Can't get remote address: %v\n", err)
+			fmt.Println("Can't get remote address: %v", err)
 			p.Disconnect()
 			return
 		}
@@ -422,7 +422,7 @@ func (p *peer) handleVersionMsg(msg *factomwire.MsgVersion) {
 		// Send version.
 		err = p.pushVersionMsg()
 		if err != nil {
-			fmt.Printf("Can't send version message to %s: %v\n",
+			fmt.Println("Can't send version message to %s: %v",
 				p, err)
 			p.Disconnect()
 			return
@@ -460,8 +460,8 @@ func (p *peer) pushTxMsg(sha *factomwire.ShaHash, doneChan, waitChan chan struct
 	// to fetch a missing transaction results in the same behavior.
 	tx, err := p.server.txMemPool.FetchTransaction(sha)
 	if err != nil {
-		fmt.Printf("Unable to fetch tx %v from transaction "+
-			"pool: %v\n", sha, err)
+		fmt.Sprintf("Unable to fetch tx %v from transaction "+
+			"pool: %v", sha, err)
 
 		if doneChan != nil {
 			doneChan <- struct{}{}
@@ -484,7 +484,7 @@ func (p *peer) pushTxMsg(sha *factomwire.ShaHash, doneChan, waitChan chan struct
 func (p *peer) pushBlockMsg(sha *factomwire.ShaHash, doneChan, waitChan chan struct{}) error {
 	blk, err := p.server.db.FetchBlockBySha(sha)
 	if err != nil {
-		fmt.Printf("Unable to fetch requested block sha %v: %v\n",
+		fmt.Sprintf("Unable to fetch requested block sha %v: %v",
 			sha, err)
 
 		if doneChan != nil {
@@ -542,7 +542,7 @@ func (p *peer) pushMerkleBlockMsg(sha *factomwire.ShaHash, doneChan, waitChan ch
 
 	blk, err := p.server.db.FetchBlockBySha(sha)
 	if err != nil {
-		fmt.Printf("Unable to fetch requested block sha %v: %v\n",
+		fmt.Sprintf("Unable to fetch requested block sha %v: %v",
 			sha, err)
 
 		if doneChan != nil {
@@ -563,13 +563,13 @@ func (p *peer) pushMerkleBlockMsg(sha *factomwire.ShaHash, doneChan, waitChan ch
 	finalValidTxIndex := -1
 	for i, txR := range txList {
 		if txR.Err != nil || txR.Tx == nil {
-			warnMsg := fmt.Printf("Failed to fetch transaction "+
-				"%v which was matched by merkle block %v\n",
+			warnMsg := fmt.Sprintf("Failed to fetch transaction "+
+				"%v which was matched by merkle block %v",
 				txR.Sha, sha)
 			if txR.Err != nil {
 				warnMsg += ": " + err.Error()
 			}
-			fmt.Printf(warnMsg)
+			fmt.Sprintf(warnMsg)
 			continue
 		}
 		finalValidTxIndex = i
@@ -619,8 +619,8 @@ func (p *peer) PushGetBlocksMsg(locator btcchain.BlockLocator, stopHash *factomw
 		beginHash != nil && stopHash.IsEqual(p.prevGetBlocksStop) &&
 		beginHash.IsEqual(p.prevGetBlocksBegin) {
 
-		fmt.Printf("Filtering duplicate [getblocks] with begin "+
-			"hash %v, stop hash %v\n", beginHash, stopHash)
+		fmt.Sprintf("Filtering duplicate [getblocks] with begin "+
+			"hash %v, stop hash %v", beginHash, stopHash)
 		return nil
 	}
 
@@ -656,8 +656,8 @@ func (p *peer) PushGetHeadersMsg(locator btcchain.BlockLocator, stopHash *factom
 		beginHash != nil && stopHash.IsEqual(p.prevGetHdrsStop) &&
 		beginHash.IsEqual(p.prevGetHdrsBegin) {
 
-		fmt.Printf("Filtering duplicate [getheaders] with begin "+
-			"hash %v\n", beginHash)
+		fmt.Sprintf("Filtering duplicate [getheaders] with begin "+
+			"hash %v", beginHash)
 		return nil
 	}
 
@@ -693,7 +693,7 @@ func (p *peer) PushRejectMsg(command string, code factomwire.RejectCode, reason 
 	msg := factomwire.NewMsgReject(command, code, reason)
 	if command == factomwire.CmdTx || command == factomwire.CmdBlock {
 		if hash == nil {
-			fmt.Printf("Sending a reject message for command "+
+			fmt.Sprintf("Sending a reject message for command "+
 				"type %v which should have specified a hash "+
 				"but does not", command)
 			hash = &zeroHash
@@ -783,7 +783,7 @@ func (p *peer) handleBlockMsg(msg *factomwire.MsgBlock, buf []byte) {
 	// Add the block to the known inventory for the peer.
 	hash, err := block.Sha()
 	if err != nil {
-		fmt.Printf("Unable to get block hash: %v\n", err)
+		fmt.Sprintf("Unable to get block hash: %v", err)
 		return
 	}
 	iv := factomwire.NewInvVect(factomwire.InvTypeBlock, hash)
@@ -849,7 +849,7 @@ func (p *peer) handleGetDataMsg(msg *factomwire.MsgGetData) {
 		case factomwire.InvTypeFilteredBlock:
 			err = p.pushMerkleBlockMsg(&iv.Hash, c, waitChan)
 		default:
-			fmt.Printf("Unknown type in inventory request %d\n",
+			fmt.Sprintf("Unknown type in inventory request %d",
 				iv.Type)
 			continue
 		}
@@ -928,7 +928,7 @@ func (p *peer) handleGetBlocksMsg(msg *factomwire.MsgGetBlocks) {
 		// Fetch the inventory from the block database.
 		hashList, err := p.server.db.FetchHeightRange(start, endIdx)
 		if err != nil {
-			fmt.Printf("Block lookup failed: %v\n", err)
+			fmt.Sprintf("Block lookup failed: %v", err)
 			return
 		}
 
@@ -985,7 +985,7 @@ func (p *peer) handleGetHeadersMsg(msg *factomwire.MsgGetHeaders) {
 		// Fetch and send the requested block header.
 		header, err := p.server.db.FetchBlockHeaderBySha(&msg.HashStop)
 		if err != nil {
-			fmt.Printf("Lookup of known block hash failed: %v\n",
+			fmt.Sprintf("Lookup of known block hash failed: %v",
 				err)
 			return
 		}
@@ -1027,7 +1027,7 @@ func (p *peer) handleGetHeadersMsg(msg *factomwire.MsgGetHeaders) {
 		// Fetch the inventory from the block database.
 		hashList, err := p.server.db.FetchHeightRange(start, endIdx)
 		if err != nil {
-			fmt.Printf("Header lookup failed: %v\n", err)
+			fmt.Sprintf("Header lookup failed: %v", err)
 			return
 		}
 
@@ -1041,8 +1041,8 @@ func (p *peer) handleGetHeadersMsg(msg *factomwire.MsgGetHeaders) {
 		for _, hash := range hashList {
 			header, err := p.server.db.FetchBlockHeaderBySha(&hash)
 			if err != nil {
-				fmt.Printf("Lookup of known block hash "+
-					"failed: %v\n", err)
+				fmt.Sprintf("Lookup of known block hash "+
+					"failed: %v", err)
 				continue
 			}
 			headersMsg.AddBlockHeader(header)
@@ -1061,7 +1061,7 @@ func (p *peer) handleGetHeadersMsg(msg *factomwire.MsgGetHeaders) {
 // message is received.
 func (p *peer) handleFilterAddMsg(msg *factomwire.MsgFilterAdd) {
 	if !p.filter.IsLoaded() {
-		fmt.Printf("%s sent a filteradd request with no filter "+
+		fmt.Sprintf("%s sent a filteradd request with no filter "+
 			"loaded -- disconnecting", p)
 		p.Disconnect()
 		return
@@ -1076,7 +1076,7 @@ func (p *peer) handleFilterAddMsg(msg *factomwire.MsgFilterAdd) {
 // received.
 func (p *peer) handleFilterClearMsg(msg *factomwire.MsgFilterClear) {
 	if !p.filter.IsLoaded() {
-		fmt.Printf("%s sent a filterclear request with no "+
+		fmt.Sprintf("%s sent a filterclear request with no "+
 			"filter loaded -- disconnecting", p)
 		p.Disconnect()
 		return
@@ -1263,19 +1263,19 @@ func (p *peer) readMessage() (factomwire.Message, []byte, error) {
 
 	// Use closures to log expensive operations so they are only run when
 	// the logging level requires it.
-	/*	fmt.Printf("%v\n", newLogClosure(func() string {
+	/*	fmt.Sprintf("%v", newLogClosure(func() string {
 			// Debug summary of message.
 			summary := messageSummary(msg)
 			if len(summary) > 0 {
 				summary = " (" + summary + ")"
 			}
-			return fmt.Printf("Received %v%s from %s\n",
+			return fmt.Sprintf("Received %v%s from %s",
 				msg.Command(), summary, p)
 		}))
-		fmt.Printf("%v\n", newLogClosure(func() string {
+		fmt.Sprintf("%v", newLogClosure(func() string {
 			return spew.Sdump(msg)
 		}))
-		fmt.Printf("%v\n", newLogClosure(func() string {
+		fmt.Sprintf("%v", newLogClosure(func() string {
 			return spew.Sdump(buf)
 		}))
 	*/
@@ -1303,19 +1303,19 @@ func (p *peer) writeMessage(msg factomwire.Message) {
 
 	// Use closures to log expensive operations so they are only run when
 	// the logging level requires it.
-	/*	fmt.Printf("%v\n", newLogClosure(func() string {
+	/*	fmt.Sprintf("%v", newLogClosure(func() string {
 			// Debug summary of message.
 			summary := messageSummary(msg)
 			if len(summary) > 0 {
 				summary = " (" + summary + ")"
 			}
-			return fmt.Printf("Sending %v%s to %s\n", msg.Command(),
+			return fmt.Sprintf("Sending %v%s to %s", msg.Command(),
 				summary, p)
 		}))
-		fmt.Printf("%v\n", newLogClosure(func() string {
+		fmt.Sprintf("%v", newLogClosure(func() string {
 			return spew.Sdump(msg)
 		}))
-		fmt.Printf("%v\n", newLogClosure(func() string {
+		fmt.Sprintf("%v", newLogClosure(func() string {
 			var buf bytes.Buffer
 			err := factomwire.WriteMessage(&buf, msg, p.ProtocolVersion(),
 				p.btcnet)
@@ -1373,7 +1373,7 @@ func (p *peer) inHandler() {
 	// to idleTimeoutMinutes for all future messages.
 	idleTimer := time.AfterFunc(negotiateTimeoutSeconds*time.Second, func() {
 		if p.VersionKnown() {
-			fmt.Printf("Peer %s no answer for %d minutes, "+
+			fmt.Sprintf("Peer %s no answer for %d minutes, "+
 				"disconnecting", p, idleTimeoutMinutes)
 		}
 		p.Disconnect()
@@ -1389,8 +1389,8 @@ out:
 			// regression test mode and the error is one of the
 			// allowed errors.
 			/*	if cfg.RegressionTest && p.isAllowedByRegression(err) {
-				fmt.Printf("Allowed regression test "+
-					"error from %s: %v\n", p, err)
+				fmt.Sprintf("Allowed regression test "+
+					"error from %s: %v", p, err)
 				idleTimer.Reset(idleTimeoutMinutes * time.Minute)
 				continue
 			}*/
@@ -1513,7 +1513,7 @@ out:
 						// message is handled already in readMessage.
 			*/
 		default:
-			fmt.Printf("Received unhandled message of type %v: Fix Me",
+			fmt.Sprintf("Received unhandled message of type %v: Fix Me",
 				rmsg.Command())
 		}
 
@@ -1521,7 +1521,7 @@ out:
 		// now if one of the messages that trigger it was processed.
 		if markConnected && atomic.LoadInt32(&p.disconnect) == 0 {
 			if p.na == nil {
-				fmt.Printf("we're getting stuff before we " +
+				fmt.Sprintf("we're getting stuff before we " +
 					"got a version message. that's bad")
 				continue
 			}
@@ -1545,7 +1545,7 @@ out:
 		//p.server.blockManager.DonePeer(p)
 	}
 
-	fmt.Printf("Peer input handler done for %s\n", p)
+	fmt.Sprintf("Peer input handler done for %s", p)
 }
 
 // queueHandler handles the queueing of outgoing data for the peer. This runs
@@ -1570,9 +1570,9 @@ func (p *peer) queueHandler() {
 	// To avoid duplication below.
 	queuePacket := func(msg outMsg, list *list.List, waiting bool) bool {
 		if !waiting {
-			fmt.Printf("%s: sending to outHandler", p)
+			fmt.Sprintf("%s: sending to outHandler", p)
 			p.sendQueue <- msg
-			fmt.Printf("%s: sent to outHandler", p)
+			fmt.Sprintf("%s: sent to outHandler", p)
 		} else {
 			list.PushBack(msg)
 		}
@@ -1588,7 +1588,7 @@ out:
 		// This channel is notified when a message has been sent across
 		// the network socket.
 		case <-p.sendDoneQueue:
-			fmt.Printf("%s: acked by outhandler", p)
+			fmt.Sprintf("%s: acked by outhandler", p)
 
 			// No longer waiting if there are no more messages
 			// in the pending messages queue.
@@ -1601,9 +1601,9 @@ out:
 			// Notify the outHandler about the next item to
 			// asynchronously send.
 			val := pendingMsgs.Remove(next)
-			fmt.Printf("%s: sending to outHandler", p)
+			fmt.Sprintf("%s: sending to outHandler", p)
 			p.sendQueue <- val.(outMsg)
-			fmt.Printf("%s: sent to outHandler", p)
+			fmt.Sprintf("%s: sent to outHandler", p)
 
 		case iv := <-p.outputInvChan:
 			// No handshake?  They'll find out soon enough.
@@ -1678,7 +1678,7 @@ cleanup:
 		}
 	}
 	p.queueWg.Done()
-	fmt.Printf("Peer queue handler done for %s\n", p)
+	fmt.Sprintf("Peer queue handler done for %s", p)
 }
 
 // outHandler handles all outgoing messages for the peer.  It must be run as a
@@ -1688,7 +1688,7 @@ func (p *peer) outHandler() {
 	pingTimer := time.AfterFunc(pingTimeoutMinutes*time.Minute, func() {
 		nonce, err := factomwire.RandomUint64()
 		if err != nil {
-			fmt.Printf("Not sending ping on timeout to %s: %v\n",
+			fmt.Sprintf("Not sending ping on timeout to %s: %v",
 				p, err)
 			return
 		}
@@ -1706,7 +1706,7 @@ out:
 			// the inv is of no interest explicitly solicited invs
 			// should elicit a reply but we don't track them
 			// specially.
-			fmt.Printf("%s: received from queuehandler", p)
+			fmt.Sprintf("%s: received from queuehandler", p)
 			reset := true
 			switch m := msg.msg.(type) {
 			case *factomwire.MsgVersion:
@@ -1744,9 +1744,9 @@ out:
 			if msg.doneChan != nil {
 				msg.doneChan <- struct{}{}
 			}
-			fmt.Printf("%s: acking queuehandler", p)
+			fmt.Sprintf("%s: acking queuehandler", p)
 			p.sendDoneQueue <- struct{}{}
-			fmt.Printf("%s: acked queuehandler", p)
+			fmt.Sprintf("%s: acked queuehandler", p)
 
 		case <-p.quit:
 			break out
@@ -1773,7 +1773,7 @@ cleanup:
 			break cleanup
 		}
 	}
-	fmt.Printf("Peer output handler done for %s\n", p)
+	fmt.Sprintf("Peer output handler done for %s", p)
 }
 
 // QueueMessage adds the passed bitcoin message to the peer send queue.  It
@@ -1829,7 +1829,7 @@ func (p *peer) Disconnect() {
 	if atomic.AddInt32(&p.disconnect, 1) != 1 {
 		return
 	}
-	fmt.Printf("disconnecting %s\n", p)
+	fmt.Sprintf("disconnecting %s", p)
 	close(p.quit)
 	if atomic.LoadInt32(&p.connected) != 0 {
 		p.conn.Close()
@@ -1844,7 +1844,7 @@ func (p *peer) Start() error {
 		return nil
 	}
 
-	fmt.Printf("Starting peer %s\n", p)
+	fmt.Println("Starting peer %s", p)
 
 	// Send an initial version message if this is an outbound connection.
 	if !p.inbound {
@@ -1869,7 +1869,7 @@ func (p *peer) Start() error {
 
 // Shutdown gracefully shuts down the peer by disconnecting it.
 func (p *peer) Shutdown() {
-	fmt.Printf("Shutdown peer %s\n", p)
+	fmt.Println("Shutdown peer %s", p)
 	p.Disconnect()
 }
 
@@ -1955,13 +1955,13 @@ func newOutboundPeer(s *server, addr string, persistent bool, retryCount int64) 
 		if p.retryCount > 0 {
 			scaledInterval := connectionRetryInterval.Nanoseconds() * p.retryCount / 2
 			scaledDuration := time.Duration(scaledInterval)
-			fmt.Printf("Retrying connection to %s in %s\n", addr, scaledDuration)
+			fmt.Sprintf("Retrying connection to %s in %s", addr, scaledDuration)
 			time.Sleep(scaledDuration)
 		}
-		fmt.Printf("Attempting to connect to %s\n", addr)
+		fmt.Sprintf("Attempting to connect to %s", addr)
 		conn, err := net.Dial("tcp", addr) //btcdDial("tcp", addr)
 		if err != nil {
-			fmt.Printf("Failed to connect to %s: %v\n", addr, err)
+			fmt.Sprintf("Failed to connect to %s: %v", addr, err)
 			p.server.donePeers <- p
 			return
 		}
@@ -1973,7 +1973,7 @@ func newOutboundPeer(s *server, addr string, persistent bool, retryCount int64) 
 			p.server.addrManager.Attempt(p.na)
 
 			// Connection was successful so log it and start peer.
-			fmt.Printf("Connected to %s\n", conn.RemoteAddr())
+			fmt.Sprintf("Connected to %s", conn.RemoteAddr())
 			p.conn = conn
 			atomic.AddInt32(&p.connected, 1)
 			p.Start()

@@ -422,7 +422,7 @@ func (s *server) handleQuery(querymsg interface{}, state *peerState) {
 			p.StatsMtx.Lock()
 			info := &GetPeerInfoResult{
 				Addr:           p.addr,
-				Services:       fmt.Printf("%08d", p.services),
+				Services:       fmt.Sprintf("%08d", p.services),
 				LastSend:       p.lastSend.Unix(),
 				LastRecv:       p.lastRecv.Unix(),
 				BytesSent:      p.bytesSent,

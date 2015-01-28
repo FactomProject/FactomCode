@@ -16,7 +16,7 @@ import (
 // checksum 4 bytes.
 const MessageHeaderSize = 24
 
-// CommandSize is the fixed size of all commands in the common 20bitcoin message
+// CommandSize is the fixed size of all commands in the common bitcoin message
 // header.  Shorter commands must be zero padded.
 const CommandSize = 12
 
@@ -51,7 +51,7 @@ const (
 	CmdCommitChain = "commitchain"
 	CmdRevealChain = "revealchain"
 	CmdCommitEntry = "commitentry"
-	CmdRevealEntry = "revealentry"		
+	CmdRevealEntry = "revealentry"					
 )
 
 // MaxBlockPayload is the maximum bytes a block message can be in bytes.
@@ -136,6 +136,8 @@ func makeEmptyMessage(command string) (Message, error) {
 			case CmdReject:
 				msg = &MsgReject{}
 		*/
+	case CmdBuyCredit:
+		msg = &MsgBuyCredit{}		
 	default:
 		return nil, fmt.Errorf("unhandled command [%s]", command)
 	}
@@ -170,6 +172,8 @@ func readMessageHeader(r io.Reader) (int, *messageHeader, error) {
 
 	// Strip trailing zeros from command string.
 	hdr.command = string(bytes.TrimRight(command[:], string(0)))
+
+	fmt.Println(hdr)
 
 	return n, &hdr, nil
 }
@@ -264,7 +268,12 @@ func WriteMessageN(w io.Writer, msg Message, pver uint32, btcnet BitcoinNet) (in
 		return totalBytes, err
 	}
 	totalBytes += n
-	fmt.Printf("outgoing msg: %+v\n", msg)
+
+	fmt.Println("outgoing msg=", msg)
+	fmt.Println("outgoing payload=", payload)
+
+	fmt.Printf("incoming msg: %+v\n ", msg)
+
 	return totalBytes, nil
 }
 
@@ -275,6 +284,7 @@ func WriteMessageN(w io.Writer, msg Message, pver uint32, btcnet BitcoinNet) (in
 // callers that don't care about byte counts.
 func WriteMessage(w io.Writer, msg Message, pver uint32, btcnet BitcoinNet) error {
 	_, err := WriteMessageN(w, msg, pver, btcnet)
+	fmt.Println("outgoing msg=", msg)
 	return err
 }
 
@@ -361,8 +371,15 @@ func ReadMessageN(r io.Reader, pver uint32, btcnet BitcoinNet) (int, Message, []
 	if err != nil {
 		return totalBytes, nil, nil, err
 	}
+
+	fmt.Println("incoming msg=", msg)
+	fmt.Println("incoming hdr=", hdr)
+	fmt.Println("incoming hdr.command=", hdr.command)
+	fmt.Printf("incoming msg: %v\n ", msg)
+
 	fmt.Printf("incoming msg: %+v\n ", msg)
-	return totalBytes, nil, nil, err
+
+	return totalBytes, msg, payload, nil
 }
 
 // ReadMessage reads, validates, and parses the next bitcoin Message from r for
@@ -373,5 +390,7 @@ func ReadMessageN(r io.Reader, pver uint32, btcnet BitcoinNet) (int, Message, []
 // API, but it's also useful for callers that don't care about byte counts.
 func ReadMessage(r io.Reader, pver uint32, btcnet BitcoinNet) (Message, []byte, error) {
 	_, msg, buf, err := ReadMessageN(r, pver, btcnet)
+	fmt.Println(msg)
+	fmt.Println("incoming msg=", msg)
 	return msg, buf, err
 }

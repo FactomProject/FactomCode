@@ -5,7 +5,7 @@
 package factomnet
 
 import (
-//	"errors"
+	//	"errors"
 	"math/big"
 
 	"github.com/FactomProject/FactomCode/factomwire"
@@ -28,7 +28,6 @@ var (
 	testNet3PowLimit = new(big.Int).Sub(new(big.Int).Lsh(bigOne, 224), bigOne)
 )
 
-
 // Params defines a Bitcoin network by its parameters.  These parameters may be
 // used by Bitcoin applications to differentiate networks as well as addresses
 // and keys for one network from those intended for use on another network.
@@ -36,7 +35,6 @@ type Params struct {
 	Name        string
 	Net         factomwire.BitcoinNet
 	DefaultPort string
-
 }
 
 // MainNetParams defines the network parameters for the main Bitcoin network.
@@ -44,9 +42,7 @@ var MainNetParams = Params{
 	Name:        "mainnet",
 	Net:         factomwire.MainNet,
 	DefaultPort: "8666",
-
 }
-
 
 // TestNet3Params defines the network parameters for the test Bitcoin network
 // (version 3).  Not to be confused with the regression test network, this
@@ -55,5 +51,4 @@ var TestNet3Params = Params{
 	Name:        "testnet3",
 	Net:         factomwire.TestNet3,
 	DefaultPort: "18666",
-
 }
