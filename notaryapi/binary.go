@@ -1,12 +1,10 @@
 package notaryapi
 
 import (
-	"encoding"
-	"errors"
 	"bytes"
+	"encoding"
 	"encoding/binary"
-	//"encoding/hex"
-	
+	"errors"
 	"math/big"
 )
 
@@ -18,11 +16,15 @@ type BinaryMarshallable interface {
 
 func bigIntMarshalBinary(i *big.Int) (data []byte, err error) {
 	intd, err := i.GobEncode()
-	if err != nil { return }
-	
+	if err != nil {
+		return
+	}
+
 	size := len(intd)
-	if size > 255 { return nil, errors.New("Big int is too big") }
-	
+	if size > 255 {
+		return nil, errors.New("Big int is too big")
+	}
+
 	data = make([]byte, size+1)
 	data[0] = byte(size)
 	copy(data[1:], intd)
@@ -31,17 +33,19 @@ func bigIntMarshalBinary(i *big.Int) (data []byte, err error) {
 
 func bigIntMarshalledSize(i *big.Int) uint64 {
 	intd, err := i.GobEncode()
-	if err != nil { return 0 }
-	
+	if err != nil {
+		return 0
+	}
+
 	return uint64(1 + len(intd))
 }
 
 func bigIntUnmarshalBinary(data []byte) (retd []byte, i *big.Int, err error) {
 	size, data := uint8(data[0]), data[1:]
-	
+
 	i = new(big.Int)
 	err, retd = i.GobDecode(data[:size]), data[size:]
-	
+
 	return
 }
 
@@ -60,7 +64,6 @@ func (d *SimpleData) MarshalledSize() uint64 {
 func (d *SimpleData) UnmarshalBinary([]byte) error {
 	return errors.New("SimpleData cannot be unmarshalled")
 }
-
 
 type ByteArray []byte
 

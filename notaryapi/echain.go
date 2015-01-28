@@ -215,18 +215,18 @@ func CreateBlock(chain *EChain, prev *EBlock, capacity uint) (b *EBlock, err err
 
 	var prevHash *Hash
 	if prev == nil {
-		prevHash = EmptyHash()
+		prevHash = NewHash()
 	} else {
 		prevHash, err = CreateHash(prev)
 	}
 
-	b.Header = NewEBlockHeader(chain.NextBlockID, prevHash, EmptyHash())
+	b.Header = NewEBlockHeader(chain.NextBlockID, prevHash, NewHash())
 
 	b.Chain = chain
 
 	b.EBEntries = make([]*EBEntry, 0, capacity)
 
-	b.Salt = EmptyHash()
+	b.Salt = NewHash()
 
 	b.IsSealed = false
 
