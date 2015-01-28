@@ -52,7 +52,8 @@ const (
 
 	// pingTimeoutMinutes is the number of minutes since we last sent a
 	// message requiring a reply before we will ping a host.
-	pingTimeoutMinutes = 2
+	//	pingTimeoutMinutes = 2
+	pingTimeoutMinutes = 1
 )
 
 var (
@@ -1251,6 +1252,7 @@ func (p *peer) handlePongMsg(msg *factomwire.MsgPong) {
 
 // readMessage reads the next bitcoin message from the peer with logging.
 func (p *peer) readMessage() (factomwire.Message, []byte, error) {
+	fmt.Println("<<< readMessage()", p)
 	n, msg, buf, err := factomwire.ReadMessageN(p.conn, p.ProtocolVersion(),
 		p.btcnet)
 	p.StatsMtx.Lock()
@@ -1284,6 +1286,7 @@ func (p *peer) readMessage() (factomwire.Message, []byte, error) {
 
 // writeMessage sends a bitcoin Message to the peer with logging.
 func (p *peer) writeMessage(msg factomwire.Message) {
+	fmt.Println(">>> writeMessage()", p)
 	// Don't do anything if we're disconnecting.
 	if atomic.LoadInt32(&p.disconnect) != 0 {
 		return

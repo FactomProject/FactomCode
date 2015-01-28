@@ -51,7 +51,7 @@ const (
 	CmdCommitChain = "commitchain"
 	CmdRevealChain = "revealchain"
 	CmdCommitEntry = "commitentry"
-	CmdRevealEntry = "revealentry"					
+	CmdRevealEntry = "revealentry"
 )
 
 // MaxBlockPayload is the maximum bytes a block message can be in bytes.
@@ -137,7 +137,7 @@ func makeEmptyMessage(command string) (Message, error) {
 				msg = &MsgReject{}
 		*/
 	case CmdBuyCredit:
-		msg = &MsgBuyCredit{}		
+		msg = &MsgBuyCredit{}
 	default:
 		return nil, fmt.Errorf("unhandled command [%s]", command)
 	}
@@ -202,6 +202,7 @@ func discardInput(r io.Reader, n uint32) {
 // information and returns the number of bytes written.    This function is the
 // same as WriteMessage except it also returns the number of bytes written.
 func WriteMessageN(w io.Writer, msg Message, pver uint32, btcnet BitcoinNet) (int, error) {
+	fmt.Println("== WriteMessageN()")
 	totalBytes := 0
 
 	// Enforce max command size.
@@ -272,7 +273,10 @@ func WriteMessageN(w io.Writer, msg Message, pver uint32, btcnet BitcoinNet) (in
 	fmt.Println("outgoing msg=", msg)
 	fmt.Println("outgoing payload=", payload)
 
-	fmt.Printf("incoming msg: %+v\n ", msg)
+	fmt.Println("outgoing hdr=", hdr)
+	fmt.Println("outgoing hdr.command=", hdr.command)
+
+	fmt.Printf("outgoing msg: %+v\n ", msg)
 
 	return totalBytes, nil
 }
@@ -283,6 +287,7 @@ func WriteMessageN(w io.Writer, msg Message, pver uint32, btcnet BitcoinNet) (in
 // for backwards compatibility with the original API, but it's also useful for
 // callers that don't care about byte counts.
 func WriteMessage(w io.Writer, msg Message, pver uint32, btcnet BitcoinNet) error {
+	fmt.Println("== WriteMessage()")
 	_, err := WriteMessageN(w, msg, pver, btcnet)
 	fmt.Println("outgoing msg=", msg)
 	return err
@@ -294,6 +299,7 @@ func WriteMessage(w io.Writer, msg Message, pver uint32, btcnet BitcoinNet) erro
 // message.  This function is the same as ReadMessage except it also returns the
 // number of bytes read.
 func ReadMessageN(r io.Reader, pver uint32, btcnet BitcoinNet) (int, Message, []byte, error) {
+	fmt.Println("== ReadMessageN()")
 	totalBytes := 0
 	n, hdr, err := readMessageHeader(r)
 	if err != nil {
@@ -389,6 +395,7 @@ func ReadMessageN(r io.Reader, pver uint32, btcnet BitcoinNet) (int, Message, []
 // function is mainly provided for backwards compatibility with the original
 // API, but it's also useful for callers that don't care about byte counts.
 func ReadMessage(r io.Reader, pver uint32, btcnet BitcoinNet) (Message, []byte, error) {
+	fmt.Println("== ReadMessage()")
 	_, msg, buf, err := ReadMessageN(r, pver, btcnet)
 	fmt.Println(msg)
 	fmt.Println("incoming msg=", msg)

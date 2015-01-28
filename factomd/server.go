@@ -591,7 +591,7 @@ func (s *server) peerHandler() {
 	s.addrManager.Start()
 	//	s.blockManager.Start()
 
-	fmt.Printf("Starting peer handler")
+	fmt.Println("Starting peer handler")
 	state := &peerState{
 		peers:            list.New(),
 		persistentPeers:  list.New(),
