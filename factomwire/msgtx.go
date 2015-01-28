@@ -2,7 +2,7 @@
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
-package btcwire
+package factomwire
 
 import (
 	"bytes"
@@ -15,10 +15,6 @@ import (
 const (
 	// TxVersion is the current latest supported transaction version.
 	TxVersion = 1
-
-	// MaxTxInSequenceNum is the maximum sequence number the sequence field
-	// of a transaction input can be.
-	MaxTxInSequenceNum uint32 = 0xffffffff
 
 	// MaxPrevOutIndex is the maximum index the index field of a previous
 	// outpoint can be.
@@ -35,8 +31,8 @@ const defaultTxInOutAlloc = 15
 const (
 	// minTxInPayload is the minimum payload size for a transaction input.
 	// PreviousOutPoint.Hash + PreviousOutPoint.Index 4 bytes + Varint for
-	// SignatureScript length 1 byte + Sequence 4 bytes.
-	minTxInPayload = 9 + HashSize
+	// SignatureScript length 1 byte 
+	minTxInPayload = 4 + 1 + HashSize   
 
 	// maxTxInPerMessage is the maximum number of transactions inputs that
 	// a transaction which fits into a message could possibly have.
@@ -95,13 +91,12 @@ func (o OutPoint) String() string {
 type TxIn struct {
 	PreviousOutPoint OutPoint
 	SignatureScript  []byte
-	Sequence         uint32
 }
 
 // SerializeSize returns the number of bytes it would take to serialize the
 // the transaction input.
 func (t *TxIn) SerializeSize() int {
-	// Outpoint Hash 32 bytes + Outpoint Index 4 bytes + Sequence 4 bytes +
+	// Outpoint Hash 32 bytes + Outpoint Index 4 bytes +
 	// serialized varint size for the length of SignatureScript +
 	// SignatureScript bytes.
 	return 40 + VarIntSerializeSize(uint64(len(t.SignatureScript))) +
@@ -109,13 +104,11 @@ func (t *TxIn) SerializeSize() int {
 }
 
 // NewTxIn returns a new bitcoin transaction input with the provided
-// previous outpoint point and signature script with a default sequence of
-// MaxTxInSequenceNum.
+// previous outpoint point and signature script 
 func NewTxIn(prevOut *OutPoint, signatureScript []byte) *TxIn {
 	return &TxIn{
 		PreviousOutPoint: *prevOut,
 		SignatureScript:  signatureScript,
-		Sequence:         MaxTxInSequenceNum,
 	}
 }
 
@@ -218,7 +211,6 @@ func (msg *MsgTx) Copy() *MsgTx {
 		newTxIn := TxIn{
 			PreviousOutPoint: newOutPoint,
 			SignatureScript:  newScript,
-			Sequence:         oldTxIn.Sequence,
 		}
 		newTx.TxIn = append(newTx.TxIn, &newTxIn)
 	}
@@ -497,7 +489,6 @@ func readTxIn(r io.Reader, pver uint32, version int32, ti *TxIn) error {
 	if err != nil {
 		return err
 	}
-	ti.Sequence = binary.LittleEndian.Uint32(buf[:])
 
 	return nil
 }
@@ -511,13 +502,6 @@ func writeTxIn(w io.Writer, pver uint32, version int32, ti *TxIn) error {
 	}
 
 	err = writeVarBytes(w, pver, ti.SignatureScript)
-	if err != nil {
-		return err
-	}
-
-	var buf [4]byte
-	binary.LittleEndian.PutUint32(buf[:], ti.Sequence)
-	_, err = w.Write(buf[:])
 	if err != nil {
 		return err
 	}
