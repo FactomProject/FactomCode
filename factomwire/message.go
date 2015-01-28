@@ -16,7 +16,7 @@ import (
 // checksum 4 bytes.
 const MessageHeaderSize = 24
 
-// CommandSize is the fixed size of all commands in the common bitcoin message
+// CommandSize is the fixed size of all commands in the common 20bitcoin message
 // header.  Shorter commands must be zero padded.
 const CommandSize = 12
 
@@ -47,6 +47,11 @@ const (
 	CmdFilterLoad  = "filterload"
 	CmdMerkleBlock = "merkleblock"
 	CmdReject      = "reject"
+	CmdBuyCredit   = "buycredit"
+	CmdCommitChain = "commitchain"
+	CmdRevealChain = "revealchain"
+	CmdCommitEntry = "commitentry"
+	CmdRevealEntry = "revealentry"		
 )
 
 // MaxBlockPayload is the maximum bytes a block message can be in bytes.
@@ -79,58 +84,58 @@ func makeEmptyMessage(command string) (Message, error) {
 
 	case CmdAddr:
 		msg = &MsgAddr{}
-/*
-	case CmdGetBlocks:
-		msg = &MsgGetBlocks{}
+		/*
+			case CmdGetBlocks:
+				msg = &MsgGetBlocks{}
 
-	case CmdBlock:
-		msg = &MsgBlock{}
+			case CmdBlock:
+				msg = &MsgBlock{}
 
-	case CmdInv:
-		msg = &MsgInv{}
+			case CmdInv:
+				msg = &MsgInv{}
 
-	case CmdGetData:
-		msg = &MsgGetData{}
+			case CmdGetData:
+				msg = &MsgGetData{}
 
-	case CmdNotFound:
-		msg = &MsgNotFound{}
+			case CmdNotFound:
+				msg = &MsgNotFound{}
 
-	case CmdTx:
-		msg = &MsgTx{}
-*/
+			case CmdTx:
+				msg = &MsgTx{}
+		*/
 	case CmdPing:
 		msg = &MsgPing{}
 
 	case CmdPong:
 		msg = &MsgPong{}
-/*
-	case CmdGetHeaders:
-		msg = &MsgGetHeaders{}
+		/*
+			case CmdGetHeaders:
+				msg = &MsgGetHeaders{}
 
-	case CmdHeaders:
-		msg = &MsgHeaders{}
+			case CmdHeaders:
+				msg = &MsgHeaders{}
 
-	case CmdAlert:
-		msg = &MsgAlert{}
+			case CmdAlert:
+				msg = &MsgAlert{}
 
-	case CmdMemPool:
-		msg = &MsgMemPool{}
+			case CmdMemPool:
+				msg = &MsgMemPool{}
 
-	case CmdFilterAdd:
-		msg = &MsgFilterAdd{}
+			case CmdFilterAdd:
+				msg = &MsgFilterAdd{}
 
-	case CmdFilterClear:
-		msg = &MsgFilterClear{}
+			case CmdFilterClear:
+				msg = &MsgFilterClear{}
 
-	case CmdFilterLoad:
-		msg = &MsgFilterLoad{}
+			case CmdFilterLoad:
+				msg = &MsgFilterLoad{}
 
-	case CmdMerkleBlock:
-		msg = &MsgMerkleBlock{}
+			case CmdMerkleBlock:
+				msg = &MsgMerkleBlock{}
 
-	case CmdReject:
-		msg = &MsgReject{}
-*/
+			case CmdReject:
+				msg = &MsgReject{}
+		*/
 	default:
 		return nil, fmt.Errorf("unhandled command [%s]", command)
 	}
@@ -259,7 +264,7 @@ func WriteMessageN(w io.Writer, msg Message, pver uint32, btcnet BitcoinNet) (in
 		return totalBytes, err
 	}
 	totalBytes += n
-
+	fmt.Printf("outgoing msg: %+v\n", msg)
 	return totalBytes, nil
 }
 
@@ -356,8 +361,8 @@ func ReadMessageN(r io.Reader, pver uint32, btcnet BitcoinNet) (int, Message, []
 	if err != nil {
 		return totalBytes, nil, nil, err
 	}
-
-	return totalBytes, msg, payload, nil
+	fmt.Printf("incoming msg: %+v\n ", msg)
+	return totalBytes, nil, nil, err
 }
 
 // ReadMessage reads, validates, and parses the next bitcoin Message from r for

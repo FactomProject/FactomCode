@@ -113,16 +113,16 @@ func readElement(r io.Reader, element interface{}) error {
 		}
 		*e = ServiceFlag(binary.LittleEndian.Uint64(b))
 		return nil
-/*
-	case *InvType:
-		b := scratch[0:4]
-		_, err := io.ReadFull(r, b)
-		if err != nil {
-			return err
-		}
-		*e = InvType(binary.LittleEndian.Uint32(b))
-		return nil
-*/
+		/*
+			case *InvType:
+				b := scratch[0:4]
+				_, err := io.ReadFull(r, b)
+				if err != nil {
+					return err
+				}
+				*e = InvType(binary.LittleEndian.Uint32(b))
+				return nil
+		*/
 	case *BitcoinNet:
 		b := scratch[0:4]
 		_, err := io.ReadFull(r, b)
@@ -131,25 +131,26 @@ func readElement(r io.Reader, element interface{}) error {
 		}
 		*e = BitcoinNet(binary.LittleEndian.Uint32(b))
 		return nil
-/*
-	case *BloomUpdateType:
-		b := scratch[0:1]
-		_, err := io.ReadFull(r, b)
-		if err != nil {
-			return err
-		}
-		*e = BloomUpdateType(b[0])
-		return nil
+		/*
+			case *BloomUpdateType:
+				b := scratch[0:1]
+				_, err := io.ReadFull(r, b)
+				if err != nil {
+					return err
+				}
+				*e = BloomUpdateType(b[0])
+				return nil
 
-	case *RejectCode:
-		b := scratch[0:1]
-		_, err := io.ReadFull(r, b)
-		if err != nil {
-			return err
-		}
-		*e = RejectCode(b[0])
-		return nil
-*/	}
+			case *RejectCode:
+				b := scratch[0:1]
+				_, err := io.ReadFull(r, b)
+				if err != nil {
+					return err
+				}
+				*e = RejectCode(b[0])
+				return nil
+		*/
+	}
 
 	// Fall back to the slower binary.Read if a fast path was not available
 	// above.
@@ -263,16 +264,16 @@ func writeElement(w io.Writer, element interface{}) error {
 			return err
 		}
 		return nil
-/*
-	case InvType:
-		b := scratch[0:4]
-		binary.LittleEndian.PutUint32(b, uint32(e))
-		_, err := w.Write(b)
-		if err != nil {
-			return err
-		}
-		return nil
-*/
+		/*
+			case InvType:
+				b := scratch[0:4]
+				binary.LittleEndian.PutUint32(b, uint32(e))
+				_, err := w.Write(b)
+				if err != nil {
+					return err
+				}
+				return nil
+		*/
 	case BitcoinNet:
 		b := scratch[0:4]
 		binary.LittleEndian.PutUint32(b, uint32(e))
@@ -282,24 +283,25 @@ func writeElement(w io.Writer, element interface{}) error {
 		}
 		return nil
 
-/*	case BloomUpdateType:
-		b := scratch[0:1]
-		b[0] = uint8(e)
-		_, err := w.Write(b)
-		if err != nil {
-			return err
-		}
-		return nil
+		/*	case BloomUpdateType:
+				b := scratch[0:1]
+				b[0] = uint8(e)
+				_, err := w.Write(b)
+				if err != nil {
+					return err
+				}
+				return nil
 
-	case RejectCode:
-		b := scratch[0:1]
-		b[0] = uint8(e)
-		_, err := w.Write(b)
-		if err != nil {
-			return err
-		}
-		return nil
-*/	}
+			case RejectCode:
+				b := scratch[0:1]
+				b[0] = uint8(e)
+				_, err := w.Write(b)
+				if err != nil {
+					return err
+				}
+				return nil
+		*/
+	}
 
 	// Fall back to the slower binary.Write if a fast path was not available
 	// above.

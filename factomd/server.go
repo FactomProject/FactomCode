@@ -19,10 +19,10 @@ import (
 	"sync/atomic"
 	"time"
 
-//	"github.com/FactomProject/FactomCode/btcchain"
+	//	"github.com/FactomProject/FactomCode/btcchain"
 	"github.com/FactomProject/FactomCode/factomd/addrmgr"
-//	"github.com/FactomProject/FactomCode/btcdb"
-//	"github.com/FactomProject/FactomCode/btcjson"
+	//	"github.com/FactomProject/FactomCode/btcdb"
+	//	"github.com/FactomProject/FactomCode/btcjson"
 	"github.com/FactomProject/FactomCode/factomnet"
 	"github.com/FactomProject/FactomCode/factomwire"
 )
@@ -46,11 +46,10 @@ const (
 	// defaultMaxOutbound is the default number of max outbound peers.
 	defaultMaxOutbound = 8
 
-	MaxPeers = 125
+	MaxPeers    = 125
 	BanDuration = time.Hour * 24
-	DataDir = "/tmp/factom/data"
+	DataDir     = "/tmp/factom/data"
 )
-
 
 // GetPeerInfoResult models the data returned from the getpeerinfo command.
 type GetPeerInfoResult struct {
@@ -72,7 +71,6 @@ type GetPeerInfoResult struct {
 	SyncNode       bool    `json:"syncnode"`
 }
 
-
 // broadcastMsg provides the ability to house a bitcoin message to be broadcast
 // to all connected peers except specified excluded peers.
 type broadcastMsg struct {
@@ -91,20 +89,20 @@ type broadcastInventoryDel *factomwire.InvVect
 // server provides a bitcoin server for handling communications to and from
 // bitcoin peers.
 type server struct {
-	nonce                uint64
-	listeners            []net.Listener
-	netParams            *factomnet.Params
-	started              int32      // atomic
-	shutdown             int32      // atomic
-	shutdownSched        int32      // atomic
-	bytesMutex           sync.Mutex // For the following two fields.
-	bytesReceived        uint64     // Total bytes received from all peers since start.
-	bytesSent            uint64     // Total bytes sent by all peers since start.
-	addrManager          *addrmgr.AddrManager
-//	rpcServer            *rpcServer
-//	blockManager         *blockManager
-//	txMemPool            *txMemPool
-//	cpuMiner             *CPUMiner
+	nonce         uint64
+	listeners     []net.Listener
+	netParams     *factomnet.Params
+	started       int32      // atomic
+	shutdown      int32      // atomic
+	shutdownSched int32      // atomic
+	bytesMutex    sync.Mutex // For the following two fields.
+	bytesReceived uint64     // Total bytes received from all peers since start.
+	bytesSent     uint64     // Total bytes sent by all peers since start.
+	addrManager   *addrmgr.AddrManager
+	//	rpcServer            *rpcServer
+	//	blockManager         *blockManager
+	//	txMemPool            *txMemPool
+	//	cpuMiner             *CPUMiner
 	modifyRebroadcastInv chan interface{}
 	newPeers             chan *peer
 	donePeers            chan *peer
@@ -112,12 +110,12 @@ type server struct {
 	wakeup               chan struct{}
 	query                chan interface{}
 	relayInv             chan *factomwire.InvVect
-//	broadcast            chan broadcastMsg
-	wg                   sync.WaitGroup
-	quit                 chan struct{}
-//	nat                  NAT
-//	db                   btcdb.Db
-//	timeSource           btcchain.MedianTimeSource
+	//	broadcast            chan broadcastMsg
+	wg   sync.WaitGroup
+	quit chan struct{}
+	//	nat                  NAT
+	//	db                   btcdb.Db
+	//	timeSource           btcchain.MedianTimeSource
 }
 
 type peerState struct {
@@ -211,7 +209,7 @@ func (s *server) handleAddPeerMsg(state *peerState, p *peer) bool {
 
 	// Ignore new peers if we're shutting down.
 	if atomic.LoadInt32(&s.shutdown) != 0 {
-		fmt.Sprintf("New peer %s ignored - server is shutting "+
+		fmt.Printf("New peer %s ignored - server is shutting "+
 			"down", p)
 		p.Shutdown()
 		return false
@@ -220,19 +218,19 @@ func (s *server) handleAddPeerMsg(state *peerState, p *peer) bool {
 	// Disconnect banned peers.
 	host, _, err := net.SplitHostPort(p.addr)
 	if err != nil {
-		fmt.Sprintf("can't split hostport %v", err)
+		fmt.Printf("can't split hostport %v\n", err)
 		p.Shutdown()
 		return false
 	}
 	if banEnd, ok := state.banned[host]; ok {
 		if time.Now().Before(banEnd) {
-			fmt.Sprintf("Peer %s is banned for another %v - "+
+			fmt.Printf("Peer %s is banned for another %v - "+
 				"disconnecting", host, banEnd.Sub(time.Now()))
 			p.Shutdown()
 			return false
 		}
 
-		fmt.Sprintf("Peer %s is no longer banned", host)
+		fmt.Printf("Peer %s is no longer banned", host)
 		delete(state.banned, host)
 	}
 
@@ -240,8 +238,8 @@ func (s *server) handleAddPeerMsg(state *peerState, p *peer) bool {
 
 	// Limit max number of total peers.
 	if state.Count() >= MaxPeers {
-		fmt.Sprintf("Max peers reached [%d] - disconnecting "+
-			"peer %s", MaxPeers, p)
+		fmt.Printf("Max peers reached [%d] - disconnecting "+
+			"peer %s\n", MaxPeers, p)
 		p.Shutdown()
 		// TODO(oga) how to handle permanent peers here?
 		// they should be rescheduled.
@@ -249,7 +247,7 @@ func (s *server) handleAddPeerMsg(state *peerState, p *peer) bool {
 	}
 
 	// Add the new peer and start it.
-	fmt.Sprintf("New peer %s", p)
+	fmt.Printf("New peer %s\n", p)
 	if p.inbound {
 		state.peers.PushBack(p)
 		p.Start()
@@ -288,7 +286,7 @@ func (s *server) handleDonePeerMsg(state *peerState, p *peer) {
 				state.outboundGroups[addrmgr.GroupKey(p.na)]--
 			}
 			list.Remove(e)
-			fmt.Sprintf("Removed peer %s", p)
+			fmt.Printf("Removed peer %s\n", p)
 			return
 		}
 	}
@@ -301,11 +299,11 @@ func (s *server) handleDonePeerMsg(state *peerState, p *peer) {
 func (s *server) handleBanPeerMsg(state *peerState, p *peer) {
 	host, _, err := net.SplitHostPort(p.addr)
 	if err != nil {
-		fmt.Sprintf("can't split ban peer %s %v", p.addr, err)
+		fmt.Printf("can't split ban peer %s %v\n", p.addr, err)
 		return
 	}
 	direction := directionString(p.inbound)
-	fmt.Sprintf("Banned peer %s (%s) for %v", host, direction,
+	fmt.Printf("Banned peer %s (%s) for %v\n", host, direction,
 		BanDuration)
 	state.banned[host] = time.Now().Add(BanDuration)
 
@@ -424,7 +422,7 @@ func (s *server) handleQuery(querymsg interface{}, state *peerState) {
 			p.StatsMtx.Lock()
 			info := &GetPeerInfoResult{
 				Addr:           p.addr,
-				Services:       fmt.Sprintf("%08d", p.services),
+				Services:       fmt.Printf("%08d", p.services),
 				LastSend:       p.lastSend.Unix(),
 				LastRecv:       p.lastRecv.Unix(),
 				BytesSent:      p.bytesSent,
@@ -505,13 +503,13 @@ func (s *server) handleQuery(querymsg interface{}, state *peerState) {
 // listenHandler is the main listener which accepts incoming connections for the
 // server.  It must be run as a goroutine.
 func (s *server) listenHandler(listener net.Listener) {
-	fmt.Sprintf("Server listening on %s", listener.Addr())
+	fmt.Printf("Server listening on %s\n", listener.Addr())
 	for atomic.LoadInt32(&s.shutdown) == 0 {
 		conn, err := listener.Accept()
 		if err != nil {
 			// Only log the error if we're not forcibly shutting down.
 			if atomic.LoadInt32(&s.shutdown) == 0 {
-				fmt.Sprintf("can't accept connection: %v",
+				fmt.Printf("can't accept connection: %v\n",
 					err)
 			}
 			continue
@@ -519,14 +517,14 @@ func (s *server) listenHandler(listener net.Listener) {
 		s.AddPeer(newInboundPeer(s, conn))
 	}
 	s.wg.Done()
-	fmt.Sprintf("Listener handler done for %s", listener.Addr())
+	fmt.Printf("Listener handler done for %s\n", listener.Addr())
 }
 
 // dnsDiscover looks up the list of peers resolved by DNS for all hosts in
 // seeders. If proxy is not "" then it is used as a tor proxy for the
 // resolution.
 func dnsDiscover(seeder string) ([]net.IP, error) {
-	peers, err := net.LookupIP(seeder)	//btcdLookup(seeder)
+	peers, err := net.LookupIP(seeder) //btcdLookup(seeder)
 	if err != nil {
 		return nil, err
 	}
@@ -547,12 +545,12 @@ func (s *server) seedFromDNS() {
 
 			seedpeers, err := dnsDiscover(seeder)
 			if err != nil {
-				fmt.Sprintf("DNS discovery failed on seed %s: %v", seeder, err)
+				fmt.Printf("DNS discovery failed on seed %s: %v\n", seeder, err)
 				return
 			}
 			numPeers := len(seedpeers)
 
-			fmt.Sprintf("%d addresses found from DNS seed %s", numPeers, seeder)
+			fmt.Printf("%d addresses found from DNS seed %s\n", numPeers, seeder)
 
 			if numPeers == 0 {
 				return
@@ -591,9 +589,9 @@ func (s *server) peerHandler() {
 	// things, it's easier and slightly faster to simply start and stop them
 	// in this handler.
 	s.addrManager.Start()
-//	s.blockManager.Start()
+	//	s.blockManager.Start()
 
-	fmt.Sprintf("Starting peer handler")
+	fmt.Printf("Starting peer handler")
 	state := &peerState{
 		peers:            list.New(),
 		persistentPeers:  list.New(),
@@ -608,16 +606,16 @@ func (s *server) peerHandler() {
 
 	// Add peers discovered through DNS to the address manager.
 	s.seedFromDNS()
-/*
-	// Start up persistent peers.
-	permanentPeers := cfg.ConnectPeers
-	if len(permanentPeers) == 0 {
-		permanentPeers = cfg.AddPeers
-	}
-	for _, addr := range permanentPeers {
-		s.handleAddPeerMsg(state, newOutboundPeer(s, addr, true, 0))
-	}
-*/
+	/*
+		// Start up persistent peers.
+		permanentPeers := cfg.ConnectPeers
+		if len(permanentPeers) == 0 {
+			permanentPeers = cfg.AddPeers
+		}
+		for _, addr := range permanentPeers {
+			s.handleAddPeerMsg(state, newOutboundPeer(s, addr, true, 0))
+		}
+	*/
 	// if nothing else happens, wake us up soon.
 	time.AfterFunc(10*time.Second, func() { s.wakeup <- struct{}{} })
 
@@ -740,10 +738,10 @@ out:
 		}
 	}
 
-//	s.blockManager.Stop()
+	//	s.blockManager.Stop()
 	s.addrManager.Stop()
 	s.wg.Done()
-	fmt.Sprintf("Peer handler done")
+	fmt.Printf("Peer handler done")
 }
 
 // AddPeer adds a new peer that has already been connected to the server.
@@ -927,25 +925,25 @@ func (s *server) Start() {
 	s.wg.Add(1)
 	go s.peerHandler()
 
-/*	if s.nat != nil {
-		s.wg.Add(1)
-		go s.upnpUpdateThread()
-	}
+	/*	if s.nat != nil {
+			s.wg.Add(1)
+			go s.upnpUpdateThread()
+		}
 
-	if !cfg.DisableRPC {
-		s.wg.Add(1)
+		if !cfg.DisableRPC {
+			s.wg.Add(1)
 
-		// Start the rebroadcastHandler, which ensures user tx received by
-		// the RPC server are rebroadcast until being included in a block.
-		go s.rebroadcastHandler()
+			// Start the rebroadcastHandler, which ensures user tx received by
+			// the RPC server are rebroadcast until being included in a block.
+			go s.rebroadcastHandler()
 
-		s.rpcServer.Start()
-	}
+			s.rpcServer.Start()
+		}
 
-	// Start the CPU miner if generation is enabled.
-	if cfg.Generate {
-		s.cpuMiner.Start()
-	}*/
+		// Start the CPU miner if generation is enabled.
+		if cfg.Generate {
+			s.cpuMiner.Start()
+		}*/
 }
 
 // Stop gracefully shuts down the server by stopping and disconnecting all
@@ -953,11 +951,11 @@ func (s *server) Start() {
 func (s *server) Stop() error {
 	// Make sure this only happens once.
 	if atomic.AddInt32(&s.shutdown, 1) != 1 {
-		fmt.Sprintf("Server is already in the process of shutting down")
+		fmt.Printf("Server is already in the process of shutting down")
 		return nil
 	}
 
-	fmt.Sprintf("Server shutting down")
+	fmt.Printf("Server shutting down")
 
 	// Stop all the listeners.  There will not be any listeners if
 	// listening is disabled.
@@ -969,13 +967,13 @@ func (s *server) Stop() error {
 	}
 
 	// Stop the CPU miner if needed
-/*	s.cpuMiner.Stop()
+	/*	s.cpuMiner.Stop()
 
-	// Shutdown the RPC server if it's not disabled.
-	if !cfg.DisableRPC {
-		s.rpcServer.Stop()
-	}
-*/
+		// Shutdown the RPC server if it's not disabled.
+		if !cfg.DisableRPC {
+			s.rpcServer.Stop()
+		}
+	*/
 	// Signal the remaining goroutines to quit.
 	close(s.quit)
 	return nil
@@ -994,7 +992,7 @@ func (s *server) ScheduleShutdown(duration time.Duration) {
 	if atomic.AddInt32(&s.shutdownSched, 1) != 1 {
 		return
 	}
-	fmt.Sprintf("Server shutdown in %v", duration)
+	fmt.Printf("Server shutdown in %v\n", duration)
 	go func() {
 		remaining := duration
 		tickDuration := dynamicTickDuration(remaining)
@@ -1020,7 +1018,7 @@ func (s *server) ScheduleShutdown(duration time.Duration) {
 					ticker.Stop()
 					ticker = time.NewTicker(tickDuration)
 				}
-				fmt.Sprintf("Server shutdown in %v", remaining)
+				fmt.Printf("Server shutdown in %v\n", remaining)
 			}
 		}
 	}()
@@ -1088,14 +1086,14 @@ out:
 			listenPort, err := s.nat.AddPortMapping("tcp", int(lport), int(lport),
 				"btcd listen port", 20*60)
 			if err != nil {
-				fmt.Sprintf("can't add UPnP port mapping: %v", err)
+				fmt.Printf("can't add UPnP port mapping: %v\n", err)
 			}
 			if first && err == nil {
 				// TODO(oga): look this up periodically to see if upnp domain changed
 				// and so did ip.
 				externalip, err := s.nat.GetExternalAddress()
 				if err != nil {
-					fmt.Sprintf("UPnP can't get external address: %v", err)
+					fmt.Printf("UPnP can't get external address: %v\n", err)
 					continue out
 				}
 				na := factomwire.NewNetAddressIPPort(externalip, uint16(listenPort),
@@ -1104,7 +1102,7 @@ out:
 				if err != nil {
 					// XXX DeletePortMapping?
 				}
-				fmt.Sprintf("Successfully bound via UPnP to %s", addrmgr.NetAddressKey(na))
+				fmt.Printf("Successfully bound via UPnP to %s\n", addrmgr.NetAddressKey(na))
 				first = false
 			}
 			timer.Reset(time.Minute * 15)
@@ -1116,9 +1114,9 @@ out:
 	timer.Stop()
 
 	if err := s.nat.DeletePortMapping("tcp", int(lport), int(lport)); err != nil {
-		fmt.Sprintf("unable to remove UPnP port mapping: %v", err)
+		fmt.Printf("unable to remove UPnP port mapping: %v\n", err)
 	} else {
-		fmt.Sprintf("succesfully disestablished UPnP port mapping")
+		fmt.Printf("succesfully disestablished UPnP port mapping")
 	}
 
 	s.wg.Done()
@@ -1133,18 +1131,18 @@ func newServer(listenAddrs []string, netParams *factomnet.Params) (*server, erro
 		return nil, err
 	}
 
-	amgr := addrmgr.New(DataDir, net.LookupIP)	//btcdLookup)
+	amgr := addrmgr.New(DataDir, net.LookupIP) //btcdLookup)
 
 	var listeners []net.Listener
 	//var nat NAT
 	//if !cfg.DisableListen {
-		ipv4Addrs, ipv6Addrs, wildcard, err :=
-			parseListeners(listenAddrs)
-		if err != nil {
-			return nil, err
-		}
-		listeners = make([]net.Listener, 0, len(ipv4Addrs)+len(ipv6Addrs))
-		discover := true
+	ipv4Addrs, ipv6Addrs, wildcard, err :=
+		parseListeners(listenAddrs)
+	if err != nil {
+		return nil, err
+	}
+	listeners = make([]net.Listener, 0, len(ipv4Addrs)+len(ipv6Addrs))
+	discover := true
 	/*	if len(cfg.ExternalIPs) != 0 {
 			discover = false
 			// if this fails we have real issues.
@@ -1161,9 +1159,9 @@ func newServer(listenAddrs []string, netParams *factomnet.Params) (*server, erro
 					port, err := strconv.ParseUint(
 						portstr, 10, 16)
 					if err != nil {
-						fmt.Sprintf("Can not parse "+
+						fmt.Printf("Can not parse "+
 							"port from %s for "+
-							"externalip: %v", sip,
+							"externalip: %v\n", sip,
 							err)
 						continue
 					}
@@ -1172,126 +1170,126 @@ func newServer(listenAddrs []string, netParams *factomnet.Params) (*server, erro
 				na, err := amgr.HostToNetAddress(host, eport,
 					factomwire.SFNodeNetwork)
 				if err != nil {
-					fmt.Sprintf("Not adding %s as "+
-						"externalip: %v", sip, err)
+					fmt.Printf("Not adding %s as "+
+						"externalip: %v\n", sip, err)
 					continue
 				}
 
 				err = amgr.AddLocalAddress(na, addrmgr.ManualPrio)
 				if err != nil {
-					fmt.Sprintf("Skipping specified external IP: %v", err)
+					fmt.Printf("Skipping specified external IP: %v\n", err)
 				}
 			}
 		} else if discover && cfg.Upnp {
 			nat, err = Discover()
 			if err != nil {
-				fmt.Sprintf("Can't discover upnp: %v", err)
+				fmt.Printf("Can't discover upnp: %v\n", err)
 			}
 			// nil nat here is fine, just means no upnp on network.
 		}*/
 
-		// TODO(oga) nonstandard port...
-		if wildcard {
-			port, err :=
-				strconv.ParseUint(activeNetParams.DefaultPort,
-					10, 16)
+	// TODO(oga) nonstandard port...
+	if wildcard {
+		port, err :=
+			strconv.ParseUint(activeNetParams.DefaultPort,
+				10, 16)
+		if err != nil {
+			// I can't think of a cleaner way to do this...
+			goto nowc
+		}
+		addrs, err := net.InterfaceAddrs()
+		for _, a := range addrs {
+			ip, _, err := net.ParseCIDR(a.String())
 			if err != nil {
-				// I can't think of a cleaner way to do this...
-				goto nowc
+				continue
 			}
-			addrs, err := net.InterfaceAddrs()
-			for _, a := range addrs {
-				ip, _, err := net.ParseCIDR(a.String())
+			na := factomwire.NewNetAddressIPPort(ip,
+				uint16(port), factomwire.SFNodeNetwork)
+			if discover {
+				err = amgr.AddLocalAddress(na, addrmgr.InterfacePrio)
 				if err != nil {
-					continue
-				}
-				na := factomwire.NewNetAddressIPPort(ip,
-					uint16(port), factomwire.SFNodeNetwork)
-				if discover {
-					err = amgr.AddLocalAddress(na, addrmgr.InterfacePrio)
-					if err != nil {
-						fmt.Sprintf("Skipping local address: %v", err)
-					}
+					fmt.Printf("Skipping local address: %v\n", err)
 				}
 			}
 		}
-	nowc:
+	}
+nowc:
 
-		for _, addr := range ipv4Addrs {
-			listener, err := net.Listen("tcp4", addr)
-			if err != nil {
-				fmt.Sprintf("Can't listen on %s: %v", addr,
-					err)
-				continue
-			}
-			listeners = append(listeners, listener)
+	for _, addr := range ipv4Addrs {
+		listener, err := net.Listen("tcp4", addr)
+		if err != nil {
+			fmt.Printf("Can't listen on %s: %v\n", addr,
+				err)
+			continue
+		}
+		listeners = append(listeners, listener)
 
-			if discover {
-				if na, err := amgr.DeserializeNetAddress(addr); err == nil {
-					err = amgr.AddLocalAddress(na, addrmgr.BoundPrio)
-					if err != nil {
-						fmt.Sprintf("Skipping bound address: %v", err)
-					}
+		if discover {
+			if na, err := amgr.DeserializeNetAddress(addr); err == nil {
+				err = amgr.AddLocalAddress(na, addrmgr.BoundPrio)
+				if err != nil {
+					fmt.Printf("Skipping bound address: %v\n", err)
 				}
 			}
 		}
+	}
 
-		for _, addr := range ipv6Addrs {
-			listener, err := net.Listen("tcp6", addr)
-			if err != nil {
-				fmt.Sprintf("Can't listen on %s: %v", addr,
-					err)
-				continue
-			}
-			listeners = append(listeners, listener)
-			if discover {
-				if na, err := amgr.DeserializeNetAddress(addr); err == nil {
-					err = amgr.AddLocalAddress(na, addrmgr.BoundPrio)
-					if err != nil {
-						fmt.Sprintf("Skipping bound address: %v", err)
-					}
+	for _, addr := range ipv6Addrs {
+		listener, err := net.Listen("tcp6", addr)
+		if err != nil {
+			fmt.Printf("Can't listen on %s: %v\n", addr,
+				err)
+			continue
+		}
+		listeners = append(listeners, listener)
+		if discover {
+			if na, err := amgr.DeserializeNetAddress(addr); err == nil {
+				err = amgr.AddLocalAddress(na, addrmgr.BoundPrio)
+				if err != nil {
+					fmt.Printf("Skipping bound address: %v\n", err)
 				}
 			}
 		}
+	}
 
-		if len(listeners) == 0 {
-			return nil, errors.New("no valid listen address")
-		}
+	if len(listeners) == 0 {
+		return nil, errors.New("no valid listen address")
+	}
 	//}
 
 	s := server{
-		nonce:                nonce,
-		listeners:            listeners,
-		netParams:            netParams,
-		addrManager:          amgr,
-		newPeers:             make(chan *peer, MaxPeers),
-		donePeers:            make(chan *peer, MaxPeers),
-		banPeers:             make(chan *peer, MaxPeers),
-		wakeup:               make(chan struct{}),
-		query:                make(chan interface{}),
-		relayInv:             make(chan *factomwire.InvVect, MaxPeers),
-	//	broadcast:            make(chan broadcastMsg, MaxPeers),
+		nonce:       nonce,
+		listeners:   listeners,
+		netParams:   netParams,
+		addrManager: amgr,
+		newPeers:    make(chan *peer, MaxPeers),
+		donePeers:   make(chan *peer, MaxPeers),
+		banPeers:    make(chan *peer, MaxPeers),
+		wakeup:      make(chan struct{}),
+		query:       make(chan interface{}),
+		relayInv:    make(chan *factomwire.InvVect, MaxPeers),
+		//	broadcast:            make(chan broadcastMsg, MaxPeers),
 		quit:                 make(chan struct{}),
 		modifyRebroadcastInv: make(chan interface{}),
-	//	nat:                  nat,
-	//	db:                   db,
-	//	timeSource:           btcchain.NewMedianTime(),
+		//	nat:                  nat,
+		//	db:                   db,
+		//	timeSource:           btcchain.NewMedianTime(),
 	}
-/*	bm, err := newBlockManager(&s)
-	if err != nil {
-		return nil, err
-	}
-	s.blockManager = bm
-	s.txMemPool = newTxMemPool(&s)
-	s.cpuMiner = newCPUMiner(&s)
-
-	if !cfg.DisableRPC {
-		s.rpcServer, err = newRPCServer(cfg.RPCListeners, &s)
+	/*	bm, err := newBlockManager(&s)
 		if err != nil {
 			return nil, err
 		}
-	}
-*/
+		s.blockManager = bm
+		s.txMemPool = newTxMemPool(&s)
+		s.cpuMiner = newCPUMiner(&s)
+
+		if !cfg.DisableRPC {
+			s.rpcServer, err = newRPCServer(cfg.RPCListeners, &s)
+			if err != nil {
+				return nil, err
+			}
+		}
+	*/
 	return &s, nil
 }
 

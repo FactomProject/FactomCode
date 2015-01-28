@@ -15,7 +15,7 @@ import (
 // with eviction for the oldest entry when the limit is exceeded.
 type MruInventoryMap struct {
 	invMap  map[factomwire.InvVect]*list.Element // nearly O(1) lookups
-	invList *list.List                        // O(1) insert, update, delete
+	invList *list.List                           // O(1) insert, update, delete
 	limit   uint
 }
 

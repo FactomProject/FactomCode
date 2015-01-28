@@ -223,7 +223,7 @@ func (a *AddrManager) updateAddress(netAddr, srcAddr *factomwire.NetAddress) {
 
 	// Enforce max addresses.
 	if len(a.addrNew[bucket]) > newBucketSize {
-		fmt.Sprintf("new bucket is full, expiring old")
+		fmt.Printf("new bucket is full, expiring old")
 		a.expireNew(bucket)
 	}
 
@@ -231,7 +231,7 @@ func (a *AddrManager) updateAddress(netAddr, srcAddr *factomwire.NetAddress) {
 	ka.refs++
 	a.addrNew[bucket][addr] = ka
 
-	fmt.Sprintf("Added new address %s for a total of %d addresses", addr,
+	fmt.Printf("Added new address %s for a total of %d addresses", addr,
 		a.nTried+a.nNew)
 }
 
@@ -246,7 +246,7 @@ func (a *AddrManager) expireNew(bucket int) {
 	var oldest *knownAddress
 	for k, v := range a.addrNew[bucket] {
 		if v.isBad() {
-			fmt.Sprintf("expiring bad address %v", k)
+			fmt.Printf("expiring bad address %v\n", k)
 			delete(a.addrNew[bucket], k)
 			v.refs--
 			if v.refs == 0 {
@@ -264,7 +264,7 @@ func (a *AddrManager) expireNew(bucket int) {
 
 	if oldest != nil {
 		key := NetAddressKey(oldest.na)
-		fmt.Sprintf("expiring oldest address %v", key)
+		fmt.Printf("expiring oldest address %v\n", key)
 
 		delete(a.addrNew[bucket], key)
 		oldest.refs--
@@ -401,13 +401,13 @@ func (a *AddrManager) savePeers() {
 
 	w, err := os.Create(a.peersFile)
 	if err != nil {
-		fmt.Sprintf("Error opening file %s: %v", a.peersFile, err)
+		fmt.Printf("Error opening file %s: %v\n", a.peersFile, err)
 		return
 	}
 	enc := json.NewEncoder(w)
 	defer w.Close()
 	if err := enc.Encode(&sam); err != nil {
-		fmt.Sprintf("Failed to encode file %s: %v", a.peersFile, err)
+		fmt.Printf("Failed to encode file %s: %v\n", a.peersFile, err)
 		return
 	}
 }
@@ -420,17 +420,17 @@ func (a *AddrManager) loadPeers() {
 
 	err := a.deserializePeers(a.peersFile)
 	if err != nil {
-		fmt.Sprintf("Failed to parse file %s: %v", a.peersFile, err)
+		fmt.Printf("Failed to parse file %s: %v\n", a.peersFile, err)
 		// if it is invalid we nuke the old one unconditionally.
 		err = os.Remove(a.peersFile)
 		if err != nil {
-			fmt.Sprintf("Failed to remove corrupt peers file %s: %v",
+			fmt.Printf("Failed to remove corrupt peers file %s: %v\n",
 				a.peersFile, err)
 		}
 		a.reset()
 		return
 	}
-	fmt.Sprintf("Loaded %d addresses from file '%s'", a.numAddresses(), a.peersFile)
+	fmt.Printf("Loaded %d addresses from file '%s'", a.numAddresses(), a.peersFile)
 }
 
 func (a *AddrManager) deserializePeers(filePath string) error {
@@ -441,7 +441,7 @@ func (a *AddrManager) deserializePeers(filePath string) error {
 	}
 	r, err := os.Open(filePath)
 	if err != nil {
-		return fmt.Errorf("%s error opening file: %v", filePath, err)
+		return fmt.Errorf("%s error opening file: %v\n", filePath, err)
 	}
 	defer r.Close()
 
@@ -449,7 +449,7 @@ func (a *AddrManager) deserializePeers(filePath string) error {
 	dec := json.NewDecoder(r)
 	err = dec.Decode(&sam)
 	if err != nil {
-		return fmt.Errorf("error reading %s: %v", filePath, err)
+		return fmt.Errorf("error reading %s: %v\n", filePath, err)
 	}
 
 	if sam.Version != serialisationVersion {
@@ -463,12 +463,12 @@ func (a *AddrManager) deserializePeers(filePath string) error {
 		ka.na, err = a.DeserializeNetAddress(v.Addr)
 		if err != nil {
 			return fmt.Errorf("failed to deserialize netaddress "+
-				"%s: %v", v.Addr, err)
+				"%s: %v\n", v.Addr, err)
 		}
 		ka.srcAddr, err = a.DeserializeNetAddress(v.Src)
 		if err != nil {
 			return fmt.Errorf("failed to deserialize netaddress "+
-				"%s: %v", v.Src, err)
+				"%s: %v\n", v.Src, err)
 		}
 		ka.attempts = v.Attempts
 		ka.lastattempt = time.Unix(v.LastAttempt, 0)
@@ -556,12 +556,12 @@ func (a *AddrManager) Start() {
 // Stop gracefully shuts down the address manager by stopping the main handler.
 func (a *AddrManager) Stop() error {
 	if atomic.AddInt32(&a.shutdown, 1) != 1 {
-		fmt.Sprintf("Address manager is already in the process of " +
+		fmt.Printf("Address manager is already in the process of " +
 			"shutting down")
 		return nil
 	}
 
-	fmt.Sprintf("Address manager shutting down")
+	fmt.Printf("Address manager shutting down")
 	close(a.quit)
 	a.wg.Wait()
 	return nil
@@ -602,11 +602,11 @@ func (a *AddrManager) AddAddressByIP(addrIP string) error {
 	na.Timestamp = time.Now()
 	na.IP = net.ParseIP(addr)
 	if na.IP == nil {
-		return fmt.Errorf("invalid ip address %s", addr)
+		return fmt.Errorf("invalid ip address %s\n", addr)
 	}
 	port, err := strconv.ParseUint(portStr, 10, 0)
 	if err != nil {
-		return fmt.Errorf("invalid port %s: %v", portStr, err)
+		return fmt.Errorf("invalid port %s: %v\n", portStr, err)
 	}
 	na.Port = uint16(port)
 	a.AddAddress(&na, &na) // XXX use correct src address
@@ -708,7 +708,7 @@ func (a *AddrManager) HostToNetAddress(host string, port uint16, services factom
 			return nil, err
 		}
 		if len(ips) == 0 {
-			return nil, fmt.Errorf("no addresses found for %s", host)
+			return nil, fmt.Errorf("no addresses found for %s\n", host)
 		}
 		ip = ips[0]
 	}
@@ -783,7 +783,7 @@ func (a *AddrManager) GetAddress(class string, newBias int) *knownAddress {
 			ka := e.Value.(*knownAddress)
 			randval := a.rand.Intn(large)
 			if float64(randval) < (factor * ka.chance() * float64(large)) {
-				fmt.Sprintf("Selected %v from tried bucket",
+				fmt.Printf("Selected %v from tried bucket",
 					NetAddressKey(ka.na))
 				return ka
 			}
@@ -811,7 +811,7 @@ func (a *AddrManager) GetAddress(class string, newBias int) *knownAddress {
 			}
 			randval := a.rand.Intn(large)
 			if float64(randval) < (factor * ka.chance() * float64(large)) {
-				fmt.Sprintf("Selected %v from new bucket",
+				fmt.Printf("Selected %v from new bucket",
 					NetAddressKey(ka.na))
 				return ka
 			}
@@ -947,7 +947,7 @@ func (a *AddrManager) Good(addr *factomwire.NetAddress) {
 	a.nNew++
 
 	rmkey := NetAddressKey(rmka.na)
-	fmt.Sprintf("Replacing %s with %s in tried", rmkey, addrKey)
+	fmt.Printf("Replacing %s with %s in tried", rmkey, addrKey)
 
 	// We made sure there is space here just above.
 	a.addrNew[newBucket][rmkey] = rmka
@@ -1076,10 +1076,10 @@ func (a *AddrManager) GetBestLocalAddress(remoteAddr *factomwire.NetAddress) *fa
 		}
 	}
 	if bestAddress != nil {
-		fmt.Sprintf("Suggesting address %s:%d for %s:%d", bestAddress.IP,
+		fmt.Printf("Suggesting address %s:%d for %s:%d\n", bestAddress.IP,
 			bestAddress.Port, remoteAddr.IP, remoteAddr.Port)
 	} else {
-		fmt.Sprintf("No worthy address for %s:%d", remoteAddr.IP,
+		fmt.Printf("No worthy address for %s:%d\n", remoteAddr.IP,
 			remoteAddr.Port)
 
 		// Send something unroutable if nothing suitable.

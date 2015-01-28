@@ -6,18 +6,18 @@ package main
 
 import (
 	"fmt"
-//	"net"
-//	"net/http"
-//	_ "net/http/pprof"
+	//	"net"
+	//	"net/http"
+	//	_ "net/http/pprof"
 	"os"
 	"runtime"
-//	"runtime/pprof"
+	//	"runtime/pprof"
 
-//	"github.com/FactomProject/FactomCode/btcd/limits"
+	//	"github.com/FactomProject/FactomCode/btcd/limits"
 )
 
 var (
-//	cfg             *config
+	//	cfg             *config
 	shutdownChannel = make(chan struct{})
 )
 
@@ -33,73 +33,73 @@ var winServiceMain func() (bool, error)
 func btcdMain(serverChan chan<- *server) error {
 	// Load configuration and parse command line.  This function also
 	// initializes logging and configures it accordingly.
-/*	tcfg, _, err := loadConfig()
-	if err != nil {
-		return err
-	}
-	cfg = tcfg
-	defer backendLog.Flush()
-
-	// Show version at startup.
-	fmt.Sprintf("Version %s", version())
-
-	// Enable http profiling server if requested.
-	if cfg.Profile != "" {
-		go func() {
-			listenAddr := net.JoinHostPort("", cfg.Profile)
-			fmt.Sprintf("Profile server listening on %s", listenAddr)
-			profileRedirect := http.RedirectHandler("/debug/pprof",
-				http.StatusSeeOther)
-			http.Handle("/", profileRedirect)
-			fmt.Sprintf("%v", http.ListenAndServe(listenAddr, nil))
-		}()
-	}
-
-	// Write cpu profile if requested.
-	if cfg.CPUProfile != "" {
-		f, err := os.Create(cfg.CPUProfile)
+	/*	tcfg, _, err := loadConfig()
 		if err != nil {
-			fmt.Sprintf("Unable to create cpu profile: %v", err)
 			return err
 		}
-		pprof.StartCPUProfile(f)
-		defer f.Close()
-		defer pprof.StopCPUProfile()
-	}
+		cfg = tcfg
+		defer backendLog.Flush()
 
-	// Perform upgrades to btcd as new versions require it.
-	if err := doUpgrades(); err != nil {
-		fmt.Sprintf("%v", err)
-		return err
-	}
+		// Show version at startup.
+		fmt.Printf("Version %s\n", version())
 
-	// Load the block database.
-	db, err := loadBlockDB()
-	if err != nil {
-		fmt.Sprintf("%v", err)
-		return err
-	}
-	defer db.Close()
+		// Enable http profiling server if requested.
+		if cfg.Profile != "" {
+			go func() {
+				listenAddr := net.JoinHostPort("", cfg.Profile)
+				fmt.Printf("Profile server listening on %s\n", listenAddr)
+				profileRedirect := http.RedirectHandler("/debug/pprof",
+					http.StatusSeeOther)
+				http.Handle("/", profileRedirect)
+				fmt.Printf("%v\n", http.ListenAndServe(listenAddr, nil))
+			}()
+		}
 
-	// Ensure the database is sync'd and closed on Ctrl+C.
-	addInterruptHandler(func() {
-		fmt.Sprintf("Gracefully shutting down the database...")
-		db.RollbackClose()
-	})
-*/
+		// Write cpu profile if requested.
+		if cfg.CPUProfile != "" {
+			f, err := os.Create(cfg.CPUProfile)
+			if err != nil {
+				fmt.Printf("Unable to create cpu profile: %v\n", err)
+				return err
+			}
+			pprof.StartCPUProfile(f)
+			defer f.Close()
+			defer pprof.StopCPUProfile()
+		}
 
-	cfg_Listeners := []string{"74.84.136.136"}
+		// Perform upgrades to btcd as new versions require it.
+		if err := doUpgrades(); err != nil {
+			fmt.Printf("%v\n", err)
+			return err
+		}
+
+		// Load the block database.
+		db, err := loadBlockDB()
+		if err != nil {
+			fmt.Printf("%v\n", err)
+			return err
+		}
+		defer db.Close()
+
+		// Ensure the database is sync'd and closed on Ctrl+C.
+		addInterruptHandler(func() {
+			fmt.Printf("Gracefully shutting down the database...")
+			db.RollbackClose()
+		})
+	*/
+
+	cfg_Listeners := []string{"0.0.0.0:8666"}
 
 	// Create server and start it.
 	server, err := newServer(cfg_Listeners, activeNetParams.Params)
 	if err != nil {
 		// TODO(oga) this logging could do with some beautifying.
-		fmt.Sprintf("Unable to start server on %v: %v",
+		fmt.Printf("Unable to start server on %v: %v\n",
 			cfg_Listeners, err)
 		return err
 	}
 	addInterruptHandler(func() {
-		fmt.Sprintf("Gracefully shutting down the server...")
+		fmt.Printf("Gracefully shutting down the server...")
 		server.Stop()
 		server.WaitForShutdown()
 	})
@@ -132,9 +132,9 @@ func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	// Up some limits.
-//	if err := limits.SetLimits(); err != nil {
-//		os.Exit(1)
-//	}
+	//	if err := limits.SetLimits(); err != nil {
+	//		os.Exit(1)
+	//	}
 
 	// Call serviceMain on Windows to handle running as a service.  When
 	// the return isService flag is true, exit now since we ran as a

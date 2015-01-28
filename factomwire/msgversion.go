@@ -195,10 +195,10 @@ func (msg *MsgVersion) BtcEncode(w io.Writer, pver uint32) error {
 	// the wire encoding for the field is true when transactions should be
 	// relayed, so reverse it from the DisableRelayTx field.
 	//if pver >= BIP0037Version {
-		err = writeElement(w, !msg.DisableRelayTx)
-		if err != nil {
-			return err
-		}
+	err = writeElement(w, !msg.DisableRelayTx)
+	if err != nil {
+		return err
+	}
 	//}
 	return nil
 }
