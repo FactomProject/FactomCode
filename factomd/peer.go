@@ -16,7 +16,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	//	"github.com/FactomProject/FactomCode/btcchain"
+	"github.com/FactomProject/FactomCode/factomchain/factoid"
 	"github.com/FactomProject/FactomCode/factomd/addrmgr"
 	//	"github.com/FactomProject/FactomCode/btcdb"
 	//	"github.com/FactomProject/FactomCode/btcutil"
@@ -752,7 +752,7 @@ func (p *peer) handleMemPoolMsg(msg *factomwire.MsgMemPool) {
 		p.QueueMessage(invMsg, nil)
 	}
 }
-
+*/
 // handleTxMsg is invoked when a peer receives a tx bitcoin message.  It blocks
 // until the bitcoin transaction has been fully processed.  Unlock the block
 // handler this does not serialize all transactions through a single thread
@@ -761,7 +761,7 @@ func (p *peer) handleTxMsg(msg *factomwire.MsgTx) {
 	// Add the transaction to the known inventory for the peer.
 	// Convert the raw MsgTx to a btcutil.Tx which provides some convenience
 	// methods and things such as hash caching.
-	tx := btcutil.NewTx(msg)
+	tx := factoid.NewTx(msg)
 	iv := factomwire.NewInvVect(factomwire.InvTypeTx, tx.Sha())
 	p.AddKnownInventory(iv)
 
@@ -770,10 +770,10 @@ func (p *peer) handleTxMsg(msg *factomwire.MsgTx) {
 	// processed and known good or bad.  This helps prevent a malicious peer
 	// from queueing up a bunch of bad transactions before disconnecting (or
 	// being disconnected) and wasting memory.
-	p.server.blockManager.QueueTx(tx, p)
-	<-p.txProcessed
+	//p.server.blockManager.QueueTx(tx, p)
+	///<-p.txProcessed
 }
-
+/*
 // handleBlockMsg is invoked when a peer receives a block bitcoin message.  It
 // blocks until the bitcoin block has been fully processed.
 func (p *peer) handleBlockMsg(msg *factomwire.MsgBlock, buf []byte) {
