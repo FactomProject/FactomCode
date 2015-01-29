@@ -1,4 +1,3 @@
-
 package notaryapi
 
 import (
@@ -24,7 +23,7 @@ func nextPowerOfTwo(n int) int {
 // function used to aid in the generation of a merkle tree.
 func hashMerkleBranches(left *Hash, right *Hash) *Hash {
 	// Concatenate the left and right nodes.
-	var barray []byte = make ([]byte, HashSize * 2)
+	var barray []byte = make([]byte, HashSize*2)
 	copy(barray[:HashSize], left.Bytes)
 	copy(barray[HashSize:], right.Bytes)
 
@@ -37,12 +36,12 @@ func BuildMerkleTreeStore(hashes []*Hash) (merkles []*Hash) {
 	// tree as a linear array and create an array of that size.
 	nextPoT := nextPowerOfTwo(len(hashes))
 	arraySize := nextPoT*2 - 1
-//	fmt.Println("hashes.len=", len(hashes), ", nextPoT=", nextPoT, ", array.size=", arraySize)
+	//	fmt.Println("hashes.len=", len(hashes), ", nextPoT=", nextPoT, ", array.size=", arraySize)
 	merkles = make([]*Hash, arraySize)
 
 	// Create the base transaction shas and populate the array with them.
 	//for i, entity := range entities {
-		//merkles[i] = entity.ShaHash()
+	//merkles[i] = entity.ShaHash()
 	//}
 	copy(merkles[:len(hashes)], hashes[:])
 
@@ -59,7 +58,7 @@ func BuildMerkleTreeStore(hashes []*Hash) (merkles []*Hash) {
 		// hashing the concatenation of the left child with itself.
 		case merkles[i+1] == nil:
 			newSha := hashMerkleBranches(merkles[i], merkles[i])
-			merkles[offset] = newSha	
+			merkles[offset] = newSha
 
 		// The normal case sets the parent node to the double sha256
 		// of the concatentation of the left and right children.
@@ -69,6 +68,5 @@ func BuildMerkleTreeStore(hashes []*Hash) (merkles []*Hash) {
 		}
 		offset++
 	}
-
 	return merkles
 }
