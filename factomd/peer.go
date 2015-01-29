@@ -1472,10 +1472,10 @@ out:
 
 					case *factomwire.MsgMemPool:
 						p.handleMemPoolMsg(msg)
-
+*/
 					case *factomwire.MsgTx:
 						p.handleTxMsg(msg)
-
+/*
 					case *factomwire.MsgBlock:
 						p.handleBlockMsg(msg, buf)
 
