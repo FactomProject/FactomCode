@@ -138,6 +138,7 @@ func factomdMain(serverChan chan<- *server) error {
 }
 
 func main() {
+	
 	fastsha256.Trace()
 	// Use all processor cores.
 	runtime.GOMAXPROCS(runtime.NumCPU())
@@ -173,7 +174,7 @@ func main() {
 	fastsha256.Trace()
 }
 
-func DISABLED_init() {
+func init() {
 
 	fastsha256.Trace()
 
@@ -191,10 +192,11 @@ func DISABLED_init() {
 	restapi.Start_Processor(db)
 
 	fastsha256.Trace()
-
-	// Start the RPC server module
-	factomclient.Start_Rpcserver(db)
-
+	
+	// Start the RPC server module in a separate go-routine
+	go func() {
+		factomclient.Start_Rpcserver(db)
+	}()	
 	fastsha256.Trace()
 }
 
