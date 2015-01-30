@@ -1,17 +1,14 @@
-package main
+package restapi
 
 import (
 	"bytes"
 	"encoding/hex"
 	"encoding/xml"
 	"errors"
-	//"flag"
 	"fmt"
 	"github.com/FactomProject/FactomCode/notaryapi"
 	"github.com/btcsuite/btcrpcclient"
 	"github.com/btcsuite/btcutil"
-	"github.com/FactomProject/dynrsrc"
-	"github.com/FactomProject/gobundle"
 	"github.com/FactomProject/gocoding"
 	"io/ioutil"
 	"net/http"
@@ -26,14 +23,20 @@ import (
 	"encoding/binary" 
 	"encoding/csv" 
 	"github.com/FactomProject/FactomCode/database"	
-	"github.com/FactomProject/FactomCode/database/ldb"	
-	"code.google.com/p/gcfg"	
 	"reflect"
 	"github.com/FactomProject/FactomCode/factomapi"
 	"github.com/FactomProject/FactomCode/wallet"
+	"github.com/FactomProject/FactomCode/util"	
 
 )  
- 
+
+const (
+	//Server running mode
+	FULL_NODE 	= "FULL"
+	SERVER_NODE = "SERVER" 
+	LIGHT_NODE	= "LIGHT" 
+)
+
 var  (
 	wclient *btcrpcclient.Client	//rpc client for btcwallet rpc server
 	dclient *btcrpcclient.Client	//rpc client for btcd rpc server
@@ -64,9 +67,10 @@ var (
 	portNumber int = 8083  	
 	sendToBTCinSeconds = 600
 	directoryBlockInSeconds = 60
-	applicationName = "factom/restapi"
 	dataStorePath = "/tmp/store/seed/"
 	ldbpath = "/tmp/ldb9"
+	nodeMode = "FULL"
+	
 	//BTC:
 //	addrStr = "movaFTARmsaTMk3j71MpX8HtMURpsKhdra"
 	walletPassphrase = "lindasilva"
@@ -87,48 +91,16 @@ type DBBatches struct {
 	batchMutex 	sync.Mutex
 }
 
-func loadConfigurations(){
-	cfg := struct {
-		App struct{
-			PortNumber	int		
-			ApplicationName string
-			LdbPath	string
-			DataStorePath string
-			DirectoryBlockInSeconds int				
-	    }
-		Btc struct{
-			BTCPubAddr string
-			SendToBTCinSeconds int		
-			WalletPassphrase string	
-			CertHomePath string
-			RpcClientHost string
-			RpcClientEndpoint string
-			RpcClientUser string
-			RpcClientPass string
-			BtcTransFee float64
-	    }		
-		Log struct{
-	    	LogLevel string
-		}
-    }{}
-	
-	wd, err := os.Getwd()
-	if err != nil{
-		log.Println(err)
-	}	
-	err = gcfg.ReadFileInto(&cfg, wd+"/restapi.conf")
-	if err != nil{
-		log.Println(err)
-		log.Println("Server starting with default settings...")
-	} else {
-	
+func LoadConfigurations(cfg *util.FactomdConfig){
+
 		//setting the variables by the valued form the config file
 		logLevel = cfg.Log.LogLevel	
-		applicationName = cfg.App.ApplicationName
 		portNumber = cfg.App.PortNumber
 		dataStorePath = cfg.App.DataStorePath
 		ldbpath = cfg.App.LdbPath
 		directoryBlockInSeconds = cfg.App.DirectoryBlockInSeconds
+		nodeMode = cfg.App.NodeMode
+	
 //		addrStr = cfg.Btc.BTCPubAddr
 		sendToBTCinSeconds = cfg.Btc.SendToBTCinSeconds 
 		walletPassphrase = cfg.Btc.WalletPassphrase
@@ -138,7 +110,8 @@ func loadConfigurations(){
 		rpcClientUser = cfg.Btc.RpcClientUser
 		rpcClientPass = cfg.Btc.RpcClientPass
 		btcTransFee	  = cfg.Btc.BtcTransFee
-	}
+		certHomePathBtcd = cfg.Btc.CertHomePathBtcd
+		rpcBtcdHost = cfg.Btc.RpcBtcdHost		//btcd rpcserver address		
 	
 }
 
@@ -198,43 +171,10 @@ func initWithBinary(chain *notaryapi.EChain) {
 	chain.Blocks[chain.NextBlockID].EBEntries, _ = db.FetchEBEntriesFromQueue(&chain.ChainID.Bytes, &binaryTimestamp)		
 }
 
-func initDB() {
+func init_processor() { 
 	
-	//init db
-	var err error
-	db, err = ldb.OpenLevelDB(ldbpath, false)
-	
-	if err != nil{
-		log.Println("err opening db: %v", err)
-
-	}
-	
-	if db == nil{
-		log.Println("Creating new db ...")			
-		db, err = ldb.OpenLevelDB(ldbpath, true)
-
-		if err!=nil{
-			panic(err)
-		} 		
-	}
-	log.Println("Database started from: " + ldbpath)	
-
-}
-
-func init() { 
-	
-
-	
-	loadConfigurations()
-	gobundle.Setup.Application.Name = applicationName
-	gobundle.Init()
-	
-	initDB()
 		
 	initChains() 
-	
-	dynrsrc.Start(watchError, readError)
-	notaryapi.StartDynamic(gobundle.DataFile("html.gwp"), readError)
 	
 	for _, chain := range chainIDMap {
 		initWithBinary(chain)
@@ -339,46 +279,32 @@ func init() {
 	
 }
 
+func Start_Processor(ldb database.Db) {
 
-func main() {
-/**/
+	db = ldb
+	init_processor()
 
-	//addrStr := "muhXX7mXoMZUBvGLCgfjuoY2n2mziYETYC"
-	//addrStr := "movaFTARmsaTMk3j71MpX8HtMURpsKhdra"
-	err := initRPCClient()
-	if err != nil {
-		log.Fatalf("cannot init rpc client: %s", err)
+	if nodeMode == SERVER_NODE {	
+		err := initRPCClient()
+		if err != nil {
+			log.Fatalf("cannot init rpc client: %s", err)
+		}
+		
+		if err := initWallet(); err != nil {
+			log.Fatalf("cannot init wallet: %s", err)
+		}
 	}
-	defer shutdown()
 	
-	if err := initWallet(); err != nil {
-		log.Fatalf("cannot init wallet: %s", err)
-	}
-	//doEntries()
-
-	
-	//flag.Parse()
+/* Needs to be improved??
 	defer func() {
+		shutdown()
 		tickers[0].Stop()
 		tickers[1].Stop()
-		dynrsrc.Stop()
+		//dynrsrc.Stop()
 		db.Close()
 	}()
-/*	
-	err :=http.ListenAndServe(":8081", http.FileServer(http.Dir("/tmp/store/seed/csv")))
-	if err != nil {
-		panic(err)
-	}
-*/		
-	http.HandleFunc("/", serveRESTfulHTTP)
-	err1 := http.ListenAndServe(":"+strconv.Itoa(portNumber), nil)
-	if err1 != nil {
-		panic(err1)
-	}
-	
-
+	*/
 }
-
 
 func fileNotExists(name string) (bool) {
   _, err := os.Stat(name)

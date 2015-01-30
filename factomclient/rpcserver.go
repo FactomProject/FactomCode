@@ -1,4 +1,4 @@
-package main
+package factomclient
 
 import (
 	"fmt"
@@ -7,12 +7,13 @@ import (
 	"os"
 	"io/ioutil"	
 	"io"
-	"log"
-	"code.google.com/p/gcfg"
+//	"log"
+//	"code.google.com/p/gcfg"
 	"github.com/FactomProject/FactomCode/database"	
-	"github.com/FactomProject/FactomCode/database/ldb"		
+//	"github.com/FactomProject/FactomCode/database/ldb"		
 	"github.com/FactomProject/FactomCode/factomapi"	
 	"github.com/FactomProject/FactomCode/notaryapi"		
+	"github.com/FactomProject/FactomCode/util"		
 	"strings"
 	"time"	
 	"encoding/csv"
@@ -25,8 +26,8 @@ var (
 	portNumber int = 8088 	
 	applicationName = "factom/client"
 	serverAddr = "localhost:8083"	
-	ldbpath = "/tmp/factomclient/ldb9"	
-	dataStorePath = "/tmp/factomclient/seed/csv"
+	//ldbpath = "/tmp/factomclient/ldb9"	
+	dataStorePath = "/tmp/store/seed/csv"
 	refreshInSeconds int = 60
 	
 	db database.Db // database
@@ -44,31 +45,30 @@ func readError(err error) {
 	fmt.Println("error: ", err)
 }
 
-func init() {
+func init_rpcserver() {
 
-	loadConfigurations()
-	
-	initDB()
-	
-	factomapi.SetServerAddr(serverAddr)
 	factomapi.SetDB(db)	
 	
 	err := dynrsrc.Start(watchError, readError)
 	if err != nil { panic(err) }
 	
 	serve_init()
-	initClientDataFileMap()	
+	//initClientDataFileMap()	
 	
 	// Import data related to new factom blocks created on server
 	ticker := time.NewTicker(time.Second * time.Duration(refreshInSeconds)) 
 	go func() {
 		for _ = range ticker.C {
-			downloadAndImportDbRecords()
+			//downloadAndImportDbRecords()
 		}
 	}()		
 }
 
-func main() {
+func Start_Rpcserver(ldb database.Db) {
+	
+	db = ldb
+	init_rpcserver()
+	
 	defer func() {
 		dynrsrc.Stop()
 		server.Close()
@@ -78,73 +78,15 @@ func main() {
 	
 }
 
-func loadConfigurations(){
-	cfg := struct {
-		App struct{
-			PortNumber	int		
-			ApplicationName string
-			ServerAddr string
-			DataStorePath string
-			RefreshInSeconds int
-			LdbPath string
-	    }
-		Log struct{
-	    	LogLevel string
-		}
-    }{}
-
-	var  sf = "factomclient.conf"	
-	wd, err := os.Getwd()
-	if err != nil{
-		log.Println(err)
-	} else {
-		sf =  wd+"/"+sf		
-	}	
-
-	err = gcfg.ReadFileInto(&cfg, sf)
-	if err != nil{
-		log.Println(err)
-		log.Println("Client starting with default settings...")
-	} else {
-		log.Println("Client starting with settings from: " + sf)
-		log.Println(cfg)
+func LoadConfigurations(cfg *util.FactomdConfig){
 	
 		//setting the variables by the valued form the config file
 		logLevel = cfg.Log.LogLevel	
-		applicationName = cfg.App.ApplicationName
-		portNumber = cfg.App.PortNumber
-		serverAddr = cfg.App.ServerAddr
+		applicationName = cfg.Rpc.ApplicationName
+		portNumber = cfg.Rpc.PortNumber
 		dataStorePath = cfg.App.DataStorePath
-		refreshInSeconds = cfg.App.RefreshInSeconds
-		log.Println(cfg.App.LdbPath)
-		if cfg.App.LdbPath != "" {
-			ldbpath = cfg.App.LdbPath
-		}
-	}
+		refreshInSeconds = cfg.Rpc.RefreshInSeconds
 	
-}
-
-func initDB() {
-	
-	//init db
-	var err error
-	db, err = ldb.OpenLevelDB(ldbpath, false)
-	
-	if err != nil{
-		log.Println("err opening db: ", err)
-	}
-	
-	if db == nil{
-		log.Println("Creating new db ...")			
-		db, err = ldb.OpenLevelDB(ldbpath, true)
-		
-		if err!=nil{
-			panic(err)
-		}		
-	}
-	
-	log.Println("Database started from: " + ldbpath)
-
 }
 
 // to be replaced by DHT

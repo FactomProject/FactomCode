@@ -1,5 +1,5 @@
-package main
-
+package restapi
+/*
 import (
 	"encoding/hex"
 	"github.com/FactomProject/FactomCode/notaryapi"		
@@ -23,3 +23,4 @@ func TestBuyCredit(t *testing.T) {
 		t.Errorf("Error:", err)
 	}
 } 
+*/
