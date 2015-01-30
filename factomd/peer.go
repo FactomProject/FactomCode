@@ -24,6 +24,7 @@ import (
 	"github.com/FactomProject/FactomCode/factomwire"
 	//	"github.com/FactomProject/FactomCode/go-socks/socks"
 	//	"github.com/davecgh/go-spew/spew"
+	"github.com/FactomProject/FactomCode/fastsha256"
 )
 
 const (
@@ -1253,6 +1254,7 @@ func (p *peer) handlePongMsg(msg *factomwire.MsgPong) {
 // readMessage reads the next bitcoin message from the peer with logging.
 func (p *peer) readMessage() (factomwire.Message, []byte, error) {
 	fmt.Println("<<< readMessage()", p)
+	fastsha256.Trace()
 	n, msg, buf, err := factomwire.ReadMessageN(p.conn, p.ProtocolVersion(),
 		p.btcnet)
 	p.StatsMtx.Lock()
@@ -1467,53 +1469,54 @@ out:
 		case *factomwire.MsgPong:
 			p.handlePongMsg(msg)
 
-			/*		case *factomwire.MsgAlert:
-						p.server.BroadcastMessage(msg, p)
+		case *factomwire.MsgAlert:
+			p.server.BroadcastMessage(msg, p)
 
-					case *factomwire.MsgMemPool:
-						p.handleMemPoolMsg(msg)
+			/*
+								case *factomwire.MsgMemPool:
+									p.handleMemPoolMsg(msg)
 
-					case *factomwire.MsgTx:
-						p.handleTxMsg(msg)
+								case *factomwire.MsgTx:
+									p.handleTxMsg(msg)
 
-					case *factomwire.MsgBlock:
-						p.handleBlockMsg(msg, buf)
+								case *factomwire.MsgBlock:
+									p.handleBlockMsg(msg, buf)
 
-					case *factomwire.MsgInv:
-						p.handleInvMsg(msg)
-						markConnected = true
+								case *factomwire.MsgInv:
+									p.handleInvMsg(msg)
+									markConnected = true
 
-					case *factomwire.MsgHeaders:
-						p.handleHeadersMsg(msg)
+								case *factomwire.MsgHeaders:
+									p.handleHeadersMsg(msg)
 
-					case *factomwire.MsgNotFound:
-						// TODO(davec): Ignore this for now, but ultimately
-						// it should probably be used to detect when something
-						// we requested needs to be re-requested from another
-						// peer.
+								case *factomwire.MsgNotFound:
+									// TODO(davec): Ignore this for now, but ultimately
+									// it should probably be used to detect when something
+									// we requested needs to be re-requested from another
+									// peer.
 
-					case *factomwire.MsgGetData:
-						p.handleGetDataMsg(msg)
-						markConnected = true
+								case *factomwire.MsgGetData:
+									p.handleGetDataMsg(msg)
+									markConnected = true
 
-					case *factomwire.MsgGetBlocks:
-						p.handleGetBlocksMsg(msg)
+								case *factomwire.MsgGetBlocks:
+									p.handleGetBlocksMsg(msg)
 
-					case *factomwire.MsgGetHeaders:
-						p.handleGetHeadersMsg(msg)
+								case *factomwire.MsgGetHeaders:
+									p.handleGetHeadersMsg(msg)
 
-					case *factomwire.MsgFilterAdd:
-						p.handleFilterAddMsg(msg)
+								case *factomwire.MsgFilterAdd:
+									p.handleFilterAddMsg(msg)
 
-					case *factomwire.MsgFilterClear:
-						p.handleFilterClearMsg(msg)
+								case *factomwire.MsgFilterClear:
+									p.handleFilterClearMsg(msg)
 
-					case *factomwire.MsgFilterLoad:
-						p.handleFilterLoadMsg(msg)
+								case *factomwire.MsgFilterLoad:
+									p.handleFilterLoadMsg(msg)
 
-					case *factomwire.MsgReject:
-						// Nothing to do currently.  Logging of the rejected
-						// message is handled already in readMessage.
+				case *factomwire.MsgReject:
+					// Nothing to do currently.  Logging of the rejected
+					// message is handled already in readMessage.
 			*/
 		default:
 			fmt.Sprintf("Received unhandled message of type %v: Fix Me",
@@ -1691,7 +1694,7 @@ func (p *peer) outHandler() {
 	pingTimer := time.AfterFunc(pingTimeoutMinutes*time.Minute, func() {
 		nonce, err := factomwire.RandomUint64()
 		if err != nil {
-			fmt.Sprintf("Not sending ping on timeout to %s: %v",
+			fmt.Println("Not sending ping on timeout to %s: %v",
 				p, err)
 			return
 		}
@@ -1709,7 +1712,7 @@ out:
 			// the inv is of no interest explicitly solicited invs
 			// should elicit a reply but we don't track them
 			// specially.
-			fmt.Sprintf("%s: received from queuehandler", p)
+			fmt.Printf("%s: received from queuehandler\n", p)
 			reset := true
 			switch m := msg.msg.(type) {
 			case *factomwire.MsgVersion:
@@ -1747,9 +1750,9 @@ out:
 			if msg.doneChan != nil {
 				msg.doneChan <- struct{}{}
 			}
-			fmt.Sprintf("%s: acking queuehandler", p)
+			fmt.Sprintf("%s: acking queuehandler\n", p)
 			p.sendDoneQueue <- struct{}{}
-			fmt.Sprintf("%s: acked queuehandler", p)
+			fmt.Printf("%s: acked queuehandler\n", p)
 
 		case <-p.quit:
 			break out
@@ -1776,7 +1779,7 @@ cleanup:
 			break cleanup
 		}
 	}
-	fmt.Sprintf("Peer output handler done for %s", p)
+	fmt.Printf("Peer output handler done for %s\n", p)
 }
 
 // QueueMessage adds the passed bitcoin message to the peer send queue.  It
@@ -1795,6 +1798,8 @@ func (p *peer) QueueMessage(msg factomwire.Message, doneChan chan struct{}) {
 		}
 		return
 	}
+	fmt.Printf("========= %s ================================\n", time.Now().String())
+	fastsha256.Trace()
 	p.outputQueue <- outMsg{msg: msg, doneChan: doneChan}
 }
 
@@ -1832,7 +1837,7 @@ func (p *peer) Disconnect() {
 	if atomic.AddInt32(&p.disconnect, 1) != 1 {
 		return
 	}
-	fmt.Sprintf("disconnecting %s", p)
+	fmt.Printf("disconnecting %s\n", p)
 	close(p.quit)
 	if atomic.LoadInt32(&p.connected) != 0 {
 		p.conn.Close()
@@ -1847,13 +1852,13 @@ func (p *peer) Start() error {
 		return nil
 	}
 
-	fmt.Println("Starting peer %s", p)
+	fmt.Printf("Starting peer %s\n", p)
 
 	// Send an initial version message if this is an outbound connection.
 	if !p.inbound {
 		err := p.pushVersionMsg()
 		if err != nil {
-			fmt.Println("Can't send outbound version message %v", err)
+			fmt.Printf("Can't send outbound version message %v\n", err)
 			p.Disconnect()
 			return err
 		}
@@ -1872,7 +1877,7 @@ func (p *peer) Start() error {
 
 // Shutdown gracefully shuts down the peer by disconnecting it.
 func (p *peer) Shutdown() {
-	fmt.Println("Shutdown peer %s", p)
+	fmt.Printf("Shutdown peer %s\n", p)
 	p.Disconnect()
 }
 

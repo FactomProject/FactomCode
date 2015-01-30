@@ -110,9 +110,9 @@ type server struct {
 	wakeup               chan struct{}
 	query                chan interface{}
 	relayInv             chan *factomwire.InvVect
-	//	broadcast            chan broadcastMsg
-	wg   sync.WaitGroup
-	quit chan struct{}
+	broadcast            chan broadcastMsg
+	wg                   sync.WaitGroup
+	quit                 chan struct{}
 	//	nat                  NAT
 	//	db                   btcdb.Db
 	//	timeSource           btcchain.MedianTimeSource
@@ -309,7 +309,6 @@ func (s *server) handleBanPeerMsg(state *peerState, p *peer) {
 
 }
 
-/*
 // handleRelayInvMsg deals with relaying inventory to peers that are not already
 // known to have it.  It is invoked from the peerHandler goroutine.
 func (s *server) handleRelayInvMsg(state *peerState, iv *factomwire.InvVect) {
@@ -318,29 +317,31 @@ func (s *server) handleRelayInvMsg(state *peerState, iv *factomwire.InvVect) {
 			return
 		}
 
-		if iv.Type == factomwire.InvTypeTx {
-			// Don't relay the transaction to the peer when it has
-			// transaction relaying disabled.
-			if p.RelayTxDisabled() {
-				return
-			}
-
-			// Don't relay the transaction if there is a bloom
-			// filter loaded and the transaction doesn't match it.
-			if p.filter.IsLoaded() {
-				tx, err := s.txMemPool.FetchTransaction(&iv.Hash)
-				if err != nil {
-					peerLog.Warnf("Attempt to relay tx %s "+
-						"that is not in the memory pool",
-						iv.Hash)
+		/*
+			if iv.Type == factomwire.InvTypeTx {
+				// Don't relay the transaction to the peer when it has
+				// transaction relaying disabled.
+				if p.RelayTxDisabled() {
 					return
 				}
 
-				if !p.filter.MatchTxAndUpdate(tx) {
-					return
+				// Don't relay the transaction if there is a bloom
+				// filter loaded and the transaction doesn't match it.
+				if p.filter.IsLoaded() {
+					tx, err := s.txMemPool.FetchTransaction(&iv.Hash)
+					if err != nil {
+						peerLog.Warnf("Attempt to relay tx %s "+
+							"that is not in the memory pool",
+							iv.Hash)
+						return
+					}
+
+					if !p.filter.MatchTxAndUpdate(tx) {
+						return
+					}
 				}
 			}
-		}
+		*/
 
 		// Queue the inventory to be relayed with the next batch.
 		// It will be ignored if the peer is already known to
@@ -368,7 +369,6 @@ func (s *server) handleBroadcastMsg(state *peerState, bmsg *broadcastMsg) {
 		}
 	})
 }
-*/
 
 type getConnCountMsg struct {
 	reply chan int32
@@ -393,7 +393,6 @@ type getAddedNodesMsg struct {
 	reply chan []*peer
 }
 
-/*
 // handleQuery is the central handler for all queries and commands from other
 // goroutines related to peer state.
 func (s *server) handleQuery(querymsg interface{}, state *peerState) {
@@ -408,7 +407,7 @@ func (s *server) handleQuery(querymsg interface{}, state *peerState) {
 		msg.reply <- nconnected
 
 	case getPeerInfoMsg:
-		syncPeer := s.blockManager.SyncPeer()
+		//		syncPeer := s.blockManager.SyncPeer()
 		infos := make([]*GetPeerInfoResult, 0, state.peers.Len())
 		state.forAllPeers(func(p *peer) {
 			if !p.Connected() {
@@ -433,7 +432,7 @@ func (s *server) handleQuery(querymsg interface{}, state *peerState) {
 				Inbound:        p.inbound,
 				StartingHeight: p.lastBlock,
 				BanScore:       0,
-				SyncNode:       p == syncPeer,
+				//				SyncNode:       p == syncPeer,
 			}
 			info.PingTime = float64(p.lastPingMicros)
 			if p.lastPingNonce != 0 {
@@ -498,7 +497,7 @@ func (s *server) handleQuery(querymsg interface{}, state *peerState) {
 		}
 		msg.reply <- peers
 	}
-}*/
+}
 
 // listenHandler is the main listener which accepts incoming connections for the
 // server.  It must be run as a goroutine.
@@ -635,13 +634,13 @@ out:
 			s.handleBanPeerMsg(state, p)
 
 		// New inventory to potentially be relayed to other peers.
-		//case invMsg := <-s.relayInv:
-		//	s.handleRelayInvMsg(state, invMsg)
+		case invMsg := <-s.relayInv:
+			s.handleRelayInvMsg(state, invMsg)
 
 		// Message to broadcast to all connected peers except those
 		// which are excluded by the message.
-		//case bmsg := <-s.broadcast:
-		//	s.handleBroadcastMsg(state, &bmsg)
+		case bmsg := <-s.broadcast:
+			s.handleBroadcastMsg(state, &bmsg)
 
 		// Used by timers below to wake us back up.
 		case <-s.wakeup:
@@ -754,7 +753,6 @@ func (s *server) BanPeer(p *peer) {
 	s.banPeers <- p
 }
 
-/*
 // RelayInventory relays the passed inventory to all connected peers that are
 // not already known to have it.
 func (s *server) RelayInventory(invVect *factomwire.InvVect) {
@@ -768,7 +766,7 @@ func (s *server) BroadcastMessage(msg factomwire.Message, exclPeers ...*peer) {
 	// broadcast and refrain from broadcasting again.
 	bmsg := broadcastMsg{message: msg, excludePeers: exclPeers}
 	s.broadcast <- bmsg
-}*/
+}
 
 // ConnectedCount returns the number of currently connected peers.
 func (s *server) ConnectedCount() int32 {
@@ -1258,17 +1256,17 @@ nowc:
 	//}
 
 	s := server{
-		nonce:       nonce,
-		listeners:   listeners,
-		netParams:   netParams,
-		addrManager: amgr,
-		newPeers:    make(chan *peer, MaxPeers),
-		donePeers:   make(chan *peer, MaxPeers),
-		banPeers:    make(chan *peer, MaxPeers),
-		wakeup:      make(chan struct{}),
-		query:       make(chan interface{}),
-		relayInv:    make(chan *factomwire.InvVect, MaxPeers),
-		//	broadcast:            make(chan broadcastMsg, MaxPeers),
+		nonce:                nonce,
+		listeners:            listeners,
+		netParams:            netParams,
+		addrManager:          amgr,
+		newPeers:             make(chan *peer, MaxPeers),
+		donePeers:            make(chan *peer, MaxPeers),
+		banPeers:             make(chan *peer, MaxPeers),
+		wakeup:               make(chan struct{}),
+		query:                make(chan interface{}),
+		relayInv:             make(chan *factomwire.InvVect, MaxPeers),
+		broadcast:            make(chan broadcastMsg, MaxPeers),
 		quit:                 make(chan struct{}),
 		modifyRebroadcastInv: make(chan interface{}),
 		//	nat:                  nat,
