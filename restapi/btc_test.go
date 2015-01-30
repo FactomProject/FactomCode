@@ -1,5 +1,5 @@
-package main
-
+package restapi
+/*
 import (
 	"testing"
 	"fmt"
@@ -17,7 +17,6 @@ func init() {
 	if err != nil {
 		fmt.Println(err.Error())
 	}
-	//defer shutdown(client)
 
 	if err := initWallet(); err != nil {
 		fmt.Println(err.Error())
@@ -158,3 +157,4 @@ func TestToHash(t *testing.T) {
 	fmt.Println("equal in bytes: ", bytes.Compare(txHash.Bytes(), h.Bytes))
 }
 
+*/

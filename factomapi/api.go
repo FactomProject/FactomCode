@@ -18,7 +18,7 @@ import (
 	"time"
 )
 
-//to be improved
+//to be improved 
 var (
 	serverAddr      = "localhost:8083"
 	db              database.Db

@@ -1,13 +1,22 @@
-package main
+package restapi
 
 import (
 	"testing"
 	"github.com/FactomProject/FactomCode/notaryapi"		
+	"github.com/FactomProject/FactomCode/database/ldb"		
 	"fmt"
+	"log"
 	"time"
 	"encoding/binary" 
 	
 )
+
+func init(){
+	initDB()
+	Start_Processor(db)
+	
+}
+
 func TestBuyCredit(t *testing.T) {
 	
 	barray := (make([]byte, 32))
@@ -141,3 +150,25 @@ func TestAddEntry(t *testing.T) {
 	
 } 
 
+func initDB() {
+	
+	//init db
+	var err error
+	db, err = ldb.OpenLevelDB(ldbpath, false)
+	
+	if err != nil{
+		log.Println("err opening db: %v", err)
+
+	}
+	
+	if db == nil{
+		log.Println("Creating new db ...")			
+		db, err = ldb.OpenLevelDB(ldbpath, true)
+
+		if err!=nil{
+			panic(err)
+		} 		
+	}
+	log.Println("Database started from: " + ldbpath)	
+
+}

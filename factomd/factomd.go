@@ -11,6 +11,13 @@ import (
 	//	_ "net/http/pprof"
 	"os"
 	"runtime"
+	"log"	
+	"code.google.com/p/gcfg"	
+	"github.com/FactomProject/FactomCode/restapi"	
+	"github.com/FactomProject/FactomCode/factomclient"	
+	"github.com/FactomProject/FactomCode/database"	
+	"github.com/FactomProject/FactomCode/database/ldb"		
+	"github.com/FactomProject/FactomCode/util"	
 	//	"runtime/pprof"
 
 	//	"github.com/FactomProject/FactomCode/btcd/limits"
@@ -19,13 +26,16 @@ import (
 var (
 	//	cfg             *config
 	shutdownChannel = make(chan struct{})
+	ldbpath = "/tmp/ldb9"	
+	db database.Db // database	
 )
 
 // winServiceMain is only invoked on Windows.  It detects when btcd is running
 // as a service and reacts accordingly.
 var winServiceMain func() (bool, error)
 
-// factomdMain is the real main function for btcd.  It is necessary to work around
+
+// btcdMain is the real main function for btcd.  It is necessary to work around
 // the fact that deferred functions do not run when os.Exit() is called.  The
 // optional serverChan parameter is mainly used by the service code to be
 // notified with the server once it is setup so it can gracefully stop it when
@@ -154,4 +164,66 @@ func main() {
 	if err := factomdMain(nil); err != nil {
 		os.Exit(1)
 	}
+}
+
+func init() {
+
+	// Load configuration file and send settings to components
+	loadConfigurations()
+	
+	// Initialize db
+	initDB()
+	
+	// Start the processor module
+	restapi.Start_Processor(db)
+	
+	// Start the RPC server module
+	factomclient.Start_Rpcserver(db)	
+}
+ 
+// Load settings from configuration file: factomd.conf
+func loadConfigurations(){
+	cfg := util.FactomdConfig{}
+	
+	wd, err := os.Getwd()
+	if err != nil{
+		log.Println(err)
+	}	
+	err = gcfg.ReadFileInto(&cfg, wd+"/factomd.conf")
+	if err != nil{
+		log.Println(err)
+		log.Println("Server starting with default settings...")
+	} else {
+		
+		ldbpath = cfg.App.LdbPath
+		
+		restapi.LoadConfigurations(&cfg)
+		factomclient.LoadConfigurations(&cfg)
+		
+	}
+	
+}
+
+// Initialize the level db and share it with other components
+func initDB() {
+	
+	//init db
+	var err error
+	db, err = ldb.OpenLevelDB(ldbpath, false)
+	
+	if err != nil{
+		log.Println("err opening db: %v", err)
+
+	}
+	
+	if db == nil{
+		log.Println("Creating new db ...")			
+		db, err = ldb.OpenLevelDB(ldbpath, true)
+
+		if err!=nil{
+			panic(err)
+		} 		
+	}
+	log.Println("Database started from: " + ldbpath)	
+
 }

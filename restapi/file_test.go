@@ -1,5 +1,5 @@
-package factomapi
-
+package restapi
+/*
 import (
 	"testing"
 	"net/http"
@@ -89,3 +89,4 @@ func TestGetFile(t *testing.T) {
 	}	
 	
 }
+*/
