@@ -360,9 +360,10 @@ func (p *peer) updateAddresses(msg *factomwire.MsgVersion) {
 // and is used to negotiate the protocol version details as well as kick start
 // the communications.
 func (p *peer) handleVersionMsg(msg *factomwire.MsgVersion) {
+	fastsha256.Trace()
 	// Detect self connections.
 	if msg.Nonce == p.server.nonce {
-		fmt.Sprintf("Disconnecting peer connected to self %s", p)
+		fmt.Printf("Disconnecting peer connected to self %s\n", p)
 		p.Disconnect()
 		return
 	}
@@ -1104,6 +1105,7 @@ func (p *peer) handleFilterLoadMsg(msg *factomwire.MsgFilterLoad) {
 // and is used to provide the peer with known addresses from the address
 // manager.
 func (p *peer) handleGetAddrMsg(msg *factomwire.MsgGetAddr) {
+	fastsha256.Trace()
 	// Don't return any addresses when running on the simulation test
 	// network.  This helps prevent the network from becoming another
 	// public test network since it will not be able to learn about other
@@ -1169,6 +1171,7 @@ func (p *peer) pushAddrMsg(addresses []*factomwire.NetAddress) error {
 // handleAddrMsg is invoked when a peer receives an addr bitcoin message and
 // is used to notify the server about advertised addresses.
 func (p *peer) handleAddrMsg(msg *factomwire.MsgAddr) {
+	fastsha256.Trace()
 	// Ignore addresses when running on the simulation test network.  This
 	// helps prevent the network from becoming another public test network
 	// since it will not be able to learn about other peers that have not
@@ -1221,6 +1224,7 @@ func (p *peer) handleAddrMsg(msg *factomwire.MsgAddr) {
 // message.  For older clients, it does nothing and anything other than failure
 // is considered a successful ping.
 func (p *peer) handlePingMsg(msg *factomwire.MsgPing) {
+	fastsha256.Trace()
 	// Only Reply with pong is message comes from a new enough client.
 	//if p.ProtocolVersion() > factomwire.BIP0031Version {
 	// Include nonce from ping so pong can be identified.
@@ -1235,6 +1239,8 @@ func (p *peer) handlePingMsg(msg *factomwire.MsgPing) {
 func (p *peer) handlePongMsg(msg *factomwire.MsgPong) {
 	p.StatsMtx.Lock()
 	defer p.StatsMtx.Unlock()
+
+	fastsha256.Trace()
 
 	// Arguably we could use a buffered channel here sending data
 	// in a fifo manner whenever we send a ping, or a list keeping track of
@@ -1799,7 +1805,7 @@ func (p *peer) QueueMessage(msg factomwire.Message, doneChan chan struct{}) {
 		}
 		return
 	}
-	fmt.Printf("========= %s ================================\n", time.Now().String())
+	fmt.Printf("========= %s ===========================================================\n", time.Now().String())
 	fastsha256.Trace()
 	p.outputQueue <- outMsg{msg: msg, doneChan: doneChan}
 }

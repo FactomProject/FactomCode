@@ -278,7 +278,7 @@ func WriteMessageN(w io.Writer, msg Message, pver uint32, btcnet BitcoinNet) (in
 	fmt.Printf("outgoing payload= [% x]\n", payload)
 
 	//	fmt.Println("outgoing hdr=", hdr)
-	fmt.Println("outgoing hdr.command=", hdr.command)
+	fmt.Println("COMMAND: outgoing hdr.command=", hdr.command)
 
 	fmt.Printf("outgoing msg: %+v\n", msg)
 
@@ -382,7 +382,7 @@ func ReadMessageN(r io.Reader, pver uint32, btcnet BitcoinNet) (int, Message, []
 
 	//	fmt.Println("incoming msg=", msg)
 	fmt.Println("incoming hdr=", hdr)
-	fmt.Println("incoming hdr.command=", hdr.command)
+	fmt.Println("COMMAND: incoming hdr.command=", hdr.command)
 
 	//	fmt.Printf("incoming msg: %v\n", msg)
 	fmt.Printf("incoming msg: %+v\n", msg)
