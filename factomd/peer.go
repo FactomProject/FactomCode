@@ -760,6 +760,7 @@ func (p *peer) handleMemPoolMsg(msg *factomwire.MsgMemPool) {
 // handler this does not serialize all transactions through a single thread
 // transactions don't rely on the previous one in a linear fashion like blocks.
 func (p *peer) handleTxMsg(msg *factomwire.MsgTx) {
+	fastsha256.Trace()
 	// Add the transaction to the known inventory for the peer.
 	// Convert the raw MsgTx to a btcutil.Tx which provides some convenience
 	// methods and things such as hash caching.
@@ -774,6 +775,27 @@ func (p *peer) handleTxMsg(msg *factomwire.MsgTx) {
 	// being disconnected) and wasting memory.
 	//p.server.blockManager.QueueTx(tx, p)
 	///<-p.txProcessed
+}
+
+func (p *peer) handleBuyCreditMsg(msg *factomwire.MsgBuyCredit) {
+	fastsha256.Trace()
+
+	/*
+		// Add the transaction to the known inventory for the peer.
+		// Convert the raw MsgTx to a btcutil.Tx which provides some convenience
+		// methods and things such as hash caching.
+		tx := factoid.NewTx(msg)
+		iv := factomwire.NewInvVect(factomwire.InvTypeTx, tx.Sha())
+		p.AddKnownInventory(iv)
+
+		// Queue the transaction up to be handled by the block manager and
+		// intentionally block further receives until the transaction is fully
+		// processed and known good or bad.  This helps prevent a malicious peer
+		// from queueing up a bunch of bad transactions before disconnecting (or
+		// being disconnected) and wasting memory.
+		//p.server.blockManager.QueueTx(tx, p)
+		///<-p.txProcessed
+	*/
 }
 
 /*
@@ -1478,6 +1500,9 @@ out:
 
 		case *factomwire.MsgAlert:
 			p.server.BroadcastMessage(msg, p)
+
+		case *factomwire.MsgBuyCredit:
+			p.handleBuyCreditMsg(msg)
 
 			/*
 				case *factomwire.MsgMemPool:

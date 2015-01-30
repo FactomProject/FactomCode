@@ -11,5 +11,5 @@ func Trace() {
 	runtime.Callers(2, pc)
 	f := runtime.FuncForPC(pc[0])
 	file, line := f.FileLine(pc[0])
-	fmt.Printf("TRACE: line %d %s file: %s\n", line, f.Name(), file)
+	fmt.Printf("%%%% TRACE: line %d %s file: %s\n", line, f.Name(), file)
 }
