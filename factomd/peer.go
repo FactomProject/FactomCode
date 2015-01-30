@@ -5,7 +5,7 @@
 package main
 
 import (
-	//	"bytes"
+	"bytes"
 	"container/list"
 	"fmt"
 	"io"
@@ -1365,6 +1365,11 @@ func (p *peer) writeMessage(msg factomwire.Message) {
 	*/
 
 	fmt.Printf("spew write msg:\n" + spew.Sdump(msg))
+	{
+		var buf bytes.Buffer
+		factomwire.WriteMessage(&buf, msg, p.ProtocolVersion(), p.btcnet)
+		fmt.Printf("spew write buf:\n" + spew.Sdump(buf.Bytes()))
+	}
 
 	// Write the message to the peer.
 	n, err := factomwire.WriteMessageN(p.conn, msg, p.ProtocolVersion(),
