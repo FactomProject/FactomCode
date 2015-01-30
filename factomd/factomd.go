@@ -9,33 +9,33 @@ import (
 	//	"net"
 	//	"net/http"
 	//	_ "net/http/pprof"
+	"code.google.com/p/gcfg"
+	"github.com/FactomProject/FactomCode/database"
+	"github.com/FactomProject/FactomCode/database/ldb"
+	"github.com/FactomProject/FactomCode/factomclient"
+	"github.com/FactomProject/FactomCode/restapi"
+	"github.com/FactomProject/FactomCode/util"
+	"log"
 	"os"
 	"runtime"
-	"log"	
-	"code.google.com/p/gcfg"	
-	"github.com/FactomProject/FactomCode/restapi"	
-	"github.com/FactomProject/FactomCode/factomclient"	
-	"github.com/FactomProject/FactomCode/database"	
-	"github.com/FactomProject/FactomCode/database/ldb"		
-	"github.com/FactomProject/FactomCode/util"	
 	//	"runtime/pprof"
 
 	//	"github.com/FactomProject/FactomCode/btcd/limits"
+	"github.com/FactomProject/FactomCode/fastsha256"
 )
 
 var (
 	//	cfg             *config
 	shutdownChannel = make(chan struct{})
-	ldbpath = "/tmp/ldb9"	
-	db database.Db // database	
+	ldbpath         = "/tmp/ldb9"
+	db              database.Db // database
 )
 
 // winServiceMain is only invoked on Windows.  It detects when btcd is running
 // as a service and reacts accordingly.
 var winServiceMain func() (bool, error)
 
-
-// btcdMain is the real main function for btcd.  It is necessary to work around
+// factomdMain is the real main function for btcd.  It is necessary to work around
 // the fact that deferred functions do not run when os.Exit() is called.  The
 // optional serverChan parameter is mainly used by the service code to be
 // notified with the server once it is setup so it can gracefully stop it when
@@ -138,6 +138,7 @@ func factomdMain(serverChan chan<- *server) error {
 }
 
 func main() {
+	fastsha256.Trace()
 	// Use all processor cores.
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
@@ -145,6 +146,8 @@ func main() {
 	//	if err := limits.SetLimits(); err != nil {
 	//		os.Exit(1)
 	//	}
+
+	fastsha256.Trace()
 
 	// Call serviceMain on Windows to handle running as a service.  When
 	// the return isService flag is true, exit now since we ran as a
@@ -160,70 +163,84 @@ func main() {
 		}
 	}
 
+	fastsha256.Trace()
+
 	// Work around defer not working after os.Exit()
 	if err := factomdMain(nil); err != nil {
 		os.Exit(1)
 	}
+
+	fastsha256.Trace()
 }
 
-func init() {
+func DISABLED_init() {
+
+	fastsha256.Trace()
 
 	// Load configuration file and send settings to components
 	loadConfigurations()
-	
+
+	fastsha256.Trace()
+
 	// Initialize db
 	initDB()
-	
+
+	fastsha256.Trace()
+
 	// Start the processor module
 	restapi.Start_Processor(db)
-	
+
+	fastsha256.Trace()
+
 	// Start the RPC server module
-	factomclient.Start_Rpcserver(db)	
+	factomclient.Start_Rpcserver(db)
+
+	fastsha256.Trace()
 }
- 
+
 // Load settings from configuration file: factomd.conf
-func loadConfigurations(){
+func loadConfigurations() {
 	cfg := util.FactomdConfig{}
-	
+
 	wd, err := os.Getwd()
-	if err != nil{
+	if err != nil {
 		log.Println(err)
-	}	
+	}
 	err = gcfg.ReadFileInto(&cfg, wd+"/factomd.conf")
-	if err != nil{
+	if err != nil {
 		log.Println(err)
 		log.Println("Server starting with default settings...")
 	} else {
-		
+
 		ldbpath = cfg.App.LdbPath
-		
+
 		restapi.LoadConfigurations(&cfg)
 		factomclient.LoadConfigurations(&cfg)
-		
+
 	}
-	
+
 }
 
 // Initialize the level db and share it with other components
 func initDB() {
-	
+
 	//init db
 	var err error
 	db, err = ldb.OpenLevelDB(ldbpath, false)
-	
-	if err != nil{
+
+	if err != nil {
 		log.Println("err opening db: %v", err)
 
 	}
-	
-	if db == nil{
-		log.Println("Creating new db ...")			
+
+	if db == nil {
+		log.Println("Creating new db ...")
 		db, err = ldb.OpenLevelDB(ldbpath, true)
 
-		if err!=nil{
+		if err != nil {
 			panic(err)
-		} 		
+		}
 	}
-	log.Println("Database started from: " + ldbpath)	
+	log.Println("Database started from: " + ldbpath)
 
 }
