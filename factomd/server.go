@@ -25,6 +25,7 @@ import (
 	//	"github.com/FactomProject/FactomCode/btcjson"
 	"github.com/FactomProject/FactomCode/factomnet"
 	"github.com/FactomProject/FactomCode/factomwire"
+	"github.com/FactomProject/FactomCode/fastsha256"
 )
 
 const (
@@ -353,6 +354,7 @@ func (s *server) handleRelayInvMsg(state *peerState, iv *factomwire.InvVect) {
 // handleBroadcastMsg deals with broadcasting messages to peers.  It is invoked
 // from the peerHandler goroutine.
 func (s *server) handleBroadcastMsg(state *peerState, bmsg *broadcastMsg) {
+	fastsha256.Trace()
 	state.forAllPeers(func(p *peer) {
 		excluded := false
 		for _, ep := range bmsg.excludePeers {
@@ -762,6 +764,7 @@ func (s *server) RelayInventory(invVect *factomwire.InvVect) {
 // BroadcastMessage sends msg to all peers currently connected to the server
 // except those in the passed peers to exclude.
 func (s *server) BroadcastMessage(msg factomwire.Message, exclPeers ...*peer) {
+	fastsha256.Trace()
 	// XXX: Need to determine if this is an alert that has already been
 	// broadcast and refrain from broadcasting again.
 	bmsg := broadcastMsg{message: msg, excludePeers: exclPeers}

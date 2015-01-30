@@ -5,6 +5,7 @@ import (
 	"runtime"
 )
 
+// a simple file/line trace function -- to be moved to another package later
 func Trace() {
 	pc := make([]uintptr, 10) // at least 1 entry needed
 	runtime.Callers(2, pc)
