@@ -5,7 +5,7 @@
 package main
 
 import (
-	//	"bytes"
+	"bytes"
 	"container/list"
 	"fmt"
 	"io"
@@ -23,9 +23,9 @@ import (
 	//	"github.com/FactomProject/FactomCode/btcutil/bloom"
 	"github.com/FactomProject/FactomCode/factomwire"
 	//	"github.com/FactomProject/FactomCode/go-socks/socks"
-	//	"github.com/davecgh/go-spew/spew"
 	"github.com/FactomProject/FactomCode/fastsha256"
-//	"github.com/FactomProject/FactomCode/restapi"	
+	"github.com/davecgh/go-spew/spew"
+
 )
 
 const (
@@ -1314,6 +1314,10 @@ func (p *peer) readMessage() (factomwire.Message, []byte, error) {
 			return spew.Sdump(buf)
 		}))
 	*/
+
+	fmt.Printf("spew read msg:\n" + spew.Sdump(msg))
+	fmt.Printf("spew read buf:\n" + spew.Sdump(buf))
+
 	return msg, buf, nil
 }
 
@@ -1361,6 +1365,14 @@ func (p *peer) writeMessage(msg factomwire.Message) {
 			return spew.Sdump(buf.Bytes())
 		}))
 	*/
+
+	fmt.Printf("spew write msg:\n" + spew.Sdump(msg))
+	{
+		var buf bytes.Buffer
+		factomwire.WriteMessage(&buf, msg, p.ProtocolVersion(), p.btcnet)
+		fmt.Printf("spew write buf:\n" + spew.Sdump(buf.Bytes()))
+	}
+
 	// Write the message to the peer.
 	n, err := factomwire.WriteMessageN(p.conn, msg, p.ProtocolVersion(),
 		p.btcnet)
