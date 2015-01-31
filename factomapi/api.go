@@ -7,6 +7,7 @@ import (
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/notaryapi"
 	"github.com/FactomProject/FactomCode/wallet"
+	"github.com/FactomProject/FactomCode/factomwire"	
 	"net/http"
 	"net/url"
 	"sort"
@@ -14,7 +15,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"io/ioutil"
-	"strconv"
 	"time"
 )
 
@@ -23,22 +23,19 @@ var (
 	serverAddr      = "localhost:8083"
 	db              database.Db
 	creditsPerChain int32 = 10
+	outMsgQueue chan<- factomwire.Message 		//outgoing message queue for factom application messages	
 )
 
 // This method will be replaced with a Factoid transaction once we have the factoid implementation in place
 func BuyEntryCredit(version uint16, ecPubKey *notaryapi.Hash, from *notaryapi.Hash, value uint64, fee uint64, sig *notaryapi.Signature) error {
-
-
-	data := url.Values{}
-	data.Set("format", "binary")
-	data.Set("datatype", "buycredit")
-	data.Set("ECPubKey", ecPubKey.String())
-	data.Set("factoidbase", strconv.FormatUint(value, 10))
+	
+	msgBuyCredit := factomwire.NewMsgBuyCredit()
+	msgBuyCredit.ECPubKey = ecPubKey
+	msgBuyCredit.FactoidBase = value
 		
-	server := fmt.Sprintf(`http://%s/v1`, serverAddr)
-	_, err := http.PostForm(server, data)
-
-	return err
+	outMsgQueue <- msgBuyCredit
+	
+	return nil
 }
 
 func GetEntryCreditBalance(ecPubKey *notaryapi.Hash) (credits int32, err error) {
@@ -147,6 +144,11 @@ func SetServerAddr(addr string) error {
 
 func SetDB(database database.Db) error {
 	db = database
+	
+	return nil
+}
+func SetOutMsgQueue(outMsgQ chan<- factomwire.Message ) error {
+	outMsgQueue = outMsgQ
 	
 	return nil
 }

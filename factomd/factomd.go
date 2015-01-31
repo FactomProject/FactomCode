@@ -15,6 +15,7 @@ import (
 	"github.com/FactomProject/FactomCode/factomclient"
 	"github.com/FactomProject/FactomCode/restapi"
 	"github.com/FactomProject/FactomCode/util"
+	"github.com/FactomProject/FactomCode/factomwire"	
 	"log"
 	"os"
 	"runtime"
@@ -29,6 +30,8 @@ var (
 	shutdownChannel = make(chan struct{})
 	ldbpath         = "/tmp/ldb9"
 	db              database.Db // database
+	inMsgQueue	= make(chan factomwire.Message, 100) 	//incoming message queue for factom application messages
+	outMsgQueue  = make(chan factomwire.Message, 100) 	//outgoing message queue for factom application messages
 )
 
 // winServiceMain is only invoked on Windows.  It detects when btcd is running
@@ -118,6 +121,13 @@ func factomdMain(serverChan chan<- *server) error {
 		serverChan <- server
 	}
 
+	// Write outgoing factom messages into P2P network 
+	go func() {
+		for  msg := range outMsgQueue {	
+			server.BroadcastMessage (msg)
+		}
+	}()
+
 	// Monitor for graceful server shutdown and signal the main goroutine
 	// when done.  This is done in a separate goroutine rather than waiting
 	// directly so the main goroutine can be signaled for shutdown by either
@@ -189,14 +199,14 @@ func init() {
 	fastsha256.Trace()
 
 	// Start the processor module
-	restapi.Start_Processor(db)
+	go restapi.Start_Processor(db, inMsgQueue, outMsgQueue)
 
 	fastsha256.Trace()
 	
 	// Start the RPC server module in a separate go-routine
-	go func() {
-		factomclient.Start_Rpcserver(db)
-	}()	
+
+	go factomclient.Start_Rpcserver(db, outMsgQueue)
+
 	fastsha256.Trace()
 }
 

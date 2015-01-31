@@ -192,8 +192,10 @@ func handleBuyCreditPost(ctx *web.Context) {
 	if err != nil {
 		abortMessage = fmt.Sprint("An error occured while submitting the buycredit request: ", err.Error())
 		return
+	} else {
+		fmt.Fprintln(ctx, "MsgBuyCredit Submitted")
 	}
-
+/*
 	balance, err := factomapi.GetEntryCreditBalance(ecPubKey)
 	
 	ecBalance := new(notaryapi.ECBalance)
@@ -209,7 +211,7 @@ func handleBuyCreditPost(ctx *web.Context) {
 		buf.WriteString("Bad request ")
 		return		
 	}			
-
+*/
 		 
 }
 func handleGetCreditBalancePost(ctx *web.Context) {	

@@ -2,19 +2,19 @@ package restapi
 
 import (
 	"bytes"
-	"encoding/hex"
-	"encoding/xml"
+//	"encoding/hex"
+//	"encoding/xml"
 	"errors"
 	"fmt"
 	"github.com/FactomProject/FactomCode/notaryapi"
 	"github.com/btcsuite/btcrpcclient"
 	"github.com/btcsuite/btcutil"
-	"github.com/FactomProject/gocoding"
+//	"github.com/FactomProject/gocoding"
 	"io/ioutil"
-	"net/http"
-	"net/url"
+//	"net/http"
+//	"net/url"
 	"path/filepath"
-	"strconv"
+//	"strconv"
 	"strings"
 	"sync"
 	"os"
@@ -25,7 +25,8 @@ import (
 	"github.com/FactomProject/FactomCode/database"	
 	"reflect"
 	"github.com/FactomProject/FactomCode/factomapi"
-	"github.com/FactomProject/FactomCode/wallet"
+	"github.com/FactomProject/FactomCode/factomwire"	
+//	"github.com/FactomProject/FactomCode/wallet"
 	"github.com/FactomProject/FactomCode/util"	
 
 )  
@@ -60,6 +61,9 @@ var  (
 	
 	//Map to store export csv files
 	serverDataFileMap map[string]string
+	
+	inMsgQueue	<-chan factomwire.Message		//incoming message queue for factom application messages
+	outMsgQueue chan<- factomwire.Message 		//outgoing message queue for factom application messages	
 )
 
 var (
@@ -279,9 +283,12 @@ func init_processor() {
 	
 }
 
-func Start_Processor(ldb database.Db) {
+func Start_Processor(ldb database.Db, inMsgQ <-chan factomwire.Message, outMsgQ chan<- factomwire.Message ) {
 
 	db = ldb
+	inMsgQueue = inMsgQ
+	outMsgQueue = outMsgQ
+	
 	init_processor()
 
 	if nodeMode == SERVER_NODE {	
@@ -295,15 +302,19 @@ func Start_Processor(ldb database.Db) {
 		}
 	}
 	
-/* Needs to be improved??
+	// Process msg from the incoming queue
+	for  msg := range inMsgQ {	
+			go serveMsgRequest(msg)
+	}
+
+	
 	defer func() {
 		shutdown()
 		tickers[0].Stop()
 		tickers[1].Stop()
-		//dynrsrc.Stop()
-		db.Close()
+		//db.Close()
 	}()
-	*/
+
 }
 
 func fileNotExists(name string) (bool) {
@@ -355,25 +366,11 @@ func save(chain *notaryapi.EChain) {
 	}
 }
 
-func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
-	var resource interface{}
-	var err *notaryapi.Error
-	var buf bytes.Buffer
+func serveMsgRequest(msg factomwire.Message) error{
+	//var buf bytes.Buffer
 
-	path, method, accept, form, err := parse(r)
-	switch method {
-	case "GET":
-		//resource, err = getServerDataFileMap()
-
-	case "POST":
-		if len(path) != 1 {
-			err = notaryapi.CreateError(notaryapi.ErrorBadMethod, `POST can only be used in the root context: /v1`)
-			return
-		}
-
-		datatype := form.Get("datatype")
-		switch datatype {
-		case "commitchain":
+	switch msg.Command() {
+/*		case factomwire.CmdCommitChain:
 			var err error
 			pub := new(notaryapi.Hash)
 			//chainhash := new(notaryapi.Hash)
@@ -413,13 +410,13 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 			} else { fmt.Println("credits %v",credits)}
 
 
-			resource, err = processCommitChain(entryhash, chainID, entrychainhash, pub, credits)
+			_, err = processCommitChain(entryhash, chainID, entrychainhash, pub, credits)
 
 			if err != nil {
 				fmt.Println("Error:", err.Error())
 			}
 
-		case "revealchain":
+		case factomwire.CmdRevealChain:
 			c := new(notaryapi.EChain)
 			bin, err := hex.DecodeString(r.Form.Get("data"))
 			if err != nil {
@@ -428,13 +425,13 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 			c.UnmarshalBinary(bin)
 			
 			nerr := new(notaryapi.Error)
-			resource, nerr = processRevealChain(c)
+			resource, nerr = ProcessRevealChain(c)
 
 			if nerr != nil {
 				fmt.Println("Error:", nerr.Error())
 			}
 
-		case "commitentry":
+		case factomwire.CmdCommitEntry:
 			var err error
 			var credits int32				
 			pub := new(notaryapi.Hash)
@@ -466,7 +463,7 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				fmt.Println("Error:", err.Error())
 			}
-		case "revealentry":
+		case factomwire.CmdRevealEntry:
 			e := new(notaryapi.Entry)
 			bin, err := hex.DecodeString(r.Form.Get("entry"))
 			if err != nil {
@@ -478,126 +475,26 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 			if err  != nil {
 				fmt.Println("Error:", nerr.Error())
 			}
-			
-		case "commitentry2":
-			var err error
-			pub := new(notaryapi.Hash)
-			hash := new(notaryapi.Hash)
-			data, err := hex.DecodeString(r.Form.Get("data"))
-			if err != nil { fmt.Println("hex:data", err) }
-
-			sig, err := hex.DecodeString(r.Form.Get("signature"))
- 			if err != nil { fmt.Println("hex:signature", err.Error()) }
-
-			pub.Bytes, err = hex.DecodeString(r.Form.Get("pubkey"))
- 			if err != nil { fmt.Println("hex:pubkey", err.Error()) }
-
- 			if ( !wallet.VerifySlice(pub.Bytes, data, sig) ) {
-				err = notaryapi.CreateError(notaryapi.ErrorVerifySignature, "commitentry Verify failed")
-				break;
- 			}
-
-			timestamp := binary.BigEndian.Uint64(data[:8])
-			hash.Bytes = data[8:]
-			resource, err = processCommitEntry(hash, pub, int64(timestamp), 1) // needs the credits from client ??
-			if err != nil {
-				fmt.Println("Error:", err.Error())
-			}
-		case "revealentry2":
-			e := new(notaryapi.Entry)
-			bin, err := hex.DecodeString(r.Form.Get("entry"))
-			if err != nil {
-				fmt.Println("hex:", err.Error())
-			}
-			e.UnmarshalBinary(bin)
-			resource, err = processRevealEntry(e)
-			if err != nil {
-				fmt.Println("Error:", err.Error())
+	*/		
+		case factomwire.CmdBuyCredit:
+			msgBuyCredit, ok := (msg).(*factomwire.MsgBuyCredit)
+			if ok {
+				credits := msgBuyCredit.FactoidBase * creditsPerFactoid / 1000000000
+				_, err := processBuyEntryCredit(msgBuyCredit.ECPubKey, int32(credits), msgBuyCredit.ECPubKey)	
+				if err != nil {
+					return err
+				}
+					
+				printCreditMap()	//debugging??
 			}			
-		// (commit|reveal)chain
-		case "chain":
-			resource, err = postChain("/"+strings.Join(path, "/"), form)
-		case "buycredit":
-			pubKey, err := notaryapi.HexToHash(form.Get("ECPubKey")) 
-			if err!=nil{
-				fmt.Println("Error in parsing pubKey:", err.Error())
-			}
-			value, err := strconv.ParseUint(form.Get("factoidbase"), 10, 64)
-			if err!=nil{
-				fmt.Println("Error in parsing value:", err.Error())
-			}	
-			credits := value * creditsPerFactoid / 1000000000
-			resource, err = processBuyEntryCredit(pubKey, int32(credits), pubKey)		
-			printCreditMap()				
-		case "getbalance":
-			pubKey, err := notaryapi.HexToHash(form.Get("ECPubKey")) 
-			if err!=nil{
-				fmt.Println("Error in parsing pubKey:", err.Error())
-			}
-			resource, err = getEntryCreditBalance(pubKey)			
-		case "filelist":
-			resource, err = getServerDataFileMapJSON()			
-		case "file":
-			fileKey := form.Get("filekey")
-			filename := serverDataFileMap[fileKey]
-			http.ServeFile(w, r, dataStorePath + "csv/"+filename)
-			return							
+				
 		default:
-			err = notaryapi.CreateError(notaryapi.ErrorBadMethod, fmt.Sprintf(`The %s datatype is not supported`, datatype))
-			return
+			return errors.New("Message type unsupported:" + msg.Command()) 
 	}
-
-	default:
-		err = notaryapi.CreateError(notaryapi.ErrorBadMethod, fmt.Sprintf(`The HTTP %s method is not supported`, method))
-		return
-	}
-
-	if err != nil {
-		resource = err
-	}
-
-	alt := false
-	for _, s := range form["byref"] {
-		b, err := strconv.ParseBool(s)
-		if err == nil {
-			alt = b
-			break
-		}
-	}
-
-	err = notaryapi.Marshal(resource, accept, &buf, alt)
-	
-	switch accept {
-	case "text":
-		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	case "json":
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	case "xml":
-		w.Header().Set("Content-Type", "application/xml; charset=utf-8")
-	case "html":
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	}
-
-	if err != nil {
-		var r *notaryapi.Error
-
-		buf.Reset()
-		r = notaryapi.Marshal(err, accept, &buf, false)
-		if r != nil {
-			err = r
-		}
-		w.WriteHeader(err.HTTPCode)
-	}
-	//buf.WriteTo(w)
-	if resource != nil {
-		//Send back entry hash
-		w.Write(resource.([]byte)) 
-	}else{
-		w.Write([]byte("\n\n"))
-	}	
+	return nil
 }
 
-
+/*
 func postEntry(context string, form url.Values) (interface{}, *notaryapi.Error) {
 	newEntry := new(notaryapi.Entry)
 	format, data := form.Get("format"), form.Get("entry")
@@ -629,7 +526,7 @@ func postEntry(context string, form url.Values) (interface{}, *notaryapi.Error) 
 	return processRevealEntry(newEntry)
 }
 
-
+*/
 func processRevealEntry(newEntry *notaryapi.Entry) ([]byte, *notaryapi.Error) {
 
 	if newEntry == nil {
@@ -737,6 +634,24 @@ func processCommitChain(entryHash *notaryapi.Hash, chainIDHash *notaryapi.Hash, 
  
 	return chainIDHash.Bytes, err
 }
+func ProcessBuyEntryCredit(msg *factomwire.MsgBuyCredit) (error) {
+/*	
+	pubKey, err := notaryapi.HexToHash(form.Get("ECPubKey")) 
+	if err!=nil{
+			fmt.rintln("Error in parsing pubKey:", err.Error())
+	}
+	value, err := strconv.ParseUint(form.Get("factoidbase"), 10, 64)
+	if err!=nil{
+		fmt.Println("Error in parsing value:", err.Error())
+	}	
+	credits := value * creditsPerFactoid / 1000000000
+	resource, err = processBuyEntryCredit(pubKey, int32(credits), pubKey)	
+   
+	return pubKey.Bytes, err
+	*/
+	return nil
+}
+
 func processBuyEntryCredit(pubKey *notaryapi.Hash, credits int32, factoidTxHash *notaryapi.Hash) ([]byte, error) {
 	
 	cbEntry := notaryapi.NewBuyCBEntry(pubKey, factoidTxHash, credits)
@@ -747,7 +662,7 @@ func processBuyEntryCredit(pubKey *notaryapi.Hash, credits int32, factoidTxHash 
 	eCreditMap[pubKey.String()] = balance + credits	
 	cchain.BlockMutex.Unlock()	 
 
- 
+   
 	return pubKey.Bytes, err
 }
 
@@ -813,7 +728,7 @@ func getEntryCreditBalance(pubKey *notaryapi.Hash) ([]byte, error) {
 	binary.Write(&buf, binary.BigEndian, eCreditMap[pubKey.String()])		 
 	return buf.Bytes(), nil
 }
-
+/*
 func postChain(context string, form url.Values) (interface{}, *notaryapi.Error) {
 	newChain := new(notaryapi.EChain)
 	format, data := form.Get("format"), form.Get("chain")
@@ -836,7 +751,7 @@ func postChain(context string, form url.Values) (interface{}, *notaryapi.Error) 
 		
 	return processRevealChain(newChain) 
 }
-
+*/
 func saveDChain(chain *notaryapi.DChain) {
 	if len(chain.Blocks)==0{
 		//log.Println("no blocks to save for chain: " + string (*chain.ChainID))

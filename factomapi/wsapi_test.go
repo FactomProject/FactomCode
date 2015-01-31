@@ -2,20 +2,20 @@ package factomapi
 
 import (
 	"testing"
-	"bytes"	
+//	"bytes"	
 	"net/http"
 	"net/url"
 	"fmt"
-//	"encoding/hex"	
-	"github.com/FactomProject/gocoding"	
+	"encoding/hex"	
+//	"github.com/FactomProject/gocoding"	
 	"github.com/FactomProject/FactomCode/notaryapi"	
 
-	"encoding/base64"
+//	"encoding/base64"
 	//"io/ioutil"
 	//"os" 	
 	
 )
-/*
+
 func TestBuyCredit(t *testing.T) {
 	fmt.Println("\nTestBuyCredit===========================================================================")
 	// Post the request to FactomClient web server	---------------------------------------
@@ -24,7 +24,7 @@ func TestBuyCredit(t *testing.T) {
 	barray[0] = 2
 	pubKey := new (notaryapi.Hash)
 	pubKey.SetBytes(barray)		
-	data.Set("to", base64.URLEncoding.EncodeToString(pubKey.Bytes))
+	data.Set("to", hex.EncodeToString(pubKey.Bytes))
 	data.Set("value", "1.123456789")
 	data.Set("password", "opensesame")
 	
@@ -37,7 +37,7 @@ func TestBuyCredit(t *testing.T) {
 } 
 
 
-
+/*
 func TestCommitChain(t *testing.T) {
  	chain, err := factom.NewChain([]string{"mytestchain"},[]string{"mytestchainid"},[]byte("mytestchain-firstentry"))
 
@@ -184,7 +184,7 @@ func TestAddChain(t *testing.T) {
 		t.Errorf("Error:%v", err)
 	}
 } 
-*/
+
 func TestAddEntry(t *testing.T) {
 	fmt.Println("\nTestAddEntry===========================================================================")
 	entry := new (notaryapi.Entry)
@@ -230,7 +230,7 @@ func TestAddEntry(t *testing.T) {
 	}
 } 
 
-/*
+
 func TestBuyCredit(t *testing.T) {
 	fmt.Println("\nTestBuyCredit===========================================================================")
 	// Post the request to FactomClient web server	---------------------------------------

@@ -13,6 +13,7 @@ import (
 //	"github.com/FactomProject/FactomCode/database/ldb"		
 	"github.com/FactomProject/FactomCode/factomapi"	
 	"github.com/FactomProject/FactomCode/notaryapi"		
+	"github.com/FactomProject/FactomCode/factomwire"		
 	"github.com/FactomProject/FactomCode/util"		
 	"strings"
 	"time"	
@@ -34,6 +35,7 @@ var (
 	
 	//Map to store imported csv files
 	clientDataFileMap map[string]string		
+	
 	 
 )
 
@@ -46,8 +48,6 @@ func readError(err error) {
 }
 
 func init_rpcserver() {
-
-	factomapi.SetDB(db)	
 	
 	err := dynrsrc.Start(watchError, readError)
 	if err != nil { panic(err) }
@@ -64,9 +64,12 @@ func init_rpcserver() {
 	}()		
 }
 
-func Start_Rpcserver(ldb database.Db) {
+func Start_Rpcserver(ldb database.Db, outMsgQ chan<- factomwire.Message) {
 	
 	db = ldb
+	factomapi.SetDB(db)	
+	factomapi.SetOutMsgQueue(outMsgQ)
+	
 	init_rpcserver()
 	
 	defer func() {

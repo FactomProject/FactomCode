@@ -25,6 +25,7 @@ import (
 	//	"github.com/FactomProject/FactomCode/go-socks/socks"
 	//	"github.com/davecgh/go-spew/spew"
 	"github.com/FactomProject/FactomCode/fastsha256"
+//	"github.com/FactomProject/FactomCode/restapi"	
 )
 
 const (
@@ -779,7 +780,8 @@ func (p *peer) handleTxMsg(msg *factomwire.MsgTx) {
 
 func (p *peer) handleBuyCreditMsg(msg *factomwire.MsgBuyCredit) {
 	fastsha256.Trace()
-
+	
+	
 	/*
 		// Add the transaction to the known inventory for the peer.
 		// Convert the raw MsgTx to a btcutil.Tx which provides some convenience
