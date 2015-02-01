@@ -66,7 +66,7 @@ func (msg *MsgBuyCredit) Command() string {
 // MaxPayloadLength returns the maximum length the payload can be for the
 // receiver.  This is part of the Message interface implementation.
 func (msg *MsgBuyCredit) MaxPayloadLength(pver uint32) uint32 {
-	return 2*MaxVarIntPayload + uint32(notaryapi.HashSize)
+	return MaxAppMsgPayload
 }
 
 // NewMsgInv returns a new bitcoin inv message that conforms to the Message
