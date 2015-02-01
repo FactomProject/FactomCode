@@ -472,14 +472,16 @@ func readVarBytes(r io.Reader, pver uint32, maxAllowed uint32,
 		return nil, err
 	}
 
-	// Prevent byte array larger than the max message size.  It would
-	// be possible to cause memory exhaustion and panics without a sane
-	// upper bound on this count.
-	if count > uint64(maxAllowed) {
-		str := fmt.Sprintf("%s is larger than the max allowed size "+
-			"[count %d, max %d]", fieldName, count, maxAllowed)
-		return nil, messageError("readVarBytes", str)
-	}
+	/*
+		// Prevent byte array larger than the max message size.  It would
+		// be possible to cause memory exhaustion and panics without a sane
+		// upper bound on this count.
+		if count > uint64(maxAllowed) {
+			str := fmt.Sprintf("%s is larger than the max allowed size "+
+				"[count %d, max %d]", fieldName, count, maxAllowed)
+			return nil, messageError("readVarBytes", str)
+		}
+	*/
 
 	b := make([]byte, count)
 	_, err = io.ReadFull(r, b)
