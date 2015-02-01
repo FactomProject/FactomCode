@@ -11,6 +11,7 @@ import (
 	"github.com/FactomProject/FactomCode/notaryapi"
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/FactomCode/factomwire"
+	"github.com/FactomProject/FactomCode/wallet"	
 	"github.com/btcsuite/btcrpcclient"
 	"github.com/btcsuite/btcutil"
 	"io/ioutil"
@@ -357,140 +358,83 @@ func serveMsgRequest(msg factomwire.Message) error{
 	//var buf bytes.Buffer
 
 	switch msg.Command() {
-/*		case factomwire.CmdCommitChain:
-			var err error
-			pub := new(notaryapi.Hash)
-			//chainhash := new(notaryapi.Hash)
-			chainID := new(notaryapi.Hash)
-			entrychainhash := new(notaryapi.Hash)
-			entryhash := new(notaryapi.Hash)
-
-			data, err := hex.DecodeString(r.Form.Get("data"))
-			if err != nil {
-				fmt.Println("hex:data", err)
-			}
-
-			sig, err := hex.DecodeString(r.Form.Get("signature"))
-			if err != nil {
-				fmt.Println("hex:signature", err)
-			}
-
-			pub.Bytes, err = hex.DecodeString(r.Form.Get("pubkey"))
-			if err != nil {
-				fmt.Println("hex:pubkey", err)
-			}
-
-			if !wallet.VerifySlice(pub.Bytes, data, sig) {
-				err = notaryapi.CreateError(notaryapi.ErrorVerifySignature, "commitchain Verify failed")
-				break
-			}
-
-			data = data[8:]
-			chainID.Bytes = data[:32]
-			data = data[32:]
-
-			entryhash.Bytes = data[:32]
-			data = data[32:]
-
-			entrychainhash.Bytes = data[:32]
-			data = data[32:]
-
-			buf := bytes.NewBuffer(data)
-			var credits int32
-			err = binary.Read(buf, binary.BigEndian, &credits)
-			if err != nil {
-				fmt.Println("binary credits err:", err.Error())
-			} else {
-				fmt.Println("credits %v", credits)
-			}
-
-			_, err = processCommitChain(entryhash, chainID, entrychainhash, pub, credits)
-
-			if err != nil {
-				fmt.Println("Error:", err.Error())
-			}
-
-		case factomwire.CmdRevealChain:
-			c := new(notaryapi.EChain)
-			bin, err := hex.DecodeString(r.Form.Get("data"))
-			if err != nil {
-				fmt.Println("hex:", err.Error())
-			}
-			c.UnmarshalBinary(bin)
-
-			nerr := new(notaryapi.Error)
-			resource, nerr = ProcessRevealChain(c)
-
-			if nerr != nil {
-				fmt.Println("Error:", nerr.Error())
-			}
-
-		case factomwire.CmdCommitEntry:
-			var err error
-			var credits int32
-			pub := new(notaryapi.Hash)
-			hash := new(notaryapi.Hash)
-			data, err := hex.DecodeString(r.Form.Get("data"))
-			if err != nil {
-				fmt.Println("hex:data", err)
-			}
-
-			sig, err := hex.DecodeString(r.Form.Get("signature"))
-			if err != nil {
-				fmt.Println("hex:signature", err.Error())
-			}
-
-			pub.Bytes, err = hex.DecodeString(r.Form.Get("pubkey"))
-			if err != nil {
-				fmt.Println("hex:pubkey", err.Error())
-			}
-
-			if !wallet.VerifySlice(pub.Bytes, data, sig) {
-				err = notaryapi.CreateError(notaryapi.ErrorVerifySignature, "commitentry Verify failed")
-				break
-			}
-
-			timestamp := binary.BigEndian.Uint64(data[:8])
-			data = data[8:]
-			hash.Bytes = data[:32]
-			data = data[32:]
-			buf := bytes.NewBuffer(data[:4])
-			err = binary.Read(buf, binary.BigEndian, &credits)
-			if err != nil {
-				fmt.Println("Error:", err.Error())
-			}
-			resource, err = processCommitEntry(hash, pub, int64(timestamp), credits)
-			if err != nil {
-				fmt.Println("Error:", err.Error())
-			}
-		case factomwire.CmdRevealEntry:
-			e := new(notaryapi.Entry)
-			bin, err := hex.DecodeString(r.Form.Get("entry"))
-			if err != nil {
-				fmt.Println("hex:", err.Error())
-			}
-			e.UnmarshalBinary(bin)
-			nerr := new(notaryapi.Error)
-			resource, nerr = processRevealEntry(e)
-			if err != nil {
-				fmt.Println("Error:", nerr.Error())
-			}
-
-	*/		
-		case factomwire.CmdBuyCredit:
-			msgBuyCredit, ok := (msg).(*factomwire.MsgBuyCredit)
+		case factomwire.CmdCommitChain:
+			msgCommitChain, ok := msg.(*factomwire.MsgCommitChain)
 			if ok {
-				credits := msgBuyCredit.FactoidBase * creditsPerFactoid / 1000000000
-				_, err := processBuyEntryCredit(msgBuyCredit.ECPubKey, int32(credits), msgBuyCredit.ECPubKey)	
+				//Verify signature (timestamp + chainid + entry hash + entryChainIDHash + credits)
+				var buf bytes.Buffer
+				binary.Write(&buf, binary.BigEndian, msgCommitChain.Timestamp)	
+				buf.Write(msgCommitChain.ChainID.Bytes)
+				buf.Write(msgCommitChain.EntryHash.Bytes)	
+				buf.Write(msgCommitChain.EntryChainIDHash.Bytes) 
+				binary.Write(&buf, binary.BigEndian, msgCommitChain.Credits)	
+				if !wallet.VerifySlice(msgCommitChain.ECPubKey.Bytes, buf.Bytes(), msgCommitChain.Sig) {
+					return errors.New("Error in verifying signature for msg:" + fmt.Sprintf("%+v", msgCommitChain))
+				}	
+				
+				err := processCommitChain(msgCommitChain.EntryHash, msgCommitChain.ChainID, msgCommitChain.EntryChainIDHash, msgCommitChain.ECPubKey, int32(msgCommitChain.Credits))
 				if err != nil {
 					return err
 				}
-					
-				printCreditMap()	//debugging??
-			}			
+			} else {
+				return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg)) 
+			}				
+
+		case factomwire.CmdRevealChain:
+			msgRevealChain, ok := msg.(*factomwire.MsgRevealChain)
+			if ok {
+				err := processRevealChain(msgRevealChain.Chain)	
+				if err != nil {
+					return err
+				}
+			} else {
+				return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg)) 
+			}				
+
+		case factomwire.CmdCommitEntry:	
+			msgCommitEntry, ok := msg.(*factomwire.MsgCommitEntry)
+			if ok {
+				//Verify signature (timestamp + entry hash + credits)	
+				var buf bytes.Buffer
+				binary.Write(&buf, binary.BigEndian, msgCommitEntry.Timestamp)
+				buf.Write(msgCommitEntry.EntryHash.Bytes)
+				binary.Write(&buf, binary.BigEndian, msgCommitEntry.Credits)		
+				if !wallet.VerifySlice(msgCommitEntry.ECPubKey.Bytes, buf.Bytes(), msgCommitEntry.Sig) {
+					return errors.New("Error in verifying signature for msg:" + fmt.Sprintf("%+v", msgCommitEntry))
+				}	
 				
+				err := processCommitEntry(msgCommitEntry.EntryHash, msgCommitEntry.ECPubKey, int64(msgCommitEntry.Timestamp), int32(msgCommitEntry.Credits))
+				if err != nil {
+					return err
+				}
+			} else {
+				return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg)) 
+			}					
+		case factomwire.CmdRevealEntry:
+			msgRevealEntry, ok := msg.(*factomwire.MsgRevealEntry)
+			if ok {
+				err := processRevealEntry(msgRevealEntry.Entry)	
+				if err != nil {
+					return err
+				}
+			} else {
+				return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg)) 
+			}			
+			
+		case factomwire.CmdBuyCredit:
+			msgBuyCredit, ok := msg.(*factomwire.MsgBuyCredit)
+			if ok {
+				credits := msgBuyCredit.FactoidBase * creditsPerFactoid / 1000000000
+				err := processBuyEntryCredit(msgBuyCredit.ECPubKey, int32(credits), msgBuyCredit.ECPubKey)	
+				if err != nil {
+					return err
+				}
+			} else {
+				return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg)) 
+			}
+		
 		default:
-			return errors.New("Message type unsupported:" + msg.Command()) 
+			return errors.New("Message type unsupported:" + fmt.Sprintf("%+v", msg)) 
 	}
 	return nil
 }
@@ -528,15 +472,11 @@ func postEntry(context string, form url.Values) (interface{}, *notaryapi.Error) 
 }
 
 */
-func processRevealEntry(newEntry *notaryapi.Entry) ([]byte, *notaryapi.Error) {
-
-	if newEntry == nil {
-		return nil, notaryapi.CreateError(notaryapi.ErrorInternal, `Entity to be POSTed is nil`)
-	}
+func processRevealEntry(newEntry *notaryapi.Entry) (error) {
 
 	chain := chainIDMap[newEntry.ChainID.String()]
 	if chain == nil {
-		return nil, notaryapi.CreateError(notaryapi.ErrorInternal, `This chain is not supported`) //ErrorInternal?
+		return errors.New("This chain is not supported:" + chain.ChainID.String()) 
 	}
 
 	// store the new entry in db
@@ -555,7 +495,7 @@ func processRevealEntry(newEntry *notaryapi.Entry) ([]byte, *notaryapi.Error) {
 	if ok && prepayment >= credits {
 		delete(prePaidEntryMap, key) // Only revealed once for multiple prepayments??
 	} else {
-		return nil, notaryapi.CreateError(notaryapi.ErrorInternal, `Credit needs to paid first before reveal an entry:`+entryHash.String())
+		return errors.New("Credit needs to paid first before reveal an entry:"+entryHash.String())
 	}
 
 	chain.BlockMutex.Lock()
@@ -563,13 +503,13 @@ func processRevealEntry(newEntry *notaryapi.Entry) ([]byte, *notaryapi.Error) {
 	chain.BlockMutex.Unlock()
 
 	if err != nil {
-		return nil, notaryapi.CreateError(notaryapi.ErrorInternal, fmt.Sprintf(`Error while adding Entity to Block: %s`, err.Error()))
+		return errors.New("Error while adding Entity to Block:" + err.Error())
 	}
 
-	return entryHash.Bytes, nil
+	return nil
 }
 
-func processCommitEntry(entryHash *notaryapi.Hash, pubKey *notaryapi.Hash, timeStamp int64, credits int32) ([]byte, error) {
+func processCommitEntry(entryHash *notaryapi.Hash, pubKey *notaryapi.Hash, timeStamp int64, credits int32) (error) {
 	// Make sure credits is negative
 	if credits > 0 {
 		credits = 0 - credits
@@ -582,7 +522,7 @@ func processCommitEntry(entryHash *notaryapi.Hash, pubKey *notaryapi.Hash, timeS
 	creditBalance, _ := eCreditMap[pubKey.String()]
 	if creditBalance+credits < 0 {
 		cchain.BlockMutex.Unlock()
-		return nil, errors.New("Not enough credit for public key:" + pubKey.String() + " Balance:" + fmt.Sprint(credits))
+		return errors.New("Not enough credit for public key:" + pubKey.String() + " Balance:" + fmt.Sprint(credits))
 	}
 	eCreditMap[pubKey.String()] = creditBalance + credits
 	err := cchain.Blocks[len(cchain.Blocks)-1].AddCBEntry(cbEntry)
@@ -591,10 +531,10 @@ func processCommitEntry(entryHash *notaryapi.Hash, pubKey *notaryapi.Hash, timeS
 	prePaidEntryMap[entryHash.String()] = payments - credits
 	cchain.BlockMutex.Unlock()
 
-	return entryHash.Bytes, err
+	return err
 }
 
-func processCommitChain(entryHash *notaryapi.Hash, chainIDHash *notaryapi.Hash, entryChainIDHash *notaryapi.Hash, pubKey *notaryapi.Hash, credits int32) ([]byte, error) {
+func processCommitChain(entryHash *notaryapi.Hash, chainIDHash *notaryapi.Hash, entryChainIDHash *notaryapi.Hash, pubKey *notaryapi.Hash, credits int32) (error) {
 
 	// Make sure credits is negative
 	if credits > 0 {
@@ -609,7 +549,7 @@ func processCommitChain(entryHash *notaryapi.Hash, chainIDHash *notaryapi.Hash, 
 		}
 	}
 	if existing {
-		return nil, errors.New("Already existing chain id:" + chainIDHash.String())
+		return errors.New("Already existing chain id:" + chainIDHash.String())
 	}
 
 	// Precalculate the key and value pair for prePaidEntryMap
@@ -623,7 +563,7 @@ func processCommitChain(entryHash *notaryapi.Hash, chainIDHash *notaryapi.Hash, 
 	creditBalance, _ := eCreditMap[pubKey.String()]
 	if creditBalance+credits < 0 {
 		cchain.BlockMutex.Unlock()
-		return nil, errors.New("Insufficient credits for public key:" + pubKey.String() + " Balance:" + fmt.Sprint(credits))
+		return errors.New("Insufficient credits for public key:" + pubKey.String() + " Balance:" + fmt.Sprint(credits))
 	}
 	eCreditMap[pubKey.String()] = creditBalance + credits
 	err := cchain.Blocks[len(cchain.Blocks)-1].AddCBEntry(cbEntry)
@@ -632,10 +572,10 @@ func processCommitChain(entryHash *notaryapi.Hash, chainIDHash *notaryapi.Hash, 
 	prePaidEntryMap[key] = payments - credits
 	cchain.BlockMutex.Unlock()
 
-	return chainIDHash.Bytes, err
+	return err
 }
 
-func processBuyEntryCredit(pubKey *notaryapi.Hash, credits int32, factoidTxHash *notaryapi.Hash) ([]byte, error) {
+func processBuyEntryCredit(pubKey *notaryapi.Hash, credits int32, factoidTxHash *notaryapi.Hash) (error) {
 
 	cbEntry := notaryapi.NewBuyCBEntry(pubKey, factoidTxHash, credits)
 	cchain.BlockMutex.Lock()
@@ -645,10 +585,10 @@ func processBuyEntryCredit(pubKey *notaryapi.Hash, credits int32, factoidTxHash 
 	eCreditMap[pubKey.String()] = balance + credits
 	cchain.BlockMutex.Unlock()
 
-	return pubKey.Bytes, err
+	return err
 }
 
-func processRevealChain(newChain *notaryapi.EChain) ([]byte, *notaryapi.Error) {
+func processRevealChain(newChain *notaryapi.EChain) (error) {
 	// Check if the chain id already exists
 	_, existing := chainIDMap[newChain.ChainID.String()]
 	if !existing {
@@ -657,11 +597,11 @@ func processRevealChain(newChain *notaryapi.EChain) ([]byte, *notaryapi.Error) {
 		}
 	}
 	if existing {
-		return nil, notaryapi.CreateError(notaryapi.ErrorInternal, `This chain is already existing`) //ErrorInternal?
+		return errors.New("This chain is already existing:" + newChain.ChainID.String())
 	}
 
 	if newChain.FirstEntry == nil {
-		return nil, notaryapi.CreateError(notaryapi.ErrorInternal, `The first entry is required to create a new chain.`) //ErrorInternal?
+		return errors.New("The first entry is required to create a new chain:" + newChain.ChainID.String()) 
 	}
 	// Calculate the required credits
 	binaryChain, _ := newChain.MarshalBinary()
@@ -675,7 +615,7 @@ func processRevealChain(newChain *notaryapi.EChain) ([]byte, *notaryapi.Error) {
 	if ok && prepayment >= credits {
 		delete(prePaidEntryMap, key)
 	} else {
-		return nil, notaryapi.CreateError(notaryapi.ErrorInternal, `Enough credits need to paid first before creating a new chain:`+newChain.ChainID.String())
+		return errors.New("Enough credits need to paid first before creating a new chain:"+newChain.ChainID.String())
 	}
 	// Store the new chain in db
 	db.InsertChain(newChain)
@@ -697,12 +637,12 @@ func processRevealChain(newChain *notaryapi.EChain) ([]byte, *notaryapi.Error) {
 	newChain.BlockMutex.Unlock()
 
 	if err != nil {
-		return nil, notaryapi.CreateError(notaryapi.ErrorInternal, fmt.Sprintf(`Error while adding the First Entry to Block: %s`, err.Error()))
+		return errors.New(fmt.Sprintf(`Error while adding the First Entry to Block: %s`, err.Error()))
 	}
 
 	ExportDataFromDbToFile()
 
-	return newChain.ChainID.Bytes, nil
+	return nil
 }
 
 func getEntryCreditBalance(pubKey *notaryapi.Hash) ([]byte, error) {

@@ -262,11 +262,10 @@ func RevealEntry(e *Entry) error {
 // CommitChain sends a message to the factom network containing a series of
 // hashes to be used to verify the later RevealChain.
 func CommitChain(c *notaryapi.EChain) error {
-	var msg bytes.Buffer
-		
-	bChain,_ := c.MarshalBinary()
-	//chainhash := notaryapi.Sha(bChain)	
-	// Calculate the required credits
+	var buf bytes.Buffer
+	
+	// Calculate the required credits		
+	bChain,_ := c.MarshalBinary()	
 	credits := uint32(binary.Size(bChain)/1000 + 1) + creditsPerChain 		
 	
 	binaryEntry, _ := c.FirstEntry.MarshalBinary()
@@ -274,17 +273,14 @@ func CommitChain(c *notaryapi.EChain) error {
 	
 	entryChainIDHash := notaryapi.Sha(append(c.ChainID.Bytes, entryHash.Bytes ...))	
 	
-	//msg.Write(bChain) // we don't want to REVEAL the whole chain
-	//msg.Write(chainhash.Bytes)//we might not need this??
+	// Create a msg signature (timestamp + chainid + entry hash + entryChainIDHash + credits)
 	timestamp := uint64(time.Now().Unix())
-	binary.Write(&msg, binary.BigEndian, timestamp)	
-	msg.Write(c.ChainID.Bytes)
-	msg.Write(entryHash.Bytes)	
-	msg.Write(entryChainIDHash.Bytes) 
-
-	binary.Write(&msg, binary.BigEndian, credits)	
-
-	sig := wallet.SignData(msg.Bytes())	
+	binary.Write(&buf, binary.BigEndian, timestamp)	
+	buf.Write(c.ChainID.Bytes)
+	buf.Write(entryHash.Bytes)	
+	buf.Write(entryChainIDHash.Bytes) 
+	binary.Write(&buf, binary.BigEndian, credits)	
+	sig := wallet.SignData(buf.Bytes())	
 	 
 	//Construct a msg and add it to the msg queue
 	msgCommitChain := factomwire.NewMsgCommitChain()
@@ -358,19 +354,19 @@ func NewChain(name []string, eids []string, data []byte) (c *Chain, err error) {
 // CommitEntry sends a message to the factom network containing a hash of the
 // entry to be used to verify the later RevealEntry.
 func CommitEntry(e *notaryapi.Entry) error {
-	var msg bytes.Buffer
+	var buf bytes.Buffer
 
 	bEntry,_ := e.MarshalBinary()
 	entryHash := notaryapi.Sha(bEntry)	
 	// Calculate the required credits
 	credits := uint32(binary.Size(bEntry)/1000 + 1)		
-	
-	timestamp := uint64(time.Now().Unix())
-	binary.Write(&msg, binary.BigEndian, timestamp)
-	msg.Write(entryHash.Bytes)
-	binary.Write(&msg, binary.BigEndian, credits)		
 
-	sig := wallet.SignData(msg.Bytes())
+	// Create a msg signature (timestamp + entry hash + credits)	
+	timestamp := uint64(time.Now().Unix())
+	binary.Write(&buf, binary.BigEndian, timestamp)
+	buf.Write(entryHash.Bytes)
+	binary.Write(&buf, binary.BigEndian, credits)		
+	sig := wallet.SignData(buf.Bytes())
 	
 	//Construct a msg and add it to the msg queue
 	msgCommitEntry := factomwire.NewMsgCommitEntry()

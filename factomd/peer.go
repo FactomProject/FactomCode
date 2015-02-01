@@ -778,26 +778,44 @@ func (p *peer) handleTxMsg(msg *factomwire.MsgTx) {
 	///<-p.txProcessed
 }
 
+// Handle factom app imcoming msg
 func (p *peer) handleBuyCreditMsg(msg *factomwire.MsgBuyCredit) {
 	fastsha256.Trace()
 	
-	
-	/*
-		// Add the transaction to the known inventory for the peer.
-		// Convert the raw MsgTx to a btcutil.Tx which provides some convenience
-		// methods and things such as hash caching.
-		tx := factoid.NewTx(msg)
-		iv := factomwire.NewInvVect(factomwire.InvTypeTx, tx.Sha())
-		p.AddKnownInventory(iv)
+	// Add the msg to inbound msg queue
+	inMsgQueue <- msg
+}
 
-		// Queue the transaction up to be handled by the block manager and
-		// intentionally block further receives until the transaction is fully
-		// processed and known good or bad.  This helps prevent a malicious peer
-		// from queueing up a bunch of bad transactions before disconnecting (or
-		// being disconnected) and wasting memory.
-		//p.server.blockManager.QueueTx(tx, p)
-		///<-p.txProcessed
-	*/
+// Handle factom app imcoming msg
+func (p *peer) handleCommitChainMsg(msg *factomwire.MsgCommitChain) {
+	fastsha256.Trace()
+	
+	// Add the msg to inbound msg queue
+	inMsgQueue <- msg
+}
+
+// Handle factom app imcoming msg
+func (p *peer) handleRevealChainMsg(msg *factomwire.MsgRevealChain) {
+	fastsha256.Trace()
+	
+	// Add the msg to inbound msg queue
+	inMsgQueue <- msg
+}
+
+// Handle factom app imcoming msg
+func (p *peer) handleCommitEntryMsg(msg *factomwire.MsgCommitEntry) {
+	fastsha256.Trace()
+	
+	// Add the msg to inbound msg queue
+	inMsgQueue <- msg
+}
+
+// Handle factom app imcoming msg
+func (p *peer) handleRevealEntryMsg(msg *factomwire.MsgRevealEntry) {
+	fastsha256.Trace()
+	
+	// Add the msg to inbound msg queue
+	inMsgQueue <- msg
 }
 
 /*
@@ -1518,6 +1536,18 @@ out:
 		case *factomwire.MsgBuyCredit:
 			p.handleBuyCreditMsg(msg)
 
+		case *factomwire.MsgCommitChain:
+			p.handleCommitChainMsg(msg)
+			
+		case *factomwire.MsgRevealChain:
+			p.handleRevealChainMsg(msg)
+			
+		case *factomwire.MsgCommitEntry:
+			p.handleCommitEntryMsg(msg)
+			
+		case *factomwire.MsgRevealEntry:
+			p.handleRevealEntryMsg(msg)
+												
 			/*
 				case *factomwire.MsgMemPool:
 					p.handleMemPoolMsg(msg)
