@@ -143,6 +143,19 @@ func makeEmptyMessage(command string) (Message, error) {
 		*/
 	case CmdBuyCredit:
 		msg = &MsgBuyCredit{}
+
+	case CmdRevealEntry:
+		msg = &MsgRevealEntry{}
+
+	case CmdCommitEntry:
+		msg = &MsgCommitEntry{}
+
+	case CmdRevealChain:
+		msg = &MsgRevealChain{}
+
+	case CmdCommitChain:
+		msg = &MsgCommitChain{}
+
 	default:
 		return nil, fmt.Errorf("unhandled command [%s]", command)
 	}
