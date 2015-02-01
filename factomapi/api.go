@@ -22,7 +22,7 @@ import (
 var (
 	serverAddr      = "localhost:8083"
 	db              database.Db
-	creditsPerChain int32 = 10
+	creditsPerChain uint32 = 10
 	outMsgQueue chan<- factomwire.Message 		//outgoing message queue for factom application messages	
 )
 
@@ -267,7 +267,7 @@ func CommitChain(c *notaryapi.EChain) error {
 	bChain,_ := c.MarshalBinary()
 	//chainhash := notaryapi.Sha(bChain)	
 	// Calculate the required credits
-	credits := int32(binary.Size(bChain)/1000 + 1) + creditsPerChain 		
+	credits := uint32(binary.Size(bChain)/1000 + 1) + creditsPerChain 		
 	
 	binaryEntry, _ := c.FirstEntry.MarshalBinary()
 	entryHash := notaryapi.Sha(binaryEntry)
@@ -276,8 +276,8 @@ func CommitChain(c *notaryapi.EChain) error {
 	
 	//msg.Write(bChain) // we don't want to REVEAL the whole chain
 	//msg.Write(chainhash.Bytes)//we might not need this??
-	
-	binary.Write(&msg, binary.BigEndian, uint64(time.Now().Unix()))	
+	timestamp := uint64(time.Now().Unix())
+	binary.Write(&msg, binary.BigEndian, timestamp)	
 	msg.Write(c.ChainID.Bytes)
 	msg.Write(entryHash.Bytes)	
 	msg.Write(entryChainIDHash.Bytes) 
@@ -286,19 +286,19 @@ func CommitChain(c *notaryapi.EChain) error {
 
 	sig := wallet.SignData(msg.Bytes())	
 	 
-	// Need to put in a msg obj once we have the P2P networkd 
-	data := url.Values {}	
-	data.Set("datatype", "commitchain")
-	data.Set("format", "binary")
-	data.Set("data", hex.EncodeToString(msg.Bytes()))
-	data.Set("signature", hex.EncodeToString((*sig.Sig)[:]))
-	data.Set("pubkey", hex.EncodeToString((*sig.Pub.Key)[:]))	
-
-	server := fmt.Sprintf(`http://%s/v1`, serverAddr)	
-	_, err := http.PostForm(server, data)
-	if err != nil {
-		return err
-	}
+	//Construct a msg and add it to the msg queue
+	msgCommitChain := factomwire.NewMsgCommitChain()
+	msgCommitChain.ChainID = c.ChainID
+	msgCommitChain.Credits = credits
+	msgCommitChain.ECPubKey = new (notaryapi.Hash)
+	msgCommitChain.ECPubKey.Bytes = (*sig.Pub.Key)[:]
+	msgCommitChain.EntryChainIDHash = entryChainIDHash
+	msgCommitChain.EntryHash = entryHash
+	msgCommitChain.Sig = (*sig.Sig)[:]
+	msgCommitChain.Timestamp = timestamp
+	
+	outMsgQueue <- msgCommitChain
+	
 	return nil
 }
 
@@ -306,21 +306,13 @@ func CommitChain(c *notaryapi.EChain) error {
 // encoded first entry for a chain to be used by the server to add a new factom
 // chain. It will be rejected if a CommitChain was not done.
 func RevealChain(c *notaryapi.EChain) error {
-	bChain,_ := c.MarshalBinary()	
 	
-	data := url.Values{
-		"datatype": {"revealchain"},
-		"format":   {"binary"},
-		"data":     {hex.EncodeToString(bChain)},
-	}
-				
-	server := fmt.Sprintf(`http://%s/v1`, serverAddr)		
-	_, err := http.PostForm(server, data)
-	if err != nil {
-		return err
-	}
+	//Construct a msg and add it to the msg queue
+	msgRevealChain := factomwire.NewMsgRevealChain()
+	msgRevealChain.Chain = c
 	
-	
+	outMsgQueue <- msgRevealChain
+		
 	return nil 
 }
 
@@ -371,27 +363,26 @@ func CommitEntry(e *notaryapi.Entry) error {
 	bEntry,_ := e.MarshalBinary()
 	entryHash := notaryapi.Sha(bEntry)	
 	// Calculate the required credits
-	credits := int32(binary.Size(bEntry)/1000 + 1)		
+	credits := uint32(binary.Size(bEntry)/1000 + 1)		
 	
-	binary.Write(&msg, binary.BigEndian, uint64(time.Now().Unix()))
+	timestamp := uint64(time.Now().Unix())
+	binary.Write(&msg, binary.BigEndian, timestamp)
 	msg.Write(entryHash.Bytes)
 	binary.Write(&msg, binary.BigEndian, credits)		
 
 	sig := wallet.SignData(msg.Bytes())
-	// msg.Bytes should be a int64 timestamp followed by a binary entry
-
-	data := url.Values{
-		"datatype":  {"commitentry"},
-		"format":    {"binary"},
-		"signature": {hex.EncodeToString((*sig.Sig)[:])},
-		"pubkey":	{hex.EncodeToString((*sig.Pub.Key)[:])},
-		"data":      {hex.EncodeToString(msg.Bytes())},
-	}
-	server := fmt.Sprintf(`http://%s/v1`, serverAddr)	
-	_, err := http.PostForm(server, data)
-	if err != nil {
-		return err
-	}
+	
+	//Construct a msg and add it to the msg queue
+	msgCommitEntry := factomwire.NewMsgCommitEntry()
+	msgCommitEntry.Credits = credits
+	msgCommitEntry.ECPubKey = new (notaryapi.Hash)
+	msgCommitEntry.ECPubKey.Bytes = (*sig.Pub.Key)[:]
+	msgCommitEntry.EntryHash = entryHash
+	msgCommitEntry.Sig = (*sig.Sig)[:]
+	msgCommitEntry.Timestamp = timestamp
+	
+	outMsgQueue <- msgCommitEntry
+	
 	return nil
 }
 
@@ -399,18 +390,13 @@ func CommitEntry(e *notaryapi.Entry) error {
 // encoded entry for the server to add it to the factom blockchain. The entry
 // will be rejected if a CommitEntry was not done.
 func RevealEntry(e *notaryapi.Entry) error {
-	bEntry,_ := e.MarshalBinary()	
-	data := url.Values{
-		"datatype": {"revealentry"},
-		"format":   {"binary"},
-		"entry":    {hex.EncodeToString(bEntry)},
-	}
 	
-	server := fmt.Sprintf(`http://%s/v1`, serverAddr)	
-	_, err := http.PostForm(server, data)
-	if err != nil {
-		return err
-	}
+	//Construct a msg and add it to the msg queue
+	msgRevealEntry := factomwire.NewMsgRevealEntry()
+	msgRevealEntry.Entry = e
+	
+	outMsgQueue <- msgRevealEntry	
+	
 	return nil
 }
 

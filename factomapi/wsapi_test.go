@@ -2,20 +2,20 @@ package factomapi
 
 import (
 	"testing"
-//	"bytes"	
+	"bytes"	
 	"net/http"
 	"net/url"
 	"fmt"
-	"encoding/hex"	
-//	"github.com/FactomProject/gocoding"	
+//	"encoding/hex"	
+	"github.com/FactomProject/gocoding"	
 	"github.com/FactomProject/FactomCode/notaryapi"	
 
-//	"encoding/base64"
-	//"io/ioutil"
+	"encoding/base64"
+//	"io/ioutil"
 	//"os" 	
 	
 )
-
+/*
 func TestBuyCredit(t *testing.T) {
 	fmt.Println("\nTestBuyCredit===========================================================================")
 	// Post the request to FactomClient web server	---------------------------------------
@@ -36,74 +36,8 @@ func TestBuyCredit(t *testing.T) {
 	}		
 } 
 
-
-/*
-func TestCommitChain(t *testing.T) {
- 	chain, err := factom.NewChain([]string{"mytestchain"},[]string{"mytestchainid"},[]byte("mytestchain-firstentry"))
-
-	buf := new(bytes.Buffer)
-	err = SafeMarshal(buf, chain)
-
-	// Post the chain JSON to FactomClient web server	---------------------------------------
-	data := url.Values{}
-	data.Set("chain", string(buf.Bytes()))
-
-	//factom.CommitChain(chain)
-
-	if err != nil {	t.Errorf("Error:%v", err) }
-
-	fmt.Println(" chainid" + hex.EncodeToString(chain.ChainID))
-	
-
-	fmt.Println(string(buf.Bytes()))
-	resp, err := http.PostForm("http://localhost:8088/v1/submitchain", data)	
-	if err != nil {	t.Errorf("Error:%v", err) }
-	
-	contents, err := ioutil.ReadAll(resp.Body)	
-	fmt.Printf("Http Resp Body:%s\n", string(contents)) 
-	fmt.Println("status code:%v", resp.StatusCode)	
-	if err != nil {
-		t.Errorf("Error:%v", err)
-	} else{
-		fmt.Println("Chain successfully submitted to factomclient.")
-	}		
-	
-}*/
-/**/
-/*
-func TestRevealChain(t *testing.T) {
- 	chain, err := factom.NewChain([]string{"mytestchain"},[]string{"mytestchainid"},[]byte("mytestchain-firstentry"))
-
-	buf := new(bytes.Buffer)
-	err = SafeMarshal(buf, chain)
-
-	// Post the chain JSON to FactomClient web server	---------------------------------------
-	data := url.Values{}
-	data.Set("chain", string(buf.Bytes()))
-
-	factom.RevealChain(chain)
-
-	if err != nil {	t.Errorf("Error:%v", err) }
-	
-		fmt.Println(" reveal chainid" + hex.EncodeToString(chain.ChainID))
-
-	/*
-	fmt.Println(string(buf.Bytes()))
-	resp, err := http.PostForm("http://localhost:8088/v1/submitchain", data)	
-	if err != nil {	t.Errorf("Error:%v", err) }
-	
-	contents, err := ioutil.ReadAll(resp.Body)	
-	fmt.Printf("Http Resp Body:%s\n", string(contents)) 
-	fmt.Println("status code:%v", resp.StatusCode)	
-	if err != nil {
-		t.Errorf("Error:%v", err)
-	} else{
-		fmt.Println("Chain successfully submitted to factomclient.")
-	}		
-	
-}
-
 */
+
 /*
 func TestBuyCreditWallet(t *testing.T) {
 	fmt.Println("\nTestBuyCreditWallet===========================================================================")
@@ -184,7 +118,7 @@ func TestAddChain(t *testing.T) {
 		t.Errorf("Error:%v", err)
 	}
 } 
-
+*/
 func TestAddEntry(t *testing.T) {
 	fmt.Println("\nTestAddEntry===========================================================================")
 	entry := new (notaryapi.Entry)
@@ -230,7 +164,7 @@ func TestAddEntry(t *testing.T) {
 	}
 } 
 
-
+/*
 func TestBuyCredit(t *testing.T) {
 	fmt.Println("\nTestBuyCredit===========================================================================")
 	// Post the request to FactomClient web server	---------------------------------------
