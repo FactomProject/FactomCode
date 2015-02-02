@@ -2,20 +2,20 @@ package factomapi
 
 import (
 	"testing"
-	"bytes"	
+//	"bytes"	
 	"net/http"
 	"net/url"
 	"fmt"
-//	"encoding/hex"	
-	"github.com/FactomProject/gocoding"	
+	"encoding/hex"	
+//	"github.com/FactomProject/gocoding"	
 	"github.com/FactomProject/FactomCode/notaryapi"	
 
-	"encoding/base64"
+//	"encoding/base64"
 //	"io/ioutil"
 	//"os" 	
 	
 )
-/*
+
 func TestBuyCredit(t *testing.T) {
 	fmt.Println("\nTestBuyCredit===========================================================================")
 	// Post the request to FactomClient web server	---------------------------------------
@@ -36,7 +36,7 @@ func TestBuyCredit(t *testing.T) {
 	}		
 } 
 
-*/
+
 
 /*
 func TestBuyCreditWallet(t *testing.T) {
@@ -118,7 +118,7 @@ func TestAddChain(t *testing.T) {
 		t.Errorf("Error:%v", err)
 	}
 } 
-*/
+
 func TestAddEntry(t *testing.T) {
 	fmt.Println("\nTestAddEntry===========================================================================")
 	entry := new (notaryapi.Entry)

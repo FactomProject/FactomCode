@@ -33,7 +33,7 @@ var (
 	inMsgQueue	= make(chan factomwire.Message, 100) 	//incoming message queue for factom application messages
 	outMsgQueue  = make(chan factomwire.Message, 100) 	//outgoing message queue for factom application messages
 )
-
+ 
 // winServiceMain is only invoked on Windows.  It detects when btcd is running
 // as a service and reacts accordingly.
 var winServiceMain func() (bool, error)
@@ -125,6 +125,11 @@ func factomdMain(serverChan chan<- *server) error {
 	go func() {
 		for  msg := range outMsgQueue {	
 			server.BroadcastMessage (msg)
+/*			peerInfoResults := server.PeerInfo()
+			for peerInfo := range peerInfoResults{
+				fmt.Printf("PeerInfo:%+v", peerInfo) 
+				
+			}*/
 		}
 	}()
 

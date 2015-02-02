@@ -13,7 +13,7 @@ import (
 
 	"github.com/FactomProject/FactomCode/fastsha256"
 )
-
+ 
 // Maximum payload size for a variable length integer.
 const MaxVarIntPayload = 9
 
