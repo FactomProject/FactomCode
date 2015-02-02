@@ -14,6 +14,7 @@ import (
 	"github.com/FactomProject/FactomCode/wallet"	
 	"github.com/btcsuite/btcrpcclient"
 	"github.com/btcsuite/btcutil"
+  "github.com/FactomProject/FactomCode/fastsha256"
 	"io/ioutil"
 	"log"
 	"os"
@@ -278,8 +279,11 @@ func Start_Processor(ldb database.Db, inMsgQ <-chan factomwire.Message, outMsgQ 
 	db = ldb
 	inMsgQueue = inMsgQ
 	outMsgQueue = outMsgQ
+
+  fastsha256.Trace()
 	
 	init_processor()
+  fastsha256.Trace()
 
 	if nodeMode == SERVER_NODE {
 		err := initRPCClient()
@@ -291,12 +295,14 @@ func Start_Processor(ldb database.Db, inMsgQ <-chan factomwire.Message, outMsgQ 
 			log.Fatalf("cannot init wallet: %s", err)
 		}
 	}
+  fastsha256.Trace()
 	
 	// Process msg from the incoming queue
 	for  msg := range inMsgQ {	
 			go serveMsgRequest(msg)
 	}
 
+  fastsha256.Trace()
 
 	defer func() {
 		shutdown()
@@ -357,8 +363,11 @@ func save(chain *notaryapi.EChain) {
 func serveMsgRequest(msg factomwire.Message) error{
 	//var buf bytes.Buffer
 
+  fastsha256.Trace()
+
 	switch msg.Command() {
 		case factomwire.CmdCommitChain:
+  fastsha256.Trace()
 			msgCommitChain, ok := msg.(*factomwire.MsgCommitChain)
 			if ok {
 				//Verify signature (timestamp + chainid + entry hash + entryChainIDHash + credits)
@@ -381,6 +390,7 @@ func serveMsgRequest(msg factomwire.Message) error{
 			}				
 
 		case factomwire.CmdRevealChain:
+  fastsha256.Trace()
 			msgRevealChain, ok := msg.(*factomwire.MsgRevealChain)
 			if ok {
 				err := processRevealChain(msgRevealChain.Chain)	
@@ -392,6 +402,7 @@ func serveMsgRequest(msg factomwire.Message) error{
 			}				
 
 		case factomwire.CmdCommitEntry:	
+  fastsha256.Trace()
 			msgCommitEntry, ok := msg.(*factomwire.MsgCommitEntry)
 			if ok {
 				//Verify signature (timestamp + entry hash + credits)	
@@ -434,8 +445,10 @@ func serveMsgRequest(msg factomwire.Message) error{
 			}
 		
 		default:
+  fastsha256.Trace()
 			return errors.New("Message type unsupported:" + fmt.Sprintf("%+v", msg)) 
 	}
+  fastsha256.Trace()
 	return nil
 }
 
