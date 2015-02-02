@@ -25,7 +25,6 @@ import (
 	//	"github.com/FactomProject/FactomCode/go-socks/socks"
 	"github.com/FactomProject/FactomCode/fastsha256"
 	"github.com/davecgh/go-spew/spew"
-
 )
 
 const (
@@ -781,7 +780,7 @@ func (p *peer) handleTxMsg(msg *factomwire.MsgTx) {
 // Handle factom app imcoming msg
 func (p *peer) handleBuyCreditMsg(msg *factomwire.MsgBuyCredit) {
 	fastsha256.Trace()
-	
+
 	// Add the msg to inbound msg queue
 	inMsgQueue <- msg
 }
@@ -789,7 +788,7 @@ func (p *peer) handleBuyCreditMsg(msg *factomwire.MsgBuyCredit) {
 // Handle factom app imcoming msg
 func (p *peer) handleCommitChainMsg(msg *factomwire.MsgCommitChain) {
 	fastsha256.Trace()
-	
+
 	// Add the msg to inbound msg queue
 	inMsgQueue <- msg
 }
@@ -797,7 +796,7 @@ func (p *peer) handleCommitChainMsg(msg *factomwire.MsgCommitChain) {
 // Handle factom app imcoming msg
 func (p *peer) handleRevealChainMsg(msg *factomwire.MsgRevealChain) {
 	fastsha256.Trace()
-	
+
 	// Add the msg to inbound msg queue
 	inMsgQueue <- msg
 }
@@ -805,7 +804,7 @@ func (p *peer) handleRevealChainMsg(msg *factomwire.MsgRevealChain) {
 // Handle factom app imcoming msg
 func (p *peer) handleCommitEntryMsg(msg *factomwire.MsgCommitEntry) {
 	fastsha256.Trace()
-	
+
 	// Add the msg to inbound msg queue
 	inMsgQueue <- msg
 }
@@ -813,7 +812,7 @@ func (p *peer) handleCommitEntryMsg(msg *factomwire.MsgCommitEntry) {
 // Handle factom app imcoming msg
 func (p *peer) handleRevealEntryMsg(msg *factomwire.MsgRevealEntry) {
 	fastsha256.Trace()
-	
+
 	// Add the msg to inbound msg queue
 	inMsgQueue <- msg
 }
@@ -1156,6 +1155,8 @@ func (p *peer) handleGetAddrMsg(msg *factomwire.MsgGetAddr) {
 	//	return
 	//}
 
+	fastsha256.Trace()
+
 	// Get the current known addresses from the address manager.
 	addrCache := p.server.addrManager.AddressCache()
 
@@ -1166,6 +1167,7 @@ func (p *peer) handleGetAddrMsg(msg *factomwire.MsgGetAddr) {
 		p.Disconnect()
 		return
 	}
+	fastsha256.Trace()
 }
 
 // pushAddrMsg sends one, or more, addr message(s) to the connected peer using
@@ -1538,16 +1540,16 @@ out:
 
 		case *factomwire.MsgCommitChain:
 			p.handleCommitChainMsg(msg)
-			
+
 		case *factomwire.MsgRevealChain:
 			p.handleRevealChainMsg(msg)
-			
+
 		case *factomwire.MsgCommitEntry:
 			p.handleCommitEntryMsg(msg)
-			
+
 		case *factomwire.MsgRevealEntry:
 			p.handleRevealEntryMsg(msg)
-												
+
 			/*
 				case *factomwire.MsgMemPool:
 					p.handleMemPoolMsg(msg)
