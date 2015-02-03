@@ -13,9 +13,9 @@ import (
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/database/ldb"
 	"github.com/FactomProject/FactomCode/factomclient"
+	"github.com/FactomProject/FactomCode/factomwire"
 	"github.com/FactomProject/FactomCode/restapi"
 	"github.com/FactomProject/FactomCode/util"
-	"github.com/FactomProject/FactomCode/factomwire"	
 	"log"
 	"os"
 	"runtime"
@@ -29,11 +29,11 @@ var (
 	//	cfg             *config
 	shutdownChannel = make(chan struct{})
 	ldbpath         = "/tmp/ldb9"
-	db              database.Db // database
-	inMsgQueue	= make(chan factomwire.Message, 100) 	//incoming message queue for factom application messages
-	outMsgQueue  = make(chan factomwire.Message, 100) 	//outgoing message queue for factom application messages
+	db              database.Db                          // database
+	inMsgQueue      = make(chan factomwire.Message, 100) //incoming message queue for factom application messages
+	outMsgQueue     = make(chan factomwire.Message, 100) //outgoing message queue for factom application messages
 )
- 
+
 // winServiceMain is only invoked on Windows.  It detects when btcd is running
 // as a service and reacts accordingly.
 var winServiceMain func() (bool, error)
@@ -101,7 +101,7 @@ func factomdMain(serverChan chan<- *server) error {
 		})
 	*/
 
-	cfg_Listeners := []string{"0.0.0.0:8666"}
+	cfg_Listeners := []string{"0.0.0.0:4012"}
 
 	// Create server and start it.
 	server, err := newServer(cfg_Listeners, activeNetParams.Params)
@@ -121,15 +121,15 @@ func factomdMain(serverChan chan<- *server) error {
 		serverChan <- server
 	}
 
-	// Write outgoing factom messages into P2P network 
+	// Write outgoing factom messages into P2P network
 	go func() {
-		for  msg := range outMsgQueue {	
-			server.BroadcastMessage (msg)
-/*			peerInfoResults := server.PeerInfo()
-			for peerInfo := range peerInfoResults{
-				fmt.Printf("PeerInfo:%+v", peerInfo) 
-				
-			}*/
+		for msg := range outMsgQueue {
+			server.BroadcastMessage(msg)
+			/*			peerInfoResults := server.PeerInfo()
+						for peerInfo := range peerInfoResults{
+							fmt.Printf("PeerInfo:%+v", peerInfo)
+
+						}*/
 		}
 	}()
 
@@ -153,7 +153,7 @@ func factomdMain(serverChan chan<- *server) error {
 }
 
 func main() {
-	
+
 	fastsha256.Trace()
 	// Use all processor cores.
 	runtime.GOMAXPROCS(runtime.NumCPU())
@@ -207,7 +207,7 @@ func init() {
 	go restapi.Start_Processor(db, inMsgQueue, outMsgQueue)
 
 	fastsha256.Trace()
-	
+
 	// Start the RPC server module in a separate go-routine
 
 	go factomclient.Start_Rpcserver(db, outMsgQueue)
