@@ -214,7 +214,7 @@ func (db *LevelDb) FetchDBlockByHash(dBlockHash *notaryapi.Hash) (dBlock *notary
 	data, err := db.lDb.Get(key, db.ro)
 	
 	if data == nil {
-		return nil, errors.New("DBlock not found for Hash: " + Hash.String())
+		return nil, errors.New("DBlock not found for Hash: " + dBlockHash.String())
 	} else {
 		dBlock = new (notaryapi.DBlock)
 		dBlock.UnmarshalBinary(data)
