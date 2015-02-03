@@ -266,8 +266,10 @@ func init_processor() {
 
 				fmt.Printf("in tickers[1]: doneBatch=%#v\n", doneBatch)
 
-				// go routine here?
-				saveDBBatchMerkleRoottoBTC(doneBatch)
+				// Only Servers can write the anchor to Bitcoin network
+				if nodeMode == SERVER_NODE {
+					saveDBBatchMerkleRoottoBTC(doneBatch)
+				}
 			}
 		}
 	}()
