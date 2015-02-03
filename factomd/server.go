@@ -846,7 +846,6 @@ func (s *server) NetTotals() (uint64, uint64) {
 	return s.bytesReceived, s.bytesSent
 }
 
-/*
 // rebroadcastHandler keeps track of user submitted inventories that we have
 // sent out but have not yet made it into a block. We periodically rebroadcast
 // them in case our peers restarted or otherwise lost track of them.
@@ -903,7 +902,7 @@ cleanup:
 		}
 	}
 	s.wg.Done()
-}*/
+}
 
 // Start begins accepting connections from peers.
 func (s *server) Start() {
@@ -930,7 +929,9 @@ func (s *server) Start() {
 			s.wg.Add(1)
 			go s.upnpUpdateThread()
 		}
+	*/
 
+	/*
 		if !cfg.DisableRPC {
 			s.wg.Add(1)
 
@@ -940,7 +941,9 @@ func (s *server) Start() {
 
 			s.rpcServer.Start()
 		}
+	*/
 
+	/*
 		// Start the CPU miner if generation is enabled.
 		if cfg.Generate {
 			s.cpuMiner.Start()

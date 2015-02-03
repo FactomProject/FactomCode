@@ -1175,6 +1175,7 @@ func (p *peer) handleGetAddrMsg(msg *factomwire.MsgGetAddr) {
 func (p *peer) pushAddrMsg(addresses []*factomwire.NetAddress) error {
 	// Nothing to send.
 	if len(addresses) == 0 {
+		fmt.Println("pushAddrMsg: nothing to send")
 		return nil
 	}
 
@@ -1537,18 +1538,23 @@ out:
 
 		case *factomwire.MsgBuyCredit:
 			p.handleBuyCreditMsg(msg)
+			p.server.BroadcastMessage(msg, p)
 
 		case *factomwire.MsgCommitChain:
 			p.handleCommitChainMsg(msg)
+			p.server.BroadcastMessage(msg, p)
 
 		case *factomwire.MsgRevealChain:
 			p.handleRevealChainMsg(msg)
+			p.server.BroadcastMessage(msg, p)
 
 		case *factomwire.MsgCommitEntry:
 			p.handleCommitEntryMsg(msg)
+			p.server.BroadcastMessage(msg, p)
 
 		case *factomwire.MsgRevealEntry:
 			p.handleRevealEntryMsg(msg)
+			p.server.BroadcastMessage(msg, p)
 
 			/*
 				case *factomwire.MsgMemPool:

@@ -41,7 +41,7 @@ type Params struct {
 var MainNetParams = Params{
 	Name:        "mainnet",
 	Net:         factomwire.MainNet,
-	DefaultPort: "8666",
+	DefaultPort: "4012",
 }
 
 // TestNet3Params defines the network parameters for the test Bitcoin network
@@ -50,5 +50,5 @@ var MainNetParams = Params{
 var TestNet3Params = Params{
 	Name:        "testnet3",
 	Net:         factomwire.TestNet3,
-	DefaultPort: "18666",
+	DefaultPort: "40123",
 }

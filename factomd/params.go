@@ -33,7 +33,7 @@ var mainNetParams = params{
 	dnsSeeds: []string{
 		//		"seed.bitcoin.sipa.be",
 		"factom-p.duckdns.org",
-		// "m21.duckdns.org",
+		//    "m21.duckdns.org",
 		//		"devtest.factom.org",
 	},
 }
@@ -42,13 +42,12 @@ var mainNetParams = params{
 // (factomwire.TestNet3).  NOTE: The RPC port is intentionally different than the
 // reference implementation - see the mainNetParams comment for details.
 var testNet3Params = params{
-	Params:  &factomnet.TestNet3Params,
-	rpcPort: "18334",
+	Params:   &factomnet.TestNet3Params,
+	rpcPort:  "18334",
 	dnsSeeds: []string{
-		//		"testnet-seed.alexykot.me",
-		"factom-p.duckdns.org",
-		// "m21.duckdns.org",
-		//		"devtest.factom.org",
+	// "factom-p.duckdns.org",
+	// "m21.duckdns.org",
+	//		"devtest.factom.org",
 	},
 }
 
