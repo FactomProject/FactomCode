@@ -1,47 +1,42 @@
 package restapi
-/*
+
 import (
 	"testing"
 	"github.com/FactomProject/FactomCode/notaryapi"		
+	"github.com/FactomProject/FactomCode/factomwire"		
 	"github.com/FactomProject/FactomCode/database/ldb"		
 	"fmt"
 	"log"
-	"time"
-	"encoding/binary" 
+//	"time"
+	"encoding/hex" 
 	
 )
 
-func init(){
-	initDB()
-	Start_Processor(db)
-	
-}
+
 
 func TestBuyCredit(t *testing.T) {
 	
-	barray := (make([]byte, 32))
-	barray[0] = 2
-	pubKey := new (notaryapi.Hash)
-	pubKey.SetBytes(barray)	
-	
-	barray1 := (make([]byte, 32))
-	barray1[31] = 2
-	factoidTxHash := new (notaryapi.Hash)
-	factoidTxHash.SetBytes(barray1)	
-		
-	_, err := processBuyEntryCredit(pubKey, 200000, factoidTxHash)
-	
-	
-	printCreditMap()
-	
-	printPaidEntryMap()
-	printCChain()
-				
-	if err != nil {
-		t.Errorf("Error:", err)
-	}
-} 
+	initDB()
+	inMsgQ	:= make(chan factomwire.Message, 100) 	//incoming message queue for factom application messages
+	outMsgQ  := make(chan factomwire.Message, 100) 	//outgoing message queue for factom application messages
 
+	hexkey := "ed14447c656241bf7727fce2e2a48108374bec6e71358f0a280608b292c7f3bc"
+	binkey, _ := hex.DecodeString(hexkey)
+	pubKey := new(notaryapi.Hash)
+	pubKey.SetBytes(binkey)	
+	
+	
+	//Write msg
+	msgOutgoing := factomwire.NewMsgBuyCredit() 
+	msgOutgoing.ECPubKey = pubKey
+	msgOutgoing.FactoidBase = uint64(2000000000)
+	fmt.Printf("msgOutgoing:%+v\n", msgOutgoing)	
+		
+	inMsgQ <- msgOutgoing
+		
+	Start_Processor(db, inMsgQ, outMsgQ)
+} 
+/*
 func TestAddChain(t *testing.T) {
 
 	chain := new (notaryapi.EChain)
@@ -149,7 +144,7 @@ func TestAddEntry(t *testing.T) {
 	}
 	
 } 
-
+*/
 func initDB() {
 	
 	//init db
@@ -171,4 +166,4 @@ func initDB() {
 	}
 	log.Println("Database started from: " + ldbpath)	
 
-}*/
+}

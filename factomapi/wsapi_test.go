@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"fmt"
-//	"encoding/hex"	
+	"encoding/hex"	
 	"github.com/FactomProject/gocoding"	
 	"github.com/FactomProject/FactomCode/notaryapi"	
 
@@ -36,9 +36,9 @@ func TestBuyCredit(t *testing.T) {
 	}		
 } 
 
+
 */
 
-/*
 func TestBuyCreditWallet(t *testing.T) {
 	fmt.Println("\nTestBuyCreditWallet===========================================================================")
 	// Post the request to FactomClient web server	---------------------------------------
@@ -60,7 +60,7 @@ func TestBuyCreditWallet(t *testing.T) {
 
 } 
 
-///need to call commit first because we added payment logic on server
+//need to call commit first because we added payment logic on server
 func TestAddChain(t *testing.T) {
 	fmt.Println("\nTestAddChain===========================================================================")
 	chain := new (notaryapi.EChain)
@@ -118,7 +118,7 @@ func TestAddChain(t *testing.T) {
 		t.Errorf("Error:%v", err)
 	}
 } 
-*/
+
 func TestAddEntry(t *testing.T) {
 	fmt.Println("\nTestAddEntry===========================================================================")
 	entry := new (notaryapi.Entry)

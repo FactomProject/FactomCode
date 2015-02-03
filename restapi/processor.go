@@ -266,8 +266,10 @@ func init_processor() {
 
 				fmt.Printf("in tickers[1]: doneBatch=%#v\n", doneBatch)
 
-				// go routine here?
-				saveDBBatchMerkleRoottoBTC(doneBatch)
+				// Only Servers can write the anchor to Bitcoin network
+				if nodeMode == SERVER_NODE {
+					saveDBBatchMerkleRoottoBTC(doneBatch)
+				}
 			}
 		}
 	}()
@@ -297,8 +299,10 @@ func Start_Processor(ldb database.Db, inMsgQ <-chan factomwire.Message, outMsgQ 
 	}
   fastsha256.Trace()
 	
+	fmt.Println ("before range inMsgQ")
 	// Process msg from the incoming queue
 	for  msg := range inMsgQ {	
+			fmt.Printf ("in range inMsgQ, msg:%+v\n", msg)		
 			go serveMsgRequest(msg)
 	}
 
@@ -435,6 +439,7 @@ func serveMsgRequest(msg factomwire.Message) error{
 		case factomwire.CmdBuyCredit:
 			msgBuyCredit, ok := msg.(*factomwire.MsgBuyCredit)
 			if ok {
+				fmt.Printf("msgBuyCredit:%+v\n", msgBuyCredit)
 				credits := msgBuyCredit.FactoidBase * creditsPerFactoid / 1000000000
 				err := processBuyEntryCredit(msgBuyCredit.ECPubKey, int32(credits), msgBuyCredit.ECPubKey)	
 				if err != nil {
@@ -598,6 +603,8 @@ func processBuyEntryCredit(pubKey *notaryapi.Hash, credits int32, factoidTxHash 
 	eCreditMap[pubKey.String()] = balance + credits
 	cchain.BlockMutex.Unlock()
 
+	printCChain()
+	printCreditMap()
 	return err
 }
 
