@@ -5,6 +5,8 @@ import (
 	"os"
 	//"fmt"
 	"code.google.com/p/gcfg"
+	"github.com/FactomProject/FactomCode/notaryapi"
+
 )
 
 var (
@@ -58,13 +60,13 @@ func loadConfigurations(){
 	
 }
 
-func SignData(data []byte) Signature {
+func SignData(data []byte) notaryapi.Signature {
 	return keyManager.keyPair.Sign(data)
 }
 
 //impliment Signer 
-func Sign(d []byte) Signature {return SignData(d)}
+func Sign(d []byte) notaryapi.Signature {return SignData(d)}
 
-func ClientPublicKey() PublicKey {
+func ClientPublicKey() notaryapi.PublicKey {
 	return keyManager.keyPair.Pub
 }

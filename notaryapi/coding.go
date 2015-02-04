@@ -3,7 +3,7 @@ package notaryapi
 import (
 	"encoding/hex"
 	"reflect"
-	"strings"
+	//"strings"
 
 	"github.com/FactomProject/gocoding"
 	"github.com/FactomProject/gocoding/json"
@@ -29,68 +29,11 @@ func UnmarshalJSON(reader gocoding.SliceableRuneReader, obj interface{}) error {
 	return NewJSONUnmarshaller().Unmarshal(json.Scan(reader), obj)
 }
 
-var signatureType = reflect.TypeOf(new(Signature)).Elem()
+//var signatureType = reflect.TypeOf(new(Signature)).Elem()
 
 func NewDecoding(decoding gocoding.Decoding) gocoding.Decoding {
 	return func(m gocoding.Unmarshaller, t reflect.Type) gocoding.Decoder {
-		if !t.ConvertibleTo(signatureType) {
 			return decoding(m, t)
-		}
-		
-		return SignatureDecoding(m, t)
 	}
 }
 
-func SignatureDecoding(m gocoding.Unmarshaller, t reflect.Type) gocoding.Decoder {
-	decoders := []gocoding.Decoder{
-		(&ECDSASignature{}).ElementDecoding(m, t),
-	}
-
-	return func(scratch [64]byte, scanner gocoding.Scanner, value reflect.Value) {
-		if scanner.Peek() == gocoding.ScannedLiteralBegin {
-			null := scanner.NextValue()
-			if null.IsValid() && null.IsNil() {
-				value.Set(reflect.Zero(t))
-				return
-			}
-		}
-
-		if !gocoding.PeekCheck(scanner, gocoding.ScannedStructBegin, gocoding.ScannedMapBegin) {
-			return
-		}
-
-		// get the next code, should have at least a type key
-		code := scanner.Continue()
-		if code != gocoding.ScannedKeyBegin {
-			gocoding.PeekCheck(scanner, gocoding.ScannedKeyBegin)
-			return
-		}
-
-		// get the key
-		key := scanner.NextValue()
-		if key.Kind() != reflect.String {
-			scanner.Error(gocoding.ErrorPrint("Decoding", "Invalid key type %s", key.Type().String()))
-			return
-		}
-		if str := strings.ToLower(key.String()); str != `type` {
-			scanner.Error(gocoding.ErrorPrintf("Decoding", "Decoding signature: expected 'type', got '%s'", str))
-			return
-		}
-
-		scanner.Continue()
-		_type := scanner.NextValue()
-		switch _type.Kind() {
-		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
-			reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-
-		default:
-			scanner.Error(gocoding.ErrorPrint("Decoding", "Invalid type code type %s", _type.Type().String()))
-		}
-
-		switch _type.Int() {
-		case ECDSASignatureType:
-			value.Set(reflect.ValueOf(&ECDSASignature{}))
-			decoders[0](scratch, scanner, value)
-		}
-	}
-}

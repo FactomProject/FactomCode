@@ -1269,7 +1269,6 @@ func (p *peer) handleAddrMsg(msg *factomwire.MsgAddr) {
 // message.  For older clients, it does nothing and anything other than failure
 // is considered a successful ping.
 func (p *peer) handlePingMsg(msg *factomwire.MsgPing) {
-	fastsha256.Trace()
 	// Only Reply with pong is message comes from a new enough client.
 	//if p.ProtocolVersion() > factomwire.BIP0031Version {
 	// Include nonce from ping so pong can be identified.
@@ -1284,8 +1283,6 @@ func (p *peer) handlePingMsg(msg *factomwire.MsgPing) {
 func (p *peer) handlePongMsg(msg *factomwire.MsgPong) {
 	p.StatsMtx.Lock()
 	defer p.StatsMtx.Unlock()
-
-	fastsha256.Trace()
 
 	// Arguably we could use a buffered channel here sending data
 	// in a fifo manner whenever we send a ping, or a list keeping track of
