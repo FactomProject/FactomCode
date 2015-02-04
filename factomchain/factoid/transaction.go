@@ -14,7 +14,7 @@ import (
 //	Txid defines the transaction that contains Output being spent
 //	Index is Output number 
 //	SigData is the "reveal" for the Output.Address "commit"
-//			it contains the public-key(s) corresponsong to Signatures 
+//			it contains the public-key(s) corresponding to Signatures 
 type Input struct {
 	Txid		notaryapi.Hash 
 	Index		uint32

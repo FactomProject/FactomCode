@@ -4,6 +4,8 @@ import (
 	"github.com/agl/ed25519"
 )
 
+type DetachedSignature [64]byte
+type DetachedPublicKey [32]byte
 
 //Signature has signed data and its corresponsing PublicKey 
 type Signature struct {
