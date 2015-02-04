@@ -11,10 +11,10 @@ import (
 	"github.com/FactomProject/FactomCode/notaryapi"
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/FactomCode/factomwire"
-	"github.com/FactomProject/FactomCode/wallet"	
+	//"github.com/FactomProject/FactomCode/wallet"	
 	"github.com/btcsuite/btcrpcclient"
 	"github.com/btcsuite/btcutil"
-  "github.com/FactomProject/FactomCode/fastsha256"
+  	"github.com/FactomProject/FactomCode/fastsha256"
 	"io/ioutil"
 	"log"
 	"os"
@@ -381,7 +381,7 @@ func serveMsgRequest(msg factomwire.Message) error{
 				buf.Write(msgCommitChain.EntryHash.Bytes)	
 				buf.Write(msgCommitChain.EntryChainIDHash.Bytes) 
 				binary.Write(&buf, binary.BigEndian, msgCommitChain.Credits)	
-				if !wallet.VerifySlice(msgCommitChain.ECPubKey.Bytes, buf.Bytes(), msgCommitChain.Sig) {
+				if !notaryapi.VerifySlice(msgCommitChain.ECPubKey.Bytes, buf.Bytes(), msgCommitChain.Sig) {
 					return errors.New("Error in verifying signature for msg:" + fmt.Sprintf("%+v", msgCommitChain))
 				}	
 				
@@ -406,7 +406,7 @@ func serveMsgRequest(msg factomwire.Message) error{
 			}				
 
 		case factomwire.CmdCommitEntry:	
-  fastsha256.Trace()
+  			fastsha256.Trace()
 			msgCommitEntry, ok := msg.(*factomwire.MsgCommitEntry)
 			if ok {
 				//Verify signature (timestamp + entry hash + credits)	
@@ -414,7 +414,7 @@ func serveMsgRequest(msg factomwire.Message) error{
 				binary.Write(&buf, binary.BigEndian, msgCommitEntry.Timestamp)
 				buf.Write(msgCommitEntry.EntryHash.Bytes)
 				binary.Write(&buf, binary.BigEndian, msgCommitEntry.Credits)		
-				if !wallet.VerifySlice(msgCommitEntry.ECPubKey.Bytes, buf.Bytes(), msgCommitEntry.Sig) {
+				if !notaryapi.VerifySlice(msgCommitEntry.ECPubKey.Bytes, buf.Bytes(), msgCommitEntry.Sig) {
 					return errors.New("Error in verifying signature for msg:" + fmt.Sprintf("%+v", msgCommitEntry))
 				}	
 				
