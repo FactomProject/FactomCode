@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"fmt"
-	"encoding/hex"	
+//	"encoding/hex"	
 	"github.com/FactomProject/gocoding"	
 	"github.com/FactomProject/FactomCode/notaryapi"	
 
