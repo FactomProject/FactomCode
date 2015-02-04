@@ -12,7 +12,7 @@ import (
 	"github.com/FactomProject/FactomCode/database"	
 //	"github.com/FactomProject/FactomCode/database/ldb"		
 	"github.com/FactomProject/FactomCode/factomapi"	
-	"github.com/FactomProject/FactomCode/notaryapi"		
+	"github.com/FactomProject/FactomCode/notaryapi"				
 	"github.com/FactomProject/FactomCode/factomwire"		
 	"github.com/FactomProject/FactomCode/util"		
 	"strings"
@@ -100,7 +100,7 @@ func downloadAndImportDbRecords() {
 	data.Set("format", "binary")
 	data.Set("password", "opensesame")	
 	 
-	server := fmt.Sprintf(`http://%s/v1`, serverAddr)
+	server := fmt.Sprintf(`http://%s/v1/getfilelist`, serverAddr)
 	resp, err := http.PostForm(server, data)
 	
 	if err != nil {
@@ -128,7 +128,7 @@ func downloadAndImportDbRecords() {
 			data.Set("format", "binary")
 			data.Set("password", "opensesame")	
 			
-			server := fmt.Sprintf(`http://%s/v1`, serverAddr)
+			server := fmt.Sprintf(`http://%s/v1/getfile`, serverAddr)
 			resp, err := http.PostForm(server, data)
 			
 			if fileNotExists( dataStorePath) {
