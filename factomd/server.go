@@ -42,14 +42,25 @@ const (
 
 	// connectionRetryInterval is the amount of time to wait in between
 	// retries when connecting to persistent peers.
-	connectionRetryInterval = time.Second * 10
+	//	connectionRetryInterval = time.Second * 10
+	connectionRetryInterval = time.Second * 3
 
 	// defaultMaxOutbound is the default number of max outbound peers.
 	defaultMaxOutbound = 8
 
 	MaxPeers    = 125
 	BanDuration = time.Hour * 24
-	DataDir     = "/tmp/factom/data"
+	//	DataDir     = "/tmp/factom/data"
+	DataDir = "/tmp"
+)
+
+var (
+	// Permanent nodes
+	AddPeers = []string{
+		"m21.duckdns.org:4012",
+		"factom-j.duckdns.org:4012",
+	}
+	ConnectPeers []string
 )
 
 // GetPeerInfoResult models the data returned from the getpeerinfo command.
@@ -100,7 +111,7 @@ type server struct {
 	bytesReceived uint64     // Total bytes received from all peers since start.
 	bytesSent     uint64     // Total bytes sent by all peers since start.
 	addrManager   *addrmgr.AddrManager
-	//	rpcServer            *rpcServer
+	// rpcServer     *rpcServer
 	//	blockManager         *blockManager
 	//	txMemPool            *txMemPool
 	//	cpuMiner             *CPUMiner
@@ -607,18 +618,18 @@ func (s *server) peerHandler() {
 
 	// Add peers discovered through DNS to the address manager.
 	s.seedFromDNS()
-	/*
-		// Start up persistent peers.
-		permanentPeers := cfg.ConnectPeers
-		if len(permanentPeers) == 0 {
-			permanentPeers = cfg.AddPeers
-		}
-		for _, addr := range permanentPeers {
-			s.handleAddPeerMsg(state, newOutboundPeer(s, addr, true, 0))
-		}
-	*/
+	// Start up persistent peers.
+	permanentPeers := ConnectPeers
+	if len(permanentPeers) == 0 {
+		permanentPeers = AddPeers
+	}
+	for _, addr := range permanentPeers {
+		s.handleAddPeerMsg(state, newOutboundPeer(s, addr, true, 0))
+	}
+
 	// if nothing else happens, wake us up soon.
-	time.AfterFunc(10*time.Second, func() { s.wakeup <- struct{}{} })
+	//	time.AfterFunc(10*time.Second, func() { s.wakeup <- struct{}{} })
+	time.AfterFunc(2*time.Second, func() { s.wakeup <- struct{}{} })
 
 out:
 	for {
@@ -733,7 +744,8 @@ out:
 
 		// We need more peers, wake up in ten seconds and try again.
 		if state.NeedMoreOutbound() {
-			time.AfterFunc(10*time.Second, func() {
+			//			time.AfterFunc(10*time.Second, func() {
+			time.AfterFunc(2*time.Second, func() {
 				s.wakeup <- struct{}{}
 			})
 		}

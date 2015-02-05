@@ -7,7 +7,6 @@ package factomwire
 import (
 	"bytes"
 	"fmt"
-	"github.com/FactomProject/FactomCode/fastsha256"
 	"io"
 	"unicode/utf8"
 )
@@ -76,7 +75,6 @@ type Message interface {
 // on the command.
 func makeEmptyMessage(command string) (Message, error) {
 	var msg Message
-	fastsha256.Trace()
 	switch command {
 	case CmdVersion:
 		msg = &MsgVersion{}
@@ -194,7 +192,7 @@ func readMessageHeader(r io.Reader) (int, *messageHeader, error) {
 	// Strip trailing zeros from command string.
 	hdr.command = string(bytes.TrimRight(command[:], string(0)))
 
-	fmt.Println(hdr)
+	//	fmt.Println(hdr)
 
 	return n, &hdr, nil
 }
@@ -291,12 +289,12 @@ func WriteMessageN(w io.Writer, msg Message, pver uint32, btcnet BitcoinNet) (in
 	totalBytes += n
 
 	//	fmt.Println("outgoing msg=", msg)
-	fmt.Printf("outgoing payload= [% x]\n", payload)
+	//	fmt.Printf("outgoing payload= [% x]\n", payload)
 
 	//	fmt.Println("outgoing hdr=", hdr)
-	fmt.Println("COMMAND: outgoing hdr.command=", hdr.command)
+	fmt.Printf("COMMAND outgoing: %s %+v\n", hdr.command, msg)
 
-	fmt.Printf("outgoing msg: %+v\n", msg)
+	//	fmt.Printf("outgoing msg: %+v\n", msg)
 
 	return totalBytes, nil
 }
@@ -397,11 +395,11 @@ func ReadMessageN(r io.Reader, pver uint32, btcnet BitcoinNet) (int, Message, []
 	}
 
 	//	fmt.Println("incoming msg=", msg)
-	fmt.Println("incoming hdr=", hdr)
-	fmt.Println("COMMAND: incoming hdr.command=", hdr.command)
+	//	fmt.Println("incoming hdr=", hdr)
+	fmt.Printf("COMMAND incoming: %s %+v\n", hdr.command, msg)
 
 	//	fmt.Printf("incoming msg: %v\n", msg)
-	fmt.Printf("incoming msg: %+v\n", msg)
+	//	fmt.Printf("incoming msg: %+v\n", msg)
 
 	return totalBytes, msg, payload, nil
 }

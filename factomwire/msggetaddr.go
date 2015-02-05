@@ -5,6 +5,7 @@
 package factomwire
 
 import (
+	"github.com/FactomProject/FactomCode/fastsha256"
 	"io"
 )
 
@@ -43,5 +44,6 @@ func (msg *MsgGetAddr) MaxPayloadLength(pver uint32) uint32 {
 // NewMsgGetAddr returns a new bitcoin getaddr message that conforms to the
 // Message interface.  See MsgGetAddr for details.
 func NewMsgGetAddr() *MsgGetAddr {
+	fastsha256.Trace()
 	return &MsgGetAddr{}
 }

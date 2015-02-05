@@ -191,6 +191,8 @@ type peer struct {
 	lastPingNonce   uint64    // Set to nonce if we have a pending ping.
 	lastPingTime    time.Time // Time we sent last ping.
 	lastPingMicros  int64     // Time for last ping to return.
+	itself          bool
+	display         bool
 }
 
 // String returns the peer's address and directionality as a human-readable
@@ -380,8 +382,8 @@ func (p *peer) handleVersionMsg(msg *factomwire.MsgVersion) {
 		// Send an reject message indicating the version message was
 		// incorrectly sent twice and wait for the message to be sent
 		// before disconnecting.
-		//p.PushRejectMsg(msg.Command(), factomwire.RejectDuplicate,
-		//	"duplicate version message", nil, true)
+		p.PushRejectMsg(msg.Command(), factomwire.RejectDuplicate,
+			"duplicate version message", nil, true)
 
 		p.Disconnect()
 		return
@@ -681,17 +683,20 @@ func (p *peer) PushGetHeadersMsg(locator btcchain.BlockLocator, stopHash *factom
 	p.prevGetHdrsStop = stopHash
 	return nil
 }
+*/
 
 // PushRejectMsg sends a reject message for the provided command, reject code,
 // and reject reason, and hash.  The hash will only be used when the command
 // is a tx or block and should be nil in other cases.  The wait parameter will
 // cause the function to block until the reject message has actually been sent.
 func (p *peer) PushRejectMsg(command string, code factomwire.RejectCode, reason string, hash *factomwire.ShaHash, wait bool) {
+	fastsha256.Trace()
 	// Don't bother sending the reject message if the protocol version
 	// is too low.
 	if p.VersionKnown() && p.ProtocolVersion() < factomwire.RejectVersion {
 		return
 	}
+	fastsha256.Trace()
 
 	msg := factomwire.NewMsgReject(command, code, reason)
 	if command == factomwire.CmdTx || command == factomwire.CmdBlock {
@@ -716,6 +721,7 @@ func (p *peer) PushRejectMsg(command string, code factomwire.RejectCode, reason 
 	<-doneChan
 }
 
+/*
 // handleMemPoolMsg is invoked when a peer receives a mempool bitcoin message.
 // It creates and sends an inventory message with the contents of the memory
 // pool up to the maximum inventory allowed per message.  When the peer has a
@@ -1175,7 +1181,7 @@ func (p *peer) handleGetAddrMsg(msg *factomwire.MsgGetAddr) {
 func (p *peer) pushAddrMsg(addresses []*factomwire.NetAddress) error {
 	// Nothing to send.
 	if len(addresses) == 0 {
-		fmt.Println("pushAddrMsg: nothing to send")
+		fmt.Println("pushAddrMsg: nothing to send !!!!!!!!!!!!!!")
 		return nil
 	}
 
@@ -1293,17 +1299,20 @@ func (p *peer) handlePongMsg(msg *factomwire.MsgPong) {
 	// infrequently enough that if they overlap we would have timed out
 	// the peer.
 	//if p.protocolVersion > factomwire.BIP0031Version &&
-	//p.lastPingNonce != 0 && msg.Nonce == p.lastPingNonce {
-	p.lastPingMicros = time.Now().Sub(p.lastPingTime).Nanoseconds()
-	p.lastPingMicros /= 1000 // convert to usec.
-	p.lastPingNonce = 0
-	//}
+	if p.lastPingNonce != 0 && msg.Nonce == p.lastPingNonce {
+		p.lastPingMicros = time.Now().Sub(p.lastPingTime).Nanoseconds()
+		p.lastPingMicros /= 1000 // convert to usec.
+		p.lastPingNonce = 0
+	}
 }
 
 // readMessage reads the next bitcoin message from the peer with logging.
 func (p *peer) readMessage() (factomwire.Message, []byte, error) {
-	fmt.Println("<<< readMessage()", p)
-	fastsha256.Trace()
+	if p.display {
+		fmt.Println("<<< readMessage()", p)
+		//		fastsha256.Trace()
+	}
+
 	n, msg, buf, err := factomwire.ReadMessageN(p.conn, p.ProtocolVersion(),
 		p.btcnet)
 	p.StatsMtx.Lock()
@@ -1333,15 +1342,20 @@ func (p *peer) readMessage() (factomwire.Message, []byte, error) {
 		}))
 	*/
 
-	fmt.Printf("spew read msg:\n" + spew.Sdump(msg))
-	fmt.Printf("spew read buf:\n" + spew.Sdump(buf))
+	if p.display {
+		fmt.Printf("spew read msg:\n" + spew.Sdump(msg))
+		fmt.Printf("spew read buf:\n" + spew.Sdump(buf))
+	}
 
 	return msg, buf, nil
 }
 
 // writeMessage sends a bitcoin Message to the peer with logging.
 func (p *peer) writeMessage(msg factomwire.Message) {
-	fmt.Println(">>> writeMessage()", p)
+	if p.display {
+		fmt.Println(">>> writeMessage()", p)
+	}
+
 	// Don't do anything if we're disconnecting.
 	if atomic.LoadInt32(&p.disconnect) != 0 {
 		return
@@ -1350,8 +1364,8 @@ func (p *peer) writeMessage(msg factomwire.Message) {
 		switch msg.(type) {
 		case *factomwire.MsgVersion:
 			// This is OK.
-		//case *factomwire.MsgReject:
-		// This is OK.
+		case *factomwire.MsgReject:
+			// This is OK.
 		default:
 			// Drop all messages other than version and reject if
 			// the handshake has not already been done.
@@ -1384,11 +1398,13 @@ func (p *peer) writeMessage(msg factomwire.Message) {
 		}))
 	*/
 
-	fmt.Printf("spew write msg:\n" + spew.Sdump(msg))
-	{
-		var buf bytes.Buffer
-		factomwire.WriteMessage(&buf, msg, p.ProtocolVersion(), p.btcnet)
-		fmt.Printf("spew write buf:\n" + spew.Sdump(buf.Bytes()))
+	if p.display {
+		fmt.Printf("spew write msg:\n" + spew.Sdump(msg))
+		{
+			var buf bytes.Buffer
+			factomwire.WriteMessage(&buf, msg, p.ProtocolVersion(), p.btcnet)
+			fmt.Printf("spew write buf:\n" + spew.Sdump(buf.Bytes()))
+		}
 	}
 
 	// Write the message to the peer.
@@ -1482,9 +1498,9 @@ out:
 					// but that is not currently exposed by
 					// factomwire, so just used malformed for
 					// the command.
-					//p.PushRejectMsg("malformed",
-					//	factomwire.RejectMalformed, errMsg,
-					//	nil, true)
+					p.PushRejectMsg("malformed",
+						factomwire.RejectMalformed, errMsg,
+						nil, true)
 				}
 
 			}
@@ -1495,14 +1511,14 @@ out:
 		p.StatsMtx.Unlock()
 
 		// Ensure version message comes first.
-		if _, ok := rmsg.(*factomwire.MsgVersion); !ok && !p.VersionKnown() {
+		if vmsg, ok := rmsg.(*factomwire.MsgVersion); !ok && !p.VersionKnown() {
 			errStr := "A version message must precede all others"
 			fmt.Println(errStr)
 
 			// Push a reject message and wait for the message to be
 			// sent before disconnecting.
-			//p.PushRejectMsg(vmsg.Command(), factomwire.RejectMalformed,
-			//	errStr, nil, true)
+			p.PushRejectMsg(vmsg.Command(), factomwire.RejectMalformed,
+				errStr, nil, true)
 			break out
 		}
 
@@ -1560,45 +1576,45 @@ out:
 		case *factomwire.MsgTx:
 			p.handleTxMsg(msg)
 			/*
-					case *factomwire.MsgBlock:
-						p.handleBlockMsg(msg, buf)
+				case *factomwire.MsgBlock:
+					p.handleBlockMsg(msg, buf)
 
-								case *factomwire.MsgInv:
-									p.handleInvMsg(msg)
-									markConnected = true
+							case *factomwire.MsgInv:
+								p.handleInvMsg(msg)
+								markConnected = true
 
-								case *factomwire.MsgHeaders:
-									p.handleHeadersMsg(msg)
+							case *factomwire.MsgHeaders:
+								p.handleHeadersMsg(msg)
 
-								case *factomwire.MsgNotFound:
-									// TODO(davec): Ignore this for now, but ultimately
-									// it should probably be used to detect when something
-									// we requested needs to be re-requested from another
-									// peer.
+							case *factomwire.MsgNotFound:
+								// TODO(davec): Ignore this for now, but ultimately
+								// it should probably be used to detect when something
+								// we requested needs to be re-requested from another
+								// peer.
 
-								case *factomwire.MsgGetData:
-									p.handleGetDataMsg(msg)
-									markConnected = true
+							case *factomwire.MsgGetData:
+								p.handleGetDataMsg(msg)
+								markConnected = true
 
-								case *factomwire.MsgGetBlocks:
-									p.handleGetBlocksMsg(msg)
+							case *factomwire.MsgGetBlocks:
+								p.handleGetBlocksMsg(msg)
 
-								case *factomwire.MsgGetHeaders:
-									p.handleGetHeadersMsg(msg)
+							case *factomwire.MsgGetHeaders:
+								p.handleGetHeadersMsg(msg)
 
-								case *factomwire.MsgFilterAdd:
-									p.handleFilterAddMsg(msg)
+							case *factomwire.MsgFilterAdd:
+								p.handleFilterAddMsg(msg)
 
-								case *factomwire.MsgFilterClear:
-									p.handleFilterClearMsg(msg)
+							case *factomwire.MsgFilterClear:
+								p.handleFilterClearMsg(msg)
 
-								case *factomwire.MsgFilterLoad:
-									p.handleFilterLoadMsg(msg)
-
-				case *factomwire.MsgReject:
-					// Nothing to do currently.  Logging of the rejected
-					// message is handled already in readMessage.
+							case *factomwire.MsgFilterLoad:
+								p.handleFilterLoadMsg(msg)
 			*/
+
+		case *factomwire.MsgReject:
+			// Nothing to do currently.  Logging of the rejected
+			// message is handled already in readMessage.
 		default:
 			fmt.Sprintf("Received unhandled message of type %v: Fix Me",
 				rmsg.Command())
@@ -1793,7 +1809,7 @@ out:
 			// the inv is of no interest explicitly solicited invs
 			// should elicit a reply but we don't track them
 			// specially.
-			fmt.Printf("%s: received from queuehandler\n", p)
+			//			fmt.Printf("%s: received from queuehandler\n", p)
 			reset := true
 			switch m := msg.msg.(type) {
 			case *factomwire.MsgVersion:
@@ -1831,9 +1847,9 @@ out:
 			if msg.doneChan != nil {
 				msg.doneChan <- struct{}{}
 			}
-			fmt.Sprintf("%s: acking queuehandler\n", p)
+			//			fmt.Sprintf("%s: acking queuehandler\n", p)
 			p.sendDoneQueue <- struct{}{}
-			fmt.Printf("%s: acked queuehandler\n", p)
+			//			fmt.Printf("%s: acked queuehandler\n", p)
 
 		case <-p.quit:
 			break out
@@ -1879,8 +1895,9 @@ func (p *peer) QueueMessage(msg factomwire.Message, doneChan chan struct{}) {
 		}
 		return
 	}
-	fmt.Printf("========= %s ===========================================================\n", time.Now().String())
-	fastsha256.Trace()
+	//	fmt.Printf("========= %s = %s = connected: %d =======================================================\n", time.Now().String(), p, p.server.ConnectedCount())
+	fmt.Printf("========= %s = %s ========================================================\n", time.Now().String(), p)
+	//	fastsha256.Trace()
 	p.outputQueue <- outMsg{msg: msg, doneChan: doneChan}
 }
 
