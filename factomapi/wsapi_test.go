@@ -66,7 +66,7 @@ func TestAddChain(t *testing.T) {
 	chain := new (notaryapi.EChain)
 	bName := make ([][]byte, 0, 5)
 	bName = append(bName, []byte("myCompany"))	
-	bName = append(bName, []byte("bookkeeping"))		
+	bName = append(bName, []byte("bookkeeping2"))		
 	
 	chain.Name = bName
 	chain.GenerateIDFromName()
@@ -121,7 +121,17 @@ func TestAddChain(t *testing.T) {
 
 func TestAddEntry(t *testing.T) {
 	fmt.Println("\nTestAddEntry===========================================================================")
+	
+	chain := new (notaryapi.EChain)
+	bName := make ([][]byte, 0, 5)
+	bName = append(bName, []byte("myCompany"))	
+	bName = append(bName, []byte("bookkeeping2"))		
+	
+	chain.Name = bName
+	chain.GenerateIDFromName()
+	
 	entry := new (notaryapi.Entry)
+	entry.ChainID = *chain.ChainID
 	entry.ExtIDs = make ([][]byte, 0, 5)
 	entry.ExtIDs = append(entry.ExtIDs, []byte("1001"))	
 	entry.ExtIDs = append(entry.ExtIDs, []byte("570b9e3fb2f5ae823685eb4422d4fd83f3f0d9e7ce07d988bd17e665394668c6"))	
@@ -132,9 +142,10 @@ func TestAddEntry(t *testing.T) {
 	err := SafeMarshal(buf, entry)
 	
 	fmt.Println("entry:%v", string(buf.Bytes()))
+	jsonstr := string(buf.Bytes())	
 
-	jsonstr := "{\"ChainID\":\"2FrgD2+vPP3yz5zLVaE5Tc2ViVv9fwZeR3/adzITjJc=\",\"ExtIDs\":[\"MTAwMQ==\",\"NTcwYjllM2ZiMmY1YWU4MjM2ODVlYjQ0MjJkNGZkODNmM2YwZDllN2NlMDdkOTg4YmQxN2U2NjUzOTQ2NjhjNg==\",\"bXZSSnFNVE1mclkzS3RIMkE0cWRQZnEzUTZMNEt3OUNrNA==\"],\"Data\":\"RW50cnkgZGF0YTogYXNsO2RqZmFzbGRrZmphc2xkZmpsa3NvdWlld29wdXJ3Ig==\"}"
-	fmt.Println(jsonstr)
+	//jsonstr := "{\"ChainID\":\"2FrgD2+vPP3yz5zLVaE5Tc2ViVv9fwZeR3/adzITjJc=\",\"ExtIDs\":[\"MTAwMQ==\",\"NTcwYjllM2ZiMmY1YWU4MjM2ODVlYjQ0MjJkNGZkODNmM2YwZDllN2NlMDdkOTg4YmQxN2U2NjUzOTQ2NjhjNg==\",\"bXZSSnFNVE1mclkzS3RIMkE0cWRQZnEzUTZMNEt3OUNrNA==\"],\"Data\":\"RW50cnkgZGF0YTogYXNsO2RqZmFzbGRrZmphc2xkZmpsa3NvdWlld29wdXJ3Ig==\"}"
+	//fmt.Println(jsonstr)
 
 	// Post the entry JSON to FactomClient web server	---------------------------------------
 	data := url.Values{}

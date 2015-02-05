@@ -56,7 +56,7 @@ var (
 	dbBatch   *notaryapi.DBBatch
 
 	//Map to store export csv files
-	serverDataFileMap map[string]string
+	ServerDataFileMap map[string]string
 	
 	inMsgQueue	<-chan factomwire.Message		//incoming message queue for factom application messages
 	outMsgQueue chan<- factomwire.Message 		//outgoing message queue for factom application messages	
@@ -921,7 +921,7 @@ func ExportDbToFile(dbHash *notaryapi.Hash) {
 
 	// Add the file to the distribution list
 	hash := notaryapi.Sha([]byte(filename))
-	serverDataFileMap[hash.String()] = filename
+	ServerDataFileMap[hash.String()] = filename
 }
 
 func ExportDataFromDbToFile() {
@@ -954,7 +954,7 @@ func ExportDataFromDbToFile() {
 
 	// Add the file to the distribution list
 	hash := notaryapi.Sha([]byte(filename))
-	serverDataFileMap[hash.String()] = filename
+	ServerDataFileMap[hash.String()] = filename
 
 }
 
@@ -1062,7 +1062,7 @@ func printCChain() {
 
 // Initialize the export file list
 func initServerDataFileMap() error {
-	serverDataFileMap = make(map[string]string)
+	ServerDataFileMap = make(map[string]string)
 
 	fiList, err := ioutil.ReadDir(dataStorePath + "csv")
 	if err != nil {
@@ -1074,7 +1074,7 @@ func initServerDataFileMap() error {
 		if !file.IsDir() && strings.HasSuffix(file.Name(), ".csv") {
 			hash := notaryapi.Sha([]byte(file.Name()))
 
-			serverDataFileMap[hash.String()] = file.Name()
+			ServerDataFileMap[hash.String()] = file.Name()
 
 		}
 	}
@@ -1082,13 +1082,4 @@ func initServerDataFileMap() error {
 
 }
 
-func getServerDataFileMapJSON() (interface{}, *notaryapi.Error) {
-	buf := new(bytes.Buffer)
-	err := factomapi.SafeMarshal(buf, serverDataFileMap)
 
-	var e *notaryapi.Error
-	if err != nil {
-		e = notaryapi.CreateError(notaryapi.ErrorBadPOSTData, err.Error())
-	}
-	return buf.Bytes(), e
-}

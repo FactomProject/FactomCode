@@ -8,7 +8,9 @@ import (
 	"github.com/hoisie/web"
 	"github.com/FactomProject/FactomCode/notaryapi"
 	"github.com/FactomProject/FactomCode/factomapi"
+	"github.com/FactomProject/FactomCode/restapi"		
 	"net/url"
+	"net/http" 	
 	"strconv"
 	"encoding/hex"
 	"time"
@@ -25,7 +27,9 @@ func serve_init() {
 	server.Post(`/v1/buycredit/?`, handleBuyCreditPost)		
 	server.Post(`/v1/creditbalance/?`, handleGetCreditBalancePost)			
 	server.Post(`/v1/addentry/?`, handleSubmitEntry2)	// Needs to be removed later??
-
+	server.Post(`/v1/getfilelist/?`, handleGetFileListPost)		// to be replaced by DHT
+	server.Post(`/v1/getfile/?`, handleGetFilePost)		// to be replaced by DHT	
+ 
 	server.Get(`/v1/creditbalance/?`, handleGetCreditBalancePost)			
 	server.Get(`/v1/buycredit/?`, handleBuyCreditPost)		
 		
@@ -131,31 +135,6 @@ func handleSubmitChain(ctx *web.Context) {
 	}
 } 
 
-//func handleEntryPost(ctx *web.Context) {
-//	var abortMessage, abortReturn string
-//	
-//	defer func() {
-//		if abortMessage != "" && abortReturn != "" {
-//			ctx.Header().Add("Location", fmt.Sprint("/failed?message=", abortMessage, "&return=", abortReturn))
-//			ctx.WriteHeader(303)
-//		} else if abortReturn != "" {
-//			ctx.Header().Add("Location", abortReturn)
-//			ctx.WriteHeader(303)
-//		}
-//	}()
-//	
-//	entry := new (notaryapi.Entry)
-//	reader := gocoding.ReadBytes([]byte(ctx.Params["entry"]))
-//	err := factomapi.SafeUnmarshal(reader, entry)
-//
-//	err = factomapi.RevealEntry(1, entry)
-//		
-//	if err != nil {
-//		abortMessage = fmt.Sprint("An error occured while submitting the entry (entry may have been accepted by the server but was not locally flagged as such): ", err.Error())
-//		return
-//	}
-//		
-//}
 func handleBuyCreditPost(ctx *web.Context) {
 	var httpcode int = 200
 	buf := new(bytes.Buffer)
@@ -195,23 +174,6 @@ func handleBuyCreditPost(ctx *web.Context) {
 	} else {
 		fmt.Fprintln(ctx, "MsgBuyCredit Submitted")
 	}
-/*
-	balance, err := factomapi.GetEntryCreditBalance(ecPubKey)
-	
-	ecBalance := new(notaryapi.ECBalance)
-	ecBalance.Credits = balance
-	ecBalance.PublicKey = ecPubKey
-
-	fmt.Println("Balance for pubkey ", ctx.Params["pubkey"], " is: ", balance)
-	
-	// Send back JSON response
-	err = factomapi.SafeMarshal(buf, ecBalance)
-	if err != nil{
-		httpcode = 400
-		buf.WriteString("Bad request ")
-		return		
-	}			
-*/
 		 
 }
 func handleGetCreditBalancePost(ctx *web.Context) {	
@@ -249,31 +211,33 @@ func handleGetCreditBalancePost(ctx *web.Context) {
 	}			
 }
 
-/*
-func handleChainPost(ctx *web.Context) {
-	var abortMessage, abortReturn string
+
+func handleGetFileListPost(ctx *web.Context) {	
+	var httpcode int = 200
+	buf := new(bytes.Buffer)
+
 	defer func() {
-		if abortMessage != "" && abortReturn != "" {
-			ctx.Header().Add("Location", fmt.Sprint("/failed?message=", abortMessage, "&return=", abortReturn))
-			ctx.WriteHeader(303)
-		}
+		ctx.WriteHeader(httpcode)
+		ctx.Write(buf.Bytes())
 	}()
 	
-	fmt.Println("In handlechainPost")	
-	chain := new (notaryapi.EChain)
-	reader := gocoding.ReadBytes([]byte(ctx.Params["chain"]))
-	err := factomapi.SafeUnmarshal(reader, chain)
-
-	err = factomapi.RevealChain(1, chain, nil)
-		
-	if err != nil {
-		abortMessage = fmt.Sprint("An error occured while adding the chain ", err.Error())
-		return
-	}
+	// Send back JSON response
+	err := factomapi.SafeMarshal(buf, restapi.ServerDataFileMap)	
 	
-		 
+	if err != nil{
+		httpcode = 400
+		buf.WriteString("Bad request ")
+		return		
+	}			
 }
-*/
+
+func handleGetFilePost(ctx *web.Context) {	
+
+	fileKey := ctx.Params["filekey"]
+	filename := restapi.ServerDataFileMap[fileKey]
+	http.ServeFile(ctx.ResponseWriter, ctx.Request, dataStorePath + "csv/"+filename)	
+		
+}
 
 func handleDBlocksByRange(ctx *web.Context, fromHeightStr string, toHeightStr string) {
 	var httpcode int = 200
