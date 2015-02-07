@@ -777,6 +777,7 @@ func (s *server) RelayInventory(invVect *factomwire.InvVect) {
 // except those in the passed peers to exclude.
 func (s *server) BroadcastMessage(msg factomwire.Message, exclPeers ...*peer) {
 	fastsha256.Trace()
+
 	// XXX: Need to determine if this is an alert that has already been
 	// broadcast and refrain from broadcasting again.
 	bmsg := broadcastMsg{message: msg, excludePeers: exclPeers}

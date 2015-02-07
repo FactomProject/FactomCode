@@ -228,6 +228,8 @@ func (p *peer) AddKnownInventory(invVect *factomwire.InvVect) {
 	p.knownInvMutex.Lock()
 	defer p.knownInvMutex.Unlock()
 
+	fastsha256.Trace()
+
 	p.knownInventory.Add(invVect)
 }
 
@@ -355,6 +357,33 @@ func (p *peer) updateAddresses(msg *factomwire.MsgVersion) {
 			p.server.addrManager.AddAddress(p.na, p.na)
 			p.server.addrManager.Good(p.na)
 		}
+	}
+}
+
+// REPHRASE: AddKnownInventory adds the passed Factom inventory object to the cache of known inventory
+// for the peer.  It is safe for concurrent access.
+func (p *peer) shallRelay(msg interface{}) bool {
+	fastsha256.Trace()
+
+	hash, _ := factomwire.NewShaHashFromStruct(msg)
+
+	iv := factomwire.NewInvVect(factomwire.InvTypeFactomData, hash)
+
+	if !p.isKnownInventory(iv) {
+		p.AddKnownInventory(iv)
+
+		return true
+	}
+
+	return false
+}
+
+func (p *peer) FactomRelay(msg factomwire.Message) {
+	fastsha256.Trace()
+
+	// broadcast/relay only if hadn't been done for this peer
+	if p.shallRelay(msg) {
+		p.server.BroadcastMessage(msg, p)
 	}
 }
 
@@ -1551,7 +1580,8 @@ out:
 
 		case *factomwire.MsgBuyCredit:
 			p.handleBuyCreditMsg(msg)
-			p.server.BroadcastMessage(msg, p)
+			//			p.server.BroadcastMessage(msg, p)
+			p.FactomRelay(msg)
 
 		case *factomwire.MsgCommitChain:
 			p.handleCommitChainMsg(msg)
