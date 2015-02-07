@@ -6,7 +6,7 @@ package factoid
 
 import (
 	"github.com/FactomProject/FactomCode/notaryapi"	
-	"github.com/btcsuite/btcutil/base58"
+	"github.com/FactomProject/btcutil/base58"
 )
 
 //raw address, either a hash of *Reveal (for factoid tx) 
@@ -79,3 +79,4 @@ func DecodeAddress(addr string) (hashokey []byte, error) {
 }
 
 */
+

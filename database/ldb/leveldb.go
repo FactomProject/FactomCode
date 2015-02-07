@@ -10,7 +10,7 @@ import (
 
 	"github.com/FactomProject/FactomCode/database"
 
-	"github.com/btcsuite/btcwire"
+	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/goleveldb/leveldb"
 	"github.com/FactomProject/goleveldb/leveldb/cache"
 	"github.com/FactomProject/goleveldb/leveldb/opt"
@@ -60,7 +60,7 @@ var isLookupDB bool = true // to be put in property file
 
 
 type tTxInsertData struct {
-	txsha   *btcwire.ShaHash
+	txsha   *wire.ShaHash
 	blockid int64
 	txoff   int
 	txlen   int
@@ -81,11 +81,11 @@ type LevelDb struct {
 	nextBlock int64
 
 	lastBlkShaCached bool
-	lastBlkSha       btcwire.ShaHash
+	lastBlkSha       wire.ShaHash
 	lastBlkIdx       int64
 
-//	txUpdateMap      map[btcwire.ShaHash]*txUpdateObj
-//	txSpentUpdateMap map[btcwire.ShaHash]*spentTxUpdate
+//	txUpdateMap      map[wire.ShaHash]*txUpdateObj
+//	txSpentUpdateMap map[wire.ShaHash]*spentTxUpdate
 }
 
 
@@ -108,8 +108,8 @@ func openDB(dbpath string, create bool) (pbdb database.Db, err error) {
 		if err == nil {
 			db.lDb = tlDb
 
-//			db.txUpdateMap = map[btcwire.ShaHash]*txUpdateObj{}
-//			db.txSpentUpdateMap = make(map[btcwire.ShaHash]*spentTxUpdate)
+//			db.txUpdateMap = map[wire.ShaHash]*txUpdateObj{}
+//			db.txSpentUpdateMap = make(map[wire.ShaHash]*spentTxUpdate)
 
 			pbdb = &db
 		}
@@ -216,18 +216,18 @@ func int64ToKey(keyint int64) []byte {
 	return []byte(key)
 }
 
-func shaBlkToKey(sha *btcwire.ShaHash) []byte {
+func shaBlkToKey(sha *wire.ShaHash) []byte {
 	shaB := sha.Bytes()
 	return shaB
 }
 
-func shaTxToKey(sha *btcwire.ShaHash) []byte {
+func shaTxToKey(sha *wire.ShaHash) []byte {
 	shaB := sha.Bytes()
 	shaB = append(shaB, "tx"...)
 	return shaB
 }
 
-func shaSpentTxToKey(sha *btcwire.ShaHash) []byte {
+func shaSpentTxToKey(sha *wire.ShaHash) []byte {
 	shaB := sha.Bytes()
 	shaB = append(shaB, "sx"...)
 	return shaB

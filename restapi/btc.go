@@ -12,13 +12,13 @@ import (
 	"log"
 	"path/filepath"
 
-	"github.com/btcsuite/btcd/txscript"  
-	"github.com/btcsuite/btcjson"
-	"github.com/btcsuite/btcnet"
-	"github.com/btcsuite/btcrpcclient"
-	"github.com/btcsuite/btcutil"
-	"github.com/btcsuite/btcwire"
-	"github.com/btcsuite/btcws"
+	"github.com/FactomProject/btcd/txscript"  
+	"github.com/FactomProject/btcjson"
+	"github.com/FactomProject/btcd/chaincfg"
+	"github.com/FactomProject/btcrpcclient"
+	"github.com/FactomProject/btcutil"
+	"github.com/FactomProject/btcd/wire"
+	"github.com/FactomProject/btcws"
 
 	"github.com/FactomProject/FactomCode/notaryapi"
 )
@@ -64,7 +64,7 @@ func (u ByAmount) Len() int           { return len(u) }
 func (u ByAmount) Less(i, j int) bool { return u[i].Amount < u[j].Amount }
 func (u ByAmount) Swap(i, j int)      { u[i], u[j] = u[j], u[i] }
 
-func writeToBTC(bytes []byte) (*btcwire.ShaHash, error) {
+func writeToBTC(bytes []byte) (*wire.ShaHash, error) {
 	for attempts := 0; attempts < maxTrials; attempts++ {
 		txHash, err := SendRawTransactionToBTC(bytes)
 		if err != nil {
@@ -77,7 +77,7 @@ func writeToBTC(bytes []byte) (*btcwire.ShaHash, error) {
 	return nil, fmt.Errorf("Fail to write hash %s to BTC: %s", bytes)
 }
 
-func SendRawTransactionToBTC(hash []byte) (*btcwire.ShaHash, error) {
+func SendRawTransactionToBTC(hash []byte) (*wire.ShaHash, error) {
 	b := balances[0]
 	i := copy(balances, balances[1:])
 	balances[i] = b
@@ -136,7 +136,7 @@ func initWallet() error {
 	//	fmt.Println("balances.len=", len(balances))
 
 	for i, b := range balances {
-		addr, err := btcutil.DecodeAddress(b.unspentResult.Address, &btcnet.TestNet3Params)
+		addr, err := btcutil.DecodeAddress(b.unspentResult.Address, &chaincfg.TestNet3Params)
 		if err != nil {
 			return fmt.Errorf("cannot decode address: %s", err)
 		}
@@ -194,9 +194,9 @@ func compareUnspentResult(a, b btcjson.ListUnspentResult) bool {
 	}
 }
 
-func createRawTransaction(b balance, hash []byte) (*btcwire.MsgTx, error) {
+func createRawTransaction(b balance, hash []byte) (*wire.MsgTx, error) {
 
-	msgtx := btcwire.NewMsgTx()
+	msgtx := wire.NewMsgTx()
 
 	if err := addTxOuts(msgtx, b, hash); err != nil {
 		return nil, fmt.Errorf("cannot addTxOuts: %s", err)
@@ -213,20 +213,20 @@ func createRawTransaction(b balance, hash []byte) (*btcwire.MsgTx, error) {
 	return msgtx, nil
 }
 
-func addTxIn(msgtx *btcwire.MsgTx, b balance) error {
+func addTxIn(msgtx *wire.MsgTx, b balance) error {
 
 	output := b.unspentResult
 	//	fmt.Printf("unspentResult: %#v\n", output)
-	prevTxHash, err := btcwire.NewShaHashFromStr(output.TxId)
+	prevTxHash, err := wire.NewShaHashFromStr(output.TxId)
 	if err != nil {
 		return fmt.Errorf("cannot get sha hash from str: %s", err)
 	}
 
-	outPoint := btcwire.NewOutPoint(prevTxHash, output.Vout)
-	msgtx.AddTxIn(btcwire.NewTxIn(outPoint, nil))
+	outPoint := wire.NewOutPoint(prevTxHash, output.Vout)
+	msgtx.AddTxIn(wire.NewTxIn(outPoint, nil))
 
 	// OnRedeemingTx
-	err = dclient.NotifySpent([]*btcwire.OutPoint{outPoint})
+	err = dclient.NotifySpent([]*wire.OutPoint{outPoint})
 	if err != nil {
 		fmt.Println("NotifySpent err: ", err.Error())
 	}
@@ -246,7 +246,7 @@ func addTxIn(msgtx *btcwire.MsgTx, b balance) error {
 	return nil
 }
 
-func addTxOuts(msgtx *btcwire.MsgTx, b balance, hash []byte) error {
+func addTxOuts(msgtx *wire.MsgTx, b balance, hash []byte) error {
 
 	header := []byte{0x46, 0x61, 0x63, 0x74, 0x6f, 0x6d, 0x21, 0x21} // Factom!!
 	hash = append(header, hash...)
@@ -257,7 +257,7 @@ func addTxOuts(msgtx *btcwire.MsgTx, b balance, hash []byte) error {
 
 	// latest routine from Conformal btcsuite returns 2 parameters, not 1... not sure what to do for people with the old conformal libraries :(
 	opReturn, err := builder.Script()
-	msgtx.AddTxOut(btcwire.NewTxOut(0, opReturn))
+	msgtx.AddTxOut(wire.NewTxOut(0, opReturn))
 
 	if err != nil {
 		fmt.Printf("ScriptBuilder error: %v\n", err)
@@ -275,7 +275,7 @@ func addTxOuts(msgtx *btcwire.MsgTx, b balance, hash []byte) error {
 		if err != nil {
 			return fmt.Errorf("cannot create txout script: %s", err)
 		}
-		msgtx.AddTxOut(btcwire.NewTxOut(int64(change), pkScript))
+		msgtx.AddTxOut(wire.NewTxOut(int64(change), pkScript))
 	}
 	return nil
 }
@@ -304,7 +304,7 @@ func selectInputs(eligible []btcjson.ListUnspentResult, minconf int) (selected [
 	return selected, out, nil
 }
 
-func validateMsgTx(msgtx *btcwire.MsgTx, inputs []btcjson.ListUnspentResult) error {
+func validateMsgTx(msgtx *wire.MsgTx, inputs []btcjson.ListUnspentResult) error {
 	flags := txscript.ScriptCanonicalSignatures | txscript.ScriptStrictMultiSig
 	bip16 := time.Now().After(txscript.Bip16Activation)
 	if bip16 {
@@ -329,11 +329,11 @@ func validateMsgTx(msgtx *btcwire.MsgTx, inputs []btcjson.ListUnspentResult) err
 	return nil
 }
 
-func sendRawTransaction(msgtx *btcwire.MsgTx) (*btcwire.ShaHash, error) {
+func sendRawTransaction(msgtx *wire.MsgTx) (*wire.ShaHash, error) {
 
 	buf := bytes.Buffer{}
 	buf.Grow(msgtx.SerializeSize())
-	if err := msgtx.BtcEncode(&buf, btcwire.ProtocolVersion); err != nil {
+	if err := msgtx.BtcEncode(&buf, wire.ProtocolVersion); err != nil {
 		// Hitting OOM by growing or writing to a bytes.Buffer already
 		// panics, and all returned errors are unexpected.
 		//panic(err) //?? should we have retry logic?
@@ -377,7 +377,7 @@ func createBtcdNotificationHandlers() btcrpcclient.NotificationHandlers {
 
 	ntfnHandlers := btcrpcclient.NotificationHandlers{
 
-		OnBlockConnected: func(hash *btcwire.ShaHash, height int32) {
+		OnBlockConnected: func(hash *wire.ShaHash, height int32) {
 			//fmt.Println("dclient: OnBlockConnected: hash=", hash, ", height=", height)
 			//go newBlock(hash, height)	// no need
 		},
@@ -416,7 +416,7 @@ func saveDBBatch(transaction *btcutil.Tx, details *btcws.BlockDetails) {
 			dbBatches.batches[i].BTCTxOffset = details.Index
 			dbBatches.batches[i].BTCBlockHeight = details.Height
 
-			txHash, _ := btcwire.NewShaHashFromStr(details.Hash)
+			txHash, _ := wire.NewShaHashFromStr(details.Hash)
 			dbBatches.batches[i].BTCBlockHash = toHash(txHash)
 
 			found = true
@@ -643,7 +643,7 @@ func saveDBBatchMerkleRoottoBTC(dbBatch *notaryapi.DBBatch) {
 
 }
 
-func toHash(txHash *btcwire.ShaHash) *notaryapi.Hash {
+func toHash(txHash *wire.ShaHash) *notaryapi.Hash {
 	h := new(notaryapi.Hash)
 	h.SetBytes(txHash.Bytes())
 	return h
