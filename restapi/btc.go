@@ -15,7 +15,7 @@ import (
  
 	"github.com/btcsuite/btcjson"
 	"github.com/btcsuite/btcnet"
-	"github.com/btcsuite/btcscript"
+	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcutil"
 	"github.com/btcsuite/btcwire"
 	"github.com/btcsuite/btcws"
@@ -246,8 +246,8 @@ func addTxIn(msgtx *btcwire.MsgTx, b balance) error {
 		return fmt.Errorf("cannot decode scriptPubKey: %s", err)
 	}
  
-	sigScript, err := btcscript.SignatureScript(msgtx, 0, subscript,
-		btcscript.SigHashAll, b.wif.PrivKey, true)	//.ToECDSA(), true)
+	sigScript, err := txscript.SignatureScript(msgtx, 0, subscript,
+		txscript.SigHashAll, b.wif.PrivKey, true)	//.ToECDSA(), true)
 	if err != nil {
 		return fmt.Errorf("cannot create scriptSig: %s", err)
 	}
@@ -262,8 +262,8 @@ func addTxOuts(msgtx *btcwire.MsgTx, b balance, hash []byte) error {
  	header := []byte{0x46, 0x61, 0x63, 0x74, 0x6f, 0x6d, 0x21, 0x21}	// Factom!!
 	hash = append(header, hash...)
 	
-	builder := btcscript.NewScriptBuilder()
-	builder.AddOp(btcscript.OP_RETURN)
+	builder := txscript.NewScriptBuilder()
+	builder.AddOp(txscript.OP_RETURN)
 	builder.AddData(hash)
 	opReturn := builder.Script()
 	msgtx.AddTxOut(btcwire.NewTxOut(0, opReturn))
@@ -276,7 +276,7 @@ func addTxOuts(msgtx *btcwire.MsgTx, b balance, hash []byte) error {
 	if change > 0 {
 
 		// Spend change.
-		pkScript, err := btcscript.PayToAddrScript(b.address)
+		pkScript, err := txscript.PayToAddrScript(b.address)
 		if err != nil {
 			return fmt.Errorf("cannot create txout script: %s", err)
 		}
@@ -312,10 +312,10 @@ func selectInputs(eligible []btcjson.ListUnspentResult, minconf int) (selected [
 
 
 func validateMsgTx(msgtx *btcwire.MsgTx, inputs []btcjson.ListUnspentResult) error {
-	flags := btcscript.ScriptCanonicalSignatures | btcscript.ScriptStrictMultiSig
-	bip16 := time.Now().After(btcscript.Bip16Activation)
+	flags := txscript.ScriptCanonicalSignatures | txscript.ScriptStrictMultiSig
+	bip16 := time.Now().After(txscript.Bip16Activation)
 	if bip16 {
-		flags |= btcscript.ScriptBip16
+		flags |= txscript.ScriptBip16
 	}
 	for i, txin := range msgtx.TxIn {
 	 
@@ -324,7 +324,7 @@ func validateMsgTx(msgtx *btcwire.MsgTx, inputs []btcjson.ListUnspentResult) err
 			return fmt.Errorf("cannot decode scriptPubKey: %s", err)
 		}
 
-		engine, err := btcscript.NewScript(
+		engine, err := txscript.NewScript(
 			txin.SignatureScript, subscript, i, msgtx, flags)
 		if err != nil {
 			return fmt.Errorf("cannot create script engine: %s", err)
