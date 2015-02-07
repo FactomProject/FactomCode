@@ -13,12 +13,12 @@ import (
 //Input is the UTXO being spent
 //	Txid defines the transaction that contains Output being spent
 //	Index is Output number 
-//	SigData is the "reveal" for the Output.Address "commit"
+//	RevealAddr is the "reveal" for the Output.ToAddr "commit"
 //			it contains the public-key(s) corresponding to Signatures 
 type Input struct {
-	Txid		notaryapi.Hash 
-	Index		uint32
-	SigData		[]byte
+	Txid			notaryapi.Hash 
+	Index			uint32
+	RevealAddr		[]byte
 }
 
 //Output defines a receiver of the Input
@@ -27,12 +27,12 @@ type Input struct {
 //		ENTRYCREDIT_PKEY
 //
 //	Amount is amount of transfer in "Snow"
-//	Address is a hash of struct, with public-keys(s)
-//		for Type = ENTRYCREDIT_PKEY , address is public-key 
+//	ToAddr is a hash of struct, with public-keys(s)
+//		for Type = ENTRYCREDIT_PKEY , ToAddr is public-key 
 type Output struct {
-	Type 		byte
-	Amount		int64
-	Address 	notaryapi.Hash		
+	Type 			byte
+	Amount			int64
+	ToAddr		 	Address	
 }
 
 //TxData is the core of the transaction, it generates the TXID
@@ -45,9 +45,9 @@ type TxData struct {
 }
 
 //TxMsg is the signed and versioned Factoid transaction message
-//	Sig is at least 1 signature per Input
+//	Sigs is at least 1 signature per Input
 type TxMsg struct {
 	Version  	int32
 	TxData		*TxData
-	Sig			[][]byte
+	Sigs		[]InputSig
 }
