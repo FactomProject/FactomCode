@@ -112,9 +112,11 @@ func NewShaHashFromStruct(DataStruct interface{}) (*ShaHash, error) {
 
 	jsonbytes, err := json.Marshal(DataStruct)
 	if err != nil {
-		fmt.Printf("Json Marshal Error: %s\n", err)
+		fmt.Printf("NewShaHash Json Marshal Error: %s\n", err)
 		return nil, nil
 	}
 
-	return NewShaHashFromStr(string(jsonbytes))
+	fmt.Println("NewShaHashFromStruct =", jsonbytes)
+
+	return NewShaHash(DoubleSha256(jsonbytes))
 }

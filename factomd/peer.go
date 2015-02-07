@@ -216,6 +216,8 @@ func (p *peer) isKnownInventory(invVect *factomwire.InvVect) bool {
 	p.knownInvMutex.Lock()
 	defer p.knownInvMutex.Unlock()
 
+	fmt.Println("invVect =", invVect)
+
 	if p.knownInventory.Exists(invVect) {
 		return true
 	}
@@ -360,14 +362,18 @@ func (p *peer) updateAddresses(msg *factomwire.MsgVersion) {
 	}
 }
 
-// REPHRASE: AddKnownInventory adds the passed Factom inventory object to the cache of known inventory
-// for the peer.  It is safe for concurrent access.
+// returns true if the message should be relayed, false otherwise
 func (p *peer) shallRelay(msg interface{}) bool {
 	fastsha256.Trace()
 
+	fmt.Println("shallRelay msg= ", msg)
+
 	hash, _ := factomwire.NewShaHashFromStruct(msg)
+	fmt.Println("shallRelay hash= ", hash)
 
 	iv := factomwire.NewInvVect(factomwire.InvTypeFactomData, hash)
+
+	fmt.Println("shallRelay iv= ", iv)
 
 	if !p.isKnownInventory(iv) {
 		p.AddKnownInventory(iv)
@@ -375,11 +381,15 @@ func (p *peer) shallRelay(msg interface{}) bool {
 		return true
 	}
 
+	fmt.Println("******************* SHALL NOT RELAY !!!!!!!!!!! ******************")
+
 	return false
 }
 
 func (p *peer) FactomRelay(msg factomwire.Message) {
 	fastsha256.Trace()
+
+	fmt.Println("FactomRelay msg= ", msg)
 
 	// broadcast/relay only if hadn't been done for this peer
 	if p.shallRelay(msg) {
@@ -2020,7 +2030,7 @@ func newPeerBase(s *server, inbound bool) *peer {
 		services:        factomwire.SFNodeNetwork,
 		inbound:         inbound,
 		knownAddresses:  make(map[string]struct{}),
-		//		knownInventory:  NewMruInventoryMap(maxKnownInventory),
+		knownInventory:  NewMruInventoryMap(maxKnownInventory),
 		//		requestedTxns:   make(map[factomwire.ShaHash]struct{}),
 		//		requestedBlocks: make(map[factomwire.ShaHash]struct{}),
 		//		filter:          bloom.LoadFilter(nil),

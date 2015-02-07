@@ -28,8 +28,8 @@ const (
 	InvTypeBlock         InvType = 2
 	InvTypeFilteredBlock InvType = 3
 	InvTypeFactomData    InvType = 4 // the 5 main messages: commit/reveal/convert
-	InvTypeFactomControl InvType = 5 // Factom control messages
-	InvTypeFactomRaw     InvType = 6 // Factom raw
+//	InvTypeFactomControl InvType = 5 // Factom control messages
+//	InvTypeFactomRaw     InvType = 6 // Factom raw
 )
 
 // Map of service flags back to their constant names for pretty printing.
@@ -39,8 +39,8 @@ var ivStrings = map[InvType]string{
 	InvTypeBlock:         "MSG_BLOCK",
 	InvTypeFilteredBlock: "MSG_FILTERED_BLOCK",
 	InvTypeFactomData:    "MSG_FACTOM_DATA",
-	InvTypeFactomControl: "MSG_FACTOM_CONTROL",
-	InvTypeFactomRaw:     "MSG_FACTOM_RAW",
+	//	InvTypeFactomControl: "MSG_FACTOM_CONTROL",
+	//	InvTypeFactomRaw:     "MSG_FACTOM_RAW",
 }
 
 // String returns the InvType in human-readable form.
