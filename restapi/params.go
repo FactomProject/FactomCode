@@ -17,7 +17,7 @@
 package main
 
 import (
-	"github.com/btcsuite/btcnet"
+	"github.com/btcsuite/btcd/chaincfg"
 )
 
 var activeNet = testNet3Params
@@ -25,7 +25,7 @@ var activeNet = testNet3Params
 // params is used to group parameters for various networks such as the main
 // network and test networks.
 type params struct {
-	*btcnet.Params
+	*chaincfg.Params
 	connect string
 	port    string
 }
@@ -33,7 +33,7 @@ type params struct {
 // mainNetParams contains parameters specific to running btcgui and
 // btcwallet on the main network (btcwire.MainNet).
 var mainNetParams = params{
-	Params:  &btcnet.MainNetParams,
+	Params:  &chaincfg.MainNetParams,
 	connect: "localhost:8332",
 	port:    "8332",
 }
@@ -41,7 +41,7 @@ var mainNetParams = params{
 // testNet3Params contains parameters specific to running btcgui and
 // btcwallet on the test network (version 3) (btcwire.TestNet3).
 var testNet3Params = params{
-	Params:  &btcnet.TestNet3Params,
+	Params:  &chaincfg.TestNet3Params,
 	connect: "localhost:18332",
 	port:    "18332",
 }
@@ -49,7 +49,7 @@ var testNet3Params = params{
 // simNetParams contains parameters specific to running btcgui and
 // btcwallet on the simulation test network (btcwire.SimNet).
 var simNetParams = params{
-	Params:  &btcnet.SimNetParams,
+	Params:  &chaincfg.SimNetParams,
 	connect: "localhost:18554",
 	port:    "18554",
 }

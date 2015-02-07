@@ -14,7 +14,7 @@ import (
 
  
 	"github.com/btcsuite/btcjson"
-	"github.com/btcsuite/btcnet"
+	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcutil"
 	"github.com/btcsuite/btcwire"
@@ -143,7 +143,7 @@ func initWallet() error {
 //	fmt.Println("balances.len=", len(balances))
 
 	for i, b := range balances {
-		addr, err := btcutil.DecodeAddress(b.unspentResult.Address, &btcnet.TestNet3Params)
+		addr, err := btcutil.DecodeAddress(b.unspentResult.Address, &chaincfg.TestNet3Params)
 		if err != nil {
 			return fmt.Errorf("cannot decode address: %s", err)
 		}
