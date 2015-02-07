@@ -13,13 +13,13 @@ import (
 	"path/filepath"
 
  
-	"github.com/btcsuite/btcjson"
-	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcd/txscript"
-	"github.com/btcsuite/btcutil"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcws"
-	"github.com/btcsuite/btcrpcclient"
+	"github.com/FactomProject/btcjson"
+	"github.com/FactomProject/btcd/chaincfg"
+	"github.com/FactomProject/btcd/txscript"
+	"github.com/FactomProject/btcutil"
+	"github.com/FactomProject/btcd/wire"
+	"github.com/FactomProject/btcws"
+	"github.com/FactomProject/btcrpcclient"
 
 	"github.com/FactomProject/FactomCode/notaryapi"
 	
