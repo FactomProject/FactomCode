@@ -1590,24 +1590,23 @@ out:
 
 		case *factomwire.MsgBuyCredit:
 			p.handleBuyCreditMsg(msg)
-			//			p.server.BroadcastMessage(msg, p)
 			p.FactomRelay(msg)
 
 		case *factomwire.MsgCommitChain:
 			p.handleCommitChainMsg(msg)
-			p.server.BroadcastMessage(msg, p)
+			p.FactomRelay(msg)
 
 		case *factomwire.MsgRevealChain:
 			p.handleRevealChainMsg(msg)
-			p.server.BroadcastMessage(msg, p)
+			p.FactomRelay(msg)
 
 		case *factomwire.MsgCommitEntry:
 			p.handleCommitEntryMsg(msg)
-			p.server.BroadcastMessage(msg, p)
+			p.FactomRelay(msg)
 
 		case *factomwire.MsgRevealEntry:
 			p.handleRevealEntryMsg(msg)
-			p.server.BroadcastMessage(msg, p)
+			p.FactomRelay(msg)
 
 			/*
 				case *factomwire.MsgMemPool:
