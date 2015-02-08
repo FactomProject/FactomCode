@@ -13,13 +13,15 @@ State of Development
 We are very much at an Alpha level of development.  We have a demo client and a Factom server prototype which runs against the testnet3 Bitcoin network. Please check the development branch for latest.   
 
 
-GETTING STARTED
+Getting Started
 -------------------
 
 You need to set up Go environment and install the following packages:  
 
-* https://github.com/btcsuite/btcd
-* https://github.com/btcsuite/btcwallet
-* https://github.com/factomproject/factomcode
+```bash
+$ go get github.com/btcsuite/btcd/...
+$ go get github.com/btcsuite/btcwallet/...
+$ go get github.com/factomproject/factomcode/...
+```
 
 
