@@ -24,7 +24,7 @@ import (
 	//	"github.com/FactomProject/FactomCode/btcd/limits"
 	"github.com/FactomProject/FactomCode/fastsha256"
 )
-
+  
 var (
 	//	cfg             *config
 	shutdownChannel = make(chan struct{})

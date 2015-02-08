@@ -38,7 +38,7 @@ func TestBuyCredit(t *testing.T) {
 
 
 */
-
+/*
 func TestBuyCreditWallet(t *testing.T) {
 	fmt.Println("\nTestBuyCreditWallet===========================================================================")
 	// Post the request to FactomClient web server	---------------------------------------
@@ -118,7 +118,7 @@ func TestAddChain(t *testing.T) {
 		t.Errorf("Error:%v", err)
 	}
 } 
-
+*/
 func TestAddEntry(t *testing.T) {
 	fmt.Println("\nTestAddEntry===========================================================================")
 	

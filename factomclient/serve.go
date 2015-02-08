@@ -278,7 +278,6 @@ func handleDBlocksByRange(ctx *web.Context, fromHeightStr string, toHeightStr st
 	
 }
 
-
 func handleDBlockByHash(ctx *web.Context, hashStr string) {
 	var httpcode int = 200
 	buf := new(bytes.Buffer)
