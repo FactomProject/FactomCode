@@ -246,7 +246,7 @@ func initDB() {
 	db, err = ldb.OpenLevelDB(ldbpath, false)
 
 	if err != nil {
-		log.Println("err opening db: %v", err)
+		log.Printf("err opening db: %v\n", err)
 
 	}
 
