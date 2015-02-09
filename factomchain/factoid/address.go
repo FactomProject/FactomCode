@@ -28,7 +28,7 @@ type EntryCreditAddress AddressReveal
 //single signature of tx,
 //	Hint is not signed! is used to help match sig to address in multisig input.
 type SingleSignature struct {
-	Hint				byte
+	Hint				rune
 	Sig 				notaryapi.DetachedSignature
 }
 
@@ -38,7 +38,7 @@ type SingleSignature struct {
 //		vefified w/o hint. this allows signatures to sent and 
 //		attached to tx in any order 
 type InputSig struct {
-	Hint				byte
+	Hint				rune
 	Sigs 				[]SingleSignature
 }
 
