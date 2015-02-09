@@ -494,7 +494,7 @@ func processRevealEntry(newEntry *notaryapi.Entry) (error) {
 
 	chain := chainIDMap[newEntry.ChainID.String()]
 	if chain == nil {
-		return errors.New("This chain is not supported:" + chain.ChainID.String()) 
+		return errors.New("This chain is not supported:" + newEntry.ChainID.String()) 
 	}
 
 	// store the new entry in db
