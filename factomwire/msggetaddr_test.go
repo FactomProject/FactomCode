@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/FactomProject/FactomCode/factomwire"
 	"github.com/davecgh/go-spew/spew"
 )
 
@@ -57,21 +58,23 @@ func TestGetAddrWire(t *testing.T) {
 			factomwire.ProtocolVersion,
 		},
 
-		// Protocol version BIP0035Version.
-		{
-			msgGetAddr,
-			msgGetAddr,
-			msgGetAddrEncoded,
-			factomwire.BIP0035Version,
-		},
+		/*
+			// Protocol version BIP0035Version.
+			{
+				msgGetAddr,
+				msgGetAddr,
+				msgGetAddrEncoded,
+				factomwire.BIP0035Version,
+			},
 
-		// Protocol version BIP0031Version.
-		{
-			msgGetAddr,
-			msgGetAddr,
-			msgGetAddrEncoded,
-			factomwire.BIP0031Version,
-		},
+			// Protocol version BIP0031Version.
+			{
+				msgGetAddr,
+				msgGetAddr,
+				msgGetAddrEncoded,
+				factomwire.BIP0031Version,
+			},
+		*/
 
 		// Protocol version NetAddressTimeVersion.
 		{
