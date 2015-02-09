@@ -17,6 +17,12 @@ type Hash struct {
 	Bytes []byte `json:"bytes"`
 }
 
+//Fixed sixe hash used for map, where byte slice wont work 
+type HashF [HashSize]byte
+func (h HashF) Hash() Hash {
+	return Hash { Bytes: h[:]}
+}
+
 func NewHash() *Hash {
 	h := new(Hash)
 	h.Bytes = make([]byte, 32)
@@ -77,7 +83,7 @@ func (h *Hash) Decoding(m gocoding.Unmarshaller, t reflect.Type) gocoding.Decode
 func (h *Hash) GetBytes() []byte {
 	newHash := make([]byte, HashSize)
 	copy(newHash, h.Bytes)
-
+	
 	return newHash
 }
 
@@ -130,7 +136,7 @@ func HexToHash(hexStr string) (h *Hash, err error) {
 
 // String returns the ShaHash in the standard bitcoin big-endian form.
 func (h *Hash) BTCString() string {
-	hashstr := ""
+	hashstr := "" 	
 	hash := h.Bytes
 	for i := range hash {
 		hashstr += fmt.Sprintf("%02x", hash[HashSize-1-i])

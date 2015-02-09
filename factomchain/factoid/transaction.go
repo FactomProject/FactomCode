@@ -10,13 +10,15 @@ import (
 	"github.com/FactomProject/FactomCode/notaryapi"	
 )
 
+type Txid notaryapi.HashF
+
 //Input is the UTXO being spent
 //	Txid defines the transaction that contains Output being spent
 //	Index is Output number 
 //	RevealAddr is the "reveal" for the Output.ToAddr "commit"
 //			it contains the public-key(s) corresponding to Signatures 
 type Input struct {
-	Txid			notaryapi.Hash 
+	Txid			Txid 
 	Index			uint32
 	RevealAddr		[]byte
 }
@@ -51,3 +53,42 @@ type TxMsg struct {
 	TxData		*TxData
 	Sigs		[]InputSig
 }
+
+//Tx is the TxMsg and a chache of its Txid 
+type Tx struct {
+	Raw  		*TxMsg
+	id			*Txid
+}
+
+//return transaction id of transacion
+func (td *TxData) Txid() Txid {
+	var txid Txid
+	return txid
+}
+
+//return transaction id of transacion
+func (txm *TxMsg) Txid() Txid {
+	return txm.TxData.Txid()
+}
+
+// NewTx returns a new instance of a bitcoin transaction given an underlying
+// btcwire.MsgTx.  See Tx.
+func NewTx(wire *TxMsg) *Tx {
+	return &Tx{
+		Raw:	wire,
+		id: 	nil,
+	}
+}
+
+func (tx *Tx) Id() Txid {
+	if tx.id == nil { 
+		txid := tx.Raw.Txid()
+		tx.id = &txid
+	}
+
+	return *tx.id
+}
+
+type TxSpentList []bool
+var Utxo map[Txid]TxSpentList  
+
