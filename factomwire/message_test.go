@@ -83,7 +83,7 @@ func TestMessage(t *testing.T) {
 		btcnet factomwire.BitcoinNet // Network to use for wire encoding
 		bytes  int                   // Expected num bytes read/written
 	}{
-		{msgVersion, msgVersion, pver, factomwire.MainNet, 125},
+		{msgVersion, msgVersion, pver, factomwire.MainNet, 128}, // changed from "btcwire" to "factomwire"
 		{msgVerack, msgVerack, pver, factomwire.MainNet, 24},
 		{msgGetAddr, msgGetAddr, pver, factomwire.MainNet, 24},
 		{msgAddr, msgAddr, pver, factomwire.MainNet, 25},
