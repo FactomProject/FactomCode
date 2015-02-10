@@ -71,8 +71,8 @@ func (txm *TxMsg) Txid() Txid {
 	return txm.TxData.Txid()
 }
 
-// NewTx returns a new instance of a bitcoin transaction given an underlying
-// btcwire.MsgTx.  See Tx.
+// NewTx returns a new instance of a factoid transaction given an underlying
+// TxMsg 
 func NewTx(wire *TxMsg) *Tx {
 	return &Tx{
 		Raw:	wire,
@@ -89,6 +89,4 @@ func (tx *Tx) Id() Txid {
 	return *tx.id
 }
 
-type TxSpentList []bool
-var Utxo map[Txid]TxSpentList  
 
