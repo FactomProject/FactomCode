@@ -10,7 +10,7 @@ import (
 	"github.com/FactomProject/gocoding"	
 	"github.com/FactomProject/FactomCode/notaryapi"	
 
-	"encoding/base64"
+//	"encoding/base64"
 //	"io/ioutil"
 	//"os" 	
 	
