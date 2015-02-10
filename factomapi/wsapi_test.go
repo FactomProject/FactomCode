@@ -118,7 +118,7 @@ func TestAddChain(t *testing.T) {
 		t.Errorf("Error:%v", err)
 	}
 } 
-/*
+
 func TestAddEntry(t *testing.T) {
 	fmt.Println("\nTestAddEntry===========================================================================")
 	
