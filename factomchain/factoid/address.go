@@ -5,22 +5,22 @@
 package factoid
 
 import (
-	"github.com/FactomProject/FactomCode/notaryapi"	
+	"github.com/FactomProject/FactomCode/notaryapi"
 	"github.com/FactomProject/btcutil/base58"
 )
 
-//raw address, either a hash of *Reveal (for factoid tx) 
+//raw address, either a hash of *Reveal (for factoid tx)
 //	or a raw PublicKey (for entrycredit tx)
 type Address []byte
 
 //revealed address is the public key
-type AddressReveal	notaryapi.DetachedPublicKey
+type AddressReveal notaryapi.DetachedPublicKey
 
-//multisig reveal structure that hashes into raw Address 
+//multisig reveal structure that hashes into raw Address
 type MultisigReveal struct {
-	NumRequired				uint8
-	Addresses 				[]AddressReveal
-}  
+	NumRequired uint8
+	Addresses   []AddressReveal
+}
 
 //EntryCredit transactions sent directly to publickey
 type EntryCreditAddress AddressReveal
@@ -28,20 +28,19 @@ type EntryCreditAddress AddressReveal
 //single signature of tx,
 //	Hint is not signed! is used to help match sig to address in multisig input.
 type SingleSignature struct {
-	Hint				rune
-	Sig 				notaryapi.DetachedSignature
+	Hint rune
+	Sig  notaryapi.DetachedSignature
 }
 
 //all sigs needed for input
-//	Hint is used to help match sig to multi input tx 
-//		signatures can then be reordered correctly, so can be 
-//		vefified w/o hint. this allows signatures to sent and 
-//		attached to tx in any order 
+//	Hint is used to help match sig to multi input tx
+//		signatures can then be reordered correctly, so can be
+//		vefified w/o hint. this allows signatures to sent and
+//		attached to tx in any order
 type InputSig struct {
-	Hint				rune
-	Sigs 				[]SingleSignature
+	Hint rune
+	Sigs []SingleSignature
 }
-
 
 /*
 -----------------------------------------
@@ -50,12 +49,12 @@ type InputSig struct {
 -----------------------------------------
 */
 
-// encodeAddress returns a human-readable payment address given a 32 bytes hash or 
+// encodeAddress returns a human-readable payment address given a 32 bytes hash or
 // publike-key and netID which encodes the factom network and address type.  It is used
-// in both entrycredit and factoid transactions. 
+// in both entrycredit and factoid transactions.
 func EncodeAddress(hashokey []byte, netID byte) string {
-	// Format is 1 byte for a network and address class 
-	// 32 bytes for a SHA256 hash or raw PublicKey, 
+	// Format is 1 byte for a network and address class
+	// 32 bytes for a SHA256 hash or raw PublicKey,
 	// and 4 bytes of checksum.
 	return base58.CheckEncode(hashokey, netID)
 }
@@ -79,4 +78,3 @@ func DecodeAddress(addr string) (hashokey []byte, error) {
 }
 
 */
-
