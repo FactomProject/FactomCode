@@ -10,7 +10,7 @@ import (
 	"github.com/FactomProject/gocoding"	
 	"github.com/FactomProject/FactomCode/notaryapi"	
 
-	"encoding/base64"
+//	"encoding/base64"
 //	"io/ioutil"
 	//"os" 	
 	
@@ -118,7 +118,7 @@ func TestAddChain(t *testing.T) {
 		t.Errorf("Error:%v", err)
 	}
 } 
-
+/*
 func TestAddEntry(t *testing.T) {
 	fmt.Println("\nTestAddEntry===========================================================================")
 	

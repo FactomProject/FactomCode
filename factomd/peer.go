@@ -16,7 +16,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/FactomProject/FactomCode/factomchain/factoid"
+//	"github.com/FactomProject/FactomCode/factomchain/factoid"
 	"github.com/FactomProject/FactomCode/factomd/addrmgr"
 	//	"github.com/FactomProject/FactomCode/btcdb"
 	//	"github.com/FactomProject/FactomCode/btcutil"
@@ -804,7 +804,7 @@ func (p *peer) handleMemPoolMsg(msg *factomwire.MsgMemPool) {
 // until the bitcoin transaction has been fully processed.  Unlock the block
 // handler this does not serialize all transactions through a single thread
 // transactions don't rely on the previous one in a linear fashion like blocks.
-func (p *peer) handleTxMsg(msg *factomwire.MsgTx) {
+/*func (p *peer) handleTxMsg(msg *factomwire.MsgTx) {
 	fastsha256.Trace()
 	// Add the transaction to the known inventory for the peer.
 	// Convert the raw MsgTx to a btcutil.Tx which provides some convenience
@@ -821,7 +821,7 @@ func (p *peer) handleTxMsg(msg *factomwire.MsgTx) {
 	//p.server.blockManager.QueueTx(tx, p)
 	///<-p.txProcessed
 }
-
+*/
 // Handle factom app imcoming msg
 func (p *peer) handleBuyCreditMsg(msg *factomwire.MsgBuyCredit) {
 	fastsha256.Trace()
@@ -1612,8 +1612,8 @@ out:
 				case *factomwire.MsgMemPool:
 					p.handleMemPoolMsg(msg)
 			*/
-		case *factomwire.MsgTx:
-			p.handleTxMsg(msg)
+//		case *factomwire.MsgTx:
+//			p.handleTxMsg(msg)
 			/*
 				case *factomwire.MsgBlock:
 					p.handleBlockMsg(msg, buf)
