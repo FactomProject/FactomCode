@@ -19,7 +19,6 @@ import (
 //	"github.com/FactomProject/FactomCode/factomchain/factoid"
 	"github.com/FactomProject/FactomCode/factomd/addrmgr"
 	//	"github.com/FactomProject/FactomCode/btcdb"
-	//	"github.com/FactomProject/FactomCode/btcutil"
 	//	"github.com/FactomProject/FactomCode/btcutil/bloom"
 	"github.com/FactomProject/FactomCode/factomwire"
 	//	"github.com/FactomProject/FactomCode/go-socks/socks"
@@ -800,6 +799,8 @@ func (p *peer) handleMemPoolMsg(msg *factomwire.MsgMemPool) {
 	}
 }
 */
+
+/*
 // handleTxMsg is invoked when a peer receives a tx bitcoin message.  It blocks
 // until the bitcoin transaction has been fully processed.  Unlock the block
 // handler this does not serialize all transactions through a single thread

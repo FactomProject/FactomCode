@@ -59,10 +59,10 @@ func TestMessage(t *testing.T) {
 	msgAddr := factomwire.NewMsgAddr()
 	//	msgGetBlocks := factomwire.NewMsgGetBlocks(&factomwire.ShaHash{})
 	//	msgBlock := &blockOne
-	msgInv := factomwire.NewMsgInv()
+	//	msgInv := factomwire.NewMsgInv()
 	//	msgGetData := factomwire.NewMsgGetData()
 	msgNotFound := factomwire.NewMsgNotFound()
-	msgTx := factomwire.NewMsgTx()
+	//	msgTx := factomwire.NewMsgTx() // XXX: msgtx*.go files temporarily removed by Jay
 	msgPing := factomwire.NewMsgPing(123123)
 	msgPong := factomwire.NewMsgPong(123123)
 	//	msgGetHeaders := factomwire.NewMsgGetHeaders()
@@ -89,10 +89,10 @@ func TestMessage(t *testing.T) {
 		{msgAddr, msgAddr, pver, factomwire.MainNet, 25},
 		//		{msgGetBlocks, msgGetBlocks, pver, factomwire.MainNet, 61},
 		//		{msgBlock, msgBlock, pver, factomwire.MainNet, 239},
-		{msgInv, msgInv, pver, factomwire.MainNet, 25},
+		// {msgInv, msgInv, pver, factomwire.MainNet, 25},
 		//		{msgGetData, msgGetData, pver, factomwire.MainNet, 25},
 		{msgNotFound, msgNotFound, pver, factomwire.MainNet, 25},
-		{msgTx, msgTx, pver, factomwire.MainNet, 34},
+		//		{msgTx, msgTx, pver, factomwire.MainNet, 34}, // XXX: msgtx*.go files temporarily removed by Jay
 		{msgPing, msgPing, pver, factomwire.MainNet, 32},
 		{msgPong, msgPong, pver, factomwire.MainNet, 32},
 		//		{msgGetHeaders, msgGetHeaders, pver, factomwire.MainNet, 61},
