@@ -1,18 +1,18 @@
 package factomapi
 
 import (
+	"testing"	
 	"bytes"
 	"fmt"
 	"net/http"
 	"net/url"
-	"testing"
-	//	"encoding/hex"
-	"github.com/FactomProject/FactomCode/notaryapi"
-	"github.com/FactomProject/gocoding"
-
-	"encoding/base64"
-	//	"io/ioutil"
-	//"os"
+	"github.com/FactomProject/gocoding"	
+	"github.com/FactomProject/FactomCode/notaryapi"	
+	"encoding/hex"
+//	"encoding/base64"
+//	"io/ioutil"
+	//"os" 	
+	
 )
 
 /*
@@ -35,8 +35,6 @@ func TestBuyCredit(t *testing.T) {
 		fmt.Println("Buy credit request successfully submitted to factomclient.")
 	}
 }
-
-
 */
 
 func TestBuyCreditWallet(t *testing.T) {
@@ -81,14 +79,16 @@ func TestAddChain(t *testing.T) {
 
 	chain.FirstEntry = entry
 
+	
+
 	buf := new(bytes.Buffer)
 	err := SafeMarshal(buf, chain)
 
 	fmt.Println("chain:%v", string(buf.Bytes()))
-	//jsonstr := string(buf.Bytes())
+	jsonstr := string(buf.Bytes())
 
 	// Unmarshal the json string locally to compare
-	jsonstr := "{\"Name\":[\"bXlDb21wYW55\",\"Ym9va2tlZXBpbmc=\"],\"FirstEntry\":{\"ExtIDs\":[\"MTAwMQ==\",\"NTcwYjllM2ZiMmY1YWU4MjM2ODVlYjQ0MjJkNGZkODNmM2YwZDllN2NlMDdkOTg4YmQxN2U2NjUzOTQ2NjhjNg==\",\"bXZSSnFNVE1mclkzS3RIMkE0cWRQZnEzUTZMNEt3OUNrNA==\"],\"Data\":\"Rmlyc3QgZW50cnkgZm9yIGNoYWluOiIyRnJnRDIrdlBQM3l6NXpMVmFFNVRjMlZpVnY5ZndaZVIzL2FkeklUakpjPSJSdWxlczoiYXNsO2RqZmFzbGRrZmphc2xkZmpsa3NvdWlld29wdXJ3Ig==\"}}"
+//	jsonstr := "{\"Name\":[\"bXlDb21wYW55\",\"Ym9va2tlZXBpbmc=\"],\"FirstEntry\":{\"ExtIDs\":[\"MTAwMQ==\",\"NTcwYjllM2ZiMmY1YWU4MjM2ODVlYjQ0MjJkNGZkODNmM2YwZDllN2NlMDdkOTg4YmQxN2U2NjUzOTQ2NjhjNg==\",\"bXZSSnFNVE1mclkzS3RIMkE0cWRQZnEzUTZMNEt3OUNrNA==\"],\"Data\":\"Rmlyc3QgZW50cnkgZm9yIGNoYWluOiIyRnJnRDIrdlBQM3l6NXpMVmFFNVRjMlZpVnY5ZndaZVIzL2FkeklUakpjPSJSdWxlczoiYXNsO2RqZmFzbGRrZmphc2xkZmpsa3NvdWlld29wdXJ3Ig==\"}}"
 	//fmt.Println(jsonstr)
 
 	// Post the chain JSON to FactomClient web server	---------------------------------------
@@ -110,13 +110,14 @@ func TestAddChain(t *testing.T) {
 	reader := gocoding.ReadBytes([]byte(jsonstr))
 	err = SafeUnmarshal(reader, chain3)
 
-	fmt.Println("chainid:%v", base64.StdEncoding.EncodeToString(chain3.ChainID.Bytes))
+	fmt.Println("chainid:%v", hex.EncodeToString(chain3.ChainID.Bytes))
 	fmt.Println("name0:%v", string(chain3.Name[0]))
 	fmt.Println("entrydata:%v", string(chain3.FirstEntry.Data))
 
 	if err != nil {
 		t.Errorf("Error:%v", err)
 	}
+
 }
 
 func TestAddEntry(t *testing.T) {
