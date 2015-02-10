@@ -16,10 +16,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/FactomProject/FactomCode/factomchain/factoid"
+	// "github.com/FactomProject/FactomCode/factomchain/factoid"
 	"github.com/FactomProject/FactomCode/factomd/addrmgr"
 	//	"github.com/FactomProject/FactomCode/btcdb"
-	//	"github.com/FactomProject/FactomCode/btcutil"
 	//	"github.com/FactomProject/FactomCode/btcutil/bloom"
 	"github.com/FactomProject/FactomCode/factomwire"
 	//	"github.com/FactomProject/FactomCode/go-socks/socks"
@@ -800,6 +799,8 @@ func (p *peer) handleMemPoolMsg(msg *factomwire.MsgMemPool) {
 	}
 }
 */
+
+/*
 // handleTxMsg is invoked when a peer receives a tx bitcoin message.  It blocks
 // until the bitcoin transaction has been fully processed.  Unlock the block
 // handler this does not serialize all transactions through a single thread
@@ -821,6 +822,7 @@ func (p *peer) handleTxMsg(msg *factomwire.MsgTx) {
 	//p.server.blockManager.QueueTx(tx, p)
 	///<-p.txProcessed
 }
+*/
 
 // Handle factom app imcoming msg
 func (p *peer) handleBuyCreditMsg(msg *factomwire.MsgBuyCredit) {
@@ -1612,44 +1614,46 @@ out:
 				case *factomwire.MsgMemPool:
 					p.handleMemPoolMsg(msg)
 			*/
-		case *factomwire.MsgTx:
-			p.handleTxMsg(msg)
-			/*
-				case *factomwire.MsgBlock:
-					p.handleBlockMsg(msg, buf)
+		/*
+			case *factomwire.MsgTx:
+				p.handleTxMsg(msg)
+		*/
+		/*
+			case *factomwire.MsgBlock:
+				p.handleBlockMsg(msg, buf)
 
-							case *factomwire.MsgInv:
-								p.handleInvMsg(msg)
-								markConnected = true
+						case *factomwire.MsgInv:
+							p.handleInvMsg(msg)
+							markConnected = true
 
-							case *factomwire.MsgHeaders:
-								p.handleHeadersMsg(msg)
+						case *factomwire.MsgHeaders:
+							p.handleHeadersMsg(msg)
 
-							case *factomwire.MsgNotFound:
-								// TODO(davec): Ignore this for now, but ultimately
-								// it should probably be used to detect when something
-								// we requested needs to be re-requested from another
-								// peer.
+						case *factomwire.MsgNotFound:
+							// TODO(davec): Ignore this for now, but ultimately
+							// it should probably be used to detect when something
+							// we requested needs to be re-requested from another
+							// peer.
 
-							case *factomwire.MsgGetData:
-								p.handleGetDataMsg(msg)
-								markConnected = true
+						case *factomwire.MsgGetData:
+							p.handleGetDataMsg(msg)
+							markConnected = true
 
-							case *factomwire.MsgGetBlocks:
-								p.handleGetBlocksMsg(msg)
+						case *factomwire.MsgGetBlocks:
+							p.handleGetBlocksMsg(msg)
 
-							case *factomwire.MsgGetHeaders:
-								p.handleGetHeadersMsg(msg)
+						case *factomwire.MsgGetHeaders:
+							p.handleGetHeadersMsg(msg)
 
-							case *factomwire.MsgFilterAdd:
-								p.handleFilterAddMsg(msg)
+						case *factomwire.MsgFilterAdd:
+							p.handleFilterAddMsg(msg)
 
-							case *factomwire.MsgFilterClear:
-								p.handleFilterClearMsg(msg)
+						case *factomwire.MsgFilterClear:
+							p.handleFilterClearMsg(msg)
 
-							case *factomwire.MsgFilterLoad:
-								p.handleFilterLoadMsg(msg)
-			*/
+						case *factomwire.MsgFilterLoad:
+							p.handleFilterLoadMsg(msg)
+		*/
 
 		case *factomwire.MsgReject:
 			// Nothing to do currently.  Logging of the rejected
