@@ -16,13 +16,13 @@ import (
 	"sync/atomic"
 	"time"
 
-//	"github.com/FactomProject/FactomCode/factomchain/factoid"
+	//	"github.com/FactomProject/FactomCode/factomchain/factoid"
 	"github.com/FactomProject/FactomCode/factomd/addrmgr"
 	//	"github.com/FactomProject/FactomCode/btcdb"
 	//	"github.com/FactomProject/FactomCode/btcutil/bloom"
 	"github.com/FactomProject/FactomCode/factomwire"
 	//	"github.com/FactomProject/FactomCode/go-socks/socks"
-	"github.com/FactomProject/FactomCode/fastsha256"
+	"github.com/FactomProject/FactomCode/util"
 	"github.com/davecgh/go-spew/spew"
 )
 
@@ -229,7 +229,7 @@ func (p *peer) AddKnownInventory(invVect *factomwire.InvVect) {
 	p.knownInvMutex.Lock()
 	defer p.knownInvMutex.Unlock()
 
-	fastsha256.Trace()
+	util.Trace()
 
 	p.knownInventory.Add(invVect)
 }
@@ -275,17 +275,16 @@ func (p *peer) pushVersionMsg() error {
 	// If we are behind a proxy and the connection comes from the proxy then
 	// we return an unroutable address as their address. This is to prevent
 	// leaking the tor proxy address.
-	/*	if cfg.Proxy != "" {
-			proxyaddress, _, err := net.SplitHostPort(cfg.Proxy)
-			// invalid proxy means poorly configured, be on the safe side.
-			if err != nil || p.na.IP.String() == proxyaddress {
-				theirNa = &factomwire.NetAddress{
-					Timestamp: time.Now(),
-					IP:        net.IP([]byte{0, 0, 0, 0}),
-				}
+	if cfg.Proxy != "" {
+		proxyaddress, _, err := net.SplitHostPort(cfg.Proxy)
+		// invalid proxy means poorly configured, be on the safe side.
+		if err != nil || p.na.IP.String() == proxyaddress {
+			theirNa = &factomwire.NetAddress{
+				Timestamp: time.Now(),
+				IP:        net.IP([]byte{0, 0, 0, 0}),
 			}
 		}
-	*/
+	}
 	// Version message.
 	msg := factomwire.NewMsgVersion(
 		p.server.addrManager.GetBestLocalAddress(p.na), theirNa,
@@ -329,14 +328,14 @@ func (p *peer) updateAddresses(msg *factomwire.MsgVersion) {
 	if !p.inbound {
 		// TODO(davec): Only do this if not doing the initial block
 		// download and the local address is routable.
-		//if !cfg.DisableListen /* && isCurrent? */ {
-		// Get address that best matches.
-		lna := p.server.addrManager.GetBestLocalAddress(p.na)
-		if addrmgr.IsRoutable(lna) {
-			addresses := []*factomwire.NetAddress{lna}
-			p.pushAddrMsg(addresses)
+		if !cfg.DisableListen /* && isCurrent? */ {
+			// Get address that best matches.
+			lna := p.server.addrManager.GetBestLocalAddress(p.na)
+			if addrmgr.IsRoutable(lna) {
+				addresses := []*factomwire.NetAddress{lna}
+				p.pushAddrMsg(addresses)
+			}
 		}
-		//}
 
 		// Request known addresses if the server address manager needs
 		// more and the peer has a protocol version new enough to
@@ -363,7 +362,7 @@ func (p *peer) updateAddresses(msg *factomwire.MsgVersion) {
 
 // returns true if the message should be relayed, false otherwise
 func (p *peer) shallRelay(msg interface{}) bool {
-	fastsha256.Trace()
+	util.Trace()
 
 	fmt.Println("shallRelay msg= ", msg)
 
@@ -385,8 +384,10 @@ func (p *peer) shallRelay(msg interface{}) bool {
 	return false
 }
 
+// Call FactomRelay to relay/broadcast a Factom message (to your peers).
+// The intent is to call this function after certain 'processor' checks been done.
 func (p *peer) FactomRelay(msg factomwire.Message) {
-	fastsha256.Trace()
+	util.Trace()
 
 	fmt.Println("FactomRelay msg= ", msg)
 
@@ -400,7 +401,7 @@ func (p *peer) FactomRelay(msg factomwire.Message) {
 // and is used to negotiate the protocol version details as well as kick start
 // the communications.
 func (p *peer) handleVersionMsg(msg *factomwire.MsgVersion) {
-	fastsha256.Trace()
+	util.Trace()
 	// Detect self connections.
 	if msg.Nonce == p.server.nonce {
 		fmt.Printf("Disconnecting peer connected to self %s\n", p)
@@ -728,13 +729,13 @@ func (p *peer) PushGetHeadersMsg(locator btcchain.BlockLocator, stopHash *factom
 // is a tx or block and should be nil in other cases.  The wait parameter will
 // cause the function to block until the reject message has actually been sent.
 func (p *peer) PushRejectMsg(command string, code factomwire.RejectCode, reason string, hash *factomwire.ShaHash, wait bool) {
-	fastsha256.Trace()
+	util.Trace()
 	// Don't bother sending the reject message if the protocol version
 	// is too low.
 	if p.VersionKnown() && p.ProtocolVersion() < factomwire.RejectVersion {
 		return
 	}
-	fastsha256.Trace()
+	util.Trace()
 
 	msg := factomwire.NewMsgReject(command, code, reason)
 	if command == factomwire.CmdTx || command == factomwire.CmdBlock {
@@ -806,7 +807,7 @@ func (p *peer) handleMemPoolMsg(msg *factomwire.MsgMemPool) {
 // handler this does not serialize all transactions through a single thread
 // transactions don't rely on the previous one in a linear fashion like blocks.
 /*func (p *peer) handleTxMsg(msg *factomwire.MsgTx) {
-	fastsha256.Trace()
+	util.Trace()
 	// Add the transaction to the known inventory for the peer.
 	// Convert the raw MsgTx to a btcutil.Tx which provides some convenience
 	// methods and things such as hash caching.
@@ -825,7 +826,7 @@ func (p *peer) handleMemPoolMsg(msg *factomwire.MsgMemPool) {
 */
 // Handle factom app imcoming msg
 func (p *peer) handleBuyCreditMsg(msg *factomwire.MsgBuyCredit) {
-	fastsha256.Trace()
+	util.Trace()
 
 	// Add the msg to inbound msg queue
 	inMsgQueue <- msg
@@ -833,7 +834,7 @@ func (p *peer) handleBuyCreditMsg(msg *factomwire.MsgBuyCredit) {
 
 // Handle factom app imcoming msg
 func (p *peer) handleCommitChainMsg(msg *factomwire.MsgCommitChain) {
-	fastsha256.Trace()
+	util.Trace()
 
 	// Add the msg to inbound msg queue
 	inMsgQueue <- msg
@@ -841,7 +842,7 @@ func (p *peer) handleCommitChainMsg(msg *factomwire.MsgCommitChain) {
 
 // Handle factom app imcoming msg
 func (p *peer) handleRevealChainMsg(msg *factomwire.MsgRevealChain) {
-	fastsha256.Trace()
+	util.Trace()
 
 	// Add the msg to inbound msg queue
 	inMsgQueue <- msg
@@ -849,7 +850,7 @@ func (p *peer) handleRevealChainMsg(msg *factomwire.MsgRevealChain) {
 
 // Handle factom app imcoming msg
 func (p *peer) handleCommitEntryMsg(msg *factomwire.MsgCommitEntry) {
-	fastsha256.Trace()
+	util.Trace()
 
 	// Add the msg to inbound msg queue
 	inMsgQueue <- msg
@@ -857,7 +858,7 @@ func (p *peer) handleCommitEntryMsg(msg *factomwire.MsgCommitEntry) {
 
 // Handle factom app imcoming msg
 func (p *peer) handleRevealEntryMsg(msg *factomwire.MsgRevealEntry) {
-	fastsha256.Trace()
+	util.Trace()
 
 	// Add the msg to inbound msg queue
 	inMsgQueue <- msg
@@ -1192,7 +1193,7 @@ func (p *peer) handleFilterLoadMsg(msg *factomwire.MsgFilterLoad) {
 // and is used to provide the peer with known addresses from the address
 // manager.
 func (p *peer) handleGetAddrMsg(msg *factomwire.MsgGetAddr) {
-	fastsha256.Trace()
+	util.Trace()
 	// Don't return any addresses when running on the simulation test
 	// network.  This helps prevent the network from becoming another
 	// public test network since it will not be able to learn about other
@@ -1201,7 +1202,7 @@ func (p *peer) handleGetAddrMsg(msg *factomwire.MsgGetAddr) {
 	//	return
 	//}
 
-	fastsha256.Trace()
+	util.Trace()
 
 	// Get the current known addresses from the address manager.
 	addrCache := p.server.addrManager.AddressCache()
@@ -1213,7 +1214,7 @@ func (p *peer) handleGetAddrMsg(msg *factomwire.MsgGetAddr) {
 		p.Disconnect()
 		return
 	}
-	fastsha256.Trace()
+	util.Trace()
 }
 
 // pushAddrMsg sends one, or more, addr message(s) to the connected peer using
@@ -1262,7 +1263,7 @@ func (p *peer) pushAddrMsg(addresses []*factomwire.NetAddress) error {
 // handleAddrMsg is invoked when a peer receives an addr bitcoin message and
 // is used to notify the server about advertised addresses.
 func (p *peer) handleAddrMsg(msg *factomwire.MsgAddr) {
-	fastsha256.Trace()
+	util.Trace()
 	// Ignore addresses when running on the simulation test network.  This
 	// helps prevent the network from becoming another public test network
 	// since it will not be able to learn about other peers that have not
@@ -1350,7 +1351,7 @@ func (p *peer) handlePongMsg(msg *factomwire.MsgPong) {
 func (p *peer) readMessage() (factomwire.Message, []byte, error) {
 	if p.display {
 		fmt.Println("<<< readMessage()", p)
-		//		fastsha256.Trace()
+		//		util.Trace()
 	}
 
 	n, msg, buf, err := factomwire.ReadMessageN(p.conn, p.ProtocolVersion(),
@@ -1613,8 +1614,8 @@ out:
 				case *factomwire.MsgMemPool:
 					p.handleMemPoolMsg(msg)
 			*/
-//		case *factomwire.MsgTx:
-//			p.handleTxMsg(msg)
+			//		case *factomwire.MsgTx:
+			//			p.handleTxMsg(msg)
 			/*
 				case *factomwire.MsgBlock:
 					p.handleBlockMsg(msg, buf)
@@ -1937,7 +1938,7 @@ func (p *peer) QueueMessage(msg factomwire.Message, doneChan chan struct{}) {
 	}
 	//	fmt.Printf("========= %s = %s = connected: %d =======================================================\n", time.Now().String(), p, p.server.ConnectedCount())
 	fmt.Printf("========= %s = %s ========================================================\n", time.Now().String(), p)
-	//	fastsha256.Trace()
+	//	util.Trace()
 	p.outputQueue <- outMsg{msg: msg, doneChan: doneChan}
 }
 

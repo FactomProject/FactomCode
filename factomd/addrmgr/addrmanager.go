@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/FactomProject/FactomCode/factomwire"
+	"github.com/FactomProject/FactomCode/util"
 )
 
 // AddrManager provides a concurrency safe address manager for caching potential
@@ -162,15 +163,18 @@ const (
 // updateAddress is a helper function to either update an address already known
 // to the address manager, or to add the address if not already known.
 func (a *AddrManager) updateAddress(netAddr, srcAddr *factomwire.NetAddress) {
+	util.Trace()
 	// Filter out non-routable addresses. Note that non-routable
 	// also includes invalid and local addresses.
 	if !IsRoutable(netAddr) {
 		return
 	}
+	util.Trace()
 
 	addr := NetAddressKey(netAddr)
 	ka := a.find(netAddr)
 	if ka != nil {
+		util.Trace()
 		// TODO(oga) only update addresses periodically.
 		// Update the last seen time and services.
 		// note that to prevent causing excess garbage on getaddr
@@ -204,6 +208,7 @@ func (a *AddrManager) updateAddress(netAddr, srcAddr *factomwire.NetAddress) {
 			return
 		}
 	} else {
+		util.Trace()
 		// Make a copy of the net address to avoid races since it is
 		// updated elsewhere in the addrmanager code and would otherwise
 		// change the actual netaddress on the peer.
@@ -220,10 +225,11 @@ func (a *AddrManager) updateAddress(netAddr, srcAddr *factomwire.NetAddress) {
 	if _, ok := a.addrNew[bucket][addr]; ok {
 		return
 	}
+	util.Trace()
 
 	// Enforce max addresses.
 	if len(a.addrNew[bucket]) > newBucketSize {
-		fmt.Sprintf("new bucket is full, expiring old")
+		fmt.Println("new bucket is full, expiring old")
 		a.expireNew(bucket)
 	}
 
@@ -231,13 +237,14 @@ func (a *AddrManager) updateAddress(netAddr, srcAddr *factomwire.NetAddress) {
 	ka.refs++
 	a.addrNew[bucket][addr] = ka
 
-	fmt.Sprintf("Added new address %s for a total of %d addresses", addr,
+	fmt.Println("Added new address %s for a total of %d addresses", addr,
 		a.nTried+a.nNew)
 }
 
 // expireNew makes space in the new buckets by expiring the really bad entries.
 // If no bad entries are available we look at a few and remove the oldest.
 func (a *AddrManager) expireNew(bucket int) {
+	util.Trace()
 	// First see if there are any entries that are so bad we can just throw
 	// them away. otherwise we throw away the oldest entry in the cache.
 	// Bitcoind here chooses four random and just throws the oldest of
@@ -246,7 +253,7 @@ func (a *AddrManager) expireNew(bucket int) {
 	var oldest *knownAddress
 	for k, v := range a.addrNew[bucket] {
 		if v.isBad() {
-			fmt.Sprintf("expiring bad address %v", k)
+			fmt.Printf("expiring bad address %v\n", k)
 			delete(a.addrNew[bucket], k)
 			v.refs--
 			if v.refs == 0 {
@@ -264,7 +271,7 @@ func (a *AddrManager) expireNew(bucket int) {
 
 	if oldest != nil {
 		key := NetAddressKey(oldest.na)
-		fmt.Sprintf("expiring oldest address %v", key)
+		fmt.Printf("expiring oldest address %v\n", key)
 
 		delete(a.addrNew[bucket], key)
 		oldest.refs--
@@ -279,6 +286,7 @@ func (a *AddrManager) expireNew(bucket int) {
 // We just choose the eldest. Bitcoind selects 4 random entries and throws away
 // the older of them.
 func (a *AddrManager) pickTried(bucket int) *list.Element {
+	util.Trace()
 	var oldest *knownAddress
 	var oldestElem *list.Element
 	for e := a.addrTried[bucket].Front(); e != nil; e = e.Next() {
@@ -293,6 +301,7 @@ func (a *AddrManager) pickTried(bucket int) *list.Element {
 }
 
 func (a *AddrManager) getNewBucket(netAddr, srcAddr *factomwire.NetAddress) int {
+	util.Trace()
 	// bitcoind:
 	// doublesha256(key + sourcegroup + int64(doublesha256(key + group + sourcegroup))%bucket_per_source_group) % num_new_buckets
 
@@ -315,6 +324,7 @@ func (a *AddrManager) getNewBucket(netAddr, srcAddr *factomwire.NetAddress) int 
 }
 
 func (a *AddrManager) getTriedBucket(netAddr *factomwire.NetAddress) int {
+	util.Trace()
 	// bitcoind hashes this as:
 	// doublesha256(key + group + truncate_to_64bits(doublesha256(key)) % buckets_per_group) % num_buckets
 	data1 := []byte{}
@@ -337,6 +347,7 @@ func (a *AddrManager) getTriedBucket(netAddr *factomwire.NetAddress) int {
 // addressHandler is the main handler for the address manager.  It must be run
 // as a goroutine.
 func (a *AddrManager) addressHandler() {
+	util.Trace()
 	dumpAddressTicker := time.NewTicker(dumpAddressInterval)
 	defer dumpAddressTicker.Stop()
 out:
@@ -359,6 +370,7 @@ out:
 func (a *AddrManager) savePeers() {
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
+	util.Trace()
 
 	// First we make a serialisable datastructure so we can encode it to
 	// json.
@@ -434,6 +446,7 @@ func (a *AddrManager) loadPeers() {
 }
 
 func (a *AddrManager) deserializePeers(filePath string) error {
+	util.Trace()
 
 	_, err := os.Stat(filePath)
 	if os.IsNotExist(err) {
@@ -523,6 +536,7 @@ func (a *AddrManager) deserializePeers(filePath string) error {
 
 // DeserializeNetAddress converts a given address string to a *factomwire.NetAddress
 func (a *AddrManager) DeserializeNetAddress(addr string) (*factomwire.NetAddress, error) {
+	util.Trace()
 	host, portStr, err := net.SplitHostPort(addr)
 	if err != nil {
 		return nil, err
@@ -538,6 +552,7 @@ func (a *AddrManager) DeserializeNetAddress(addr string) (*factomwire.NetAddress
 // Start begins the core address handler which manages a pool of known
 // addresses, timeouts, and interval based writes.
 func (a *AddrManager) Start() {
+	util.Trace()
 	// Already started?
 	if atomic.AddInt32(&a.started, 1) != 1 {
 		return
@@ -555,6 +570,7 @@ func (a *AddrManager) Start() {
 
 // Stop gracefully shuts down the address manager by stopping the main handler.
 func (a *AddrManager) Stop() error {
+	util.Trace()
 	if atomic.AddInt32(&a.shutdown, 1) != 1 {
 		fmt.Sprintf("Address manager is already in the process of " +
 			"shutting down")
@@ -571,8 +587,10 @@ func (a *AddrManager) Stop() error {
 // number of addresses and silently ignores duplicate addresses.  It is
 // safe for concurrent access.
 func (a *AddrManager) AddAddresses(addrs []*factomwire.NetAddress, srcAddr *factomwire.NetAddress) {
+	util.Trace()
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
+	util.Trace()
 
 	for _, na := range addrs {
 		a.updateAddress(na, srcAddr)
@@ -583,8 +601,10 @@ func (a *AddrManager) AddAddresses(addrs []*factomwire.NetAddress, srcAddr *fact
 // number of addresses and silently ignores duplicate addresses.  It is
 // safe for concurrent access.
 func (a *AddrManager) AddAddress(addr, srcAddr *factomwire.NetAddress) {
+	util.Trace()
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
+	util.Trace()
 
 	a.updateAddress(addr, srcAddr)
 }
@@ -592,11 +612,13 @@ func (a *AddrManager) AddAddress(addr, srcAddr *factomwire.NetAddress) {
 // AddAddressByIP adds an address where we are given an ip:port and not a
 // factomwire.NetAddress.
 func (a *AddrManager) AddAddressByIP(addrIP string) error {
+	util.Trace()
 	// Split IP and port
 	addr, portStr, err := net.SplitHostPort(addrIP)
 	if err != nil {
 		return err
 	}
+	util.Trace()
 	// Put it in factomwire.Netaddress
 	var na factomwire.NetAddress
 	na.Timestamp = time.Now()
@@ -631,6 +653,7 @@ func (a *AddrManager) NumAddresses() int {
 func (a *AddrManager) NeedMoreAddresses() bool {
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
+	util.Trace()
 
 	return a.numAddresses() < needAddressThreshold
 }
@@ -672,6 +695,7 @@ func (a *AddrManager) AddressCache() []*factomwire.NetAddress {
 // reset resets the address manager by reinitialising the random source
 // and allocating fresh empty bucket storage.
 func (a *AddrManager) reset() {
+	util.Trace()
 
 	a.addrIndex = make(map[string]*knownAddress)
 

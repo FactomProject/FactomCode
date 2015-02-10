@@ -8,10 +8,9 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"fmt"
+	"github.com/FactomProject/FactomCode/fastsha256"
 	"io"
 	"math"
-
-	"github.com/FactomProject/FactomCode/fastsha256"
 )
 
 // Maximum payload size for a variable length integer.

@@ -22,9 +22,8 @@ import (
 	//	"runtime/pprof"
 
 	//	"github.com/FactomProject/FactomCode/btcd/limits"
-	"github.com/FactomProject/FactomCode/fastsha256"
 )
-  
+
 var (
 	//	cfg             *config
 	shutdownChannel = make(chan struct{})
@@ -154,7 +153,7 @@ func factomdMain(serverChan chan<- *server) error {
 
 func main() {
 
-	fastsha256.Trace()
+	util.Trace()
 	// Use all processor cores.
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
@@ -162,8 +161,6 @@ func main() {
 	//	if err := limits.SetLimits(); err != nil {
 	//		os.Exit(1)
 	//	}
-
-	fastsha256.Trace()
 
 	// Call serviceMain on Windows to handle running as a service.  When
 	// the return isService flag is true, exit now since we ran as a
@@ -179,40 +176,34 @@ func main() {
 		}
 	}
 
-	fastsha256.Trace()
+	util.Trace()
 
 	// Work around defer not working after os.Exit()
 	if err := factomdMain(nil); err != nil {
 		os.Exit(1)
 	}
 
-	fastsha256.Trace()
+	util.Trace()
 }
 
 func init() {
 
-	fastsha256.Trace()
+	util.Trace()
 
 	// Load configuration file and send settings to components
 	loadConfigurations()
 
-	fastsha256.Trace()
-
 	// Initialize db
 	initDB()
 
-	fastsha256.Trace()
-
 	// Start the processor module
 	go restapi.Start_Processor(db, inMsgQueue, outMsgQueue)
-
-	fastsha256.Trace()
 
 	// Start the RPC server module in a separate go-routine
 
 	go factomclient.Start_Rpcserver(db, outMsgQueue)
 
-	fastsha256.Trace()
+	util.Trace()
 }
 
 // Load settings from configuration file: factomd.conf

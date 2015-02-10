@@ -8,13 +8,12 @@ import (
 	"fmt"
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/factomapi"
+	"github.com/FactomProject/FactomCode/factomwire"
 	"github.com/FactomProject/FactomCode/notaryapi"
 	"github.com/FactomProject/FactomCode/util"
-	"github.com/FactomProject/FactomCode/factomwire"
-	//"github.com/FactomProject/FactomCode/wallet"	
+	//"github.com/FactomProject/FactomCode/wallet"
 	"github.com/FactomProject/btcrpcclient"
 	"github.com/FactomProject/btcutil"
-  	"github.com/FactomProject/FactomCode/fastsha256"
 	"io/ioutil"
 	"log"
 	"os"
@@ -23,9 +22,7 @@ import (
 	"strings"
 	"sync"
 	"time"
-
 )
-
 
 const (
 	//Server running mode
@@ -57,9 +54,9 @@ var (
 
 	//Map to store export csv files
 	ServerDataFileMap map[string]string
-	
-	inMsgQueue	<-chan factomwire.Message		//incoming message queue for factom application messages
-	outMsgQueue chan<- factomwire.Message 		//outgoing message queue for factom application messages	
+
+	inMsgQueue  <-chan factomwire.Message //incoming message queue for factom application messages
+	outMsgQueue chan<- factomwire.Message //outgoing message queue for factom application messages
 )
 
 var (
@@ -276,16 +273,16 @@ func init_processor() {
 
 }
 
-func Start_Processor(ldb database.Db, inMsgQ <-chan factomwire.Message, outMsgQ chan<- factomwire.Message ) {
+func Start_Processor(ldb database.Db, inMsgQ <-chan factomwire.Message, outMsgQ chan<- factomwire.Message) {
 
 	db = ldb
 	inMsgQueue = inMsgQ
 	outMsgQueue = outMsgQ
 
-  fastsha256.Trace()
-	
+	util.Trace()
+
 	init_processor()
-  fastsha256.Trace()
+	util.Trace()
 
 	if nodeMode == SERVER_NODE {
 		err := initRPCClient()
@@ -297,16 +294,16 @@ func Start_Processor(ldb database.Db, inMsgQ <-chan factomwire.Message, outMsgQ 
 			log.Fatalf("cannot init wallet: %s", err)
 		}
 	}
-  fastsha256.Trace()
-	
-	fmt.Println ("before range inMsgQ")
+	util.Trace()
+
+	fmt.Println("before range inMsgQ")
 	// Process msg from the incoming queue
-	for  msg := range inMsgQ {	
-			fmt.Printf ("in range inMsgQ, msg:%+v\n", msg)		
-			go serveMsgRequest(msg)
+	for msg := range inMsgQ {
+		fmt.Printf("in range inMsgQ, msg:%+v\n", msg)
+		go serveMsgRequest(msg)
 	}
 
-  fastsha256.Trace()
+	util.Trace()
 
 	defer func() {
 		shutdown()
@@ -364,96 +361,91 @@ func save(chain *notaryapi.EChain) {
 	}
 }
 
-func serveMsgRequest(msg factomwire.Message) error{
+func serveMsgRequest(msg factomwire.Message) error {
 	//var buf bytes.Buffer
 
-  fastsha256.Trace()
+	util.Trace()
 
 	switch msg.Command() {
-		case factomwire.CmdCommitChain:
-  fastsha256.Trace()
-			msgCommitChain, ok := msg.(*factomwire.MsgCommitChain)
-			if ok {
-				//Verify signature (timestamp + chainid + entry hash + entryChainIDHash + credits)
-				var buf bytes.Buffer
-				binary.Write(&buf, binary.BigEndian, msgCommitChain.Timestamp)	
-				buf.Write(msgCommitChain.ChainID.Bytes)
-				buf.Write(msgCommitChain.EntryHash.Bytes)	
-				buf.Write(msgCommitChain.EntryChainIDHash.Bytes) 
-				binary.Write(&buf, binary.BigEndian, msgCommitChain.Credits)	
-				if !notaryapi.VerifySlice(msgCommitChain.ECPubKey.Bytes, buf.Bytes(), msgCommitChain.Sig) {
-					return errors.New("Error in verifying signature for msg:" + fmt.Sprintf("%+v", msgCommitChain))
-				}	
-				
-				err := processCommitChain(msgCommitChain.EntryHash, msgCommitChain.ChainID, msgCommitChain.EntryChainIDHash, msgCommitChain.ECPubKey, int32(msgCommitChain.Credits))
-				if err != nil {
-					return err
-				}
-			} else {
-				return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg)) 
-			}				
-
-		case factomwire.CmdRevealChain:
-  fastsha256.Trace()
-			msgRevealChain, ok := msg.(*factomwire.MsgRevealChain)
-			if ok {
-				err := processRevealChain(msgRevealChain.Chain)	
-				if err != nil {
-					return err
-				}
-			} else {
-				return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg)) 
-			}				
-
-		case factomwire.CmdCommitEntry:	
-  			fastsha256.Trace()
-			msgCommitEntry, ok := msg.(*factomwire.MsgCommitEntry)
-			if ok {
-				//Verify signature (timestamp + entry hash + credits)	
-				var buf bytes.Buffer
-				binary.Write(&buf, binary.BigEndian, msgCommitEntry.Timestamp)
-				buf.Write(msgCommitEntry.EntryHash.Bytes)
-				binary.Write(&buf, binary.BigEndian, msgCommitEntry.Credits)		
-				if !notaryapi.VerifySlice(msgCommitEntry.ECPubKey.Bytes, buf.Bytes(), msgCommitEntry.Sig) {
-					return errors.New("Error in verifying signature for msg:" + fmt.Sprintf("%+v", msgCommitEntry))
-				}	
-				
-				err := processCommitEntry(msgCommitEntry.EntryHash, msgCommitEntry.ECPubKey, int64(msgCommitEntry.Timestamp), int32(msgCommitEntry.Credits))
-				if err != nil {
-					return err
-				}
-			} else {
-				return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg)) 
-			}					
-		case factomwire.CmdRevealEntry:
-			msgRevealEntry, ok := msg.(*factomwire.MsgRevealEntry)
-			if ok {
-				err := processRevealEntry(msgRevealEntry.Entry)	
-				if err != nil {
-					return err
-				}
-			} else {
-				return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg)) 
-			}			
-			
-		case factomwire.CmdBuyCredit:
-			msgBuyCredit, ok := msg.(*factomwire.MsgBuyCredit)
-			if ok {
-				fmt.Printf("msgBuyCredit:%+v\n", msgBuyCredit)
-				credits := msgBuyCredit.FactoidBase * creditsPerFactoid / 1000000000
-				err := processBuyEntryCredit(msgBuyCredit.ECPubKey, int32(credits), msgBuyCredit.ECPubKey)	
-				if err != nil {
-					return err
-				}
-			} else {
-				return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg)) 
+	case factomwire.CmdCommitChain:
+		msgCommitChain, ok := msg.(*factomwire.MsgCommitChain)
+		if ok {
+			//Verify signature (timestamp + chainid + entry hash + entryChainIDHash + credits)
+			var buf bytes.Buffer
+			binary.Write(&buf, binary.BigEndian, msgCommitChain.Timestamp)
+			buf.Write(msgCommitChain.ChainID.Bytes)
+			buf.Write(msgCommitChain.EntryHash.Bytes)
+			buf.Write(msgCommitChain.EntryChainIDHash.Bytes)
+			binary.Write(&buf, binary.BigEndian, msgCommitChain.Credits)
+			if !notaryapi.VerifySlice(msgCommitChain.ECPubKey.Bytes, buf.Bytes(), msgCommitChain.Sig) {
+				return errors.New("Error in verifying signature for msg:" + fmt.Sprintf("%+v", msgCommitChain))
 			}
-		
-		default:
-  fastsha256.Trace()
-			return errors.New("Message type unsupported:" + fmt.Sprintf("%+v", msg)) 
+
+			err := processCommitChain(msgCommitChain.EntryHash, msgCommitChain.ChainID, msgCommitChain.EntryChainIDHash, msgCommitChain.ECPubKey, int32(msgCommitChain.Credits))
+			if err != nil {
+				return err
+			}
+		} else {
+			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
+		}
+
+	case factomwire.CmdRevealChain:
+		msgRevealChain, ok := msg.(*factomwire.MsgRevealChain)
+		if ok {
+			err := processRevealChain(msgRevealChain.Chain)
+			if err != nil {
+				return err
+			}
+		} else {
+			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
+		}
+
+	case factomwire.CmdCommitEntry:
+		msgCommitEntry, ok := msg.(*factomwire.MsgCommitEntry)
+		if ok {
+			//Verify signature (timestamp + entry hash + credits)
+			var buf bytes.Buffer
+			binary.Write(&buf, binary.BigEndian, msgCommitEntry.Timestamp)
+			buf.Write(msgCommitEntry.EntryHash.Bytes)
+			binary.Write(&buf, binary.BigEndian, msgCommitEntry.Credits)
+			if !notaryapi.VerifySlice(msgCommitEntry.ECPubKey.Bytes, buf.Bytes(), msgCommitEntry.Sig) {
+				return errors.New("Error in verifying signature for msg:" + fmt.Sprintf("%+v", msgCommitEntry))
+			}
+
+			err := processCommitEntry(msgCommitEntry.EntryHash, msgCommitEntry.ECPubKey, int64(msgCommitEntry.Timestamp), int32(msgCommitEntry.Credits))
+			if err != nil {
+				return err
+			}
+		} else {
+			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
+		}
+	case factomwire.CmdRevealEntry:
+		msgRevealEntry, ok := msg.(*factomwire.MsgRevealEntry)
+		if ok {
+			err := processRevealEntry(msgRevealEntry.Entry)
+			if err != nil {
+				return err
+			}
+		} else {
+			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
+		}
+
+	case factomwire.CmdBuyCredit:
+		msgBuyCredit, ok := msg.(*factomwire.MsgBuyCredit)
+		if ok {
+			fmt.Printf("msgBuyCredit:%+v\n", msgBuyCredit)
+			credits := msgBuyCredit.FactoidBase * creditsPerFactoid / 1000000000
+			err := processBuyEntryCredit(msgBuyCredit.ECPubKey, int32(credits), msgBuyCredit.ECPubKey)
+			if err != nil {
+				return err
+			}
+		} else {
+			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
+		}
+
+	default:
+		return errors.New("Message type unsupported:" + fmt.Sprintf("%+v", msg))
 	}
-  fastsha256.Trace()
 	return nil
 }
 
@@ -490,11 +482,11 @@ func postEntry(context string, form url.Values) (interface{}, *notaryapi.Error) 
 }
 
 */
-func processRevealEntry(newEntry *notaryapi.Entry) (error) {
+func processRevealEntry(newEntry *notaryapi.Entry) error {
 
 	chain := chainIDMap[newEntry.ChainID.String()]
 	if chain == nil {
-		return errors.New("This chain is not supported:" + newEntry.ChainID.String()) 
+		return errors.New("This chain is not supported:" + newEntry.ChainID.String())
 	}
 
 	// store the new entry in db
@@ -513,7 +505,7 @@ func processRevealEntry(newEntry *notaryapi.Entry) (error) {
 	if ok && prepayment >= credits {
 		delete(prePaidEntryMap, key) // Only revealed once for multiple prepayments??
 	} else {
-		return errors.New("Credit needs to paid first before reveal an entry:"+entryHash.String())
+		return errors.New("Credit needs to paid first before reveal an entry:" + entryHash.String())
 	}
 
 	chain.BlockMutex.Lock()
@@ -527,7 +519,7 @@ func processRevealEntry(newEntry *notaryapi.Entry) (error) {
 	return nil
 }
 
-func processCommitEntry(entryHash *notaryapi.Hash, pubKey *notaryapi.Hash, timeStamp int64, credits int32) (error) {
+func processCommitEntry(entryHash *notaryapi.Hash, pubKey *notaryapi.Hash, timeStamp int64, credits int32) error {
 	// Make sure credits is negative
 	if credits > 0 {
 		credits = 0 - credits
@@ -552,7 +544,7 @@ func processCommitEntry(entryHash *notaryapi.Hash, pubKey *notaryapi.Hash, timeS
 	return err
 }
 
-func processCommitChain(entryHash *notaryapi.Hash, chainIDHash *notaryapi.Hash, entryChainIDHash *notaryapi.Hash, pubKey *notaryapi.Hash, credits int32) (error) {
+func processCommitChain(entryHash *notaryapi.Hash, chainIDHash *notaryapi.Hash, entryChainIDHash *notaryapi.Hash, pubKey *notaryapi.Hash, credits int32) error {
 
 	// Make sure credits is negative
 	if credits > 0 {
@@ -593,7 +585,7 @@ func processCommitChain(entryHash *notaryapi.Hash, chainIDHash *notaryapi.Hash, 
 	return err
 }
 
-func processBuyEntryCredit(pubKey *notaryapi.Hash, credits int32, factoidTxHash *notaryapi.Hash) (error) {
+func processBuyEntryCredit(pubKey *notaryapi.Hash, credits int32, factoidTxHash *notaryapi.Hash) error {
 
 	cbEntry := notaryapi.NewBuyCBEntry(pubKey, factoidTxHash, credits)
 	cchain.BlockMutex.Lock()
@@ -608,7 +600,7 @@ func processBuyEntryCredit(pubKey *notaryapi.Hash, credits int32, factoidTxHash 
 	return err
 }
 
-func processRevealChain(newChain *notaryapi.EChain) (error) {
+func processRevealChain(newChain *notaryapi.EChain) error {
 	// Check if the chain id already exists
 	_, existing := chainIDMap[newChain.ChainID.String()]
 	if !existing {
@@ -621,7 +613,7 @@ func processRevealChain(newChain *notaryapi.EChain) (error) {
 	}
 
 	if newChain.FirstEntry == nil {
-		return errors.New("The first entry is required to create a new chain:" + newChain.ChainID.String()) 
+		return errors.New("The first entry is required to create a new chain:" + newChain.ChainID.String())
 	}
 	// Calculate the required credits
 	binaryChain, _ := newChain.MarshalBinary()
@@ -635,7 +627,7 @@ func processRevealChain(newChain *notaryapi.EChain) (error) {
 	if ok && prepayment >= credits {
 		delete(prePaidEntryMap, key)
 	} else {
-		return errors.New("Enough credits need to paid first before creating a new chain:"+newChain.ChainID.String())
+		return errors.New("Enough credits need to paid first before creating a new chain:" + newChain.ChainID.String())
 	}
 	// Store the new chain in db
 	db.InsertChain(newChain)
@@ -670,6 +662,7 @@ func getEntryCreditBalance(pubKey *notaryapi.Hash) ([]byte, error) {
 	binary.Write(&buf, binary.BigEndian, eCreditMap[pubKey.String()])
 	return buf.Bytes(), nil
 }
+
 /*
 func postChain(context string, form url.Values) (interface{}, *notaryapi.Error) {
 	newChain := new(notaryapi.EChain)
@@ -1081,5 +1074,3 @@ func initServerDataFileMap() error {
 	return nil
 
 }
-
-

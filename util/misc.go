@@ -1,4 +1,4 @@
-package fastsha256
+package util
 
 import (
 	"fmt"
