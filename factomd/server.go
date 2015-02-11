@@ -25,7 +25,7 @@ import (
 	//	"github.com/FactomProject/FactomCode/btcjson"
 	"github.com/FactomProject/FactomCode/factomnet"
 	"github.com/FactomProject/FactomCode/factomwire"
-	"github.com/FactomProject/FactomCode/fastsha256"
+	"github.com/FactomProject/FactomCode/util"
 )
 
 const (
@@ -58,6 +58,7 @@ var (
 	// Permanent nodes
 	AddPeers = []string{
 		"m21.duckdns.org:4012",
+		"factom-p.duckdns.org:4012",
 		"factom-j.duckdns.org:4012",
 	}
 	ConnectPeers []string
@@ -365,7 +366,7 @@ func (s *server) handleRelayInvMsg(state *peerState, iv *factomwire.InvVect) {
 // handleBroadcastMsg deals with broadcasting messages to peers.  It is invoked
 // from the peerHandler goroutine.
 func (s *server) handleBroadcastMsg(state *peerState, bmsg *broadcastMsg) {
-	fastsha256.Trace()
+	util.Trace()
 	state.forAllPeers(func(p *peer) {
 		excluded := false
 		for _, ep := range bmsg.excludePeers {
@@ -776,7 +777,7 @@ func (s *server) RelayInventory(invVect *factomwire.InvVect) {
 // BroadcastMessage sends msg to all peers currently connected to the server
 // except those in the passed peers to exclude.
 func (s *server) BroadcastMessage(msg factomwire.Message, exclPeers ...*peer) {
-	fastsha256.Trace()
+	util.Trace()
 
 	// XXX: Need to determine if this is an alert that has already been
 	// broadcast and refrain from broadcasting again.

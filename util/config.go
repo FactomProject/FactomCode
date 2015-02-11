@@ -32,8 +32,8 @@ type FactomdConfig struct {
 		LogLevel string
 	}
 
-	AddPeers     []string `short:"a" long:"addpeer" description:"Add a peer to connect with at startup"`
-	ConnectPeers []string `long:"connect" description:"Connect only to the specified peers at startup"`
+	//	AddPeers     []string `short:"a" long:"addpeer" description:"Add a peer to connect with at startup"`
+	//	ConnectPeers []string `long:"connect" description:"Connect only to the specified peers at startup"`
 
 	Proxy          string `long:"proxy" description:"Connect via SOCKS5 proxy (eg. 127.0.0.1:9050)"`
 	DisableListen  bool   `long:"nolisten" description:"Disable listening for incoming connections -- NOTE: Listening is automatically disabled if the --connect or --proxy options are used without also specifying listen interfaces via --listen"`

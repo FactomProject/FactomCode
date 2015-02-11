@@ -270,6 +270,10 @@ func (p *peer) pushVersionMsg() error {
 	//		return err
 	//	}
 
+	util.Trace()
+	fmt.Println("CHECK cfg=", cfg)
+	util.Trace()
+
 	theirNa := p.na
 
 	// If we are behind a proxy and the connection comes from the proxy then
@@ -285,6 +289,7 @@ func (p *peer) pushVersionMsg() error {
 			}
 		}
 	}
+
 	// Version message.
 	msg := factomwire.NewMsgVersion(
 		p.server.addrManager.GetBestLocalAddress(p.na), theirNa,

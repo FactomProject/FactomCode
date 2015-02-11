@@ -25,7 +25,7 @@ import (
 )
 
 var (
-	//	cfg             *config
+	cfg             *util.FactomdConfig
 	shutdownChannel = make(chan struct{})
 	ldbpath         = "/tmp/ldb9"
 	db              database.Db                          // database
@@ -208,13 +208,14 @@ func init() {
 
 // Load settings from configuration file: factomd.conf
 func loadConfigurations() {
-	cfg := util.FactomdConfig{}
+	tcfg := util.FactomdConfig{}
+	cfg = &tcfg
 
 	wd, err := os.Getwd()
 	if err != nil {
 		log.Println(err)
 	}
-	err = gcfg.ReadFileInto(&cfg, wd+"/factomd.conf")
+	err = gcfg.ReadFileInto(cfg, wd+"/factomd.conf")
 	if err != nil {
 		log.Println(err)
 		log.Println("Server starting with default settings...")
@@ -222,11 +223,13 @@ func loadConfigurations() {
 
 		ldbpath = cfg.App.LdbPath
 
-		restapi.LoadConfigurations(&cfg)
-		factomclient.LoadConfigurations(&cfg)
-
+		restapi.LoadConfigurations(cfg)
+		factomclient.LoadConfigurations(cfg)
 	}
 
+	util.Trace()
+	fmt.Println("CHECK cfg= ", cfg)
+	util.Trace()
 }
 
 // Initialize the level db and share it with other components
