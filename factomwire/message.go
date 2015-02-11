@@ -105,7 +105,7 @@ func makeEmptyMessage(command string) (Message, error) {
 		msg = &MsgNotFound{}
 
 	case CmdTx:
-		//msg = &MsgTx{}
+		msg = &MsgTx{}
 
 	case CmdPing:
 		msg = &MsgPing{}
