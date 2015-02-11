@@ -1,16 +1,77 @@
 package restapi
-/*
+
 import (
-	"testing"
 	"fmt"
-	"time"
-	"bytes"
+	"reflect"
+	"testing"
 
-	"github.com/FactomProject/btcutil"
-	"github.com/FactomProject/btcd/wire"	
-	"github.com/FactomProject/FactomCode/notaryapi"
-)
+	/*
+		"time"
+		"bytes"
 
+		"github.com/FactomProject/btcutil"
+		"github.com/FactomProject/btcd/wire"
+		"github.com/FactomProject/FactomCode/notaryapi"
+	*/)
+
+func TestPrependBlockHeight(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping test in short mode.")
+	}
+
+	fmt.Println("testing...")
+
+	s1 := []byte{0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF}
+	const h1 uint64 = 0x123456789ABC // temp block height
+
+	_, err := prependBlockHeight(h1, s1)
+	if nil != err {
+		t.Errorf("error 1!")
+	}
+
+	const h2 uint64 = 0
+	_, err = prependBlockHeight(h2, s1)
+	if nil == err {
+		t.Errorf("error 2!")
+	}
+
+	s3 := []byte{0x11, 0x22, 0x33}
+	const h3 uint64 = 0x1000000000000
+	_, err = prependBlockHeight(h3, s3)
+	if nil == err {
+		t.Errorf("error 3!")
+	}
+
+	s4 := []byte("hi")
+	const h4 uint64 = 0x1000000000000 - 1
+	desired4 := []byte{'F', 'A', 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 'h', 'i'}
+	r4, err := prependBlockHeight(h4, s4)
+	if nil != err {
+		t.Errorf("error 4!")
+	}
+
+	if !reflect.DeepEqual(r4, desired4) {
+		t.Errorf("deep equal 4!")
+		fmt.Printf("%x\n", desired4)
+		fmt.Printf("%x\n", r4)
+	}
+
+	s5 := []byte{0x11, 0x22, 0x33}
+	const h5 uint64 = 3
+	desired5 := []byte{'F', 'A', 0, 0, 0, 0, 0, 3, 0x11, 0x22, 0x33}
+	r5, err := prependBlockHeight(h5, s5)
+	if nil != err {
+		t.Errorf("error 5!")
+	}
+
+	if !reflect.DeepEqual(r5, desired5) {
+		t.Errorf("deep equal 5!")
+		fmt.Printf("%x\n", desired5)
+		fmt.Printf("%x\n", r5)
+	}
+}
+
+/*
 
 func init() {
 	err := initRPCClient()
@@ -78,7 +139,7 @@ func TestListUnspent(t *testing.T) {
 	if len(balance) != 93 {
 		t.Errorf("test.listunspent.len==%d", len(balance), ", NOT 93")
 	}
-	
+
 	var i int
 	for _, b := range balance {
 		if b.Amount > float64(0.1) {
@@ -89,7 +150,7 @@ func TestListUnspent(t *testing.T) {
 	if i != 21 {
 		t.Errorf("qualified unspent len==%d", i, ", NOT 21")
 	}
-	
+
 	var included bool
 	for _, b := range balance {
 		if compareUnspentResult(spentResult, b) {

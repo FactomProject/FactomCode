@@ -2,6 +2,7 @@ package restapi
 
 import (
 	"bytes"
+	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"strconv"
@@ -12,15 +13,17 @@ import (
 	"log"
 	"path/filepath"
 
-	"github.com/FactomProject/btcd/txscript"  
-	"github.com/FactomProject/btcjson"
 	"github.com/FactomProject/btcd/chaincfg"
+	"github.com/FactomProject/btcd/txscript"
+	"github.com/FactomProject/btcd/wire"
+	"github.com/FactomProject/btcjson"
 	"github.com/FactomProject/btcrpcclient"
 	"github.com/FactomProject/btcutil"
-	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/btcws"
 
 	"github.com/FactomProject/FactomCode/notaryapi"
+
+	"errors"
 )
 
 // fee is paid to miner for tx written into btc
@@ -248,12 +251,16 @@ func addTxIn(msgtx *wire.MsgTx, b balance) error {
 
 func addTxOuts(msgtx *wire.MsgTx, b balance, hash []byte) error {
 
-	header := []byte{0x46, 0x61, 0x63, 0x74, 0x6f, 0x6d, 0x21, 0x21} // Factom!!
-	hash = append(header, hash...)
+	const temp_block uint64 = 0x123456789ABC // XXX: temp block height, needs to be passed in from upper layers
+
+	anchorHash, err := prependBlockHeight(temp_block, hash)
+	if err != nil {
+		fmt.Printf("ScriptBuilder error: %v\n", err)
+	}
 
 	builder := txscript.NewScriptBuilder()
 	builder.AddOp(txscript.OP_RETURN)
-	builder.AddData(hash)
+	builder.AddData(anchorHash)
 
 	// latest routine from Conformal btcsuite returns 2 parameters, not 1... not sure what to do for people with the old conformal libraries :(
 	opReturn, err := builder.Script()
@@ -647,4 +654,21 @@ func toHash(txHash *wire.ShaHash) *notaryapi.Hash {
 	h := new(notaryapi.Hash)
 	h.SetBytes(txHash.Bytes())
 	return h
+}
+
+func prependBlockHeight(height uint64, hash []byte) ([]byte, error) {
+
+	if (0 == height) || (0xFFFFFFFFFFFF&height != height) {
+		return nil, errors.New("bad block height")
+	}
+
+	header := []byte{'F', 'A'}
+
+	big := make([]byte, 8)
+	binary.BigEndian.PutUint64(big, height)
+
+	newdata := append(big[2:8], hash...)
+	newdata = append(header, newdata...)
+
+	return newdata, nil
 }
