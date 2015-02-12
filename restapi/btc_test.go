@@ -44,7 +44,7 @@ func TestPrependBlockHeight(t *testing.T) {
 
 	s4 := []byte("hi")
 	const h4 uint64 = 0x1000000000000 - 1
-	desired4 := []byte{'F', 'A', 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 'h', 'i'}
+	desired4 := []byte{'F', 'a', 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 'h', 'i'}
 	r4, err := prependBlockHeight(h4, s4)
 	if nil != err {
 		t.Errorf("error 4!")
@@ -58,7 +58,7 @@ func TestPrependBlockHeight(t *testing.T) {
 
 	s5 := []byte{0x11, 0x22, 0x33}
 	const h5 uint64 = 3
-	desired5 := []byte{'F', 'A', 0, 0, 0, 0, 0, 3, 0x11, 0x22, 0x33}
+	desired5 := []byte{'F', 'a', 0, 0, 0, 0, 0, 3, 0x11, 0x22, 0x33}
 	r5, err := prependBlockHeight(h5, s5)
 	if nil != err {
 		t.Errorf("error 5!")

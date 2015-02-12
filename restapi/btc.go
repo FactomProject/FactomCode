@@ -662,7 +662,7 @@ func prependBlockHeight(height uint64, hash []byte) ([]byte, error) {
 		return nil, errors.New("bad block height")
 	}
 
-	header := []byte{'F', 'A'}
+	header := []byte{'F', 'a'}
 
 	big := make([]byte, 8)
 	binary.BigEndian.PutUint64(big, height)
