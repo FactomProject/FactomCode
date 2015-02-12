@@ -26,7 +26,7 @@ func (msg *MsgRevealChain) BtcEncode(w io.Writer, pver uint32) error {
 		return err
 	}
 		
-	err = writeVarBytes(w, uint32(10000), bytes)
+	err = writeVarBytes(w, pver, bytes)
 	if err != nil {
 		return err
 	}
@@ -38,7 +38,7 @@ func (msg *MsgRevealChain) BtcEncode(w io.Writer, pver uint32) error {
 // This is part of the Message interface implementation.
 func (msg *MsgRevealChain) BtcDecode(r io.Reader, pver uint32) error {
 	//Chain	
-	bytes, err := readVarBytes(r, pver, uint32(10000), CmdRevealChain)
+	bytes, err := readVarBytes(r, pver, MaxAppMsgPayload, CmdRevealChain)
 	if err != nil {
 		return err
 	}
