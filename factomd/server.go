@@ -195,11 +195,11 @@ func (p *peerState) NeedMoreOutbound() bool {
 
 // forAllOutboundPeers is a helper function that runs closure on all outbound
 // peers known to peerState.
-func (p *peerState) forAllOutboundPeers(closure func(p *peer)) {
-	for e := p.outboundPeers.Front(); e != nil; e = e.Next() {
+func (p1 *peerState) forAllOutboundPeers(closure func(p2 *peer)) {
+	for e := p1.outboundPeers.Front(); e != nil; e = e.Next() {
 		closure(e.Value.(*peer))
 	}
-	for e := p.persistentPeers.Front(); e != nil; e = e.Next() {
+	for e := p1.persistentPeers.Front(); e != nil; e = e.Next() {
 		closure(e.Value.(*peer))
 	}
 }
@@ -325,6 +325,7 @@ func (s *server) handleBanPeerMsg(state *peerState, p *peer) {
 // handleRelayInvMsg deals with relaying inventory to peers that are not already
 // known to have it.  It is invoked from the peerHandler goroutine.
 func (s *server) handleRelayInvMsg(state *peerState, iv *factomwire.InvVect) {
+	util.Trace()
 	state.forAllPeers(func(p *peer) {
 		if !p.Connected() {
 			return
@@ -366,8 +367,9 @@ func (s *server) handleRelayInvMsg(state *peerState, iv *factomwire.InvVect) {
 // handleBroadcastMsg deals with broadcasting messages to peers.  It is invoked
 // from the peerHandler goroutine.
 func (s *server) handleBroadcastMsg(state *peerState, bmsg *broadcastMsg) {
-	util.Trace()
 	state.forAllPeers(func(p *peer) {
+
+		fmt.Println(">>>>> PEER=", p, "PEER END>>>")
 		excluded := false
 		for _, ep := range bmsg.excludePeers {
 			if p == ep {
