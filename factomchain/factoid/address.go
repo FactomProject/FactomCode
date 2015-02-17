@@ -5,13 +5,15 @@
 package factoid
 
 import (
+	"bytes"
+	"encoding/binary"
 	"github.com/FactomProject/FactomCode/notaryapi"
 	"github.com/FactomProject/btcutil/base58"
 )
 
 //raw address, either a hash of *Reveal (for factoid tx)
 //	or a raw PublicKey (for entrycredit tx)
-type Address []byte
+type Address notaryapi.ByteArray
 
 //revealed address is the public key
 type AddressReveal notaryapi.DetachedPublicKey
@@ -40,6 +42,71 @@ type SingleSignature struct {
 type InputSig struct {
 	Hint rune
 	Sigs []SingleSignature
+}
+
+
+func (s *SingleSignature) MarshalBinary() (data []byte, err error) {
+	var buf bytes.Buffer
+
+	binary.Write(&buf, binary.BigEndian, s.Hint) //int32
+	buf.Write(s.Sig[:]) // 64
+
+	return buf.Bytes(), err
+}
+
+func (s *SingleSignature) MarshalledSize() uint64 {
+	var size uint64 = 0
+
+	size += 4 + 64 //68
+	return size
+}
+
+func (s *SingleSignature) UnmarshalBinary(data []byte) (err error) {
+	buf := bytes.NewReader(data[:4])
+	binary.Read(buf,binary.BigEndian,&s.Hint) 
+	data = data[4:]
+
+	copy(s.Sig[:],data[:64])
+
+	return nil
+}
+
+func (is *InputSig) MarshalBinary() (data []byte, err error) {
+	var buf bytes.Buffer
+
+	binary.Write(&buf, binary.BigEndian, is.Hint) //int32
+	binary.Write(&buf, binary.BigEndian, uint64(len(is.Sigs))) //uint64  8
+	for _, s := range is.Sigs {
+		data, err = s.MarshalBinary()
+		if err != nil { return nil, err }
+		buf.Write(data)	
+	}
+
+	return buf.Bytes(), err
+}
+
+func (is *InputSig) MarshalledSize() uint64 {
+	var size uint64 = 0
+
+	size += 4 + 8  
+	size += 68 * uint64(len(is.Sigs))
+	return size
+}
+
+func (is *InputSig) UnmarshalBinary(data []byte) (err error) {
+	buf := bytes.NewReader(data[:4])
+	binary.Read(buf,binary.BigEndian,&is.Hint) 
+	data = data[4:]
+
+	count := binary.BigEndian.Uint64(data[0:8])
+	data = data[8:]
+	is.Sigs = make([]SingleSignature,count)
+	for i := uint64(0); i < count; i++ {
+		is.Sigs[i].UnmarshalBinary(data)
+		data = data[68:]
+	}
+
+	return nil
 }
 
 /*

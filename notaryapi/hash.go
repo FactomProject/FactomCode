@@ -23,6 +23,10 @@ func (h HashF) Hash() Hash {
 	return Hash { Bytes: h[:]}
 }
 
+func (h HashF) From(hash *Hash) {
+	copy(h[:],hash.Bytes)
+}
+
 func NewHash() *Hash {
 	h := new(Hash)
 	h.Bytes = make([]byte, 32)

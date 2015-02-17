@@ -34,7 +34,7 @@ func NewUtxo() Utxo {
 //add transaction to Utxo
 //used when tx passed all verifications
 //ToDo: maybe support Udue (command pattern?)
-func (u *Utxo) AddTx(t Tx) {
+func (u *Utxo) AddTx(t *Tx) {
 	_, ok := u.Txspent[t.Id()]
 	if ok {
 		return

@@ -173,7 +173,7 @@ type peer struct {
 	sendDoneQueue chan struct{}
 	queueWg       sync.WaitGroup // TODO(oga) wg -> single use channel?
 	outputInvChan chan *factomwire.InvVect
-	//	txProcessed        chan struct{}
+	txProcessed        chan struct{}
 	//	blockProcessed     chan struct{}
 	quit            chan struct{}
 	StatsMtx        sync.Mutex // protects all statistics below here.
@@ -806,29 +806,21 @@ func (p *peer) handleMemPoolMsg(msg *factomwire.MsgMemPool) {
 }
 */
 
-/*
+
 // handleTxMsg is invoked when a peer receives a tx bitcoin message.  It blocks
 // until the bitcoin transaction has been fully processed.  Unlock the block
 // handler this does not serialize all transactions through a single thread
 // transactions don't rely on the previous one in a linear fashion like blocks.
-/*func (p *peer) handleTxMsg(msg *factomwire.MsgTx) {
-	util.Trace()
-	// Add the transaction to the known inventory for the peer.
-	// Convert the raw MsgTx to a btcutil.Tx which provides some convenience
-	// methods and things such as hash caching.
-	tx := factoid.NewTx(msg)
-	iv := factomwire.NewInvVect(factomwire.InvTypeTx, tx.Sha())
-	p.AddKnownInventory(iv)
-
-	// Queue the transaction up to be handled by the block manager and
+func (p *peer) handleTxMsg(msg *factomwire.MsgTx) {
+	// Queue the transaction up to be handled by the txmanager and
 	// intentionally block further receives until the transaction is fully
 	// processed and known good or bad.  This helps prevent a malicious peer
 	// from queueing up a bunch of bad transactions before disconnecting (or
 	// being disconnected) and wasting memory.
-	//p.server.blockManager.QueueTx(tx, p)
-	///<-p.txProcessed
+	p.server.blockManager.QueueTx(msg, p)
+	<-p.txProcessed
 }
-*/
+
 // Handle factom app imcoming msg
 func (p *peer) handleBuyCreditMsg(msg *factomwire.MsgBuyCredit) {
 	util.Trace()
@@ -1614,13 +1606,14 @@ out:
 		case *factomwire.MsgRevealEntry:
 			p.handleRevealEntryMsg(msg)
 			p.FactomRelay(msg)
+		
+		case *factomwire.MsgTx:
+			p.handleTxMsg(msg)
 
 			/*
 				case *factomwire.MsgMemPool:
 					p.handleMemPoolMsg(msg)
 			*/
-			//		case *factomwire.MsgTx:
-			//			p.handleTxMsg(msg)
 			/*
 				case *factomwire.MsgBlock:
 					p.handleBlockMsg(msg, buf)

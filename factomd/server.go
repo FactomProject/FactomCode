@@ -113,8 +113,8 @@ type server struct {
 	bytesSent     uint64     // Total bytes sent by all peers since start.
 	addrManager   *addrmgr.AddrManager
 	// rpcServer     *rpcServer
-	//	blockManager         *blockManager
-	//	txMemPool            *txMemPool
+	blockManager         *blockManager
+	txMemPool            *txMemPool
 	//	cpuMiner             *CPUMiner
 	modifyRebroadcastInv chan interface{}
 	newPeers             chan *peer
@@ -1295,20 +1295,21 @@ nowc:
 		//	db:                   db,
 		//	timeSource:           btcchain.NewMedianTime(),
 	}
-	/*	bm, err := newBlockManager(&s)
+	bm, err := newBlockManager(&s)
+	if err != nil {
+		return nil, err
+	}
+	s.blockManager = bm
+	s.txMemPool = newTxMemPool(&s)
+	///s.cpuMiner = newCPUMiner(&s)
+
+	/*	
+	if !cfg.DisableRPC {
+		s.rpcServer, err = newRPCServer(cfg.RPCListeners, &s)
 		if err != nil {
 			return nil, err
 		}
-		s.blockManager = bm
-		s.txMemPool = newTxMemPool(&s)
-		s.cpuMiner = newCPUMiner(&s)
-
-		if !cfg.DisableRPC {
-			s.rpcServer, err = newRPCServer(cfg.RPCListeners, &s)
-			if err != nil {
-				return nil, err
-			}
-		}
+	}
 	*/
 	return &s, nil
 }

@@ -20,7 +20,7 @@ type Txid notaryapi.HashF
 type Input struct {
 	Txid       Txid
 	Index      uint32
-	RevealAddr []byte
+	RevealAddr notaryapi.ByteArray
 }
 
 //Output defines a receiver of the Input
@@ -54,6 +54,7 @@ type TxMsg struct {
 	Sigs    []InputSig
 }
 
+
 //Tx is the TxMsg and a chache of its Txid
 type Tx struct {
 	Raw *TxMsg
@@ -63,6 +64,8 @@ type Tx struct {
 //return transaction id of transacion
 func (td *TxData) Txid() Txid {
 	var txid Txid
+	h, _ := notaryapi.CreateHash(td)
+	notaryapi.HashF(txid).From(h)
 	return txid
 }
 
