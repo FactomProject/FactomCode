@@ -172,7 +172,7 @@ func handleBuyCreditPost(ctx *web.Context) {
 		abortMessage = fmt.Sprint("An error occured while submitting the buycredit request: ", err.Error())
 		return
 	} else {
-		fmt.Fprintln(ctx, "MsgBuyCredit Submitted")
+		fmt.Fprintln(ctx, "MsgGetCredit Submitted")
 	}
 		 
 }

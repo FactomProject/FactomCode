@@ -23,24 +23,32 @@ type InvType uint32
 
 // These constants define the various supported inventory vector types.
 const (
-	InvTypeError         InvType = 0
-	InvTypeTx            InvType = 1
-	InvTypeBlock         InvType = 2
-	InvTypeFilteredBlock InvType = 3
-	InvTypeFactomData    InvType = 4 // the 5 main messages: commit/reveal/convert
-//	InvTypeFactomControl InvType = 5 // Factom control messages
-//	InvTypeFactomRaw     InvType = 6 // Factom raw
+	InvTypeError InvType = 0
+	InvTypeTx    InvType = 1
+	//	InvTypeBlock         InvType = 2
+	//	InvTypeFilteredBlock InvType = 3
+
+	InvTypeFactomDirBlock   InvType = 4
+	InvTypeFactomEntryBlock InvType = 5
+	InvTypeFactomEntry      InvType = 6
+
+	InvTypeFactomControl InvType = 10 // Factom control messages
+	InvTypeFactomRaw     InvType = 99 // Factom raw
 )
 
 // Map of service flags back to their constant names for pretty printing.
 var ivStrings = map[InvType]string{
-	InvTypeError:         "ERROR",
-	InvTypeTx:            "MSG_TX",
-	InvTypeBlock:         "MSG_BLOCK",
-	InvTypeFilteredBlock: "MSG_FILTERED_BLOCK",
-	InvTypeFactomData:    "MSG_FACTOM_DATA",
-	//	InvTypeFactomControl: "MSG_FACTOM_CONTROL",
-	//	InvTypeFactomRaw:     "MSG_FACTOM_RAW",
+	InvTypeError: "ERROR",
+	InvTypeTx:    "MSG_TX",
+	//	InvTypeBlock:         "MSG_BLOCK",
+	//	InvTypeFilteredBlock: "MSG_FILTERED_BLOCK",
+
+	InvTypeFactomDirBlock:   "MSG_FACTOM_DIRBLOCK",
+	InvTypeFactomEntryBlock: "MSG_FACTOM_ENTRYBLOCK",
+	InvTypeFactomEntry:      "MSG_FACTOM_ENTRY",
+
+	InvTypeFactomControl: "MSG_FACTOM_CONTROL",
+	InvTypeFactomRaw:     "MSG_FACTOM_RAW",
 }
 
 // String returns the InvType in human-readable form.

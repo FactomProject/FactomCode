@@ -430,12 +430,12 @@ func serveMsgRequest(msg factomwire.Message) error {
 			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
 		}
 
-	case factomwire.CmdBuyCredit:
-		msgBuyCredit, ok := msg.(*factomwire.MsgBuyCredit)
+	case factomwire.CmdGetCredit:
+		msgGetCredit, ok := msg.(*factomwire.MsgGetCredit)
 		if ok {
-			fmt.Printf("msgBuyCredit:%+v\n", msgBuyCredit)
-			credits := msgBuyCredit.FactoidBase * creditsPerFactoid / 1000000000
-			err := processBuyEntryCredit(msgBuyCredit.ECPubKey, int32(credits), msgBuyCredit.ECPubKey)
+			fmt.Printf("msgGetCredit:%+v\n", msgGetCredit)
+			credits := msgGetCredit.FactoidBase * creditsPerFactoid / 1000000000
+			err := processBuyEntryCredit(msgGetCredit.ECPubKey, int32(credits), msgGetCredit.ECPubKey)
 			if err != nil {
 				return err
 			}

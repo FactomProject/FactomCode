@@ -173,7 +173,7 @@ type peer struct {
 	sendDoneQueue chan struct{}
 	queueWg       sync.WaitGroup // TODO(oga) wg -> single use channel?
 	outputInvChan chan *factomwire.InvVect
-	txProcessed        chan struct{}
+	txProcessed   chan struct{}
 	//	blockProcessed     chan struct{}
 	quit            chan struct{}
 	StatsMtx        sync.Mutex // protects all statistics below here.
@@ -374,7 +374,7 @@ func (p *peer) shallRelay(msg interface{}) bool {
 	hash, _ := factomwire.NewShaHashFromStruct(msg)
 	fmt.Println("shallRelay hash= ", hash)
 
-	iv := factomwire.NewInvVect(factomwire.InvTypeFactomData, hash)
+	iv := factomwire.NewInvVect(factomwire.InvTypeFactomRaw, hash)
 
 	fmt.Println("shallRelay iv= ", iv)
 
@@ -806,7 +806,6 @@ func (p *peer) handleMemPoolMsg(msg *factomwire.MsgMemPool) {
 }
 */
 
-
 // handleTxMsg is invoked when a peer receives a tx bitcoin message.  It blocks
 // until the bitcoin transaction has been fully processed.  Unlock the block
 // handler this does not serialize all transactions through a single thread
@@ -822,7 +821,7 @@ func (p *peer) handleTxMsg(msg *factomwire.MsgTx) {
 }
 
 // Handle factom app imcoming msg
-func (p *peer) handleBuyCreditMsg(msg *factomwire.MsgBuyCredit) {
+func (p *peer) handleBuyCreditMsg(msg *factomwire.MsgGetCredit) {
 	util.Trace()
 
 	// Add the msg to inbound msg queue
@@ -1587,7 +1586,7 @@ out:
 		case *factomwire.MsgAlert:
 			p.server.BroadcastMessage(msg, p)
 
-		case *factomwire.MsgBuyCredit:
+		case *factomwire.MsgGetCredit:
 			p.handleBuyCreditMsg(msg)
 			p.FactomRelay(msg)
 
@@ -1606,7 +1605,7 @@ out:
 		case *factomwire.MsgRevealEntry:
 			p.handleRevealEntryMsg(msg)
 			p.FactomRelay(msg)
-		
+
 		case *factomwire.MsgTx:
 			p.handleTxMsg(msg)
 

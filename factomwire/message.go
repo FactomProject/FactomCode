@@ -30,7 +30,6 @@ const (
 	CmdVerAck      = "verack"
 	CmdGetAddr     = "getaddr"
 	CmdAddr        = "addr"
-	CmdGetBlocks   = "getblocks"
 	CmdInv         = "inv"
 	CmdGetData     = "getdata"
 	CmdNotFound    = "notfound"
@@ -47,11 +46,16 @@ const (
 	CmdFilterLoad  = "filterload"
 	CmdMerkleBlock = "merkleblock"
 	CmdReject      = "reject"
-	CmdBuyCredit   = "buycredit"
+
 	CmdCommitChain = "commitchain"
 	CmdRevealChain = "revealchain"
 	CmdCommitEntry = "commitentry"
 	CmdRevealEntry = "revealentry"
+	CmdGetCredit   = "getcredit"
+
+	CmdGetDirBlocks = "getdblocks"
+	CmdGetEBlocks   = "geteblocks"
+	CmdMHashReveal  = "mhashreveal"
 )
 
 // MaxBlockPayload is the maximum bytes a block message can be in bytes.
@@ -142,8 +146,8 @@ func makeEmptyMessage(command string) (Message, error) {
 			case CmdReject:
 				msg = &MsgReject{}
 		*/
-	case CmdBuyCredit:
-		msg = &MsgBuyCredit{}
+	case CmdGetCredit:
+		msg = &MsgGetCredit{}
 
 	case CmdRevealEntry:
 		msg = &MsgRevealEntry{}
