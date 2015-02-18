@@ -51,7 +51,7 @@ const (
 	CmdRevealChain = "revealchain"
 	CmdCommitEntry = "commitentry"
 	CmdRevealEntry = "revealentry"
-	CmdGetCredit   = "getcredit"
+	CmdGetCredit   = "getcredits"
 
 	CmdGetDirBlocks = "getdblocks"
 	CmdGetEBlocks   = "geteblocks"
