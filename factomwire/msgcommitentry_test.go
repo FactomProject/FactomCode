@@ -1,9 +1,10 @@
-package factomwire
-/*
+package factomwire_test
+
 import (
 	"encoding/hex"
 	"github.com/FactomProject/FactomCode/notaryapi"		
-	"github.com/FactomProject/FactomCode/wallet"			
+	"github.com/FactomProject/FactomCode/wallet"	
+	"github.com/FactomProject/FactomCode/factomwire"
 	"testing"
 	"bytes"
 	"fmt"
@@ -50,7 +51,7 @@ func TestCommitEntry(t *testing.T) {
 	pubKey.SetBytes(binkey)	
 	
 	//Write msg
-	msgOutgoing := NewMsgCommitEntry() 
+	msgOutgoing := factomwire.NewMsgCommitEntry() 
 	msgOutgoing.ECPubKey = pubKey
 	msgOutgoing.EntryHash = entryHash
 	msgOutgoing.Credits = credits
@@ -63,7 +64,7 @@ func TestCommitEntry(t *testing.T) {
 	fmt.Println("Outgoing msg bytes: ", buf.Bytes())	
 
 	//Read msg
-	msgIncoming:= NewMsgCommitEntry() 	 
+	msgIncoming:= factomwire.NewMsgCommitEntry() 	 
 	err:=msgIncoming.BtcDecode(&buf, uint32(1))
 	
 	fmt.Printf("msgIncoming:%+v\n", msgIncoming)
@@ -73,4 +74,3 @@ func TestCommitEntry(t *testing.T) {
 	}
 
 } 
-*/
