@@ -26,14 +26,20 @@ const MaxMessagePayload = (1024 * 1024 * 32) // 32MB
 
 // Commands used in bitcoin message headers which describe the type of message.
 const (
-	CmdVersion     = "version"
-	CmdVerAck      = "verack"
-	CmdGetAddr     = "getaddr"
-	CmdAddr        = "addr"
-	CmdInv         = "inv"
-	CmdGetData     = "getdata"
-	CmdNotFound    = "notfound"
-	CmdBlock       = "block"
+	CmdVersion  = "version"
+	CmdVerAck   = "verack"
+	CmdGetAddr  = "getaddr"
+	CmdAddr     = "addr"
+	CmdInv      = "inv"
+	CmdGetData  = "getdata"
+	CmdNotFound = "notfound"
+
+	// incoming blocks of the 3 special types & 1 general-purpose chain type:
+	CmdBlock            = "factoidblock"
+	CmdEntryCreditBlock = "ecblock"
+	CmdDirectoryBlock   = "dirblock"
+	CmdEntryBlock       = "entryblock"
+
 	CmdTx          = "tx"
 	CmdGetHeaders  = "getheaders"
 	CmdHeaders     = "headers"
@@ -51,10 +57,15 @@ const (
 	CmdRevealChain = "revealchain"
 	CmdCommitEntry = "commitentry"
 	CmdRevealEntry = "revealentry"
-	CmdGetCredit   = "getcredit"
+	CmdGetCredit   = "getcredits"
 
-	CmdGetDirBlocks = "getdblocks"
-	CmdGetEBlocks   = "geteblocks"
+	// using these commands we query & find the best chain & latest height for 3 special chains & 1 general-purpose chain type:
+	CmdGetFactoidBlocks     = "getfblocks"
+	CmdGetEntryCreditBlocks = "getecblocks"
+	CmdGetDirBlocks         = "getdblocks"
+	CmdGetEntryBlocks       = "getentblocks"
+
+	CmdConfirmation = "confirmation"
 	CmdMHashReveal  = "mhashreveal"
 )
 
@@ -170,9 +181,9 @@ func makeEmptyMessage(command string) (Message, error) {
 // messageHeader defines the header structure for all bitcoin protocol messages.
 type messageHeader struct {
 	magic    FactomNet // 4 bytes
-	command  string     // 12 bytes
-	length   uint32     // 4 bytes
-	checksum [4]byte    // 4 bytes
+	command  string    // 12 bytes
+	length   uint32    // 4 bytes
+	checksum [4]byte   // 4 bytes
 }
 
 // readMessageHeader reads a bitcoin message header from r.
