@@ -9,6 +9,9 @@ import (
 	"encoding/binary"
 	"github.com/FactomProject/FactomCode/notaryapi"
 	"github.com/FactomProject/btcutil/base58"
+	//"strconv"
+	//"errors"
+
 )
 
 //raw address, either a hash of *Reveal (for factoid tx)
@@ -34,6 +37,22 @@ type SingleSignature struct {
 	Sig  notaryapi.DetachedSignature
 }
 
+func (s *SingleSignature) String() string {
+	return string(s.Hint)+ " " + s.Sig.String()
+}
+
+func NewSingleSignature(insig *notaryapi.DetachedSignature) (ss *SingleSignature) {
+	return &SingleSignature{
+		Hint:  	0,
+		Sig: *insig,
+	}	
+}
+
+func SingleSigFromByte(sb []byte) (sig SingleSignature) {
+	copy(sig.Sig[:],sb)
+	return
+}
+
 //all sigs needed for input
 //	Hint is used to help match sig to multi input tx
 //		signatures can then be reordered correctly, so can be
@@ -44,6 +63,10 @@ type InputSig struct {
 	Sigs []SingleSignature
 }
 
+//AddSig to append singlesignature to InputSig
+func (ins *InputSig) AddSig(ss SingleSignature) {
+	ins.Sigs = append(ins.Sigs,ss)
+}
 
 func (s *SingleSignature) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
@@ -119,29 +142,25 @@ func (is *InputSig) UnmarshalBinary(data []byte) (err error) {
 // encodeAddress returns a human-readable payment address given a 32 bytes hash or
 // publike-key and netID which encodes the factom network and address type.  It is used
 // in both entrycredit and factoid transactions.
-func EncodeAddress(hashokey []byte, netID byte) string {
+func EncodeAddress(hashokey Address, netID byte) string {
 	// Format is 1 byte for a network and address class
 	// 32 bytes for a SHA256 hash or raw PublicKey,
 	// and 4 bytes of checksum.
 	return base58.CheckEncode(hashokey, netID)
 }
 
-/*
+
 // DecodeAddress decodes the string encoding of an address and returns
-// the Address if addr is a valid encoding for a known address type.
-//
-// The netID network the address is associated with is extracted if possible.
-// When the address does not encode the network, such as in the case of a raw
-// public key, the address will be associated with the passed defaultNet.
-func DecodeAddress(addr string) (hashokey []byte, error) {
-	// Serialized public keys are either 65 bytes (130 hex chars) if
-	// uncompressed/hybrid or 33 bytes (66 hex chars) if compressed.
+// the Address and netId
+func DecodeAddress(addr string) (hashokey Address, netID byte, err error) {
 	if len(addr) == 50 || len(addr) == 51 {
-		hashokey, err := hex.DecodeString(addr)
-		if err != nil {
-			return nil, err
-		}
+		hashokey, netID, err = base58.CheckDecode(addr)
 	}
+
+	return
 }
 
-*/
+func AddressFromPubKey(pk *[32]byte, netID byte) string {
+	hash := notaryapi.Sha(pk[:])
+	return EncodeAddress(hash.Bytes,netID)
+}

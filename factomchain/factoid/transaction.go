@@ -8,6 +8,7 @@ import (
 	//"bytes"
 	//"fmt"
 	"github.com/FactomProject/FactomCode/notaryapi"
+	"encoding/hex"
 )
 
 type Txid notaryapi.HashF
@@ -23,6 +24,22 @@ type Input struct {
 	RevealAddr notaryapi.ByteArray
 }
 
+// NewInput returns a new factoid transaction input with the provided
+// Txid, index, and revealed address 
+func NewInput(id *Txid, index uint32, reveal notaryapi.ByteArray) *Input {
+	return &Input{
+		Txid: *id,
+		Index:  index,
+		RevealAddr:	reveal,
+	}
+}
+
+// Constants for Output.Type 
+const (
+	FACTOID_ADDR = byte(0)
+	ENTRYCREDIT_PKEY = byte(1)
+)
+
 //Output defines a receiver of the Input
 //	Output.Type
 //		FACTOID_ADDR
@@ -37,6 +54,16 @@ type Output struct {
 	ToAddr Address
 }
 
+// NewOutput returns a new bitcoin transaction output with the provided
+// transaction value and public key script.
+func NewOutput(ty byte, amount int64, to Address) *Output {
+	return &Output{
+		Type:  	ty,
+		Amount: amount,
+		ToAddr: to,
+	}
+}
+
 //TxData is the core of the transaction, it generates the TXID
 //TxData is signed by each input
 //	LockTime is intened as used in bitcoin
@@ -46,12 +73,35 @@ type TxData struct {
 	LockTime uint32
 }
 
+// AddInput adds a transaction input.
+func (td *TxData) AddInput(in Input) {
+	td.Inputs = append(td.Inputs, in)
+}
+
+// AddOutput adds a transaction output.
+func (td *TxData) AddOutput(out Output) {
+	td.Outputs = append(td.Outputs, out)
+}
+
 //TxMsg is the signed and versioned Factoid transaction message
 //	Sigs is at least 1 signature per Input
 type TxMsg struct {
-	Version int32
+	//Version int32
 	TxData  *TxData
 	Sigs    []InputSig
+}
+
+//crate TxMsg from TxData
+func NewTxMsg(td *TxData) *TxMsg {
+	return &TxMsg{
+		TxData: td,
+		//Sigs: 	make([]InputSig,1),
+	}
+}
+
+// AddInputSig adds a signature to transaction.
+func (tm *TxMsg) AddInputSig(is InputSig) {
+	tm.Sigs = append(tm.Sigs, is)
 }
 
 
@@ -62,15 +112,16 @@ type Tx struct {
 }
 
 //return transaction id of transacion
-func (td *TxData) Txid() Txid {
-	var txid Txid
+func (td *TxData) Txid() (txid *Txid) {
+	//var txid Txid
+	txid = new(Txid)
 	h, _ := notaryapi.CreateHash(td)
-	notaryapi.HashF(txid).From(h)
+	(*notaryapi.HashF)(txid).From(h)
 	return txid
 }
 
 //return transaction id of transacion
-func (txm *TxMsg) Txid() Txid {
+func (txm *TxMsg) Txid() *Txid {
 	return txm.TxData.Txid()
 }
 
@@ -83,11 +134,21 @@ func NewTx(wire *TxMsg) *Tx {
 	}
 }
 
-func (tx *Tx) Id() Txid {
+func (tx *Tx) Id() *Txid {
 	if tx.id == nil {
 		txid := tx.Raw.Txid()
-		tx.id = &txid
+		tx.id = txid
 	}
 
-	return *tx.id
+	return tx.id
+}
+
+func (tx *Tx) Digest() (bin []byte) {
+	bin, _ =  tx.Raw.TxData.MarshalBinary()
+	return
+}
+
+
+func (txid *Txid) String() string {
+	return hex.EncodeToString(txid[:])
 }

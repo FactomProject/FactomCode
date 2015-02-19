@@ -33,7 +33,7 @@ var (
 // and keys for one network from those intended for use on another network.
 type Params struct {
 	Name        string
-	Net         factomwire.BitcoinNet
+	Net         factomwire.FactomNet
 	DefaultPort string
 }
 

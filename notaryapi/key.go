@@ -44,6 +44,12 @@ func (pk PrivateKey) Sign(msg []byte) (sig Signature) {
 	return
 }
 
+// Sign signs msg with PrivateKey and return Signature
+func (pk PrivateKey) MarshalSign(msg BinaryMarshallable) (sig Signature) {	
+	data, _ := msg.MarshalBinary() 
+	return pk.Sign(data)
+}
+
 // Verify returns true iff sig is a valid signature of msg by PublicKey.
 func (sig Signature) Verify(msg []byte) bool {
 	return ed25519.Verify(sig.Pub.Key, msg, sig.Sig)

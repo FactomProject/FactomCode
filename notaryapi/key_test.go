@@ -1,4 +1,4 @@
-package wallet
+package notaryapi
 
 import (
 	"testing"

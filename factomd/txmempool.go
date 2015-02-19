@@ -38,7 +38,7 @@ type txMemPool struct {
 	TxProcessorS map[string]TxProcessor
 }
 
-func (txm *txMemPool) ProcessTransaction(tm *factomwire.MsgTx) bool { //factomwire.MsgTx) {
+func (txm *txMemPool) ProcessTransaction(tm *factomwire.MsgTx) bool { 
 	return ProcessTx(txm.TxProcessorS[tm.TxType()],tm)
 }
 
