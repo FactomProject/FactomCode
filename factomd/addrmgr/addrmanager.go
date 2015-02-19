@@ -231,7 +231,7 @@ func (a *AddrManager) updateAddress(netAddr, srcAddr *factomwire.NetAddress) {
 	ka.refs++
 	a.addrNew[bucket][addr] = ka
 
-	fmt.Println("Added new address %s for a total of %d addresses", addr,
+	fmt.Printf("Added new address %s for a total of %d addresses\n", addr,
 		a.nTried+a.nNew)
 }
 
