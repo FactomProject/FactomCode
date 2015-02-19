@@ -57,7 +57,6 @@ func TestKeyManager(t *testing.T) {
 	if ( !sig.Verify([]byte(msg)) ) {
 		t.Fatalf("3 TestKeyManager sig.Verify retuned false")
 	}
-
 }
 
 
@@ -71,4 +70,9 @@ func TestSignData(t *testing.T) {
 	if sig := Sign([]byte(msg)); !sig.Verify([]byte(msg)) {
 		t.Fatalf("TestSignData Sign sig.Verify retuned false")
 	}
+}
+
+
+func TestGetAddress(t *testing.T) {
+	t.Logf("Address: %v", FactoidAddress())
 }

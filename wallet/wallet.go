@@ -6,7 +6,7 @@ import (
 	//"fmt"
 	"code.google.com/p/gcfg"
 	"github.com/FactomProject/FactomCode/notaryapi"
-
+	"github.com/FactomProject/FactomCode/factomchain/factoid"
 )
 
 var (
@@ -69,4 +69,18 @@ func Sign(d []byte) notaryapi.Signature {return SignData(d)}
 
 func ClientPublicKey() notaryapi.PublicKey {
 	return keyManager.keyPair.Pub
+}
+
+func MarshalSign(msg notaryapi.BinaryMarshallable) notaryapi.Signature {
+	return keyManager.keyPair.MarshalSign(msg)	
+}
+
+func DetachMarshalSign(msg notaryapi.BinaryMarshallable) *notaryapi.DetachedSignature {
+	sig := MarshalSign(msg)
+	return sig.DetachSig()
+}
+
+func FactoidAddress() string {
+	netid := byte('\x07')
+	return factoid.AddressFromPubKey(ClientPublicKey().Key,netid)
 }

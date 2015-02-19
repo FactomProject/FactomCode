@@ -35,7 +35,7 @@ func NewUtxo() Utxo {
 //used when tx passed all verifications
 //ToDo: maybe support Udue (command pattern?)
 func (u *Utxo) AddTx(t *Tx) {
-	_, ok := u.Txspent[t.Id()]
+	_, ok := u.Txspent[*t.Id()]
 	if ok {
 		return
 	}
@@ -43,10 +43,15 @@ func (u *Utxo) AddTx(t *Tx) {
 	if !u.IsValid(t.Raw.TxData.Inputs) {
 		return
 	}
-	txs := make(TxSpentList, len(t.Raw.TxData.Outputs)+1)
 
-	u.Txspent[t.Id()] = txs
+	u.AddUtxo(t.Id(),t.Raw.TxData.Outputs)
 	u.Spend(t.Raw.TxData.Inputs)
+}
+
+//add all outputs for txid to UTXO 
+func (u *Utxo) AddUtxo(id *Txid, outs []Output) {
+	txs := make(TxSpentList, len(outs)+1)
+	u.Txspent[*id] = txs
 }
 
 //IsValid checks Inputs and returns true if all inputs are in current Utxo

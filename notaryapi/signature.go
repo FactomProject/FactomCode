@@ -2,10 +2,11 @@ package notaryapi
 
 import (
 	"github.com/agl/ed25519"
+	"encoding/hex"
 )
 
-type DetachedSignature [64]byte
-type DetachedPublicKey [32]byte
+type DetachedSignature [ed25519.SignatureSize]byte
+type DetachedPublicKey [ed25519.PublicKeySize]byte
 
 //Signature has signed data and its corresponsing PublicKey 
 type Signature struct {
@@ -15,6 +16,14 @@ type Signature struct {
 
 func (sig Signature) Key() []byte {
 	return (*sig.Pub.Key)[:]
+}
+
+func (sig *Signature) DetachSig() *DetachedSignature {
+	return (*DetachedSignature)(sig.Sig)
+}
+
+func (ds *DetachedSignature) String() string {
+	return hex.EncodeToString(ds[:])
 }
 
 func UnmarshalBinarySignature(data []byte) (sig Signature) {

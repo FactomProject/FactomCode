@@ -144,7 +144,7 @@ type outMsg struct {
 // to push messages to the peer.  Internally they use QueueMessage.
 type peer struct {
 	server         *server
-	btcnet         factomwire.BitcoinNet
+	btcnet         factomwire.FactomNet
 	started        int32
 	connected      int32
 	disconnect     int32 // only to be used atomically
