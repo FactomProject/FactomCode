@@ -59,11 +59,8 @@ const (
 	CmdRevealEntry = "revealentry"
 	CmdGetCredit   = "getcredits"
 
-	// using these commands we query & find the best chain & latest height for 3 special chains & 1 general-purpose chain type:
-	CmdGetFactoidBlocks     = "getfblocks"
-	CmdGetEntryCreditBlocks = "getecblocks"
-	CmdGetDirBlocks         = "getdblocks"
-	CmdGetEntryBlocks       = "getentblocks"
+	// using these commands we query & find the best chain & latest height for the Directory (all other chain heights are then known)
+	CmdGetDirBlocks = "getdirblocks"
 
 	CmdConfirmation = "confirmation"
 	CmdMHashReveal  = "mhashreveal"
