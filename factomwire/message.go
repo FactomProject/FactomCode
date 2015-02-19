@@ -34,9 +34,11 @@ const (
 	CmdGetData  = "getdata"
 	CmdNotFound = "notfound"
 
+	// incoming blocks of the 3 special types & 1 general-purpose chain type:
 	CmdBlock            = "factoidblock"
 	CmdEntryCreditBlock = "ecblock"
 	CmdDirectoryBlock   = "dirblock"
+	CmdEntryBlock       = "entryblock"
 
 	CmdTx          = "tx"
 	CmdGetHeaders  = "getheaders"
@@ -57,10 +59,11 @@ const (
 	CmdRevealEntry = "revealentry"
 	CmdGetCredit   = "getcredits"
 
-	CmdGetFactoidBlocks = "getfblocks"
-	CmdGetECBlocks      = "getecblocks"
-	CmdGetDirBlocks     = "getdblocks"
-	CmdGetEntryBlocks   = "geteblocks"
+	// using these commands we query & find the best chain & latest height for 3 special chains & 1 general-purpose chain type:
+	CmdGetFactoidBlocks     = "getfblocks"
+	CmdGetEntryCreditBlocks = "getecblocks"
+	CmdGetDirBlocks         = "getdblocks"
+	CmdGetEntryBlocks       = "getentblocks"
 
 	CmdConfirmation = "confirmation"
 	CmdMHashReveal  = "mhashreveal"
@@ -178,9 +181,9 @@ func makeEmptyMessage(command string) (Message, error) {
 // messageHeader defines the header structure for all bitcoin protocol messages.
 type messageHeader struct {
 	magic    FactomNet // 4 bytes
-	command  string     // 12 bytes
-	length   uint32     // 4 bytes
-	checksum [4]byte    // 4 bytes
+	command  string    // 12 bytes
+	length   uint32    // 4 bytes
+	checksum [4]byte   // 4 bytes
 }
 
 // readMessageHeader reads a bitcoin message header from r.

@@ -77,11 +77,11 @@ func TestMessage(t *testing.T) {
 	//	msgReject := factomwire.NewMsgReject("block", factomwire.RejectDuplicate, "duplicate block")
 
 	tests := []struct {
-		in     factomwire.Message    // Value to encode
-		out    factomwire.Message    // Expected decoded value
-		pver   uint32                // Protocol version for wire encoding
+		in     factomwire.Message   // Value to encode
+		out    factomwire.Message   // Expected decoded value
+		pver   uint32               // Protocol version for wire encoding
 		btcnet factomwire.FactomNet // Network to use for wire encoding
-		bytes  int                   // Expected num bytes read/written
+		bytes  int                  // Expected num bytes read/written
 	}{
 		{msgVersion, msgVersion, pver, factomwire.MainNet, 128}, // changed from "btcwire" to "factomwire"
 		{msgVerack, msgVerack, pver, factomwire.MainNet, 24},
@@ -233,12 +233,12 @@ func TestReadMessageWireErrors(t *testing.T) {
 	discardBytes := makeHeader(btcnet, "bogus", 15*1024, 0)
 
 	tests := []struct {
-		buf     []byte                // Wire encoding
-		pver    uint32                // Protocol version for wire encoding
+		buf     []byte               // Wire encoding
+		pver    uint32               // Protocol version for wire encoding
 		btcnet  factomwire.FactomNet // Bitcoin network for wire encoding
-		max     int                   // Max size of fixed buffer to induce errors
-		readErr error                 // Expected read error
-		bytes   int                   // Expected num bytes read
+		max     int                  // Max size of fixed buffer to induce errors
+		readErr error                // Expected read error
+		bytes   int                  // Expected num bytes read
 	}{
 		// Latest protocol version with intentional read errors.
 
@@ -452,3 +452,34 @@ func TestWriteMessageWireErrors(t *testing.T) {
 	}
 }
 */
+
+func TestLengthChecks(t *testing.T) {
+	var errors = 0
+
+	cmdlist := []string{
+		factomwire.CmdBlock,
+		factomwire.CmdCommitChain,
+		factomwire.CmdCommitEntry,
+		factomwire.CmdDirectoryBlock,
+		factomwire.CmdEntryBlock,
+		factomwire.CmdEntryCreditBlock,
+		factomwire.CmdGetDirBlocks,
+		factomwire.CmdGetEntryBlocks,
+		factomwire.CmdGetEntryCreditBlocks,
+		factomwire.CmdGetFactoidBlocks,
+		factomwire.CmdMerkleBlock,
+		factomwire.CmdMHashReveal,
+		factomwire.CmdRevealChain,
+		factomwire.CmdRevealEntry,
+	}
+
+	for _, value := range cmdlist {
+		if factomwire.CommandSize < len(value) {
+			errors++
+		}
+	}
+
+	if 0 < errors {
+		t.Errorf("LengthChecks errors= %d", errors)
+	}
+}
