@@ -38,7 +38,7 @@ func (msg *MsgRevealEntry) BtcEncode(w io.Writer, pver uint32) error {
 // This is part of the Message interface implementation.
 func (msg *MsgRevealEntry) BtcDecode(r io.Reader, pver uint32) error {
 	//Entry	
-	bytes, err := readVarBytes(r, pver, MaxAppMsgPayload, CmdRevealEntry)
+	bytes, err := readVarBytes(r, pver, uint32(10000), CmdRevealEntry)
 	if err != nil {
 		return err
 	}
@@ -52,7 +52,7 @@ func (msg *MsgRevealEntry) BtcDecode(r io.Reader, pver uint32) error {
 	return nil
 }
 
-
+ 
 
 // Command returns the protocol command string for the message.  This is part
 // of the Message interface implementation.
