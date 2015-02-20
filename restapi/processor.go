@@ -22,6 +22,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"sort"	
 )
 
 const (
@@ -119,7 +120,7 @@ func watchError(err error) {
 func readError(err error) {
 	fmt.Println("error: ", err)
 }
-
+/*
 func initWithBinary(chain *notaryapi.EChain) {
 	matches, err := filepath.Glob(dataStorePath + chain.ChainID.String() + "/store.*.block") // need to get it from a property file??
 	if err != nil {
@@ -166,13 +167,51 @@ func initWithBinary(chain *notaryapi.EChain) {
 	}
 	chain.Blocks[chain.NextBlockID].EBEntries, _ = db.FetchEBEntriesFromQueue(&chain.ChainID.Bytes, &binaryTimestamp)
 }
+*/
+// Initialize the entry chains in memory from db
+func initEChainFromDB(chain *notaryapi.EChain) {
+
+	eBlocks, _ := db.FetchAllEBlocksByChain(chain.ChainID)
+	sort.Sort(util.ByEBlockIDAccending(*eBlocks))
+
+	chain.Blocks = make([]*notaryapi.EBlock, len(*eBlocks))
+
+	for i, b := range *eBlocks {
+		if b.Header.BlockID != uint64(i){
+			panic("Error in initializing EChain:" + chain.ChainID.String())
+		}
+		b.Chain = chain
+		b.IsSealed = true
+		chain.Blocks[i] = &b
+	}
+
+	//Create an empty block and append to the chain
+	if len(chain.Blocks) == 0 {
+		chain.NextBlockID = 0
+		newblock, _ := notaryapi.CreateBlock(chain, nil, 10)
+
+		chain.Blocks = append(chain.Blocks, newblock)
+	} else {
+		chain.NextBlockID = uint64(len(chain.Blocks))
+		newblock, _ := notaryapi.CreateBlock(chain, chain.Blocks[len(chain.Blocks)-1], 10)
+		chain.Blocks = append(chain.Blocks, newblock)
+	}
+
+	//Get the unprocessed entries in db for the past # of mins for the open block
+	binaryTimestamp := make([]byte, 8)
+	binary.BigEndian.PutUint64(binaryTimestamp, uint64(0))
+	if chain.Blocks[chain.NextBlockID].IsSealed == true {
+		panic("chain.Blocks[chain.NextBlockID].IsSealed for chain:" + chain.ChainID.String())
+	}
+	chain.Blocks[chain.NextBlockID].EBEntries, _ = db.FetchEBEntriesFromQueue(&chain.ChainID.Bytes, &binaryTimestamp)
+}
 
 func init_processor() {
 
 	initChains()
 
 	for _, chain := range chainIDMap {
-		initWithBinary(chain)
+		initEChainFromDB(chain)
 
 		fmt.Println("Loaded", len(chain.Blocks)-1, "blocks for chain: "+chain.ChainID.String())
 
@@ -633,7 +672,7 @@ func processRevealChain(newChain *notaryapi.EChain) error {
 	db.InsertChain(newChain)
 
 	// Chain initialization
-	initWithBinary(newChain)
+	initEChainFromDB(newChain)
 	fmt.Println("Loaded", len(newChain.Blocks)-1, "blocks for chain: "+newChain.ChainID.String())
 
 	// Add the new chain in the chainIDMap
@@ -774,31 +813,20 @@ func initDChain() {
 		0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD}
 	dchain.ChainID.SetBytes(barray)
 
-	matches, err := filepath.Glob(dataStorePath + dchain.ChainID.String() + "/store.*.block") // need to get it from a property file??
-	if err != nil {
-		panic(err)
-	}
+	dBlocks, _ := db.FetchAllDBlocks()
+	sort.Sort(util.ByDBlockIDAccending(dBlocks))
 
-	dchain.Blocks = make([]*notaryapi.DBlock, len(matches))
+	dchain.Blocks = make([]*notaryapi.DBlock, len(dBlocks))
 
-	num := 0
-	for _, match := range matches {
-		data, err := ioutil.ReadFile(match)
-		if err != nil {
-			panic(err)
+	for i, b := range dBlocks {
+		if b.Header.BlockID != uint64(i){
+			panic("Error in initializing dChain:" + dchain.ChainID.String())
 		}
-
-		block := new(notaryapi.DBlock)
-		err = block.UnmarshalBinary(data)
-		if err != nil {
-			panic(err)
-		}
-		block.Chain = dchain
-		block.IsSealed = true
-
-		dchain.Blocks[num] = block
-		num++
+		b.Chain = dchain
+		b.IsSealed = true
+		dchain.Blocks[i] = &b
 	}
+	
 	//Create an empty block and append to the chain
 	if len(dchain.Blocks) == 0 {
 		dchain.NextBlockID = 0
