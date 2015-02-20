@@ -29,7 +29,8 @@ func TestGenesisInputTransaction(t *testing.T) {
 	genb := factoid.FactoidGenesis(factomwire.TestNet)
 
 	addr, _, _ := factoid.DecodeAddress("ExZ7hUZ7B4T3doVC6iLBPh9JP33huwELmLg6pM2LDNSiqk9mSs")
-	txm := factoid.NewTxFromOutputToAddr(&genb.Transactions[0], uint32(1), factoid.AddressReveal(*wallet.ClientPublicKey().Key), addr)
+	outs := factoid.OutputsTx(&genb.Transactions[0])
+	txm := factoid.NewTxFromOutputToAddr(genb.Transactions[0].Id(),outs, uint32(1), factoid.AddressReveal(*wallet.ClientPublicKey().Key), addr)
 
 	t.Logf("%#v ", txm)
 	t.Logf("%#v ", txm.TxData)

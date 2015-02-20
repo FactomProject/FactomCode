@@ -89,6 +89,13 @@ func TxMsgFromWire(tx *factomwire.MsgTx) (txm *TxMsg) {
 	return
 }
 
+//convert from wire format to TxMsg
+func TxMsgToWire(txm *TxMsg) (tx *factomwire.MsgTx) {
+	tx = new(factomwire.MsgTx)
+	tx.Data, _ = txm.MarshalBinary()
+	return
+}
+
 //*** TxProcessor implimentaion ***//
 //set context to tx, this context will be used by default when
 // by Verify and AddToMemPool

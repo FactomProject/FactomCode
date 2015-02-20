@@ -98,9 +98,8 @@ func max(a, b int) int {
 	return b
 }
 
-func NewTxFromOutputToAddr(tx *Tx, outnum uint32, from AddressReveal, to Address) (txm *TxMsg) {
+func NewTxFromOutputToAddr(txid *Txid,outs []Output, outnum uint32, from AddressReveal, to Address) (txm *TxMsg) {
 	txd := NewTxData()
-	outs := outputsTx(tx)
 	if uint32(len(outs)) < outnum || outnum < 1 {
 		fmt.Println("NewTxFromOutputToAddr err1 %#v", outs)
 		return nil
@@ -110,7 +109,7 @@ func NewTxFromOutputToAddr(tx *Tx, outnum uint32, from AddressReveal, to Address
 		return nil
 	}
 
-	in := NewInput(tx.Id(), outnum, from[:])
+	in := NewInput(txid, outnum, from[:])
 	txd.AddInput(*in)
 
 	out := NewOutput(FACTOID_ADDR, outs[outnum-1].Amount, to)
@@ -130,7 +129,7 @@ func VerifyAddressReveal(address Address, reveal AddressReveal) bool {
 
 }
 
-func outputsTx(tx *Tx) []Output {
+func OutputsTx(tx *Tx) []Output {
 	return tx.Txm.TxData.Outputs
 }
 
