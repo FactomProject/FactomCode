@@ -6,7 +6,7 @@ import (
 	"github.com/FactomProject/FactomCode/wallet"
 	"testing"
 	"encoding/hex"
-	
+
 )
 
 func TestECAddress(t *testing.T) {
@@ -63,7 +63,7 @@ func TestTrans(t *testing.T) {
 	out := factoid.NewOutput(factoid.FACTOID_ADDR,1000000000,addr)
 	td.AddOutput(*out)
 
-	txid := td.Txid()
+	txid := td.Txid(nil)
 	//hash, err := notaryapi.CreateHash(&td)
 	//(*notaryapi.HashF)(txid).From(hash)
 	//copy(txid[:],hash.Bytes)
