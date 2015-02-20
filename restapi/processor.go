@@ -17,7 +17,6 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"path/filepath"
 	"reflect"
 	"sort"
 	"strings"
@@ -121,54 +120,6 @@ func readError(err error) {
 	fmt.Println("error: ", err)
 }
 
-/*
-func initWithBinary(chain *notaryapi.EChain) {
-	matches, err := filepath.Glob(dataStorePath + chain.ChainID.String() + "/store.*.block") // need to get it from a property file??
-	if err != nil {
-		panic(err)
-	}
-
-	chain.Blocks = make([]*notaryapi.EBlock, len(matches))
-
-	num := 0
-	for _, match := range matches {
-		data, err := ioutil.ReadFile(match)
-		if err != nil {
-			panic(err)
-		}
-
-		block := new(notaryapi.EBlock)
-		err = block.UnmarshalBinary(data)
-		if err != nil {
-			panic(err)
-		}
-		block.Chain = chain
-		block.IsSealed = true
-		chain.Blocks[num] = block
-		num++
-	}
-
-	//Create an empty block and append to the chain
-	if len(chain.Blocks) == 0 {
-		chain.NextBlockID = 0
-		newblock, _ := notaryapi.CreateBlock(chain, nil, 10)
-
-		chain.Blocks = append(chain.Blocks, newblock)
-	} else {
-		chain.NextBlockID = uint64(len(chain.Blocks))
-		newblock, _ := notaryapi.CreateBlock(chain, chain.Blocks[len(chain.Blocks)-1], 10)
-		chain.Blocks = append(chain.Blocks, newblock)
-	}
-
-	//Get the unprocessed entries in db for the past # of mins for the open block
-	binaryTimestamp := make([]byte, 8)
-	binary.BigEndian.PutUint64(binaryTimestamp, uint64(0))
-	if chain.Blocks[chain.NextBlockID].IsSealed == true {
-		panic("chain.Blocks[chain.NextBlockID].IsSealed for chain:" + chain.ChainID.String())
-	}
-	chain.Blocks[chain.NextBlockID].EBEntries, _ = db.FetchEBEntriesFromQueue(&chain.ChainID.Bytes, &binaryTimestamp)
-}
-*/
 // Initialize the entry chains in memory from db
 func initEChainFromDB(chain *notaryapi.EChain) {
 
@@ -209,8 +160,16 @@ func initEChainFromDB(chain *notaryapi.EChain) {
 
 func init_processor() {
 
-	initChains()
+	// init Directory Block Chain
+	initDChain()
+	fmt.Println("Loaded", len(dchain.Blocks)-1, "Directory blocks for chain: "+dchain.ChainID.String())
 
+	// init Entry Credit Chain
+	initCChain()
+	fmt.Println("Loaded", len(cchain.Blocks)-1, "Entry Credit blocks for chain: "+cchain.ChainID.String())
+	
+	// init Entry Chains
+	initEChains()
 	for _, chain := range chainIDMap {
 		initEChainFromDB(chain)
 
@@ -223,14 +182,6 @@ func init_processor() {
 		}
 
 	}
-
-	// init Directory Block Chain
-	initDChain()
-	fmt.Println("Loaded", len(dchain.Blocks)-1, "Directory blocks for chain: "+dchain.ChainID.String())
-
-	// init Entry Credit Chain
-	initCChain()
-	fmt.Println("Loaded", len(cchain.Blocks)-1, "Entry Credit blocks for chain: "+cchain.ChainID.String())
 
 	// init dbBatches, dbBatch
 	dbBatches = &DBBatches{
@@ -489,39 +440,6 @@ func serveMsgRequest(msg factomwire.Message) error {
 	return nil
 }
 
-/*
-func postEntry(context string, form url.Values) (interface{}, *notaryapi.Error) {
-	newEntry := new(notaryapi.Entry)
-	format, data := form.Get("format"), form.Get("entry")
-
-	switch format {
-	case "", "json":
-		reader := gocoding.ReadString(data)
-		err := notaryapi.UnmarshalJSON(reader, newEntry)
-		if err != nil {
-			return nil, notaryapi.CreateError(notaryapi.ErrorJSONUnmarshal, err.Error())
-		}
-
-	case "xml":
-		err := xml.Unmarshal([]byte(data), newEntry)
-		if err != nil {
-			return nil, notaryapi.CreateError(notaryapi.ErrorXMLUnmarshal, err.Error())
-		}
-	case "binary":
-		binaryEntry, _ := notaryapi.DecodeBinary(&data)
-		fmt.Println("data:%v", data)
-		err := newEntry.UnmarshalBinary(binaryEntry)
-		if err != nil {
-			return nil, notaryapi.CreateError(notaryapi.ErrorXMLUnmarshal, err.Error())
-		}
-	default:
-		return nil, notaryapi.CreateError(notaryapi.ErrorUnsupportedUnmarshal, fmt.Sprintf(`The format "%s" is not supported`, format))
-	}
-
-	return processRevealEntry(newEntry)
-}
-
-*/
 func processRevealEntry(newEntry *notaryapi.Entry) error {
 
 	chain := chainIDMap[newEntry.ChainID.String()]
@@ -703,30 +621,6 @@ func getEntryCreditBalance(pubKey *notaryapi.Hash) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-/*
-func postChain(context string, form url.Values) (interface{}, *notaryapi.Error) {
-	newChain := new(notaryapi.EChain)
-	format, data := form.Get("format"), form.Get("chain")
-
-	switch format {
-	case "binary":
-		binaryChain, _ := notaryapi.DecodeBinary(&data)
-		err := newChain.UnmarshalBinary(binaryChain)
-		newChain.GenerateIDFromName()
-		if err != nil {
-			return nil, notaryapi.CreateError(notaryapi.ErrorInternal, err.Error())
-		}
-	default:
-		return nil, notaryapi.CreateError(notaryapi.ErrorUnsupportedUnmarshal, fmt.Sprintf(`The format "%s" is not supported`, format))
-	}
-
-	if newChain == nil {
-		return nil, notaryapi.CreateError(notaryapi.ErrorInternal, `Chain is nil`)
-	}
-
-	return processRevealChain(newChain)
-}
-*/
 func saveDChain(chain *notaryapi.DChain) {
 	if len(chain.Blocks) == 0 {
 		//log.Println("no blocks to save for chain: " + string (*chain.ChainID))
@@ -814,6 +708,7 @@ func initDChain() {
 		0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD}
 	dchain.ChainID.SetBytes(barray)
 
+	// get all dBlocks from db
 	dBlocks, _ := db.FetchAllDBlocks()
 	sort.Sort(util.ByDBlockIDAccending(dBlocks))
 
@@ -828,6 +723,7 @@ func initDChain() {
 		dchain.Blocks[i] = &dBlocks[i]
 	}
 	
+	// double check the block ids
 	for i := 0; i < len(dchain.Blocks); i = i + 1 {		
 		if uint64(i) != dchain.Blocks[i].Header.BlockID {			
 			panic(errors.New("BlockID does not equal index for chain:" + dchain.ChainID.String() + " block:" + fmt.Sprintf("%v", dchain.Blocks[i].Header.BlockID)))
@@ -868,34 +764,31 @@ func initCChain() {
 	cchain.ChainID = new(notaryapi.Hash)
 	cchain.ChainID.SetBytes(barray)
 
-	matches, err := filepath.Glob(dataStorePath + cchain.ChainID.String() + "/store.*.block") // need to get it from a property file??
-	if err != nil {
-		panic(err)
-	}
+	// get all dBlocks from db
+	cBlocks, _ := db.FetchAllCBlocks()
+	sort.Sort(util.ByCBlockIDAccending(cBlocks))
 
-	cchain.Blocks = make([]*notaryapi.CBlock, len(matches))
+	cchain.Blocks = make([]*notaryapi.CBlock, len(cBlocks))
 
-	num := 0
-	for _, match := range matches {
-		data, err := ioutil.ReadFile(match)
-		if err != nil {
-			panic(err)
+	for i := 0; i < len(cBlocks); i = i + 1 {
+		if cBlocks[i].Header.BlockID != uint64(i){
+			panic("Error in initializing dChain:" + cchain.ChainID.String())
 		}
-
-		block := new(notaryapi.CBlock)
-		err = block.UnmarshalBinary(data)
-		if err != nil {
-			panic(err)
-		}
-		block.Chain = cchain
-		block.IsSealed = true
-
+		cBlocks[i].Chain = cchain
+		cBlocks[i].IsSealed = true
+		cchain.Blocks[i] = &cBlocks[i]
+		
 		// Calculate the EC balance for each account
-		initializeECreditMap(block)
-
-		cchain.Blocks[num] = block
-		num++
+		initializeECreditMap(cchain.Blocks[i])		
 	}
+	
+	// double check the block ids
+	for i := 0; i < len(cchain.Blocks); i = i + 1 {		
+		if uint64(i) != cchain.Blocks[i].Header.BlockID {			
+			panic(errors.New("BlockID does not equal index for chain:" + cchain.ChainID.String() + " block:" + fmt.Sprintf("%v", cchain.Blocks[i].Header.BlockID)))
+		}			
+	}
+
 	//Create an empty block and append to the chain
 	if len(cchain.Blocks) == 0 {
 		cchain.NextBlockID = 0
@@ -986,11 +879,9 @@ func ExportDataFromDbToFile() {
 
 }
 
-func initChains() {
-	//initChainIDs()
+func initEChains() {
 
 	chainIDMap = make(map[string]*notaryapi.EChain)
-	//chainNameMap = make(map[string]*notaryapi.Chain)
 
 	chains, err := db.FetchAllChainsByName(nil)
 
@@ -1001,7 +892,6 @@ func initChains() {
 	for _, chain := range *chains {
 		var newChain = chain
 		chainIDMap[newChain.ChainID.String()] = &newChain
-		//chainIDMap[string(chain.ChainID.Bytes)] = &chain
 	}
 
 }

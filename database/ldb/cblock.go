@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/FactomProject/FactomCode/notaryapi"
 	"github.com/FactomProject/goleveldb/leveldb"
+	"github.com/FactomProject/goleveldb/leveldb/util"	
 	"log"
 )
 
@@ -55,4 +56,31 @@ func (db *LevelDb) FetchCBlockByHash(cBlockHash *notaryapi.Hash) (cBlock *notary
 		cBlock.UnmarshalBinary(data)
 	}
 	return cBlock, nil
+}
+
+
+// FetchAllCBlocks gets all of the entry credit blocks
+func (db *LevelDb) FetchAllCBlocks() (cBlocks []notaryapi.CBlock, err error) {
+	db.dbLock.Lock()
+	defer db.dbLock.Unlock()
+
+	var fromkey []byte = []byte{byte(TBL_CB)}   // Table Name (1 bytes)						// Timestamp  (8 bytes)
+	var tokey []byte = []byte{byte(TBL_CB + 1)} // Table Name (1 bytes)
+
+	cBlockSlice := make([]notaryapi.CBlock, 0, 10)
+
+	iter := db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
+
+	for iter.Next() {
+		var cBlock notaryapi.CBlock
+		cBlock.UnmarshalBinary(iter.Value())
+		cBlock.CBHash = notaryapi.Sha(iter.Value()) //to be optimized??
+
+		cBlockSlice = append(cBlockSlice, cBlock)
+
+	}
+	iter.Release()
+	err = iter.Error()
+
+	return cBlockSlice, nil
 }

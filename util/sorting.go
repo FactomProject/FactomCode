@@ -19,6 +19,20 @@ func (f ByDBlockIDAccending) Swap(i, j int) {
 }
 
 //------------------------------------------------
+// CBlock array sorting implementation - accending
+type ByCBlockIDAccending []notaryapi.CBlock
+
+func (f ByCBlockIDAccending) Len() int {
+	return len(f)
+}
+func (f ByCBlockIDAccending) Less(i, j int) bool {
+	return f[i].Header.BlockID < f[j].Header.BlockID
+}
+func (f ByCBlockIDAccending) Swap(i, j int) {
+	f[i], f[j] = f[j], f[i]
+}
+
+//------------------------------------------------
 // EBlock array sorting implementation - accending
 type ByEBlockIDAccending []notaryapi.EBlock
 

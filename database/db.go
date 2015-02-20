@@ -104,6 +104,9 @@ type Db interface {
 
 	// ProcessCBlockBatche inserts the CBlock and update all it's cbentries in DB
 	ProcessCBlockBatch(block *notaryapi.CBlock) (err error)
+	
+	// FetchAllCBlocks gets all of the entry credit blocks
+	FetchAllCBlocks() (cBlocks []notaryapi.CBlock, err error) 
 
 	// Initialize External ID map for explorer search
 	InitializeExternalIDMap() (extIDMap map[string]bool, err error)
