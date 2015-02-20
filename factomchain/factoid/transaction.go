@@ -24,6 +24,10 @@ type Input struct {
 	RevealAddr notaryapi.ByteArray
 }
 
+func (o *Input) String() string {
+	return o.Txid.String() + " -- " + hex.EncodeToString(o.RevealAddr[:])
+}
+
 // NewInput returns a new factoid transaction input with the provided
 // Txid, index, and revealed address
 func NewInput(id *Txid, index uint32, reveal notaryapi.ByteArray) *Input {
@@ -52,6 +56,12 @@ type Output struct {
 	Type   byte
 	Amount int64
 	ToAddr Address
+}
+
+func (o *Output) String() string {
+	netid := byte('\x07')
+
+	return EncodeAddress(o.ToAddr, netid)
 }
 
 // NewOutput returns a new bitcoin transaction output with the provided
