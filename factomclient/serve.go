@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/FactomProject/FactomCode/factomapi"
+	"github.com/FactomProject/FactomCode/factomchain/factoid"
 	"github.com/FactomProject/FactomCode/factomwire"
 	"github.com/FactomProject/FactomCode/notaryapi"
 	"github.com/FactomProject/FactomCode/restapi"
@@ -27,7 +28,7 @@ func serve_init() {
 	server.Post(`/v1/addentry/?`, handleSubmitEntry2)       // Needs to be removed later??
 	server.Post(`/v1/getfilelist/?`, handleGetFileListPost) // to be replaced by DHT
 	server.Post(`/v1/getfile/?`, handleGetFilePost)         // to be replaced by DHT
-	server.Post('/v1/factoidtx/?', handleFactoidTx)
+	server.Post(`/v1/factoidtx/?`, handleFactoidTx)
 
 	server.Get(`/v1/creditbalance/?`, handleGetCreditBalancePost)
 	server.Get(`/v1/buycredit/?`, handleBuyCreditPost)
@@ -37,7 +38,7 @@ func serve_init() {
 	server.Get(`/v1/eblock/([^/]+)(?)`, handleEBlockByHash)
 	server.Get(`/v1/eblockbymr/([^/]+)(?)`, handleEBlockByMR)
 	server.Get(`/v1/entry/([^/]+)(?)`, handleEntryByHash)
-	server.Get('/v1/factoidtx/?', handleFactoidTx)
+	server.Get(`/v1/factoidtx/?`, handleFactoidTx)
 
 }
 
@@ -175,15 +176,30 @@ func handleBuyCreditPost(ctx *web.Context) {
 }
 
 func handleFactoidTx(ctx *web.Context) {
+	n, err := strconv.ParseUint(ctx.Params["ammount"], 10, 32)
+	if err != nil {
+		fmt.Println(err)
+	}
+	amt := uint32(n)
+
 	addr, _, err := factoid.DecodeAddress(ctx.Params["to"])
 	if err != nil {
 		fmt.Println(err)
 	}
-	n := uint32(ctx.Params["ammount"])
-	err = factomapi.FactoidTx(addr, ammount)
-	if err != nil {
-		fmt.Println(err)
-	}
+	
+	genb := factoid.FactoidGenesis(factomwire.TestNet)
+	outs := factoid.OutputsTx(&genb.Transactions[0])
+	txm := factoid.NewTxFromOutputToAddr(
+		genb.Transactions[0].Id(),
+		outs,
+		amt,
+		factoid.AddressReveal(*wallet.ClientPublicKey().Key),
+		addr)
+	ds := wallet.DetachMarshalSign(txm.TxData)
+	ss := factoid.NewSingleSignature(ds)
+	factoid.AddSingleSigToTxMsg(txm, ss)
+	wire := factoid.TxMsgToWire(txm)
+	fmt.Println(wire)
 }
 
 func handleGetCreditBalancePost(ctx *web.Context) {

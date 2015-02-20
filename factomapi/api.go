@@ -5,7 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/FactomProject/FactomCode/database"
-	"github.com/FactomProject/FactomCode/factomchain/factoid"
+//	"github.com/FactomProject/FactomCode/factomchain/factoid"
 	"github.com/FactomProject/FactomCode/factomwire"
 	"github.com/FactomProject/FactomCode/notaryapi"
 	"github.com/FactomProject/FactomCode/wallet"
@@ -39,22 +39,22 @@ func BuyEntryCredit(version uint16, ecPubKey *notaryapi.Hash, from *notaryapi.Ha
 	return nil
 }
 
-func FactoidTx(addr factoid.Address, n uint32) {
-	var msg factomwire.MsgTx
-	genb := factoid.FactoidGenesis(factomwire.TestNet)
-	outs := factoid.OutputsTx(&genb.Transactions[0])
-	txm := factoid.NewTxFromOutputToAddr(genb.Transactions[0].Id(), outs,
-		n, factoid.AddressReveal(*wallet.ClientPublicKey().Key), addr)
-	ds := wallet.DetachMarshalSign(txm.TxData)
-	ss := factoid.NewSingleSignature(ds)
-	factoid.AddSingleSigToTxMsg(txm, ss)
-	
-	msg.Data, err := txm.MarshalBinary()
-	if err != nil {
-		fmt.Println(err)
-	}
-	outMsgQueue <- msg
-}
+//func FactoidTx(addr factoid.Address, n uint32) {
+//	var msg factomwire.MsgTx
+//	genb := factoid.FactoidGenesis(factomwire.TestNet)
+//	outs := factoid.OutputsTx(&genb.Transactions[0])
+//	txm := factoid.NewTxFromOutputToAddr(genb.Transactions[0].Id(), outs,
+//		n, factoid.AddressReveal(*wallet.ClientPublicKey().Key), addr)
+//	ds := wallet.DetachMarshalSign(txm.TxData)
+//	ss := factoid.NewSingleSignature(ds)
+//	factoid.AddSingleSigToTxMsg(txm, ss)
+//	
+//	msg.Data, err := txm.MarshalBinary()
+//	if err != nil {
+//		fmt.Println(err)
+//	}
+//	outMsgQueue <- msg
+//}
 
 func GetEntryCreditBalance(ecPubKey *notaryapi.Hash) (credits int32, err error) {
 	data := url.Values{}
