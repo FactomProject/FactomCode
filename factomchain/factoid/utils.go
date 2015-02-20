@@ -45,11 +45,15 @@ func Verify(tx Tx) bool {
 }
 */
 
-func Verify(tx *Tx) bool {
+func VerifyTx(tx *Tx) bool {
+	//fmt.Println("Verifyxxxxx ")
+
 	sig := tx.Txm.Sigs
 	in := tx.Txm.TxData.Inputs
 	sigcount := len(sig) - 1
 	incount := len(in) - 1
+
+	//fmt.Println("Verify ",sigcount,incount)
 	if sigcount < 0 || incount < 0 {
 		return false
 	}
@@ -98,7 +102,9 @@ func max(a, b int) int {
 	return b
 }
 
-func NewTxFromOutputToAddr(txid *Txid,outs []Output, outnum uint32, from AddressReveal, to Address) (txm *TxMsg) {
+func NewTxFromOutputToAddr(txid *Txid, outs []Output, outnum uint32, from AddressReveal, to Address) (txm *TxMsg) {
+	//fmt.Println("NewTxFromOutputToAddr %#v", from)
+
 	txd := NewTxData()
 	if uint32(len(outs)) < outnum || outnum < 1 {
 		fmt.Println("NewTxFromOutputToAddr err1 %#v", outs)

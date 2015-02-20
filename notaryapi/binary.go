@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"math/big"
+	//"fmt"
 )
 
 type BinaryMarshallable interface {
@@ -81,20 +82,32 @@ func (ba ByteArray) SetBytes(newArray []byte) error {
 func (ba ByteArray) MarshalBinary() ([]byte, error) {
 	var buf bytes.Buffer
 
+	//fmt.Println("uint64(len(ba) ",uint64(len(ba)))
+
 	binary.Write(&buf, binary.BigEndian, uint64(len(ba)))
 	buf.Write(ba)
 	return buf.Bytes(), nil
 }
 
 func (ba ByteArray) MarshalledSize() uint64 {
-	return uint64(len(ba) + 1)
+	//fmt.Println("uint64(len(ba) + 8)",uint64(len(ba) + 8))
+	return uint64(len(ba) + 8)
 }
 
-func (ba ByteArray) UnmarshalBinary([]byte) error {
-	count, data := binary.BigEndian.Uint64(ba[0:8]), ba[8:]
+func (ba ByteArray) UnmarshalBinary(data []byte) (error, []byte) {
+	count := binary.BigEndian.Uint64(data[0:8])
+
+	data = data[8:]
+	//fmt.Println("count",count, data)
+
+	tmp := make([]byte, count)
 	//SetBytes(data[:count])
-	copy(ba[:], data[:count])
-	return nil
+	//fmt.Println("ba",ba, len(ba))
+
+	copy(tmp[:], data[:count])
+	//fmt.Println("ba2",ba, len(ba))
+
+	return nil, tmp
 }
 
 func NewByteArray(newHash []byte) (*ByteArray, error) {

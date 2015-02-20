@@ -5,9 +5,9 @@
 package factoid
 
 import (
-//"bytes"
-//"fmt"
-//"github.com/FactomProject/FactomCode/notaryapi"
+	//"bytes"
+	"fmt"
+	//"github.com/FactomProject/FactomCode/notaryapi"
 )
 
 //ToDo: use bits if faster , or if keeping full utxo in memory. should really do memory mapped files//
@@ -35,6 +35,8 @@ func NewUtxo() Utxo {
 //used when tx passed all verifications
 //ToDo: maybe support Udue (command pattern?)
 func (u *Utxo) AddTx(t *Tx) {
+	fmt.Println("AddTx", t.Id().String())
+
 	_, ok := u.Txspent[*t.Id()]
 	if ok {
 		return
@@ -50,7 +52,7 @@ func (u *Utxo) AddTx(t *Tx) {
 
 //add all outputs for txid to UTXO
 func (u *Utxo) AddUtxo(id *Txid, outs []Output) {
-	txs := make(TxSpentList, len(outs)+1)
+	txs := make(TxSpentList, len(outs))
 	u.Txspent[*id] = txs
 }
 
@@ -59,13 +61,19 @@ func (u *Utxo) IsValid(in []Input) bool {
 	for _, i := range in {
 		spends, ok := u.Txspent[i.Txid]
 		if !ok {
+			fmt.Println("Txid not known", i.Txid.String())
 			return false
 		}
 
-		if i.Index < 1 || i.Index >= uint32(len(spends)) {
+		if i.Index < 1 || i.Index > uint32(len(spends)) {
+			fmt.Println("utxo bad index", i.Txid.String(), " Index ", i.Index)
+
 			return false
 		}
 		if spends[i.Index-1] {
+
+			fmt.Println("Output already spent ", i.Txid.String(), " Index ", i.Index)
+
 			return false
 		}
 	}
@@ -76,14 +84,17 @@ func (u *Utxo) IsValid(in []Input) bool {
 //Spend will mark Input as Spent in Utxo
 func (u *Utxo) Spend(in []Input) {
 	for _, i := range in {
+		fmt.Println("Utxo Spent", i.Txid.String(), " Index ", i.Index)
+
 		spends, ok := u.Txspent[i.Txid]
 		if !ok {
 			continue
 		}
 
-		if i.Index < 1 || i.Index >= uint32(len(spends)) {
+		if i.Index < 1 || i.Index > uint32(len(spends)) {
 			continue
 		}
+
 		if !spends[i.Index-1] {
 			spends[i.Index-1] = true
 		}
