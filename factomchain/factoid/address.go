@@ -11,7 +11,6 @@ import (
 	"github.com/FactomProject/btcutil/base58"
 	//"strconv"
 	//"errors"
-
 )
 
 //raw address, either a hash of *Reveal (for factoid tx)
@@ -38,18 +37,18 @@ type SingleSignature struct {
 }
 
 func (s *SingleSignature) String() string {
-	return string(s.Hint)+ " " + s.Sig.String()
+	return string(s.Hint) + " " + s.Sig.String()
 }
 
 func NewSingleSignature(insig *notaryapi.DetachedSignature) (ss *SingleSignature) {
 	return &SingleSignature{
-		Hint:  	0,
-		Sig: *insig,
-	}	
+		Hint: 0,
+		Sig:  *insig,
+	}
 }
 
 func SingleSigFromByte(sb []byte) (sig SingleSignature) {
-	copy(sig.Sig[:],sb)
+	copy(sig.Sig[:], sb)
 	return
 }
 
@@ -65,14 +64,14 @@ type InputSig struct {
 
 //AddSig to append singlesignature to InputSig
 func (ins *InputSig) AddSig(ss SingleSignature) {
-	ins.Sigs = append(ins.Sigs,ss)
+	ins.Sigs = append(ins.Sigs, ss)
 }
 
 func (s *SingleSignature) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
 
 	binary.Write(&buf, binary.BigEndian, s.Hint) //int32
-	buf.Write(s.Sig[:]) // 64
+	buf.Write(s.Sig[:])                          // 64
 
 	return buf.Bytes(), err
 }
@@ -86,10 +85,10 @@ func (s *SingleSignature) MarshalledSize() uint64 {
 
 func (s *SingleSignature) UnmarshalBinary(data []byte) (err error) {
 	buf := bytes.NewReader(data[:4])
-	binary.Read(buf,binary.BigEndian,&s.Hint) 
+	binary.Read(buf, binary.BigEndian, &s.Hint)
 	data = data[4:]
 
-	copy(s.Sig[:],data[:64])
+	copy(s.Sig[:], data[:64])
 
 	return nil
 }
@@ -97,12 +96,14 @@ func (s *SingleSignature) UnmarshalBinary(data []byte) (err error) {
 func (is *InputSig) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
 
-	binary.Write(&buf, binary.BigEndian, is.Hint) //int32
+	binary.Write(&buf, binary.BigEndian, is.Hint)              //int32
 	binary.Write(&buf, binary.BigEndian, uint64(len(is.Sigs))) //uint64  8
 	for _, s := range is.Sigs {
 		data, err = s.MarshalBinary()
-		if err != nil { return nil, err }
-		buf.Write(data)	
+		if err != nil {
+			return nil, err
+		}
+		buf.Write(data)
 	}
 
 	return buf.Bytes(), err
@@ -111,19 +112,19 @@ func (is *InputSig) MarshalBinary() (data []byte, err error) {
 func (is *InputSig) MarshalledSize() uint64 {
 	var size uint64 = 0
 
-	size += 4 + 8  
+	size += 4 + 8
 	size += 68 * uint64(len(is.Sigs))
 	return size
 }
 
 func (is *InputSig) UnmarshalBinary(data []byte) (err error) {
 	buf := bytes.NewReader(data[:4])
-	binary.Read(buf,binary.BigEndian,&is.Hint) 
+	binary.Read(buf, binary.BigEndian, &is.Hint)
 	data = data[4:]
 
 	count := binary.BigEndian.Uint64(data[0:8])
 	data = data[8:]
-	is.Sigs = make([]SingleSignature,count)
+	is.Sigs = make([]SingleSignature, count)
 	for i := uint64(0); i < count; i++ {
 		is.Sigs[i].UnmarshalBinary(data)
 		data = data[68:]
@@ -149,7 +150,6 @@ func EncodeAddress(hashokey Address, netID byte) string {
 	return base58.CheckEncode(hashokey, netID)
 }
 
-
 // DecodeAddress decodes the string encoding of an address and returns
 // the Address and netId
 func DecodeAddress(addr string) (hashokey Address, netID byte, err error) {
@@ -162,5 +162,5 @@ func DecodeAddress(addr string) (hashokey Address, netID byte, err error) {
 
 func AddressFromPubKey(pk *[32]byte, netID byte) string {
 	hash := notaryapi.Sha(pk[:])
-	return EncodeAddress(hash.Bytes,netID)
+	return EncodeAddress(hash.Bytes, netID)
 }

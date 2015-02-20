@@ -5,7 +5,7 @@
 package factomwire
 
 import (
-//	"fmt"
+	//	"fmt"
 	"io"
 )
 
@@ -25,12 +25,12 @@ type MsgPong struct {
 func (msg *MsgPong) BtcDecode(r io.Reader, pver uint32) error {
 	// NOTE: <= is not a mistake here.  The BIP0031 was defined as AFTER
 	// the version unlike most others.
-/*	if pver <= BIP0031Version {
-		str := fmt.Printf("pong message invalid for protocol "+
-			"version %d", pver)
-		return messageError("MsgPong.BtcDecode", str)
-	}
-*/
+	/*	if pver <= BIP0031Version {
+			str := fmt.Printf("pong message invalid for protocol "+
+				"version %d", pver)
+			return messageError("MsgPong.BtcDecode", str)
+		}
+	*/
 	err := readElement(r, &msg.Nonce)
 	if err != nil {
 		return err
@@ -44,12 +44,12 @@ func (msg *MsgPong) BtcDecode(r io.Reader, pver uint32) error {
 func (msg *MsgPong) BtcEncode(w io.Writer, pver uint32) error {
 	// NOTE: <= is not a mistake here.  The BIP0031 was defined as AFTER
 	// the version unlike most others.
-/*	if pver <= BIP0031Version {
-		str := fmt.Printf("pong message invalid for protocol "+
-			"version %d", pver)
-		return messageError("MsgPong.BtcEncode", str)
-	}
-*/
+	/*	if pver <= BIP0031Version {
+			str := fmt.Printf("pong message invalid for protocol "+
+				"version %d", pver)
+			return messageError("MsgPong.BtcEncode", str)
+		}
+	*/
 	err := writeElement(w, msg.Nonce)
 	if err != nil {
 		return err
@@ -72,8 +72,8 @@ func (msg *MsgPong) MaxPayloadLength(pver uint32) uint32 {
 	// NOTE: > is not a mistake here.  The BIP0031 was defined as AFTER
 	// the version unlike most others.
 	//if pver > BIP0031Version {
-		// Nonce 8 bytes.
-		plen += 8
+	// Nonce 8 bytes.
+	plen += 8
 	//}
 
 	return plen

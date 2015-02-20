@@ -1,18 +1,17 @@
 package factomapi
 
 import (
-	"testing"	
 	"bytes"
+	"encoding/hex"
 	"fmt"
+	"github.com/FactomProject/FactomCode/notaryapi"
+	"github.com/FactomProject/gocoding"
 	"net/http"
 	"net/url"
-	"github.com/FactomProject/gocoding"	
-	"github.com/FactomProject/FactomCode/notaryapi"	
-	"encoding/hex"
-//	"encoding/base64"
-//	"io/ioutil"
-	//"os" 	
-	
+	"testing"
+	//	"encoding/base64"
+	//	"io/ioutil"
+	//"os"
 )
 
 /*
@@ -79,8 +78,6 @@ func TestAddChain(t *testing.T) {
 
 	chain.FirstEntry = entry
 
-	
-
 	buf := new(bytes.Buffer)
 	err := SafeMarshal(buf, chain)
 
@@ -88,7 +85,7 @@ func TestAddChain(t *testing.T) {
 	jsonstr := string(buf.Bytes())
 
 	// Unmarshal the json string locally to compare
-//	jsonstr := "{\"Name\":[\"bXlDb21wYW55\",\"Ym9va2tlZXBpbmc=\"],\"FirstEntry\":{\"ExtIDs\":[\"MTAwMQ==\",\"NTcwYjllM2ZiMmY1YWU4MjM2ODVlYjQ0MjJkNGZkODNmM2YwZDllN2NlMDdkOTg4YmQxN2U2NjUzOTQ2NjhjNg==\",\"bXZSSnFNVE1mclkzS3RIMkE0cWRQZnEzUTZMNEt3OUNrNA==\"],\"Data\":\"Rmlyc3QgZW50cnkgZm9yIGNoYWluOiIyRnJnRDIrdlBQM3l6NXpMVmFFNVRjMlZpVnY5ZndaZVIzL2FkeklUakpjPSJSdWxlczoiYXNsO2RqZmFzbGRrZmphc2xkZmpsa3NvdWlld29wdXJ3Ig==\"}}"
+	//	jsonstr := "{\"Name\":[\"bXlDb21wYW55\",\"Ym9va2tlZXBpbmc=\"],\"FirstEntry\":{\"ExtIDs\":[\"MTAwMQ==\",\"NTcwYjllM2ZiMmY1YWU4MjM2ODVlYjQ0MjJkNGZkODNmM2YwZDllN2NlMDdkOTg4YmQxN2U2NjUzOTQ2NjhjNg==\",\"bXZSSnFNVE1mclkzS3RIMkE0cWRQZnEzUTZMNEt3OUNrNA==\"],\"Data\":\"Rmlyc3QgZW50cnkgZm9yIGNoYWluOiIyRnJnRDIrdlBQM3l6NXpMVmFFNVRjMlZpVnY5ZndaZVIzL2FkeklUakpjPSJSdWxlczoiYXNsO2RqZmFzbGRrZmphc2xkZmpsa3NvdWlld29wdXJ3Ig==\"}}"
 	//fmt.Println(jsonstr)
 
 	// Post the chain JSON to FactomClient web server	---------------------------------------

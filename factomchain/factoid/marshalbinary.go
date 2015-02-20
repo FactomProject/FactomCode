@@ -13,15 +13,17 @@ import (
 func (i *Input) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
 
-	buf.Write(i.Txid[:])  //32
+	buf.Write(i.Txid[:]) //32
 
 	binary.Write(&buf, binary.BigEndian, i.Index) //32
 
-	//count := uint64(len(i.RevealAddr)) // 64 
+	//count := uint64(len(i.RevealAddr)) // 64
 	//binary.Write(&buf, binary.BigEndian, count)
 	data, err = i.RevealAddr.MarshalBinary()
-	if err != nil {return nil, err}
-	buf.Write(data)	
+	if err != nil {
+		return nil, err
+	}
+	buf.Write(data)
 
 	return buf.Bytes(), err
 }
@@ -34,7 +36,7 @@ func (i *Input) MarshalledSize() uint64 {
 }
 
 func (i *Input) UnmarshalBinary(data []byte) (err error) {
-	copy(i.Txid[:],data[:32])
+	copy(i.Txid[:], data[:32])
 	data = data[32:]
 
 	i.Index = binary.BigEndian.Uint32(data[:4])
@@ -48,13 +50,15 @@ func (i *Input) UnmarshalBinary(data []byte) (err error) {
 func (o *Output) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
 
-	buf.WriteByte(o.Type)  //1
+	buf.WriteByte(o.Type) //1
 
-	binary.Write(&buf, binary.BigEndian, o.Amount)  //8
+	binary.Write(&buf, binary.BigEndian, o.Amount) //8
 
 	data, err = notaryapi.ByteArray(o.ToAddr).MarshalBinary()
-	if err != nil { return nil, err }
-	buf.Write(data)	
+	if err != nil {
+		return nil, err
+	}
+	buf.Write(data)
 
 	return buf.Bytes(), err
 }
@@ -71,14 +75,13 @@ func (o *Output) UnmarshalBinary(data []byte) (err error) {
 	data = data[1:]
 
 	buf := bytes.NewReader(data[:8])
-	binary.Read(buf,binary.BigEndian,&o.Amount) 
+	binary.Read(buf, binary.BigEndian, &o.Amount)
 	data = data[8:]
 
 	notaryapi.ByteArray(o.ToAddr).UnmarshalBinary(data)
 
 	return nil
 }
-
 
 func (tx *TxData) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
@@ -87,16 +90,20 @@ func (tx *TxData) MarshalBinary() (data []byte, err error) {
 	binary.Write(&buf, binary.BigEndian, uint64(len(tx.Inputs)))
 	for _, in := range tx.Inputs {
 		data, err = in.MarshalBinary()
-		if err != nil { return nil, err }
-		buf.Write(data)	
+		if err != nil {
+			return nil, err
+		}
+		buf.Write(data)
 	}
 
 	//Outputs
 	binary.Write(&buf, binary.BigEndian, uint64(len(tx.Outputs)))
 	for _, out := range tx.Outputs {
 		data, err = out.MarshalBinary()
-		if err != nil { return nil, err }
-		buf.Write(data)	
+		if err != nil {
+			return nil, err
+		}
+		buf.Write(data)
 	}
 
 	binary.Write(&buf, binary.BigEndian, uint32(tx.LockTime))
@@ -109,21 +116,21 @@ func (tx *TxData) MarshalledSize() uint64 {
 	size += 8
 	for _, in := range tx.Inputs {
 		size += in.MarshalledSize()
-	}	
+	}
 
 	size += 8
 	for _, out := range tx.Outputs {
 		size += out.MarshalledSize()
-	}	
+	}
 
 	size += 4
 	return size
-} 
+}
 
 func (tx *TxData) UnmarshalBinary(data []byte) (err error) {
 	count := binary.BigEndian.Uint64(data[0:8])
 	data = data[8:]
-	tx.Inputs = make([]Input,count)
+	tx.Inputs = make([]Input, count)
 	for i := uint64(0); i < count; i++ {
 		tx.Inputs[i].UnmarshalBinary(data)
 		data = data[tx.Inputs[i].MarshalledSize():]
@@ -131,7 +138,7 @@ func (tx *TxData) UnmarshalBinary(data []byte) (err error) {
 
 	count = binary.BigEndian.Uint64(data[0:8])
 	data = data[8:]
-	tx.Outputs = make([]Output,count)
+	tx.Outputs = make([]Output, count)
 	for i := uint64(0); i < count; i++ {
 		tx.Outputs[i].UnmarshalBinary(data)
 		data = data[tx.Outputs[i].MarshalledSize():]
@@ -146,15 +153,19 @@ func (txm *TxMsg) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
 
 	data, err = txm.TxData.MarshalBinary()
-	if err != nil { return nil, err }
-	buf.Write(data)	
+	if err != nil {
+		return nil, err
+	}
+	buf.Write(data)
 
 	//Sigs
 	binary.Write(&buf, binary.BigEndian, uint64(len(txm.Sigs)))
 	for _, s := range txm.Sigs {
 		data, err = s.MarshalBinary()
-		if err != nil { return nil, err }
-		buf.Write(data)	
+		if err != nil {
+			return nil, err
+		}
+		buf.Write(data)
 	}
 
 	return buf.Bytes(), err
@@ -164,12 +175,12 @@ func (txm *TxMsg) MarshalledSize() uint64 {
 	var size uint64 = 0
 	size += txm.TxData.MarshalledSize()
 	size += 8
-	for _, s := range txm.Sigs { 
+	for _, s := range txm.Sigs {
 		size += s.MarshalledSize()
-	}	
+	}
 
 	return size
-} 
+}
 
 func (txm *TxMsg) UnmarshalBinary(data []byte) (err error) {
 	txm.TxData = new(TxData)
@@ -178,7 +189,7 @@ func (txm *TxMsg) UnmarshalBinary(data []byte) (err error) {
 
 	count := binary.BigEndian.Uint64(data[0:8])
 	data = data[8:]
-	txm.Sigs = make([]InputSig,count)
+	txm.Sigs = make([]InputSig, count)
 	for i := uint64(0); i < count; i++ {
 		txm.Sigs[i].UnmarshalBinary(data)
 		data = data[txm.Sigs[i].MarshalledSize():]

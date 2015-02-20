@@ -5,26 +5,25 @@
 package factomwire
 
 import (
+	"github.com/FactomProject/FactomCode/notaryapi"
+	"github.com/agl/ed25519"
 	"io"
-	"github.com/FactomProject/FactomCode/notaryapi"		
-	"github.com/agl/ed25519"	
 )
-
 
 // MsgCommitEntry implements the Message interface and represents a factom
 // Commit-Entry message.  It is used by client to commit the entry before revealing it.
 type MsgCommitEntry struct {
-	ECPubKey *notaryapi.Hash
-	EntryHash *notaryapi.Hash	
-	Credits uint32	
-	Timestamp uint64	
-	Sig []byte
+	ECPubKey  *notaryapi.Hash
+	EntryHash *notaryapi.Hash
+	Credits   uint32
+	Timestamp uint64
+	Sig       []byte
 }
 
 // BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
 // This is part of the Message interface implementation.
 func (msg *MsgCommitEntry) BtcEncode(w io.Writer, pver uint32) error {
-	
+
 	//ECPubKey
 	err := writeVarBytes(w, uint32(notaryapi.HashSize), msg.ECPubKey.Bytes)
 	if err != nil {
@@ -36,7 +35,7 @@ func (msg *MsgCommitEntry) BtcEncode(w io.Writer, pver uint32) error {
 	if err != nil {
 		return err
 	}
-	
+
 	//Credits
 	err = writeElement(w, &msg.Credits) // change it to varint??
 	if err != nil {
@@ -54,52 +53,50 @@ func (msg *MsgCommitEntry) BtcEncode(w io.Writer, pver uint32) error {
 	if err != nil {
 		return err
 	}
-	
+
 	return nil
 }
 
 // BtcDecode decodes r using the bitcoin protocol encoding into the receiver.
 // This is part of the Message interface implementation.
 func (msg *MsgCommitEntry) BtcDecode(r io.Reader, pver uint32) error {
-	//ECPubKey	
+	//ECPubKey
 	bytes, err := readVarBytes(r, pver, uint32(notaryapi.HashSize), CmdCommitEntry)
 	if err != nil {
 		return err
 	}
-	
-	msg.ECPubKey = new (notaryapi.Hash)
+
+	msg.ECPubKey = new(notaryapi.Hash)
 	msg.ECPubKey.SetBytes(bytes)
-	
-	//EntryHash	
+
+	//EntryHash
 	bytes, err = readVarBytes(r, pver, uint32(notaryapi.HashSize), CmdCommitEntry)
 	if err != nil {
 		return err
-	}	
-	msg.EntryHash = new (notaryapi.Hash)
+	}
+	msg.EntryHash = new(notaryapi.Hash)
 	msg.EntryHash.SetBytes(bytes)
-	
-	//Credits	
+
+	//Credits
 	err = readElement(r, &msg.Credits) // change it to varint??
 	if err != nil {
 		return err
 	}
-	
-	//Timestamp		
+
+	//Timestamp
 	msg.Timestamp, err = readVarInt(r, pver)
 	if err != nil {
 		return err
 	}
-	
-	//Signature	
-	msg.Sig, err = readVarBytes(r, pver, uint32(ed25519.SignatureSize), CmdCommitEntry)		
+
+	//Signature
+	msg.Sig, err = readVarBytes(r, pver, uint32(ed25519.SignatureSize), CmdCommitEntry)
 	if err != nil {
 		return err
 	}
-	
+
 	return nil
 }
-
-
 
 // Command returns the protocol command string for the message.  This is part
 // of the Message interface implementation.
@@ -116,8 +113,5 @@ func (msg *MsgCommitEntry) MaxPayloadLength(pver uint32) uint32 {
 // NewMsgInv returns a new bitcoin inv message that conforms to the Message
 // interface.  See MsgInv for details.
 func NewMsgCommitEntry() *MsgCommitEntry {
-	return &MsgCommitEntry{
-	}
+	return &MsgCommitEntry{}
 }
-
-

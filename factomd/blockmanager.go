@@ -19,12 +19,12 @@ type txMsg struct {
 }
 
 type blockManager struct {
-	server            *server
-	started           int32
-	shutdown          int32
-	msgChan           chan interface{}
-	wg                sync.WaitGroup
-	quit              chan struct{}
+	server   *server
+	started  int32
+	shutdown int32
+	msgChan  chan interface{}
+	wg       sync.WaitGroup
+	quit     chan struct{}
 }
 
 // newBlockManager returns a new bitcoin block manager.
@@ -32,14 +32,13 @@ type blockManager struct {
 func newBlockManager(s *server) (*blockManager, error) {
 
 	bm := blockManager{
-		server:           s,
-		msgChan:          make(chan interface{}),
-		quit:             make(chan struct{}),
+		server:  s,
+		msgChan: make(chan interface{}),
+		quit:    make(chan struct{}),
 	}
 
 	return &bm, nil
 }
-
 
 // Start begins the core block handler which processes block and inv messages.
 func (b *blockManager) Start() {
@@ -82,7 +81,7 @@ func (b *blockManager) QueueTx(msg *factomwire.MsgTx, p *peer) {
 
 func (b *blockManager) handleTxMsg(tmsg *txMsg) {
 	if b.server.txMemPool.ProcessTransaction(tmsg.tx) {
-		b.server.BroadcastMessage(tmsg.tx,tmsg.peer)
+		b.server.BroadcastMessage(tmsg.tx, tmsg.peer)
 	}
 }
 
@@ -93,9 +92,9 @@ out:
 		case m := <-b.msgChan:
 			switch msg := m.(type) {
 
-				case *txMsg:
-					b.handleTxMsg(msg)
-					msg.peer.txProcessed <- struct{}{}
+			case *txMsg:
+				b.handleTxMsg(msg)
+				msg.peer.txProcessed <- struct{}{}
 			}
 		case <-b.quit:
 			break out

@@ -9,7 +9,7 @@ import (
 	"github.com/FactomProject/gocoding/json"
 )
 
-func EncodeBinary(bytes *[]byte) (string) {
+func EncodeBinary(bytes *[]byte) string {
 	return hex.EncodeToString(*bytes)
 }
 
@@ -33,7 +33,6 @@ func UnmarshalJSON(reader gocoding.SliceableRuneReader, obj interface{}) error {
 
 func NewDecoding(decoding gocoding.Decoding) gocoding.Decoding {
 	return func(m gocoding.Unmarshaller, t reflect.Type) gocoding.Decoder {
-			return decoding(m, t)
+		return decoding(m, t)
 	}
 }
-

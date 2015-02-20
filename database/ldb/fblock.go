@@ -1,30 +1,28 @@
-
 package ldb
 
 import (
 	"fmt"
 )
 
-
-func (db *LevelDb) Put(key []byte, value []byte) error{
+func (db *LevelDb) Put(key []byte, value []byte) error {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
 	return db.lDb.Put(key, value, nil)
-	
+
 }
 
 func (db *LevelDb) Get(key []byte) ([]byte, error) {
 	db.dbLock.Lock()
-	defer db.dbLock.Unlock()	
-		
+	defer db.dbLock.Unlock()
+
 	return db.lDb.Get(key, db.ro)
 }
 
 func (db *LevelDb) Delete(key []byte) error {
 	db.dbLock.Lock()
-	defer db.dbLock.Unlock()	
-	
+	defer db.dbLock.Unlock()
+
 	return db.lDb.Delete(key, db.wo)
 }
 
@@ -45,6 +43,6 @@ func (db *LevelDb) Print() {
 		value := iter.Value()
 
 		fmt.Printf("%x(%d): ", key, len(key))
-		fmt.Println("%x(%d) ", value, len(value))		
+		fmt.Println("%x(%d) ", value, len(value))
 	}
 }
