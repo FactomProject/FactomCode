@@ -177,13 +177,13 @@ func initEChainFromDB(chain *notaryapi.EChain) {
 
 	chain.Blocks = make([]*notaryapi.EBlock, len(*eBlocks))
 
-	for i, b := range *eBlocks {
-		if b.Header.BlockID != uint64(i) {
+	for i := 0; i < len(*eBlocks); i = i + 1 {
+		if (*eBlocks)[i].Header.BlockID != uint64(i){
 			panic("Error in initializing EChain:" + chain.ChainID.String())
 		}
-		b.Chain = chain
-		b.IsSealed = true
-		chain.Blocks[i] = &b
+		(*eBlocks)[i].Chain = chain
+		(*eBlocks)[i].IsSealed = true
+		chain.Blocks[i] = &(*eBlocks)[i]
 	}
 
 	//Create an empty block and append to the chain
@@ -218,7 +218,7 @@ func init_processor() {
 
 		for i := 0; i < len(chain.Blocks); i = i + 1 {
 			if uint64(i) != chain.Blocks[i].Header.BlockID {
-				panic(errors.New("BlockID does not equal index"))
+				panic(errors.New("BlockID does not equal index for chain:" + chain.ChainID.String() + " block:" + fmt.Sprintf("%v", chain.Blocks[i].Header.BlockID)))
 			}
 		}
 
@@ -819,13 +819,19 @@ func initDChain() {
 
 	dchain.Blocks = make([]*notaryapi.DBlock, len(dBlocks))
 
-	for i, b := range dBlocks {
-		if b.Header.BlockID != uint64(i) {
+	for i := 0; i < len(dBlocks); i = i + 1 {
+		if dBlocks[i].Header.BlockID != uint64(i){
 			panic("Error in initializing dChain:" + dchain.ChainID.String())
 		}
-		b.Chain = dchain
-		b.IsSealed = true
-		dchain.Blocks[i] = &b
+		dBlocks[i].Chain = dchain
+		dBlocks[i].IsSealed = true
+		dchain.Blocks[i] = &dBlocks[i]
+	}
+	
+	for i := 0; i < len(dchain.Blocks); i = i + 1 {		
+		if uint64(i) != dchain.Blocks[i].Header.BlockID {			
+			panic(errors.New("BlockID does not equal index for chain:" + dchain.ChainID.String() + " block:" + fmt.Sprintf("%v", dchain.Blocks[i].Header.BlockID)))
+		}			
 	}
 
 	//Create an empty block and append to the chain
