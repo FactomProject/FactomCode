@@ -201,6 +201,7 @@ func handleFactoidTx(ctx *web.Context) {
 	ss := factoid.NewSingleSignature(ds)
 	factoid.AddSingleSigToTxMsg(txm, ss)
 	wire := factoid.TxMsgToWire(txm)
+	//factomwire.FactomRelay(wire)
 	fmt.Println(wire)
 }
 
