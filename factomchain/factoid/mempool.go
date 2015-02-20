@@ -5,6 +5,7 @@
 package factoid
 
 import (
+	"fmt"
 	"github.com/FactomProject/FactomCode/factomwire"
 	"sync"
 )
@@ -30,7 +31,7 @@ type TxProcessor interface {
 // blocks and relayed to other peers.  It is safe for concurrent access from
 // multiple peers.
 //   factoidpool impliments TxProcessor for generic mempool processing
-type factoidPool struct {
+type FactoidPool struct {
 	TxProcessor
 	sync.RWMutex
 	//server        *server
@@ -67,12 +68,29 @@ func NewTxPool() *txpool {
 
 // newTxMemPool returns a new memory pool for validating and storing standalone
 // transactions until they are mined into a block.
-func NewFactoidPool() *factoidPool {
-	return &factoidPool{
+func NewFactoidPool() *FactoidPool {
+	return &FactoidPool{
 		//server:        server,
 		utxo:   NewUtxo(),
 		txpool: NewTxPool(),
 	}
+}
+
+func (fp *FactoidPool) AddGenesisBlock() {
+	genb := FactoidGenesis(factomwire.TestNet)
+
+	c := context{
+		wire: nil,
+		tx:   &genb.Transactions[0],
+	}
+	fp.txpool.AddContext(&c)
+
+	fp.utxo.AddUtxo(c.tx.Id(), c.tx.Txm.TxData.Outputs)
+
+}
+
+func (fp *FactoidPool) Utxo() *Utxo {
+	return &fp.utxo
 }
 
 //add context tx to txpool
@@ -85,11 +103,13 @@ func (tp *txpool) AddContext(c *context) {
 
 //convert from wire format to TxMsg
 func TxMsgFromWire(tx *factomwire.MsgTx) (txm *TxMsg) {
+	txm = new(TxMsg)
 	txm.UnmarshalBinary(tx.Data)
+	//fmt.Println("---%#v",txm)
 	return
 }
 
-//convert from wire format to TxMsg
+//convert from TxMsg to wire format
 func TxMsgToWire(txm *TxMsg) (tx *factomwire.MsgTx) {
 	tx = new(factomwire.MsgTx)
 	tx.Data, _ = txm.MarshalBinary()
@@ -100,7 +120,7 @@ func TxMsgToWire(txm *TxMsg) (tx *factomwire.MsgTx) {
 //set context to tx, this context will be used by default when
 // by Verify and AddToMemPool
 // see factomd.TxMempool
-func (fp *factoidPool) SetContext(tx *factomwire.MsgTx) {
+func (fp *FactoidPool) SetContext(tx *factomwire.MsgTx) {
 	fp.context = context{
 		wire: tx,
 		tx:   NewTx(TxMsgFromWire(tx)),
@@ -109,28 +129,36 @@ func (fp *factoidPool) SetContext(tx *factomwire.MsgTx) {
 
 //Verify is designed to be called by external packages without
 // them needing to know the specific Tx foramt
-func (fp *factoidPool) Verify() (ret bool) {
+func (fp *FactoidPool) Verify() (ret bool) {
+
 	if !fp.utxo.IsValid(fp.context.tx.Txm.TxData.Inputs) {
+		fmt.Println("!fp.utxo.IsValid")
 		return false
 	}
 
 	if _, ok := fp.txpool.txlist[*fp.context.tx.Id()]; ok {
+		fmt.Println("fp.txpool.txlist")
 		return false
 	}
 
-	//ToDo: verify signatures
-	if !Verify(fp.context.tx) {
+	ok := VerifyTx(fp.context.tx)
+	//verify signatures
+	if !ok {
+		fmt.Println("sigs", fp.context.tx, VerifyTx)
+
 		return false
 	}
 	return true
 }
 
-//func (*factoidPool) Broadcast()  {return}
+//func (*FactoidPool) Broadcast()  {return}
 
 //add transaction to memorypool after passing verification of signature and utxo
 //assume the transaction is already set to factoidpool.context via call to
 // SetContext
-func (fp *factoidPool) AddToMemPool() {
+func (fp *FactoidPool) AddToMemPool() {
+	fmt.Println("AddToMemPool", fp.context.tx.Id().String())
+
 	fp.utxo.AddTx(fp.context.tx)
 	fp.txpool.AddContext(&fp.context)
 	return
