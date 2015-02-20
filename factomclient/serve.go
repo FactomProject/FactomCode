@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/FactomProject/FactomCode/factomapi"
+	"github.com/FactomProject/FactomCode/factomwire"
 	"github.com/FactomProject/FactomCode/notaryapi"
 	"github.com/FactomProject/FactomCode/restapi"
 	"github.com/FactomProject/FactomCode/wallet"
@@ -19,7 +20,6 @@ import (
 var server = web.NewServer()
 
 func serve_init() {
-
 	server.Post(`/v1/submitentry/?`, handleSubmitEntry)
 	server.Post(`/v1/submitchain/?`, handleSubmitChain)
 	server.Post(`/v1/buycredit/?`, handleBuyCreditPost)
@@ -27,6 +27,7 @@ func serve_init() {
 	server.Post(`/v1/addentry/?`, handleSubmitEntry2)       // Needs to be removed later??
 	server.Post(`/v1/getfilelist/?`, handleGetFileListPost) // to be replaced by DHT
 	server.Post(`/v1/getfile/?`, handleGetFilePost)         // to be replaced by DHT
+	server.Post('/v1/factoidtx/?', handleFactoidTx)
 
 	server.Get(`/v1/creditbalance/?`, handleGetCreditBalancePost)
 	server.Get(`/v1/buycredit/?`, handleBuyCreditPost)
@@ -36,6 +37,7 @@ func serve_init() {
 	server.Get(`/v1/eblock/([^/]+)(?)`, handleEBlockByHash)
 	server.Get(`/v1/eblockbymr/([^/]+)(?)`, handleEBlockByMR)
 	server.Get(`/v1/entry/([^/]+)(?)`, handleEntryByHash)
+	server.Get('/v1/factoidtx/?', handleFactoidTx)
 
 }
 
@@ -171,6 +173,19 @@ func handleBuyCreditPost(ctx *web.Context) {
 	}
 
 }
+
+func handleFactoidTx(ctx *web.Context) {
+	addr, _, err := factoid.DecodeAddress(ctx.Params["to"])
+	if err != nil {
+		fmt.Println(err)
+	}
+	n := uint32(ctx.Params["ammount"])
+	err = factomapi.FactoidTx(addr, ammount)
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+
 func handleGetCreditBalancePost(ctx *web.Context) {
 	var httpcode int = 200
 	buf := new(bytes.Buffer)
