@@ -187,6 +187,8 @@ func handleFactoidTx(ctx *web.Context) {
 		fmt.Println(err)
 	}
 	
+	// instead of genb we will have to read from the current confirmed factoid
+	// state
 	genb := factoid.FactoidGenesis(factomwire.TestNet)
 	outs := factoid.OutputsTx(&genb.Transactions[0])
 	txm := factoid.NewTxFromOutputToAddr(
