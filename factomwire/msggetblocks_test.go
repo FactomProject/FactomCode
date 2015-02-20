@@ -42,7 +42,7 @@ func TestGetBlocks(t *testing.T) {
 	}
 
 	// Ensure the command is expected value.
-	wantCmd := "getblocks"
+	wantCmd := "getdirblocks"
 	if cmd := msg.Command(); cmd != wantCmd {
 		t.Errorf("NewMsgGetBlocks: wrong command - got %v want %v",
 			cmd, wantCmd)

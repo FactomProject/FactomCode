@@ -5,7 +5,6 @@
 package factomwire
 
 import (
-	"github.com/FactomProject/FactomCode/util"
 	"io"
 )
 
@@ -44,6 +43,5 @@ func (msg *MsgGetAddr) MaxPayloadLength(pver uint32) uint32 {
 // NewMsgGetAddr returns a new bitcoin getaddr message that conforms to the
 // Message interface.  See MsgGetAddr for details.
 func NewMsgGetAddr() *MsgGetAddr {
-	util.Trace()
 	return &MsgGetAddr{}
 }
