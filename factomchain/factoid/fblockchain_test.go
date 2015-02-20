@@ -3,43 +3,43 @@ package factoid_test
 import (
 	"github.com/FactomProject/FactomCode/factomchain/factoid"
 	"github.com/FactomProject/FactomCode/factomwire"
-	"testing"
 	"github.com/FactomProject/FactomCode/wallet"
+	"testing"
 	//"github.com/FactomProject/FactomCode/notaryapi"
-
 )
 
 func TestFactoidGenesis(t *testing.T) {
 	genb := factoid.FactoidGenesis(factomwire.TestNet)
 
-	t.Logf("genb: %v ",genb)
+	t.Logf("genb: %v ", genb)
 
-	t.Logf("txid: %v ",genb.Transactions[0].Id())
+	t.Logf("txid: %v ", genb.Transactions[0].Id())
 
+	t.Logf("len: %v ", len(genb.Transactions[0].Txm.Sigs))
 
-	t.Logf("len: %v ",len(genb.Transactions[0].Txm.Sigs))
-
-	ok := wallet.ClientPublicKey().Verify(genb.Transactions[0].Digest(),(*[64]byte)(&genb.Transactions[0].Txm.Sigs[0].Sigs[0].Sig))
+	ok := wallet.ClientPublicKey().Verify(genb.Transactions[0].Digest(), (*[64]byte)(&genb.Transactions[0].Txm.Sigs[0].Sigs[0].Sig))
 	//ok := wallet.ClientPublicKey().Verify(genb.Transactions[0].Digest(),(&genb.Transactions[0].Raw.Sigs[0].Sigs[0].Sig))
 
-	if !ok { t.Fatalf("!Verify")}
+	if !ok {
+		t.Fatalf("!Verify")
+	}
 }
-	
 
 func TestGenesisInputTransaction(t *testing.T) {
 	genb := factoid.FactoidGenesis(factomwire.TestNet)
 
 	addr, _, _ := factoid.DecodeAddress("ExZ7hUZ7B4T3doVC6iLBPh9JP33huwELmLg6pM2LDNSiqk9mSs")
-	txm := factoid.NewTxFromOutputToAddr(&genb.Transactions[0],uint32(1),factoid.AddressReveal(*wallet.ClientPublicKey().Key),addr)
+	txm := factoid.NewTxFromOutputToAddr(&genb.Transactions[0], uint32(1), factoid.AddressReveal(*wallet.ClientPublicKey().Key), addr)
 
-	t.Logf("%#v ",txm)
-	t.Logf("%#v ",txm.TxData)
+	t.Logf("%#v ", txm)
+	t.Logf("%#v ", txm.TxData)
 
 	ds := wallet.DetachMarshalSign(txm.TxData)
 	ss := factoid.NewSingleSignature(ds)
-	factoid.AddSingleSigToTxMsg(txm,ss)
+	factoid.AddSingleSigToTxMsg(txm, ss)
 
-	if !factoid.Verify(factoid.NewTx(txm)) { t.Fatalf("!Verify")}
+	if !factoid.Verify(factoid.NewTx(txm)) {
+		t.Fatalf("!Verify")
+	}
 
 }
-	

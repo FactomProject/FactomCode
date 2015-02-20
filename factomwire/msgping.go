@@ -32,10 +32,10 @@ func (msg *MsgPing) BtcDecode(r io.Reader, pver uint32) error {
 	// NOTE: > is not a mistake here.  The BIP0031 was defined as AFTER
 	// the version unlike most others.
 	//if pver > BIP0031Version {
-		err := readElement(r, &msg.Nonce)
-		if err != nil {
-			return err
-		}
+	err := readElement(r, &msg.Nonce)
+	if err != nil {
+		return err
+	}
 	//}
 
 	return nil
@@ -48,10 +48,10 @@ func (msg *MsgPing) BtcEncode(w io.Writer, pver uint32) error {
 	// NOTE: > is not a mistake here.  The BIP0031 was defined as AFTER
 	// the version unlike most others.
 	//if pver > BIP0031Version {
-		err := writeElement(w, msg.Nonce)
-		if err != nil {
-			return err
-		}
+	err := writeElement(w, msg.Nonce)
+	if err != nil {
+		return err
+	}
 	//}
 
 	return nil
@@ -71,8 +71,8 @@ func (msg *MsgPing) MaxPayloadLength(pver uint32) uint32 {
 	// NOTE: > is not a mistake here.  The BIP0031 was defined as AFTER
 	// the version unlike most others.
 	//if pver > BIP0031Version {
-		// Nonce 8 bytes.
-		plen += 8
+	// Nonce 8 bytes.
+	plen += 8
 	//}
 
 	return plen

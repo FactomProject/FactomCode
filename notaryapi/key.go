@@ -1,24 +1,23 @@
 package notaryapi
 
 import (
-	"github.com/agl/ed25519"
 	"crypto/rand"
+	"github.com/agl/ed25519"
 )
- 
 
-// Verifyer objects can Verify signed messages  
+// Verifyer objects can Verify signed messages
 type Verifyer interface {
 	Verify(msg []byte) bool
 }
 
-// Signer object can Sign msg  
+// Signer object can Sign msg
 type Signer interface {
 	Sign(msg []byte) Signature
 }
 
-// PrivateKey contains Public/Private key pair   
+// PrivateKey contains Public/Private key pair
 type PrivateKey struct {
-	Key  *[ed25519.PrivateKeySize]byte	
+	Key *[ed25519.PrivateKeySize]byte
 	Pub PublicKey
 }
 
@@ -31,22 +30,21 @@ func (pk *PrivateKey) AllocateNew() {
 	pk.Pub.Key = new([32]byte)
 }
 
-// PublicKey contains only Public part of Public/Private key pair   
+// PublicKey contains only Public part of Public/Private key pair
 type PublicKey struct {
-	Key  *[ed25519.PublicKeySize]byte	
+	Key *[ed25519.PublicKeySize]byte
 }
 
-
 // Sign signs msg with PrivateKey and return Signature
-func (pk PrivateKey) Sign(msg []byte) (sig Signature) {	
+func (pk PrivateKey) Sign(msg []byte) (sig Signature) {
 	sig.Pub = pk.Pub
 	sig.Sig = ed25519.Sign(pk.Key, msg)
 	return
 }
 
 // Sign signs msg with PrivateKey and return Signature
-func (pk PrivateKey) MarshalSign(msg BinaryMarshallable) (sig Signature) {	
-	data, _ := msg.MarshalBinary() 
+func (pk PrivateKey) MarshalSign(msg BinaryMarshallable) (sig Signature) {
+	data, _ := msg.MarshalBinary()
 	return pk.Sign(data)
 }
 
@@ -75,8 +73,7 @@ func VerifySlice(p []byte, message []byte, s []byte) bool {
 
 	sig := new([64]byte)
 	pub := new([32]byte)
-	copy(sig[:],s)
-	copy(pub[:],p)
+	copy(sig[:], s)
+	copy(pub[:], p)
 	return Verify(pub, message, sig)
 }
-

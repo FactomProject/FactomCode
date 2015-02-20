@@ -4,13 +4,11 @@
 
 package main
 
-
 import (
-	"github.com/FactomProject/FactomCode/wallet"
 	"fmt"
+	"github.com/FactomProject/FactomCode/wallet"
 )
-
 
 func main() {
 	fmt.Println("Address: ", wallet.FactoidAddress())
-} 
+}

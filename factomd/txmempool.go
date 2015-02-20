@@ -1,7 +1,7 @@
 // Copyright (c) 2014 FactomProject/FactomCode Systems LLC.
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
-package main 
+package main
 
 import (
 	//"github.com/FactomProject/FactomCode/notaryapi"
@@ -9,18 +9,17 @@ import (
 	"github.com/FactomProject/FactomCode/factomwire"
 )
 
-
-// TxProcessor is an interface that abstracts methods needed to process a TxMessage 
-// SetContext(*TxMessage) will store to concrete TxMessage in the concrete TxProcessor object 
+// TxProcessor is an interface that abstracts methods needed to process a TxMessage
+// SetContext(*TxMessage) will store to concrete TxMessage in the concrete TxProcessor object
 type TxProcessor interface {
 	SetContext(*factomwire.MsgTx)
 	Verify() bool
-	//Broadcast() 
-	AddToMemPool() 
+	//Broadcast()
+	AddToMemPool()
 }
 
-//ProcessTx is an abstract way to process any TxMessage received from wire 
-//It first SetContext()  of the concrete type and then will only Broadcast and 
+//ProcessTx is an abstract way to process any TxMessage received from wire
+//It first SetContext()  of the concrete type and then will only Broadcast and
 //add to MemoryyPool if Verify returns true
 func ProcessTx(tp TxProcessor, tm *factomwire.MsgTx) (ret bool) {
 	tp.SetContext(tm)
@@ -34,12 +33,12 @@ func ProcessTx(tp TxProcessor, tm *factomwire.MsgTx) (ret bool) {
 }
 
 type txMemPool struct {
-	server	*server
+	server       *server
 	TxProcessorS map[string]TxProcessor
 }
 
-func (txm *txMemPool) ProcessTransaction(tm *factomwire.MsgTx) bool { 
-	return ProcessTx(txm.TxProcessorS[tm.TxType()],tm)
+func (txm *txMemPool) ProcessTransaction(tm *factomwire.MsgTx) bool {
+	return ProcessTx(txm.TxProcessorS[tm.TxType()], tm)
 }
 
 // newTxMemPool returns a new memory pool for validating and storing standalone

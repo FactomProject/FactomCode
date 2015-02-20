@@ -1,38 +1,39 @@
 package main
 
 import (
-	"log"
-	"io/ioutil"
-	"path"
-	"os"
-	"github.com/jackpal/Taipei-Torrent/torrent"
-	"encoding/hex"
-	"os/signal"
-	"flag"
-	"math"
-	"fmt"
-	"time"
-	"sort"
+	"code.google.com/p/gcfg"
 	"encoding/csv"
-	"code.google.com/p/gcfg"	
+	"encoding/hex"
+	"flag"
+	"fmt"
 	socks "github.com/hailiang/gosocks"
+	"github.com/jackpal/Taipei-Torrent/torrent"
+	"io/ioutil"
+	"log"
+	"math"
+	"os"
+	"os/signal"
+	"path"
+	"sort"
 	"strings"
-) 
-
-const MAX_OUR_REQUESTS = 2
-var (
-	seedDir string = "/tmp/store/seed"
-	torrentDir string ="/tmp/torrent"
-	mlinkfilePath string ="/tmp/torrent/mlinks/mlinks.csv"
- 	trackers string = "udp://tracker.publicbt.com:80;udp://tracker.openbittorrent.com:80"
- 	trackerArray [] string = []string {"udp://tracker.publicbt.com:80","udp://tracker.openbittorrent.com:80"}
- 	trackerStr string = "tr=udp://tracker.publicbt.com:80&tr=udp://tracker.openbittorrent.com:80"
- 	isFullScan bool = true
- 	logLevel = "DEBUG"
- 	minToRun int = 10 //to be removed?? 
+	"time"
 )
 
-var ( 
+const MAX_OUR_REQUESTS = 2
+
+var (
+	seedDir       string   = "/tmp/store/seed"
+	torrentDir    string   = "/tmp/torrent"
+	mlinkfilePath string   = "/tmp/torrent/mlinks/mlinks.csv"
+	trackers      string   = "udp://tracker.publicbt.com:80;udp://tracker.openbittorrent.com:80"
+	trackerArray  []string = []string{"udp://tracker.publicbt.com:80", "udp://tracker.openbittorrent.com:80"}
+	trackerStr    string   = "tr=udp://tracker.publicbt.com:80&tr=udp://tracker.openbittorrent.com:80"
+	isFullScan    bool     = true
+	logLevel               = "DEBUG"
+	minToRun      int      = 10 //to be removed??
+)
+
+var (
 	cpuprofile    = flag.String("cpuprofile", "", "If not empty, collects CPU profile samples and writes the profile to the given file before the program exits")
 	memprofile    = flag.String("memprofile", "", "If not empty, writes memory heap allocations to the given file before the program exits")
 	createTorrent = flag.String("createTorrent", "", "If not empty, creates a torrent file from the given root. Writes to stdout")
@@ -52,21 +53,22 @@ var (
 )
 
 // array sorting implementation
-type byDate []os.FileInfo 
-func (f byDate) Len() int { 
-  return len(f) 
-} 
-func (f byDate) Less(i, j int) bool { 
-  return f[i].ModTime().Unix() > f[j].ModTime().Unix() 
-} 
-func (f byDate) Swap(i, j int) { 
-  f[i], f[j] = f[j], f[i] 
-} 
+type byDate []os.FileInfo
+
+func (f byDate) Len() int {
+	return len(f)
+}
+func (f byDate) Less(i, j int) bool {
+	return f[i].ModTime().Unix() > f[j].ModTime().Unix()
+}
+func (f byDate) Swap(i, j int) {
+	f[i], f[j] = f[j], f[i]
+}
 
 func getSortedFiles(dir string) (files []os.FileInfo, err error) {
-	t, err := ioutil.ReadDir(dir)   
+	t, err := ioutil.ReadDir(dir)
 	sort.Sort(byDate(t))
-	return t, err 
+	return t, err
 }
 
 // get the input parameters from command line to overwrite the ones from config file
@@ -87,55 +89,53 @@ func parseTorrentFlags() *torrent.TorrentFlags {
 	}
 }
 
-
 // load config from config file
-func loadConfigurations(){
+func loadConfigurations() {
 	// the data structure should be the same as the config file
 	cfg := struct {
-		App struct{
-			SeedDir string
-		    TorrentDir string
-		    MlinkfilePath string
-		    IsFullScan	bool
-			MinToRun	int		    
-	    }
-		Torrent struct{
-			Port   int             
-			SeedRatio   float64        
-			UseDeadlockDetector bool
-			UseLPD   bool           
-			UseUPnP    bool         
-			UseNATPMP    bool       
-			Gateway      string       
-			UseDHT      bool        
-			TrackerlessMode     bool
-			ProxyAddress   string  
-			Trackers		string   	    
-	    }
-		Log struct{
-	    	LogLevel string
+		App struct {
+			SeedDir       string
+			TorrentDir    string
+			MlinkfilePath string
+			IsFullScan    bool
+			MinToRun      int
 		}
-    }{}
-	
+		Torrent struct {
+			Port                int
+			SeedRatio           float64
+			UseDeadlockDetector bool
+			UseLPD              bool
+			UseUPnP             bool
+			UseNATPMP           bool
+			Gateway             string
+			UseDHT              bool
+			TrackerlessMode     bool
+			ProxyAddress        string
+			Trackers            string
+		}
+		Log struct {
+			LogLevel string
+		}
+	}{}
+
 	wd, err := os.Getwd()
-	if err != nil{
-		log.Println(err)
-	}	
-	err = gcfg.ReadFileInto(&cfg, wd+"/torrent-server.conf")
-	if err != nil{
+	if err != nil {
 		log.Println(err)
 	}
-	
+	err = gcfg.ReadFileInto(&cfg, wd+"/torrent-server.conf")
+	if err != nil {
+		log.Println(err)
+	}
+
 	//setting the variables by the valued form the config file
 	seedDir = cfg.App.SeedDir
- 	torrentDir = cfg.App.TorrentDir
- 	mlinkfilePath = cfg.App.MlinkfilePath
- 	isFullScan = cfg.App.IsFullScan
- 	minToRun = cfg.App.MinToRun
- 		
-	
+	torrentDir = cfg.App.TorrentDir
+	mlinkfilePath = cfg.App.MlinkfilePath
+	isFullScan = cfg.App.IsFullScan
+	minToRun = cfg.App.MinToRun
+
 	*port = cfg.Torrent.Port
-	*seedRatio  = cfg.Torrent.SeedRatio
+	*seedRatio = cfg.Torrent.SeedRatio
 	*useDeadlockDetector = cfg.Torrent.UseDeadlockDetector
 	*useLPD = cfg.Torrent.UseLPD
 	*useUPnP = cfg.Torrent.UseUPnP
@@ -144,21 +144,19 @@ func loadConfigurations(){
 	*useDHT = cfg.Torrent.UseDHT
 	*trackerlessMode = cfg.Torrent.TrackerlessMode
 	*proxyAddress = cfg.Torrent.ProxyAddress
-	
+
 	//build the tracker string for torrent file
 	trackerArray = strings.Split(cfg.Torrent.Trackers, ";")
-	if len(trackerArray)>0{
+	if len(trackerArray) > 0 {
 		trackerStr = "tr=" + trackerArray[0]
 		for i := 1; i < len(trackerArray); i++ {
 			trackerStr = trackerStr + "&tr=" + trackerArray[i]
-		}	
+		}
 	}
 
-
-	logLevel = cfg.Log.LogLevel	
+	logLevel = cfg.Log.LogLevel
 
 }
-
 
 // get torrent files from torrentDir
 func getTorrentFiles() (fileList *[]string, err error) {
@@ -167,94 +165,89 @@ func getTorrentFiles() (fileList *[]string, err error) {
 	if err != nil {
 		return nil, err
 	}
-	var count int =0
-	var total int=len(fiList)
-	for i:=0; i<total; i++ {
+	var count int = 0
+	var total int = len(fiList)
+	for i := 0; i < total; i++ {
 		if !fiList[i].IsDir() {
-			count ++
+			count++
 		}
-	}	
-	var torrentFileList []string = make ([]string, count)
-	var j int=0
-	for i:=0; i<total; i++ {
+	}
+	var torrentFileList []string = make([]string, count)
+	var j int = 0
+	for i := 0; i < total; i++ {
 		if !fiList[i].IsDir() {
 			//build the full file path
-			torrentFileList[j]=path.Join(torrentDir, fiList[i].Name())
+			torrentFileList[j] = path.Join(torrentDir, fiList[i].Name())
 			j++
 		}
-	}	
+	}
 	return &torrentFileList, nil
 }
 
+func init() {
 
-func init(){
-	
 	loadConfigurations()
-	
 
-	
 }
 func main() {
 
-	var torrentFileChan = make (chan string)
+	var torrentFileChan = make(chan string)
 	torrentFlags := parseTorrentFlags()
-	
+
 	//get the existing torrent files
 	torrentFileList, err := getTorrentFiles()
 	//run the torrent sessions for the existing torrent files
-	go RunNCTorrents(torrentFlags, *torrentFileList, &torrentFileChan)	
+	go RunNCTorrents(torrentFlags, *torrentFileList, &torrentFileChan)
 	if err != nil {
-		fmt.Println( err)
+		fmt.Println(err)
 	}
-	
-	//wait for new notary blocks and create additional torrent files
-	go CreateNCTorrentFiles(&torrentFileChan)	
-	if err != nil {
-		fmt.Println( "after test")
-		fmt.Println( err)
-	}
-		
-		//to add logic to handle server shutdown ??
-		time.Sleep(time.Duration(minToRun) * time.Minute)
-	
-	return	
-}
 
+	//wait for new notary blocks and create additional torrent files
+	go CreateNCTorrentFiles(&torrentFileChan)
+	if err != nil {
+		fmt.Println("after test")
+		fmt.Println(err)
+	}
+
+	//to add logic to handle server shutdown ??
+	time.Sleep(time.Duration(minToRun) * time.Minute)
+
+	return
+}
 
 func CreateNCTorrentFiles(torrentFileChan *chan string) (err error) {
 
 	log.Printf("Seed directory: %s", seedDir)
 	var isNotExisting bool = true
-	
+
 	for {
 		fiList, err := getSortedFiles(seedDir)
 		if err != nil {
 			return err
 		}
-		
+
 		for _, seedFile := range fiList {
 			if !seedFile.IsDir() {
 				torrentFile := path.Join(torrentDir, seedFile.Name()+".torrent")
 				isNotExisting, err = fileNotExists(torrentFile)
-				if isNotExisting{
+				if isNotExisting {
 					var seedFilePath string = path.Join(seedDir, seedFile.Name())
-					err = createTorrentFile(torrentFile, seedFilePath, trackerArray[0],trackerStr)	
+					err = createTorrentFile(torrentFile, seedFilePath, trackerArray[0], trackerStr)
 					if err != nil {
 						return err
 					}
 					*torrentFileChan <- torrentFile
-				// Will check every file in the directory if full scan	
+					// Will check every file in the directory if full scan
 				} else if isFullScan != true {
 					break
 				}
 			}
 		}
-		
+
 		// add logic for server shutdown..
 		//fmt.Println("sleeping for 30 sec")
 		time.Sleep(30 * time.Second)
 	}
-
 
 	return
 }
@@ -278,34 +271,34 @@ func createTorrentFile(torrentFilePath string, seedFilePath string, announcePath
 	if err != nil {
 		return err
 	}
-	
 
-	//write the mlinks to a csv file: 
-	mlinkfile, err := os.OpenFile(mlinkfilePath, os.O_APPEND|os.O_WRONLY, 0600 )
-	if err != nil {panic(err)}
-    defer mlinkfile.Close()
-    writer := csv.NewWriter(mlinkfile)
-    
-    
-    //csv header: block_id,info_hash,mlink,time_stamp
-    _, filename := path.Split(seedFilePath);
+	//write the mlinks to a csv file:
+	mlinkfile, err := os.OpenFile(mlinkfilePath, os.O_APPEND|os.O_WRONLY, 0600)
+	if err != nil {
+		panic(err)
+	}
+	defer mlinkfile.Close()
+	writer := csv.NewWriter(mlinkfile)
 
-    record := []string {filename, fmt.Sprintf("%x", metaInfo.InfoHash), 
-    	fmt.Sprintf ("magnet:?xt=urn:btih:%x&%s", metaInfo.InfoHash, trackerstr),
-    	fmt.Sprintf (time.Now().Format(time.RFC3339))}
-    writer.Write(record)
-    writer.Flush()
-    
-	fmt.Printf ("magnet:?xt=urn:btih:%x&%s", metaInfo.InfoHash, trackers)
+	//csv header: block_id,info_hash,mlink,time_stamp
+	_, filename := path.Split(seedFilePath)
+
+	record := []string{filename, fmt.Sprintf("%x", metaInfo.InfoHash),
+		fmt.Sprintf("magnet:?xt=urn:btih:%x&%s", metaInfo.InfoHash, trackerstr),
+		fmt.Sprintf(time.Now().Format(time.RFC3339))}
+	writer.Write(record)
+	writer.Flush()
+
+	fmt.Printf("magnet:?xt=urn:btih:%x&%s", metaInfo.InfoHash, trackers)
 	return
 }
 
 func fileNotExists(name string) (bool, error) {
-  _, err := os.Stat(name)
-  if os.IsNotExist(err) {
-    return true, nil
-  }
-  return err != nil, err
+	_, err := os.Stat(name)
+	if os.IsNotExist(err) {
+		return true, nil
+	}
+	return err != nil, err
 }
 
 func RunNCTorrents(flags *torrent.TorrentFlags, torrentFiles []string, torrentFileChan *chan string) (err error) {
@@ -319,10 +312,10 @@ func RunNCTorrents(flags *torrent.TorrentFlags, torrentFiles []string, torrentFi
 	doneChan := make(chan *torrent.TorrentSession)
 
 	torrentSessions := make(map[string]*torrent.TorrentSession)
-	
+
 	lpd := &torrent.Announcer{}
 
-	if len(torrentFiles)>0 {
+	if len(torrentFiles) > 0 {
 		for _, torrentFile := range torrentFiles {
 			var ts *torrent.TorrentSession
 			ts, err = torrent.NewTorrentSession(flags, torrentFile, uint16(listenPort))
@@ -333,15 +326,14 @@ func RunNCTorrents(flags *torrent.TorrentFlags, torrentFiles []string, torrentFi
 			log.Printf("Starting torrent session for %x", ts.M.InfoHash)
 			torrentSessions[ts.M.InfoHash] = ts
 		}
-	
+
 		for _, ts := range torrentSessions {
 			go func(ts *torrent.TorrentSession) {
 				ts.DoTorrent()
 				//doneChan <- ts // need morning testing ??
 			}(ts)
 		}
-	
-	
+
 		if flags.UseLPD {
 			lpd = startLPD(torrentSessions, uint16(listenPort))
 		}
@@ -387,20 +379,19 @@ mainLoop:
 				return
 			}
 			log.Printf("Starting torrent session for %x", ts.M.InfoHash)
-			torrentSessions[ts.M.InfoHash] = ts	
-			
+			torrentSessions[ts.M.InfoHash] = ts
+
 			go func(ts *torrent.TorrentSession) {
 				ts.DoTorrent()
 				//doneChan <- ts // need more testing ??
-			}(ts)		
-			
+			}(ts)
+
 			if flags.UseLPD {
 				lpd.Announce(ts.M.InfoHash)
 			}
-			
+
 		}
-		
-			
+
 	}
 	return
 }

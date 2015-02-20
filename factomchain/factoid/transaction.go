@@ -7,8 +7,8 @@ package factoid
 import (
 	//"bytes"
 	//"fmt"
-	"github.com/FactomProject/FactomCode/notaryapi"
 	"encoding/hex"
+	"github.com/FactomProject/FactomCode/notaryapi"
 )
 
 type Txid notaryapi.HashF
@@ -25,18 +25,18 @@ type Input struct {
 }
 
 // NewInput returns a new factoid transaction input with the provided
-// Txid, index, and revealed address 
+// Txid, index, and revealed address
 func NewInput(id *Txid, index uint32, reveal notaryapi.ByteArray) *Input {
 	return &Input{
-		Txid: *id,
-		Index:  index,
-		RevealAddr:	reveal,
+		Txid:       *id,
+		Index:      index,
+		RevealAddr: reveal,
 	}
 }
 
-// Constants for Output.Type 
+// Constants for Output.Type
 const (
-	FACTOID_ADDR = byte(0)
+	FACTOID_ADDR     = byte(0)
 	ENTRYCREDIT_PKEY = byte(1)
 )
 
@@ -58,7 +58,7 @@ type Output struct {
 // transaction value and public key script.
 func NewOutput(ty byte, amount int64, to Address) *Output {
 	return &Output{
-		Type:  	ty,
+		Type:   ty,
 		Amount: amount,
 		ToAddr: to,
 	}
@@ -73,11 +73,11 @@ type TxData struct {
 	LockTime uint32
 }
 
-//create new TxData 
+//create new TxData
 func NewTxData() *TxData {
 	return &TxData{
-		Inputs: 	make([]Input,0,1),
-		Outputs: 	make([]Output,0,1),
+		Inputs:  make([]Input, 0, 1),
+		Outputs: make([]Output, 0, 1),
 	}
 }
 
@@ -95,15 +95,15 @@ func (td *TxData) AddOutput(out Output) {
 //	Sigs is at least 1 signature per Input
 type TxMsg struct {
 	//Version int32
-	TxData  *TxData
-	Sigs    []InputSig
+	TxData *TxData
+	Sigs   []InputSig
 }
 
 //crate TxMsg from TxData
 func NewTxMsg(td *TxData) *TxMsg {
 	return &TxMsg{
 		TxData: td,
-		Sigs: 	make([]InputSig,0,max(1,len(td.Inputs))),
+		Sigs:   make([]InputSig, 0, max(1, len(td.Inputs))),
 	}
 }
 
@@ -111,7 +111,6 @@ func NewTxMsg(td *TxData) *TxMsg {
 func (tm *TxMsg) AddInputSig(is InputSig) {
 	tm.Sigs = append(tm.Sigs, is)
 }
-
 
 //Tx is the TxMsg and a chache of its Txid
 type Tx struct {
@@ -157,14 +156,13 @@ func (tx *Tx) Id() *Txid {
 	return tx.id
 }
 
-func (tx *Tx) Digest() ([]byte) {
+func (tx *Tx) Digest() []byte {
 	if tx.raw == nil {
-		by, _ :=  tx.Txm.TxData.MarshalBinary()
+		by, _ := tx.Txm.TxData.MarshalBinary()
 		tx.raw = &by
 	}
 	return *tx.raw
 }
-
 
 func (txid *Txid) String() string {
 	return hex.EncodeToString(txid[:])

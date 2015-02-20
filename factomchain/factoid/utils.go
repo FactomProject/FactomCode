@@ -7,11 +7,11 @@ package factoid
 import (
 
 	//"math"
-	"github.com/FactomProject/FactomCode/notaryapi"
-	"fmt"
 	"bytes"
-
+	"fmt"
+	"github.com/FactomProject/FactomCode/notaryapi"
 )
+
 /*
 func Verify(tx Tx) bool {
 	sig := tx.Txm.Sigs
@@ -26,19 +26,19 @@ func Verify(tx Tx) bool {
 		for inii := in[ii], m := 0; m < inii.RequiredSigs(); {
 
 			moresigs := bool(si < siglen-1)
-			if !VerifyInputSig(inii,sig[si]) { //signature does not match Input address			
+			if !VerifyInputSig(inii,sig[si]) { //signature does not match Input address
 				if  !moresigs { return false } 	//no more sigs - input not verified
 			}
 
-			else { //signature verified to Input address. 
-				m++ //stop at m of n  
-			}  		
+			else { //signature verified to Input address.
+				m++ //stop at m of n
+			}
 
-			if moresigs { si++ } 
-			//else if nomoresigs, try last sig for rest of inputs 
+			if moresigs { si++ }
+			//else if nomoresigs, try last sig for rest of inputs
 		}
 
-		//Inputs[ii] is now verified 
+		//Inputs[ii] is now verified
 	}
 
 	return false;
@@ -48,64 +48,77 @@ func Verify(tx Tx) bool {
 func Verify(tx *Tx) bool {
 	sig := tx.Txm.Sigs
 	in := tx.Txm.TxData.Inputs
-	sigcount := len(sig)-1
-	incount := len(in)-1
-	if sigcount < 0 || incount < 0 { return false }
-
-	si, ii := 0,0
-	for {
-
-		if VerifyInputSig(&in[ii],&sig[si],tx) {
-			ii++
-			if ii > incount { 
-				return true 
-			}
-		} else if si == sigcount { return false } //no more sigs - input not verified
-
-		if si < sigcount { si++ }
-
-		//Inputs[ii] is now verified 
+	sigcount := len(sig) - 1
+	incount := len(in) - 1
+	if sigcount < 0 || incount < 0 {
+		return false
 	}
 
-	return false;
-}
+	si, ii := 0, 0
+	for {
 
-func VerifyInputSig(in *Input,sig *InputSig,tx *Tx) bool {
-	///ToDo: MultiSig
-	for i := 0; i < len(sig.Sigs); i++ {
-		if notaryapi.VerifySlice(in.RevealAddr,tx.Digest(),sig.Sigs[i].Sig[:]) { 
-			return true
-		} 
+		if VerifyInputSig(&in[ii], &sig[si], tx) {
+			ii++
+			if ii > incount {
+				return true
+			}
+		} else if si == sigcount {
+			return false
+		} //no more sigs - input not verified
 
-		if i >= 2 { return false} //only allow 3 bad sigs 
+		if si < sigcount {
+			si++
+		}
+
+		//Inputs[ii] is now verified
 	}
 
 	return false
 }
 
-func max(a, b int) int { if a > b { return a }; return b }
+func VerifyInputSig(in *Input, sig *InputSig, tx *Tx) bool {
+	///ToDo: MultiSig
+	for i := 0; i < len(sig.Sigs); i++ {
+		if notaryapi.VerifySlice(in.RevealAddr, tx.Digest(), sig.Sigs[i].Sig[:]) {
+			return true
+		}
 
-func NewTxFromOutputToAddr(tx *Tx,outnum uint32,from AddressReveal,to Address) (txm *TxMsg) {
+		if i >= 2 {
+			return false
+		} //only allow 3 bad sigs
+	}
+
+	return false
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
+}
+
+func NewTxFromOutputToAddr(tx *Tx, outnum uint32, from AddressReveal, to Address) (txm *TxMsg) {
 	txd := NewTxData()
 	outs := outputsTx(tx)
 	if uint32(len(outs)) < outnum || outnum < 1 {
-		fmt.Println("NewTxFromOutputToAddr err1 %#v",outs)
+		fmt.Println("NewTxFromOutputToAddr err1 %#v", outs)
 		return nil
 	}
-	if !VerifyAddressReveal(outs[outnum-1].ToAddr,from) {
-		fmt.Println("NewTxFromOutputToAddr !VerifyAddressReveal %#v %#v",from,outs)
-		return nil		
+	if !VerifyAddressReveal(outs[outnum-1].ToAddr, from) {
+		fmt.Println("NewTxFromOutputToAddr !VerifyAddressReveal %#v %#v", from, outs)
+		return nil
 	}
 
-	in := NewInput(tx.Id(),outnum,from[:])
+	in := NewInput(tx.Id(), outnum, from[:])
 	txd.AddInput(*in)
 
-	out := NewOutput(FACTOID_ADDR,outs[outnum-1].Amount,to)
+	out := NewOutput(FACTOID_ADDR, outs[outnum-1].Amount, to)
 	txd.AddOutput(*out)
 	return NewTxMsg(txd)
 }
 
-func VerifyAddressReveal(address Address, reveal AddressReveal)  bool {
+func VerifyAddressReveal(address Address, reveal AddressReveal) bool {
 
 	hash := notaryapi.Sha(reveal[:])
 

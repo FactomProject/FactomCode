@@ -3,7 +3,7 @@ package factomapi
 import (
 	"bytes"
 	"crypto/sha256"
-//	"encoding/base64"
+	//	"encoding/base64"
 	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
@@ -29,9 +29,9 @@ type FactomChainer interface {
 
 // A factom entry that can be submitted to the factom network.
 type Entry struct {
-	ChainID   []byte
-	ExtIDs    [][]byte
-	Data      []byte
+	ChainID []byte
+	ExtIDs  [][]byte
+	Data    []byte
 }
 
 // CreateFactomEntry allows an Entry to satisfy the FactomWriter interface.
@@ -78,7 +78,7 @@ func (e *Entry) UnmarshalJSON(b []byte) (err error) {
 	var j jsonentry
 
 	json.Unmarshal(b, &j)
-	
+
 	return e.FromJsonEntry(j)
 }
 
@@ -104,7 +104,7 @@ func (e *Chain) UnmarshalJSON(b []byte) (err error) {
 	var j jsonchain
 
 	json.Unmarshal(b, &j)
-	
+
 	e.ChainID, err = hex.DecodeString(j.ChainID)
 	if err != nil {
 		return err
@@ -118,13 +118,13 @@ func (e *Chain) UnmarshalJSON(b []byte) (err error) {
 	if err != nil {
 		return err
 	}
-	
+
 	return nil
 }
 
 type jsonchain struct {
-	ChainID string
-	Name  []string
+	ChainID    string
+	Name       []string
 	FirstEntry jsonentry
 }
 

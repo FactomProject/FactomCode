@@ -44,11 +44,11 @@ func (u *Utxo) AddTx(t *Tx) {
 		return
 	}
 
-	u.AddUtxo(t.Id(),t.Txm.TxData.Outputs)
+	u.AddUtxo(t.Id(), t.Txm.TxData.Outputs)
 	u.Spend(t.Txm.TxData.Inputs)
 }
 
-//add all outputs for txid to UTXO 
+//add all outputs for txid to UTXO
 func (u *Utxo) AddUtxo(id *Txid, outs []Output) {
 	txs := make(TxSpentList, len(outs)+1)
 	u.Txspent[*id] = txs

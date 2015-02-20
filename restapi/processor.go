@@ -19,10 +19,10 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"sort"
 	"strings"
 	"sync"
 	"time"
-	"sort"	
 )
 
 const (
@@ -120,6 +120,7 @@ func watchError(err error) {
 func readError(err error) {
 	fmt.Println("error: ", err)
 }
+
 /*
 func initWithBinary(chain *notaryapi.EChain) {
 	matches, err := filepath.Glob(dataStorePath + chain.ChainID.String() + "/store.*.block") // need to get it from a property file??
@@ -177,7 +178,7 @@ func initEChainFromDB(chain *notaryapi.EChain) {
 	chain.Blocks = make([]*notaryapi.EBlock, len(*eBlocks))
 
 	for i, b := range *eBlocks {
-		if b.Header.BlockID != uint64(i){
+		if b.Header.BlockID != uint64(i) {
 			panic("Error in initializing EChain:" + chain.ChainID.String())
 		}
 		b.Chain = chain
@@ -819,14 +820,14 @@ func initDChain() {
 	dchain.Blocks = make([]*notaryapi.DBlock, len(dBlocks))
 
 	for i, b := range dBlocks {
-		if b.Header.BlockID != uint64(i){
+		if b.Header.BlockID != uint64(i) {
 			panic("Error in initializing dChain:" + dchain.ChainID.String())
 		}
 		b.Chain = dchain
 		b.IsSealed = true
 		dchain.Blocks[i] = &b
 	}
-	
+
 	//Create an empty block and append to the chain
 	if len(dchain.Blocks) == 0 {
 		dchain.NextBlockID = 0

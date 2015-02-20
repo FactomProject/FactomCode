@@ -3,37 +3,36 @@ package main
 import (
 	"log"
 
-
-	"os"
-	"github.com/jackpal/Taipei-Torrent/torrent"
 	"encoding/hex"
+	"github.com/jackpal/Taipei-Torrent/torrent"
+	"os"
 
 	"flag"
 	"math"
 
-	"os/signal"
 	"code.google.com/p/gcfg"
+	"os/signal"
 
-	"time"
 	"encoding/csv"
 	socks "github.com/hailiang/gosocks"
-
-) 
-
-const MAX_OUR_REQUESTS = 2
-var (
- 	seedDir string = "/tmp/client/store/seed"
- 	torrentDir string ="/tmp/client/torrent"
- 	toBeMergedfilePath string ="/tmp/client/torrent/mlinks/tobemerged.csv"
- 	incomingfilePath string ="/tmp/client/torrent/mlinks/incoming.csv"
- 	mlinkfilePath string ="/tmp/client/torrent/mlinks/mlink.csv"
- 	trackers string = "udp://tracker.publicbt.com:80;udp://tracker.openbittorrent.com:80"
- 	isFullScan bool = true
- 	logLevel = "DEBUG"
-	minToRun int = 10 //to be removed?? 	
+	"time"
 )
 
-var ( 
+const MAX_OUR_REQUESTS = 2
+
+var (
+	seedDir            string = "/tmp/client/store/seed"
+	torrentDir         string = "/tmp/client/torrent"
+	toBeMergedfilePath string = "/tmp/client/torrent/mlinks/tobemerged.csv"
+	incomingfilePath   string = "/tmp/client/torrent/mlinks/incoming.csv"
+	mlinkfilePath      string = "/tmp/client/torrent/mlinks/mlink.csv"
+	trackers           string = "udp://tracker.publicbt.com:80;udp://tracker.openbittorrent.com:80"
+	isFullScan         bool   = true
+	logLevel                  = "DEBUG"
+	minToRun           int    = 10 //to be removed??
+)
+
+var (
 	cpuprofile    = flag.String("cpuprofile", "", "If not empty, collects CPU profile samples and writes the profile to the given file before the program exits")
 	memprofile    = flag.String("memprofile", "", "If not empty, writes memory heap allocations to the given file before the program exits")
 	createTorrent = flag.String("createTorrent", "", "If not empty, creates a torrent file from the given root. Writes to stdout")
@@ -52,7 +51,6 @@ var (
 	proxyAddress        = flag.String("proxyAddress", "", "Address of a SOCKS5 proxy to use.")
 )
 
-
 func parseTorrentFlags() *torrent.TorrentFlags {
 	return &torrent.TorrentFlags{
 		Dial:                dialerFromFlags(),
@@ -66,58 +64,56 @@ func parseTorrentFlags() *torrent.TorrentFlags {
 		UseNATPMP:           *useNATPMP,
 		TrackerlessMode:     *trackerlessMode,
 		// IP address of gateway
-		Gateway: 			*gateway,
+		Gateway: *gateway,
 	}
 }
 
-
-
-func loadConfigurations(){
+func loadConfigurations() {
 	cfg := struct {
-		App struct{
-			SeedDir string
-		    TorrentDir string
-		    MlinkfilePath string
-		    ToBeMergedfilePath string
-		    IncomingfilePath string
-			MinToRun	int		    
-	    }
-		Torrent struct{
-			Port   int             
-			SeedRatio   float64        
-			UseDeadlockDetector bool
-			UseLPD   bool           
-			UseUPnP    bool         
-			UseNATPMP    bool       
-			Gateway      string       
-			UseDHT      bool        
-			TrackerlessMode     bool
-			ProxyAddress   string     	    
-	    }
-		Log struct{
-	    	LogLevel string
+		App struct {
+			SeedDir            string
+			TorrentDir         string
+			MlinkfilePath      string
+			ToBeMergedfilePath string
+			IncomingfilePath   string
+			MinToRun           int
 		}
-    }{}
-	
+		Torrent struct {
+			Port                int
+			SeedRatio           float64
+			UseDeadlockDetector bool
+			UseLPD              bool
+			UseUPnP             bool
+			UseNATPMP           bool
+			Gateway             string
+			UseDHT              bool
+			TrackerlessMode     bool
+			ProxyAddress        string
+		}
+		Log struct {
+			LogLevel string
+		}
+	}{}
+
 	wd, err := os.Getwd()
-	if err != nil{
-		log.Println(err)
-	}	
-	err = gcfg.ReadFileInto(&cfg, wd+"/torrent-client.conf")
-	if err != nil{
+	if err != nil {
 		log.Println(err)
 	}
-	
+	err = gcfg.ReadFileInto(&cfg, wd+"/torrent-client.conf")
+	if err != nil {
+		log.Println(err)
+	}
+
 	//setting the variables by the valued form the config file
 	seedDir = cfg.App.SeedDir
- 	torrentDir = cfg.App.TorrentDir
- 	toBeMergedfilePath = cfg.App.ToBeMergedfilePath
- 	incomingfilePath = cfg.App.IncomingfilePath
- 	mlinkfilePath = cfg.App.MlinkfilePath	
- 	minToRun = cfg.App.MinToRun // to be removed??
-	
+	torrentDir = cfg.App.TorrentDir
+	toBeMergedfilePath = cfg.App.ToBeMergedfilePath
+	incomingfilePath = cfg.App.IncomingfilePath
+	mlinkfilePath = cfg.App.MlinkfilePath
+	minToRun = cfg.App.MinToRun // to be removed??
+
 	*port = cfg.Torrent.Port
-	*seedRatio  = cfg.Torrent.SeedRatio
+	*seedRatio = cfg.Torrent.SeedRatio
 	*useDeadlockDetector = cfg.Torrent.UseDeadlockDetector
 	*useLPD = cfg.Torrent.UseLPD
 	*useUPnP = cfg.Torrent.UseUPnP
@@ -127,101 +123,107 @@ func loadConfigurations(){
 	*trackerlessMode = cfg.Torrent.TrackerlessMode
 	*proxyAddress = cfg.Torrent.ProxyAddress
 
-
-	logLevel = cfg.Log.LogLevel	
-	log.Println("cfg:" + seedDir + torrentDir)	
+	logLevel = cfg.Log.LogLevel
+	log.Println("cfg:" + seedDir + torrentDir)
 }
 
+func init() {
 
-func init(){
-	
 	loadConfigurations()
-	
+
 	//merge files if toBeMergedFile exists
-	isNothingToMerge, err := fileNotExists( toBeMergedfilePath)
-	
+	isNothingToMerge, err := fileNotExists(toBeMergedfilePath)
+
 	if isNothingToMerge {
 		return
 	}
-	
-	//read the mlinks from the saved csv file: 
+
+	//read the mlinks from the saved csv file:
 	toBeMergedfile, err := os.Open(toBeMergedfilePath)
-	if err != nil {panic(err)}
+	if err != nil {
+		panic(err)
+	}
 	defer toBeMergedfile.Close()
-	   
+
 	newReader := csv.NewReader(toBeMergedfile)
-	    
+
 	//csv header: block_id,info_hash,mlink,time_stamp
 	newRecords, err := newReader.ReadAll()
-	
-	if len(newRecords) <= 0{
+
+	if len(newRecords) <= 0 {
 		return
-	} 
-	
-	//read the mlinks from the saved csv file: 
+	}
+
+	//read the mlinks from the saved csv file:
 	oldLinkFile, err := os.Open(mlinkfilePath)
-	if err != nil {panic(err)}
+	if err != nil {
+		panic(err)
+	}
 	defer oldLinkFile.Close()
-	   
+
 	oldReader := csv.NewReader(oldLinkFile)
-	    
+
 	//csv header: block_id,info_hash,mlink,time_stamp
-	oldRecords, err := oldReader.ReadAll()	
-	
+	oldRecords, err := oldReader.ReadAll()
+
 	var totalOldRec int = len(oldRecords)
-	
-	for _, newRecord := range newRecords { 
+
+	for _, newRecord := range newRecords {
 		isFound, index, err := findOldRecord(&oldRecords, &newRecord)
-		if err != nil {panic(err)}
+		if err != nil {
+			panic(err)
+		}
 		if isFound { //update the existing record
 			oldRecords[index][1] = newRecord[1]
 			oldRecords[index][2] = newRecord[2]
 			oldRecords[index][3] = newRecord[3]
-		} else if index == -1 {//not found
-			if totalOldRec==0{//empty file
+		} else if index == -1 { //not found
+			if totalOldRec == 0 { //empty file
 				oldRecords = append(oldRecords, newRecord)
-			} else{
+			} else {
 				slice := oldRecords[0:totalOldRec]
 				oldRecords = append(slice, newRecord)
 			}
-		} else{ // to insert the new record right before index
-			if index==0{ //insert into the first record
-				slice := [][] string {newRecord}
-				oldRecords = append(slice, oldRecords...)				
-			}else{
+		} else { // to insert the new record right before index
+			if index == 0 { //insert into the first record
+				slice := [][]string{newRecord}
+				oldRecords = append(slice, oldRecords...)
+			} else {
 				// need to revisit ??
-				slice1 := oldRecords[0 : index]
-				newSlice1 := make([][]string, len(slice1), len(slice1)+1) 
-				copy (newSlice1, slice1)			
-				newSlice1 = append (newSlice1, newRecord)	
+				slice1 := oldRecords[0:index]
+				newSlice1 := make([][]string, len(slice1), len(slice1)+1)
+				copy(newSlice1, slice1)
+				newSlice1 = append(newSlice1, newRecord)
 
-				slice2 := oldRecords[index : totalOldRec]		
+				slice2 := oldRecords[index:totalOldRec]
 				oldRecords = append(newSlice1, slice2...)
-			
+
 			}
 		}
-		totalOldRec  = len(oldRecords)
-		
+		totalOldRec = len(oldRecords)
+
 	}
-	
+
 	// rename the old file
-	os.Rename(mlinkfilePath, mlinkfilePath + "." + time.Now().Format(time.RFC3339))
-	
-	//write the nerged mlinks to a new csv file: 
-	newMlinkfile, err := os.OpenFile(mlinkfilePath, os.O_CREATE|os.O_WRONLY, 0600 )
-	
-	if err != nil {panic(err)}
-    defer newMlinkfile.Close()
-    writer := csv.NewWriter(newMlinkfile)
-    
-    writer.WriteAll(oldRecords)
-    writer.Flush()	
-    
+	os.Rename(mlinkfilePath, mlinkfilePath+"."+time.Now().Format(time.RFC3339))
+
+	//write the nerged mlinks to a new csv file:
+	newMlinkfile, err := os.OpenFile(mlinkfilePath, os.O_CREATE|os.O_WRONLY, 0600)
+
+	if err != nil {
+		panic(err)
+	}
+	defer newMlinkfile.Close()
+	writer := csv.NewWriter(newMlinkfile)
+
+	writer.WriteAll(oldRecords)
+	writer.Flush()
+
 	// rename the old tobemerged file
-	os.Rename(toBeMergedfilePath, toBeMergedfilePath + "." + time.Now().Format(time.RFC3339))
-	
-	//create a new empty csv file: 
-	toBeMergedfile, err = os.OpenFile(toBeMergedfilePath, os.O_CREATE|os.O_WRONLY, 0600 )
+	os.Rename(toBeMergedfilePath, toBeMergedfilePath+"."+time.Now().Format(time.RFC3339))
+
+	//create a new empty csv file:
+	toBeMergedfile, err = os.OpenFile(toBeMergedfilePath, os.O_CREATE|os.O_WRONLY, 0600)
 	toBeMergedfile.Close()
 }
 
@@ -229,114 +231,118 @@ func findOldRecord(oldRecords *[][]string, newRecord *[]string) (isFound bool, i
 	var total int = len(*oldRecords)
 
 	//need to replace it w/ a better search alg. ??
-	for i := 0; i<total; i++ { 
-		if (*oldRecords)[i][0]==(*newRecord)[0] {
+	for i := 0; i < total; i++ {
+		if (*oldRecords)[i][0] == (*newRecord)[0] {
 			return true, i, nil
 		} else if (*oldRecords)[i][0] > (*newRecord)[0] {
 			return false, i, nil
-			}
-		
+		}
+
 	}
-  	return false, -1, nil
+	return false, -1, nil
 }
 
 func fileNotExists(name string) (bool, error) {
-  _, err := os.Stat(name)
-  if os.IsNotExist(err) {
-    return true, nil
-  }
-  return err != nil, err
+	_, err := os.Stat(name)
+	if os.IsNotExist(err) {
+		return true, nil
+	}
+	return err != nil, err
 }
 
 func main() {
-	
+
 	torrentFlags := parseTorrentFlags()
-	
+
 	//need to define a struct ??
-	var mLinkChan = make (chan []string)
+	var mLinkChan = make(chan []string)
 
 	mlinkRecords, err := getLocalTorrentLinks()
-	if err != nil {panic(err)}
-	go RunNCTorrents(torrentFlags, mlinkRecords, &mLinkChan)	
-	
+	if err != nil {
+		panic(err)
+	}
+	go RunNCTorrents(torrentFlags, mlinkRecords, &mLinkChan)
+
 	go checkForNewLinks(&mLinkChan)
 
-		//to add logic to handle server shutdown ??
-		time.Sleep(time.Duration(minToRun) * time.Minute)
+	//to add logic to handle server shutdown ??
+	time.Sleep(time.Duration(minToRun) * time.Minute)
 
-
-	return	
+	return
 }
-
 
 func checkForNewLinks(mLinkChan *chan []string) (err error) {
 
-	
 	for {
-		//read the mlinks from the saved csv file: 
+		//read the mlinks from the saved csv file:
 		incomingfile, err := os.Open(incomingfilePath)
-		if err != nil {panic(err)}
-	    defer incomingfile.Close()
-	    
-	    reader := csv.NewReader(incomingfile)
-	    
-	    //csv header: block_id,info_hash,mlink,time_stamp
-	    records, err := reader.ReadAll()
-	    
-	    if len(records)>0{
-		    //write the mlinks to a csv file: 
-			toBeMergedfile, err := os.OpenFile(toBeMergedfilePath, os.O_APPEND|os.O_WRONLY, 0600 )
-			if err != nil {panic(err)}
-		    defer toBeMergedfile.Close()
-		    writer := csv.NewWriter(toBeMergedfile)
-		
-	
+		if err != nil {
+			panic(err)
+		}
+		defer incomingfile.Close()
+
+		reader := csv.NewReader(incomingfile)
+
+		//csv header: block_id,info_hash,mlink,time_stamp
+		records, err := reader.ReadAll()
+
+		if len(records) > 0 {
+			//write the mlinks to a csv file:
+			toBeMergedfile, err := os.OpenFile(toBeMergedfilePath, os.O_APPEND|os.O_WRONLY, 0600)
+			if err != nil {
+				panic(err)
+			}
+			defer toBeMergedfile.Close()
+			writer := csv.NewWriter(toBeMergedfile)
+
 			for _, record := range records {
 				*mLinkChan <- record
 				writer.Write(record)
 			}
 
-	    	writer.Flush()
-	    	
+			writer.Flush()
+
 			// rename the old file
-			os.Rename(incomingfilePath, incomingfilePath + "." + time.Now().Format(time.RFC3339))
-			
-			//write the nerged mlinks to a new csv file: 
-			newIncomingfile, err := os.OpenFile(incomingfilePath, os.O_CREATE|os.O_WRONLY, 0600 )
-			
-			if err != nil {panic(err)}
-		    defer newIncomingfile.Close()	
-	    }    	
-    	
+			os.Rename(incomingfilePath, incomingfilePath+"."+time.Now().Format(time.RFC3339))
+
+			//write the nerged mlinks to a new csv file:
+			newIncomingfile, err := os.OpenFile(incomingfilePath, os.O_CREATE|os.O_WRONLY, 0600)
+
+			if err != nil {
+				panic(err)
+			}
+			defer newIncomingfile.Close()
+		}
+
 		// add logic for server shutdown..
 		//fmt.Println("sleeping for 30 sec")
 		time.Sleep(30 * time.Second)
-		
-	}
 
+	}
 
 	return
 }
 
-
 func getLocalTorrentLinks() (mlinkRecords *[][]string, err error) {
 
-	
-	//read the mlinks from the saved csv file: 
+	//read the mlinks from the saved csv file:
 	mlinkfile, err := os.Open(mlinkfilePath)
-	if err != nil {panic(err)}
-    defer mlinkfile.Close()
-    
-    reader := csv.NewReader(mlinkfile)
-    
-    //csv header: block_id,info_hash,mlink,time_stamp
-    records, err := reader.ReadAll()
-    if err != nil {panic(err)}
-    
-	return &records, err
-	
-}
+	if err != nil {
+		panic(err)
+	}
+	defer mlinkfile.Close()
 
+	reader := csv.NewReader(mlinkfile)
+
+	//csv header: block_id,info_hash,mlink,time_stamp
+	records, err := reader.ReadAll()
+	if err != nil {
+		panic(err)
+	}
+
+	return &records, err
+
+}
 
 func RunNCTorrents(flags *torrent.TorrentFlags, mlinkRecords *[][]string, mLinkChan *chan []string) (err error) {
 	conChan, listenPort, err := torrent.ListenForPeerConnections(flags)
@@ -349,10 +355,10 @@ func RunNCTorrents(flags *torrent.TorrentFlags, mlinkRecords *[][]string, mLinkC
 	doneChan := make(chan *torrent.TorrentSession)
 
 	torrentSessions := make(map[string]*torrent.TorrentSession)
-	
+
 	lpd := &torrent.Announcer{}
 
-	if len(*mlinkRecords)>0 {
+	if len(*mlinkRecords) > 0 {
 		for _, mlinkrecord := range *mlinkRecords {
 			if torrentSessions[mlinkrecord[1]] == nil {
 				var ts *torrent.TorrentSession
@@ -366,18 +372,18 @@ func RunNCTorrents(flags *torrent.TorrentFlags, mlinkRecords *[][]string, mLinkC
 				torrentSessions[ts.M.InfoHash] = ts
 			}
 		}
-	
+
 		for _, ts := range torrentSessions {
 			go func(ts *torrent.TorrentSession) {
 				ts.DoTorrent()
 				//doneChan <- ts
 			}(ts)
 		}
-	
+
 		if flags.UseLPD {
 			lpd = startLPD(torrentSessions, uint16(listenPort))
 		}
-	} else{
+	} else {
 		log.Printf("No mlinks found in file. Waiting for incoming mlinks...")
 	}
 
@@ -413,7 +419,7 @@ mainLoop:
 				log.Printf("Received LPD announce for ih %s", announce.Infohash)
 				ts.HintNewPeer(announce.Peer)
 			}
-		case newMLinkRecord := <- *mLinkChan:
+		case newMLinkRecord := <-*mLinkChan:
 			if torrentSessions[newMLinkRecord[1]] == nil {
 				var ts *torrent.TorrentSession
 				ts, err = torrent.NewTorrentSession(flags, newMLinkRecord[2], uint16(listenPort))
@@ -422,25 +428,23 @@ mainLoop:
 					return
 				}
 				log.Printf("Starting torrent session for %x", ts.M.InfoHash)
-				torrentSessions[ts.M.InfoHash] = ts	
-				
+				torrentSessions[ts.M.InfoHash] = ts
+
 				go func(ts *torrent.TorrentSession) {
 					ts.DoTorrent()
 					//doneChan <- ts
-				}(ts)		
-				
+				}(ts)
+
 				if flags.UseLPD {
 					lpd.Announce(ts.M.InfoHash)
 				}
 			}
-			
+
 		}
-		
-			
+
 	}
 	return
 }
-
 
 func listenSigInt() chan os.Signal {
 	c := make(chan os.Signal, 1)
