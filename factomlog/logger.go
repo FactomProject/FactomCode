@@ -26,17 +26,17 @@ const (
 // A FLogger represents an active logging object that generates lines of output
 // to an io.Writer.
 type FLogger struct {
-	out		io.Writer
-	level	Level
-	prefix	string
+	out    io.Writer
+	level  Level
+	prefix string
 }
 
 func New(w io.Writer, level, prefix string) *FLogger {
 	return &FLogger{
-		out:	w,
-		level:	levelFromString(level),
-		prefix:	prefix,
-	}		
+		out:    w,
+		level:  levelFromString(level),
+		prefix: prefix,
+	}
 }
 
 // Emergency logs with an emergency level.
@@ -133,7 +133,7 @@ func (logger *FLogger) write(level Level, args ...interface{}) {
 	if level > logger.level {
 		return
 	}
-	
+
 	fmt.Fprint(logger.out, time.Now(), logger.prefix, levelPrefix[level], args)
 	if level <= Error {
 		os.Exit(1)
