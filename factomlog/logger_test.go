@@ -9,7 +9,7 @@ import (
 func TestNew(t *testing.T) {
 	var buf bytes.Buffer
 
-	logger := New(&buf, "info", "testing")
+	logger := New(&buf, "debug", "testing")
 
 	logger.Info("Hello Log!")
 	logger.Debug("Hello Log!")
