@@ -1,3 +1,9 @@
+// Copyright (c) 2015 FactomProject/FactomCode Systems LLC.
+// Use of this source code is governed by an ISC
+// license that can be found in the LICENSE file.
+
+// factomlog is based on github.com/alexcesaro/log and
+// github.com/alexcesaro/log/golog (MIT License)
 package factomlog
 
 import (
