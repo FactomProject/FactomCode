@@ -86,7 +86,6 @@ func (fp *FactoidPool) AddGenesisBlock() {
 	fp.txpool.AddContext(&c)
 
 	fp.utxo.AddUtxo(c.tx.Id(), c.tx.Txm.TxData.Outputs)
-
 }
 
 func (fp *FactoidPool) Utxo() *Utxo {
@@ -120,11 +119,13 @@ func TxMsgToWire(txm *TxMsg) (tx *factomwire.MsgTx) {
 //set context to tx, this context will be used by default when
 // by Verify and AddToMemPool
 // see factomd.TxMempool
-func (fp *FactoidPool) SetContext(tx *factomwire.MsgTx) {
+func (fp *FactoidPool) SetContext(tx *factomwire.MsgTx) (rtx *Tx) {
+	rtx = NewTx(TxMsgFromWire(tx))
 	fp.context = context{
 		wire: tx,
-		tx:   NewTx(TxMsgFromWire(tx)),
+		tx:   rtx,
 	}
+	return
 }
 
 //Verify is designed to be called by external packages without
@@ -144,7 +145,7 @@ func (fp *FactoidPool) Verify() (ret bool) {
 	ok := VerifyTx(fp.context.tx)
 	//verify signatures
 	if !ok {
-		fmt.Println("sigs", fp.context.tx, VerifyTx)
+		fmt.Println("!Verify sigs", fp.context.tx, VerifyTx)
 
 		return false
 	}

@@ -2,11 +2,13 @@ package factoid_test
 
 import (
 	"github.com/FactomProject/FactomCode/factomchain/factoid"
-	"github.com/FactomProject/FactomCode/factomwire"
+	//"github.com/FactomProject/FactomCode/factomwire"
 	"github.com/FactomProject/FactomCode/wallet"
 	"testing"
 	//"fmt"
 )
+
+
 
 func TestMemPoolGenesis(t *testing.T) {
 	fp := factoid.NewFactoidPool()
@@ -18,6 +20,192 @@ func TestMemPoolGenesis(t *testing.T) {
 
 }
 
+func TestFaucet(t *testing.T) {
+	//t.Logf("%#v ", factoid.FaucetTxidStr)
+
+	//b := []byte(factoid.FaucetTxidStr)
+	//t.Logf("%#v ", b)
+
+	//t.Logf("txidstr %#v ", factoid.FaucetTxid.String())
+
+	//in := factoid.NewFaucetInput(0)
+	//t.Logf("%#v ", in)
+
+	//if !factoid.IsFaucet(in) {
+	//	t.Fatalf("IsFaucet")
+	//}
+
+
+	//add 1000 factoids to my address using faucet
+	fp := factoid.NewFactoidPool()
+	addr, _, _ := factoid.DecodeAddress(wallet.FactoidAddress())
+	txm := factoid.NewTxFromInputToAddr(factoid.NewFaucetInput(0),1000,addr)
+	ds := wallet.DetachMarshalSign(txm.TxData)
+	ss := factoid.NewSingleSignature(ds)
+	factoid.AddSingleSigToTxMsg(txm, ss)
+
+	if !factoid.IsFaucet(&txm.TxData.Inputs[0]) {
+		t.Fatalf("!IsFaucet")
+	}
+
+	utxo := factoid.NewUtxo()
+	if !utxo.IsValid(txm.TxData.Inputs) {
+		t.Fatalf("!IsValidxx")
+	}
+
+	wire := factoid.TxMsgToWire(txm)
+	tx := fp.SetContext(wire)
+	if ok := fp.Verify(); !ok {
+		t.Fatalf("!Verify1")
+	}
+
+	fp.AddToMemPool()
+	t.Logf("%#v ", *fp.Utxo())
+
+	//spend to external address
+	prevtx := tx
+	addr, _, _ = factoid.DecodeAddress("ExZ7hUZ7B4T3doVC6iLBPh9JP33huwELmLg6pM2LDNSiqk9mSx")
+	outs := factoid.OutputsTx(prevtx)
+	txm = factoid.NewTxFromOutputToAddr(prevtx.Id(), outs, uint32(1), factoid.AddressReveal(*wallet.ClientPublicKey().Key), addr)
+	ds = wallet.DetachMarshalSign(txm.TxData)
+	ss = factoid.NewSingleSignature(ds)
+	factoid.AddSingleSigToTxMsg(txm, ss)
+
+	wire = factoid.TxMsgToWire(txm)
+	fp.SetContext(wire)
+	if ok := fp.Verify(); !ok {
+		t.Fatalf("!Verify2")
+	}
+
+	fp.AddToMemPool()
+	t.Logf("%#v ", *fp.Utxo())
+
+	//try again - should fail 
+	//prevtx = factoid.NewTx(txm)
+	addr, _, _ = factoid.DecodeAddress("ExZ7hUZ7B4T3doVC6iLBPh9JP33huwELmLg6pM2LDNSiqk9mSx")
+	outs = factoid.OutputsTx(prevtx)
+	txm = factoid.NewTxFromOutputToAddr(prevtx.Id(), outs, uint32(1), factoid.AddressReveal(*wallet.ClientPublicKey().Key), addr)
+	ds = wallet.DetachMarshalSign(txm.TxData)
+	ss = factoid.NewSingleSignature(ds)
+	factoid.AddSingleSigToTxMsg(txm, ss)
+
+	wire = factoid.TxMsgToWire(txm)
+	fp.SetContext(wire)
+	if ok := fp.Verify(); ok {
+		t.Fatalf("should fail Verify3")
+	}
+
+	//try new faucet - should fail with nonce0
+	//add 1000 factoids to my address using faucet
+	addr, _, _ = factoid.DecodeAddress(wallet.FactoidAddress())
+	txm = factoid.NewTxFromInputToAddr(factoid.NewFaucetInput(0),1000,addr)
+	ds = wallet.DetachMarshalSign(txm.TxData)
+	ss = factoid.NewSingleSignature(ds)
+	factoid.AddSingleSigToTxMsg(txm, ss)
+
+	wire = factoid.TxMsgToWire(txm)
+	tx = fp.SetContext(wire)
+	if ok := fp.Verify(); ok {
+		t.Fatalf("Verify should fail")
+	}
+
+	//fp.AddToMemPool()
+	//t.Logf("%#v ", *fp.Utxo())
+
+	//try new faucet - should pass with nonce1
+	//add 1000 factoids to my address using faucet
+	addr, _, _ = factoid.DecodeAddress(wallet.FactoidAddress())
+	txm = factoid.NewTxFromInputToAddr(factoid.NewFaucetInput(1),1000,addr)
+	ds = wallet.DetachMarshalSign(txm.TxData)
+	ss = factoid.NewSingleSignature(ds)
+	factoid.AddSingleSigToTxMsg(txm, ss)
+
+	wire = factoid.TxMsgToWire(txm)
+	tx = fp.SetContext(wire)
+	if ok := fp.Verify(); !ok {
+		t.Fatalf("!Verify")
+	}
+
+	fp.AddToMemPool()
+	t.Logf("%#v ", *fp.Utxo())
+
+	//try new faucet - should pass with (using time for nonce)
+	//add 1000 factoids to my address using faucet
+	addr, _, _ = factoid.DecodeAddress(wallet.FactoidAddress())
+	txm = factoid.NewTxFromInputToAddr(factoid.NewFaucetIn(),1000,addr)
+	ds = wallet.DetachMarshalSign(txm.TxData)
+	ss = factoid.NewSingleSignature(ds)
+	factoid.AddSingleSigToTxMsg(txm, ss)
+
+	wire = factoid.TxMsgToWire(txm)
+	tx = fp.SetContext(wire)
+	if ok := fp.Verify(); !ok {
+		t.Fatalf("!Verify")
+	}
+
+	fp.AddToMemPool()
+	t.Logf("%#v ", *fp.Utxo())
+
+	//try sending from faucet tx input
+	//spend to my wallet address
+	prevtx = tx
+	addr, _, _ = factoid.DecodeAddress(wallet.FactoidAddress())
+	outs = factoid.OutputsTx(prevtx)
+	txm = factoid.NewTxFromOutputToAddr(prevtx.Id(), outs, uint32(1), factoid.AddressReveal(*wallet.ClientPublicKey().Key), addr)
+	ds = wallet.DetachMarshalSign(txm.TxData)
+	ss = factoid.NewSingleSignature(ds)
+	factoid.AddSingleSigToTxMsg(txm, ss)
+
+	wire = factoid.TxMsgToWire(txm)
+	tx = fp.SetContext(wire)
+	if ok := fp.Verify(); !ok {
+		t.Fatalf("!Verify 4")
+	}
+
+	fp.AddToMemPool()
+	t.Logf("%#v ", *fp.Utxo())
+
+	//try sending from prev tx input
+	//spend to an external address
+	prevtx = tx
+	addr, _, _ = factoid.DecodeAddress("ExZ7hUZ7B4T3doVC6iLBPh9JP33huwELmLg6pM2LDNSiqk9mSx")
+	outs = factoid.OutputsTx(prevtx)
+	txm = factoid.NewTxFromOutputToAddr(prevtx.Id(), outs, uint32(1), factoid.AddressReveal(*wallet.ClientPublicKey().Key), addr)
+	ds = wallet.DetachMarshalSign(txm.TxData)
+	ss = factoid.NewSingleSignature(ds)
+	factoid.AddSingleSigToTxMsg(txm, ss)
+
+	wire = factoid.TxMsgToWire(txm)
+	fp.SetContext(wire)
+	if ok := fp.Verify(); !ok {
+		t.Fatalf("!Verify 5")
+	}
+
+	fp.AddToMemPool()
+	t.Logf("%#v ", *fp.Utxo())
+
+	//try sending from prev tx input
+	//should fail - bad sig 
+	prevtx = tx
+	addr, _, _ = factoid.DecodeAddress(wallet.FactoidAddress())
+	outs = factoid.OutputsTx(prevtx)
+	txm = factoid.NewTxFromOutputToAddr(prevtx.Id(), outs, uint32(1), factoid.AddressReveal(*wallet.ClientPublicKey().Key), addr)
+	ds = wallet.DetachMarshalSign(txm.TxData)
+	ss = factoid.NewSingleSignature(ds)
+	factoid.AddSingleSigToTxMsg(txm, ss)
+
+	wire = factoid.TxMsgToWire(txm)
+	fp.SetContext(wire)
+	if ok := fp.Verify(); ok {
+		t.Fatalf("!Should fail 5")
+	}
+
+	//fp.AddToMemPool()
+	//t.Logf("%#v ", *fp.Utxo())
+
+}
+
+/*
 func TestMemPoolGenesisSpend(t *testing.T) {
 	t.Logf("herer ")
 
@@ -30,16 +218,7 @@ func TestMemPoolGenesisSpend(t *testing.T) {
 	ds := wallet.DetachMarshalSign(txm.TxData)
 	ss := factoid.NewSingleSignature(ds)
 	factoid.AddSingleSigToTxMsg(txm, ss)
-	/*
-		t.Logf("%#v",txm.TxData.Outputs)
 
-		t.Logf("%#v",txm.TxData.Inputs)
-
-		tx := factoid.NewTx(txm)
-
-		ok := factoid.VerifyTx(tx)
-		if !ok { t.Fatalf("!Verify")}
-	*/
 	fp := factoid.NewFactoidPool()
 	fp.AddGenesisBlock()
 
@@ -47,10 +226,7 @@ func TestMemPoolGenesisSpend(t *testing.T) {
 
 	wire := factoid.TxMsgToWire(txm)
 	t.Logf("%#v", wire)
-	/*
-		txm2 := factoid.TxMsg{}
-		txm2.UnmarshalBinary(wire.Data)
-	*/
+
 	t.Logf("%#v ", *fp.Utxo())
 
 	fp.SetContext(wire)
@@ -66,57 +242,6 @@ func TestMemPoolGenesisSpend(t *testing.T) {
 		t.Fatalf("VerifyOk double spend")
 	}
 
-	/*
-		fmt.Println("tmx1 %v",txm.TxData.Inputs[0].RevealAddr)
-
-		inp := txm.TxData.Inputs[0]
-		fmt.Println("inp ",inp.String())
-
-		minp , err := inp.MarshalBinary()
-		fmt.Println("minp",err, minp, len(minp))
-
-		inp.UnmarshalBinary(minp)
-		fmt.Println("inp ",inp.String())
-
-		outp := txm.TxData.Outputs[0]
-		fmt.Println("outp ",outp.String())
-
-		mbo , err := outp.MarshalBinary()
-		fmt.Println("mbo",err, mbo, len(mbo))
-
-		outp.UnmarshalBinary(mbo)
-		fmt.Println("outp2 ",outp.String())
-
-
-		txd := txm.TxData
-		fmt.Println("txd %#v",txd)
-
-		tmbo , err := txd.MarshalBinary()
-		fmt.Println("tmbo",err, tmbo, len(tmbo))
-
-		txd.UnmarshalBinary(tmbo)
-		fmt.Println("txd2 %#v",txd)
-
-		outp = txm.TxData.Outputs[0]
-		t.Logf("outp %#v",outp.String())
-
-		wire := factoid.TxMsgToWire(txm)
-		t.Logf("wire %#v ", *wire)
-
-		txm = factoid.TxMsgFromWire(wire)
-		t.Logf("txm %#v ", *txm)
-
-		fmt.Println("here1")
-
-		fp := factoid.NewFactoidPool()
-		fp.AddGenesisBlock()
-		t.Logf("%#v ", *fp.Utxo())
-
-		fp.SetContext(wire)
-		if ok := fp.Verify(); !ok {
-			t.Fatalf("!Verify")
-		}
-
-		fp.AddToMemPool()
-	*/
 }
+
+*/

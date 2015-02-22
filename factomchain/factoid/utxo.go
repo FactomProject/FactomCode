@@ -59,6 +59,10 @@ func (u *Utxo) AddUtxo(id *Txid, outs []Output) {
 //IsValid checks Inputs and returns true if all inputs are in current Utxo
 func (u *Utxo) IsValid(in []Input) bool {
 	for _, i := range in {
+
+		//ToDo: remove for production
+		if IsFaucet(&i) { continue }
+
 		spends, ok := u.Txspent[i.Txid]
 		if !ok {
 			fmt.Println("Txid not known", i.Txid.String())
@@ -85,6 +89,8 @@ func (u *Utxo) IsValid(in []Input) bool {
 func (u *Utxo) Spend(in []Input) {
 	for _, i := range in {
 		fmt.Println("Utxo Spent", i.Txid.String(), " Index ", i.Index)
+		//ToDo: remove for production
+		if IsFaucet(&i) { continue }
 
 		spends, ok := u.Txspent[i.Txid]
 		if !ok {
