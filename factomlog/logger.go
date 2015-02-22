@@ -140,7 +140,7 @@ func (logger *FLogger) write(level Level, args ...interface{}) {
 		return
 	}
 	
-	l := fmt.Sprint(args...)
+	l := fmt.Sprint(args...) // get string for formatting
 	fmt.Fprintln(logger.out, time.Now().Round(time.Second), logger.prefix, levelPrefix[level], l)
 	if level <= Error {
 		os.Exit(1)
