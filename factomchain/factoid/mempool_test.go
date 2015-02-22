@@ -8,8 +8,6 @@ import (
 	//"fmt"
 )
 
-
-
 func TestMemPoolGenesis(t *testing.T) {
 	fp := factoid.NewFactoidPool()
 	fp.AddGenesisBlock()
@@ -35,11 +33,10 @@ func TestFaucet(t *testing.T) {
 	//	t.Fatalf("IsFaucet")
 	//}
 
-
 	//add 1000 factoids to my address using faucet
 	fp := factoid.NewFactoidPool()
 	addr, _, _ := factoid.DecodeAddress(wallet.FactoidAddress())
-	txm := factoid.NewTxFromInputToAddr(factoid.NewFaucetInput(0),1000,addr)
+	txm := factoid.NewTxFromInputToAddr(factoid.NewFaucetInput(0), 1000, addr)
 	ds := wallet.DetachMarshalSign(txm.TxData)
 	ss := factoid.NewSingleSignature(ds)
 	factoid.AddSingleSigToTxMsg(txm, ss)
@@ -80,7 +77,7 @@ func TestFaucet(t *testing.T) {
 	fp.AddToMemPool()
 	t.Logf("%#v ", *fp.Utxo())
 
-	//try again - should fail 
+	//try again - should fail
 	//prevtx = factoid.NewTx(txm)
 	addr, _, _ = factoid.DecodeAddress("ExZ7hUZ7B4T3doVC6iLBPh9JP33huwELmLg6pM2LDNSiqk9mSx")
 	outs = factoid.OutputsTx(prevtx)
@@ -98,7 +95,7 @@ func TestFaucet(t *testing.T) {
 	//try new faucet - should fail with nonce0
 	//add 1000 factoids to my address using faucet
 	addr, _, _ = factoid.DecodeAddress(wallet.FactoidAddress())
-	txm = factoid.NewTxFromInputToAddr(factoid.NewFaucetInput(0),1000,addr)
+	txm = factoid.NewTxFromInputToAddr(factoid.NewFaucetInput(0), 1000, addr)
 	ds = wallet.DetachMarshalSign(txm.TxData)
 	ss = factoid.NewSingleSignature(ds)
 	factoid.AddSingleSigToTxMsg(txm, ss)
@@ -115,7 +112,7 @@ func TestFaucet(t *testing.T) {
 	//try new faucet - should pass with nonce1
 	//add 1000 factoids to my address using faucet
 	addr, _, _ = factoid.DecodeAddress(wallet.FactoidAddress())
-	txm = factoid.NewTxFromInputToAddr(factoid.NewFaucetInput(1),1000,addr)
+	txm = factoid.NewTxFromInputToAddr(factoid.NewFaucetInput(1), 1000, addr)
 	ds = wallet.DetachMarshalSign(txm.TxData)
 	ss = factoid.NewSingleSignature(ds)
 	factoid.AddSingleSigToTxMsg(txm, ss)
@@ -132,7 +129,7 @@ func TestFaucet(t *testing.T) {
 	//try new faucet - should pass with (using time for nonce)
 	//add 1000 factoids to my address using faucet
 	addr, _, _ = factoid.DecodeAddress(wallet.FactoidAddress())
-	txm = factoid.NewTxFromInputToAddr(factoid.NewFaucetIn(),1000,addr)
+	txm = factoid.NewTxFromInputToAddr(factoid.NewFaucetIn(), 1000, addr)
 	ds = wallet.DetachMarshalSign(txm.TxData)
 	ss = factoid.NewSingleSignature(ds)
 	factoid.AddSingleSigToTxMsg(txm, ss)
@@ -185,7 +182,7 @@ func TestFaucet(t *testing.T) {
 	t.Logf("%#v ", *fp.Utxo())
 
 	//try sending from prev tx input
-	//should fail - bad sig 
+	//should fail - bad sig
 	prevtx = tx
 	addr, _, _ = factoid.DecodeAddress(wallet.FactoidAddress())
 	outs = factoid.OutputsTx(prevtx)

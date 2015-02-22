@@ -179,7 +179,9 @@ func (txid *Txid) String() string {
 }
 
 func (txid *Txid) FromString(stxid string) *Txid {
-	if txid == nil {txid = new(Txid)}
+	if txid == nil {
+		txid = new(Txid)
+	}
 	h, _ := notaryapi.HexToHash(stxid)
 
 	(*notaryapi.HashF)(txid).From(h)

@@ -13,9 +13,8 @@ import (
 	"time"
 )
 
-
 const (
-	FaucetTxidStr = "FaucetTxidForSymulationTesting01" 
+	FaucetTxidStr = "FaucetTxidForSymulationTesting01"
 )
 
 var (
@@ -23,8 +22,8 @@ var (
 )
 
 func init() {
-	FaucetTxid = new(Txid) 
-	copy(FaucetTxid[:],[]byte(FaucetTxidStr))
+	FaucetTxid = new(Txid)
+	copy(FaucetTxid[:], []byte(FaucetTxidStr))
 }
 
 func VerifyTx(tx *Tx) bool {
@@ -64,7 +63,9 @@ func VerifyTx(tx *Tx) bool {
 
 func VerifyInputSig(in *Input, sig *InputSig, tx *Tx) bool {
 	//ToDo: remove for production
-	if IsFaucet(in) { return true }
+	if IsFaucet(in) {
+		return true
+	}
 
 	///ToDo: MultiSig
 	for i := 0; i < len(sig.Sigs); i++ {
@@ -101,7 +102,7 @@ func NewTxFromOutputToAddr(txid *Txid, outs []Output, outnum uint32, from Addres
 	}
 
 	in := NewInput(txid, outnum, from[:])
-	return NewTxFromInputToAddr(in,outs[outnum-1].Amount,to)
+	return NewTxFromInputToAddr(in, outs[outnum-1].Amount, to)
 }
 
 /*
@@ -120,7 +121,7 @@ func NewTxFromOutAmountToAddr(txid *Txid, outs []Output, outnum uint32, amount i
 
 	if amount > outs[outnum-1].Amount {
 		fmt.Println("NewTxFromOutputToAddr Invalid amount %#v %#v", amount, outs)
-		return nil		
+		return nil
 	}
 
 	in := NewInput(txid, outnum, from[:])
@@ -128,7 +129,7 @@ func NewTxFromOutAmountToAddr(txid *Txid, outs []Output, outnum uint32, amount i
 }
 */
 
-func NewTxFromInputToAddr(in *Input, snowAmount int64,to Address) (txm *TxMsg) {
+func NewTxFromInputToAddr(in *Input, snowAmount int64, to Address) (txm *TxMsg) {
 	//fmt.Println("NewTxFromOutputToAddr %#v", from)
 
 	txd := NewTxData()
@@ -138,7 +139,6 @@ func NewTxFromInputToAddr(in *Input, snowAmount int64,to Address) (txm *TxMsg) {
 	txd.AddOutput(*out)
 	return NewTxMsg(txd)
 }
-
 
 func VerifyAddressReveal(address Address, reveal AddressReveal) bool {
 	hash := notaryapi.Sha(reveal[:])
@@ -161,10 +161,9 @@ func AddSingleSigToTxMsg(txm *TxMsg, ss *SingleSignature) {
 	txm.AddInputSig(is)
 }
 
-
 //Create Input with faucet TXID. This input will not be checked against Utxo
-// and will always be valid. Nonce is used to make resulting Transactions unique 
-// only need to update nonce when rest to Tx is same a previous one. 
+// and will always be valid. Nonce is used to make resulting Transactions unique
+// only need to update nonce when rest to Tx is same a previous one.
 ///ToDo: remove before production
 func NewFaucetInput(nonce uint32) *Input {
 	return NewInput(FaucetTxid, nonce, nil)
