@@ -29,6 +29,7 @@ func serve_init() {
 	server.Post(`/v1/getfilelist/?`, handleGetFileListPost) // to be replaced by DHT
 	server.Post(`/v1/getfile/?`, handleGetFilePost)         // to be replaced by DHT
 	server.Post(`/v1/factoidtx/?`, handleFactoidTx)
+	server.Post(`/v1/bintx/?`, handleBinTx)
 
 	server.Get(`/v1/creditbalance/?`, handleGetCreditBalancePost)
 	server.Get(`/v1/buycredit/?`, handleBuyCreditPost)
@@ -39,7 +40,7 @@ func serve_init() {
 	server.Get(`/v1/eblockbymr/([^/]+)(?)`, handleEBlockByMR)
 	server.Get(`/v1/entry/([^/]+)(?)`, handleEntryByHash)
 	server.Get(`/v1/factoidtx/?`, handleFactoidTx)
-
+//	server.Get(`/v1/bintx/?`, handleBinTx)
 }
 
 func handleSubmitEntry(ctx *web.Context) {
