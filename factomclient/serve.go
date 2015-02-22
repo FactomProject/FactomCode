@@ -175,6 +175,15 @@ func handleBuyCreditPost(ctx *web.Context) {
 
 }
 
+//func handleBinTx(ctx *web.Context) {
+//	msg := new(factomwire.MsgTx)
+//	msg.Data, err := hex.DecodeString(ctx.Params["tx"])
+//	if err != nil {
+//		fmt.Println(err)
+//	}
+//	//factomwire.FactomRelay(msg)
+//}
+
 func handleFactoidTx(ctx *web.Context) {
 	n, err := strconv.ParseUint(ctx.Params["ammount"], 10, 32)
 	if err != nil {
