@@ -9,9 +9,11 @@ import (
 func TestNew(t *testing.T) {
 	var buf bytes.Buffer
 
+	name := "Michael"
+	
 	logger := New(&buf, "debug", "testing")
 
-	logger.Info("Hello Log!")
+	logger.Infof("Hello %s!", name)
 	logger.Debug("Hello Log!")
 
 	fmt.Print(&buf)

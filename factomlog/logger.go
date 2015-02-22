@@ -139,22 +139,23 @@ func (logger *FLogger) write(level Level, args ...interface{}) {
 	if level > logger.level {
 		return
 	}
-
-	fmt.Fprintln(logger.out, time.Now().Round(time.Second), " ", logger.prefix, levelPrefix[level], args)
+	
+	l := fmt.Sprint(args...)
+	fmt.Fprintln(logger.out, time.Now().Round(time.Second), logger.prefix, levelPrefix[level], l)
 	if level <= Error {
 		os.Exit(1)
 	}
 }
 
 var levelPrefix = map[Level]string{
-	Emergency: " EMERGENCY ",
-	Alert:     " ALERT ",
-	Critical:  " CRITICAL ",
-	Error:     " ERROR ",
-	Warning:   " WARNING ",
-	Notice:    " NOTICE ",
-	Info:      " INFO ",
-	Debug:     " DEBUG ",
+	Emergency: "EMERGENCY",
+	Alert:     "ALERT",
+	Critical:  "CRITICAL",
+	Error:     "ERROR",
+	Warning:   "WARNING",
+	Notice:    "NOTICE",
+	Info:      "INFO",
+	Debug:     "DEBUG",
 }
 
 func levelFromString(levelName string) (level Level) {
