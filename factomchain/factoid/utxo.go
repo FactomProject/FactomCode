@@ -85,6 +85,23 @@ func (u *Utxo) IsValid(in []Input) bool {
 	return true
 }
 
+//true if input parents are known 
+func (u *Utxo) InputsKnown(in []Input) (bool, []*Txid) {
+	var missing []*Txid
+	for _, i := range in {
+		//ToDo: remove for production
+		if IsFaucet(&i) { continue }
+
+		_, ok := u.Txspent[i.Txid]
+		if !ok {
+			missing = append(missing,&i.Txid)
+			//fmt.Println("Txid not known", i.Txid.String())
+		}
+	}
+
+	return len(missing) == 0 , missing
+}
+
 //Spend will mark Input as Spent in Utxo
 func (u *Utxo) Spend(in []Input) {
 	for _, i := range in {
