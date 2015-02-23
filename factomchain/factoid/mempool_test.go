@@ -51,7 +51,9 @@ func TestFaucet(t *testing.T) {
 	}
 
 	wire := factoid.TxMsgToWire(txm)
-	tx := fp.SetContext(wire)
+	fp.SetContext(wire)
+	tx := fp.GetTxContext()
+
 	if ok := fp.Verify(); !ok {
 		t.Fatalf("!Verify1")
 	}
@@ -101,7 +103,8 @@ func TestFaucet(t *testing.T) {
 	factoid.AddSingleSigToTxMsg(txm, ss)
 
 	wire = factoid.TxMsgToWire(txm)
-	tx = fp.SetContext(wire)
+	fp.SetContext(wire)
+	tx = fp.GetTxContext()
 	if ok := fp.Verify(); ok {
 		t.Fatalf("Verify should fail")
 	}
@@ -117,14 +120,22 @@ func TestFaucet(t *testing.T) {
 	ss = factoid.NewSingleSignature(ds)
 	factoid.AddSingleSigToTxMsg(txm, ss)
 
+	//t.Logf("1 before fail %#v ")
+
 	wire = factoid.TxMsgToWire(txm)
-	tx = fp.SetContext(wire)
+	fp.SetContext(wire)
+	tx = fp.GetTxContext()
+	t.Logf("1 before fail %#v ", tx.Id().String())
+
 	if ok := fp.Verify(); !ok {
-		t.Fatalf("!Verify")
+		t.Fatalf("!Verify nonce1")
 	}
 
 	fp.AddToMemPool()
 	t.Logf("%#v ", *fp.Utxo())
+
+	//inn := factoid.NewFaucetIn()
+	//t.Logf("infa %d ", inn.Index)
 
 	//try new faucet - should pass with (using time for nonce)
 	//add 1000 factoids to my address using faucet
@@ -135,7 +146,11 @@ func TestFaucet(t *testing.T) {
 	factoid.AddSingleSigToTxMsg(txm, ss)
 
 	wire = factoid.TxMsgToWire(txm)
-	tx = fp.SetContext(wire)
+	fp.SetContext(wire)
+	tx = fp.GetTxContext()
+	t.Logf("before fail %#v ", txm.TxData.Inputs[0])
+	t.Logf("1 before fail %#v ", tx.Id().String())
+
 	if ok := fp.Verify(); !ok {
 		t.Fatalf("!Verify")
 	}
@@ -154,7 +169,8 @@ func TestFaucet(t *testing.T) {
 	factoid.AddSingleSigToTxMsg(txm, ss)
 
 	wire = factoid.TxMsgToWire(txm)
-	tx = fp.SetContext(wire)
+	fp.SetContext(wire)
+	tx = fp.GetTxContext()
 	if ok := fp.Verify(); !ok {
 		t.Fatalf("!Verify 4")
 	}

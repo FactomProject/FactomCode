@@ -119,6 +119,10 @@ func (tp *txpool) AddContext(c *context) {
 
 }
 
+func (fp *FactoidPool) GetTxContext() *Tx {
+	return fp.context.tx
+}
+
 //add context tx to orphanpool
 func (op *orphanpool) AddContext(c *context) {
 	op.orphans[*c.tx.Id()] = *c
@@ -152,13 +156,12 @@ func TxMsgToWire(txm *TxMsg) (tx *factomwire.MsgTx) {
 //set context to tx, this context will be used by default when
 // by Verify and AddToMemPool
 // see factomd.TxMempool
-func (fp *FactoidPool) SetContext(tx *factomwire.MsgTx) (rtx *Tx) {
-	rtx = NewTx(TxMsgFromWire(tx))
+func (fp *FactoidPool) SetContext(tx *factomwire.MsgTx) {
+	rtx := NewTx(TxMsgFromWire(tx))
 	fp.context = context{
 		wire: tx,
 		tx:   rtx,
 	}
-	return
 }
 
 //Verify is designed to be called by external packages without
