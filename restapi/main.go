@@ -5,11 +5,11 @@ import (
 	"encoding/hex"
 	"encoding/xml"
 	"errors"
-	"flag"
+	//"flag"
 	"fmt"
 	"github.com/FactomProject/FactomCode/notaryapi"
-	"github.com/conformal/btcrpcclient"
-	"github.com/conformal/btcutil"
+	"github.com/FactomProject/btcrpcclient"
+	"github.com/FactomProject/btcutil"
 	"github.com/FactomProject/dynrsrc"
 	"github.com/FactomProject/gobundle"
 	"github.com/FactomProject/gocoding"
@@ -28,10 +28,12 @@ import (
 	"github.com/FactomProject/FactomCode/database"	
 	"github.com/FactomProject/FactomCode/database/ldb"	
 	"code.google.com/p/gcfg"	
-"reflect"
+	"reflect"
 	"github.com/FactomProject/FactomCode/factomapi"
-) 
+	"github.com/FactomProject/FactomCode/wallet"
 
+)  
+ 
 var  (
 	wclient *btcrpcclient.Client	//rpc client for btcwallet rpc server
 	dclient *btcrpcclient.Client	//rpc client for btcd rpc server
@@ -44,8 +46,7 @@ var  (
 	dchain *notaryapi.DChain	//Directory Block Chain
 	cchain *notaryapi.CChain	//Entry Credit Chain
 	
-	creditsPerChain int32 = -5
-	creditsPerEntry int32 = -1
+	creditsPerChain int32 = 10
 	creditsPerFactoid uint64 = 1000
 	eCreditMap map[string]int32 // eCreditMap with public key string([32]byte) as key, credit balance as value
 	prePaidEntryMap map[string]int32 // Paid but unrevealed entries string(Etnry Hash) as key, Number of payments as value		
@@ -250,12 +251,12 @@ func init() {
 
 	// init Directory Block Chain
 	initDChain()
-	fmt.Println("Loaded", len(dchain.Blocks)-1, "Directory blocks for chain: "+ notaryapi.EncodeBinary(dchain.ChainID))
+	fmt.Println("Loaded", len(dchain.Blocks)-1, "Directory blocks for chain: "+ dchain.ChainID.String())
 	
 	
 	// init Entry Credit Chain
 	initCChain()
-	fmt.Println("Loaded", len(cchain.Blocks)-1, "Entry Credit blocks for chain: "+ cchain.ChainID.String())
+	fmt.Println("Loaded", len(cchain.Blocks)-1, "Entry Credit blocks for chain: "+ cchain.ChainID.String())	
 	
 	// init dbBatches, dbBatch
 	dbBatches = &DBBatches {
@@ -340,25 +341,23 @@ func init() {
 
 
 func main() {
-
+/**/
 
 	//addrStr := "muhXX7mXoMZUBvGLCgfjuoY2n2mziYETYC"
 	//addrStr := "movaFTARmsaTMk3j71MpX8HtMURpsKhdra"
+	err := initRPCClient()
+	if err != nil {
+		log.Fatalf("cannot init rpc client: %s", err)
+	}
+	defer shutdown()
 	
-//	err := initRPCClient()
-//	if err != nil {
-//		log.Fatalf("cannot init rpc client: %s", err)
-//	}
-//	defer shutdown()
-//	
-//	if err := initWallet(); err != nil {
-//		log.Fatalf("cannot init wallet: %s", err)
-//	}
-	
+	if err := initWallet(); err != nil {
+		log.Fatalf("cannot init wallet: %s", err)
+	}
 	//doEntries()
 
 	
-	flag.Parse()
+	//flag.Parse()
 	defer func() {
 		tickers[0].Stop()
 		tickers[1].Stop()
@@ -448,32 +447,148 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 
 		datatype := form.Get("datatype")
 		switch datatype {
+		case "commitchain":
+			var err error
+			pub := new(notaryapi.Hash)
+			//chainhash := new(notaryapi.Hash)
+			chainID := new(notaryapi.Hash)			
+			entrychainhash := new(notaryapi.Hash)
+			entryhash := new(notaryapi.Hash)
+
+			data, err := hex.DecodeString(r.Form.Get("data"))
+			if err != nil { fmt.Println("hex:data", err) }
+
+			sig, err := hex.DecodeString(r.Form.Get("signature"))
+ 			if err != nil { fmt.Println("hex:signature", err) }
+
+			pub.Bytes, err = hex.DecodeString(r.Form.Get("pubkey"))
+ 			if err != nil { fmt.Println("hex:pubkey", err) }
+
+ 			if ( !wallet.VerifySlice(pub.Bytes, data, sig) ) {
+				err = notaryapi.CreateError(notaryapi.ErrorVerifySignature, "commitchain Verify failed")
+				break;
+ 			}
+			
+			data = data[8:]
+			chainID.Bytes = data[:32]
+			data = data[32:]
+
+			entryhash.Bytes = data[:32]
+			data = data[32:]
+						
+			entrychainhash.Bytes = data[:32]
+			data = data[32:]
+
+			buf := bytes.NewBuffer(data)
+			var credits int32
+    		err = binary.Read(buf, binary.BigEndian, &credits)
+			if err != nil {
+				fmt.Println("binary credits err:", err.Error())
+			} else { fmt.Println("credits %v",credits)}
+
+
+			resource, err = processCommitChain(entryhash, chainID, entrychainhash, pub, credits)
+
+			if err != nil {
+				fmt.Println("Error:", err.Error())
+			}
+
+		case "revealchain":
+			c := new(notaryapi.EChain)
+			bin, err := hex.DecodeString(r.Form.Get("data"))
+			if err != nil {
+				fmt.Println("hex:", err.Error())
+			}
+			c.UnmarshalBinary(bin)
+			
+			nerr := new(notaryapi.Error)
+			resource, nerr = processRevealChain(c)
+
+			if nerr != nil {
+				fmt.Println("Error:", nerr.Error())
+			}
+
 		case "commitentry":
 			var err error
+			var credits int32				
 			pub := new(notaryapi.Hash)
 			hash := new(notaryapi.Hash)
 			data, err := hex.DecodeString(r.Form.Get("data"))
-			pub.Bytes, err = hex.DecodeString(r.Form.Get("signature"))
-			if err != nil {
-				fmt.Println("hex:", err)
-			}
+			if err != nil { fmt.Println("hex:data", err) }
+
+			sig, err := hex.DecodeString(r.Form.Get("signature"))
+ 			if err != nil { fmt.Println("hex:signature", err.Error()) }
+
+			pub.Bytes, err = hex.DecodeString(r.Form.Get("pubkey"))
+ 			if err != nil { fmt.Println("hex:pubkey", err.Error()) }
+
+ 			if ( !wallet.VerifySlice(pub.Bytes, data, sig) ) {
+				err = notaryapi.CreateError(notaryapi.ErrorVerifySignature, "commitentry Verify failed")
+				break;
+ 			}
+
 			timestamp := binary.BigEndian.Uint64(data[:8])
-			hash.Bytes = data[8:]
-			resource, err = processCommitEntry(hash, pub, int64(timestamp))
+			data = data[8:]
+			hash.Bytes = data[:32]
+			data = data[32:]
+			buf := bytes.NewBuffer(data[:4])
+			err = binary.Read(buf, binary.BigEndian, &credits)
 			if err != nil {
-				fmt.Println("Error:", err)
+				fmt.Println("Error:", err.Error())
+			}	
+			resource, err = processCommitEntry(hash, pub, int64(timestamp), credits) 
+			if err != nil {
+				fmt.Println("Error:", err.Error())
 			}
 		case "revealentry":
 			e := new(notaryapi.Entry)
 			bin, err := hex.DecodeString(r.Form.Get("entry"))
 			if err != nil {
-				fmt.Println("hex:", err)
+				fmt.Println("hex:", err.Error())
+			}
+			e.UnmarshalBinary(bin)
+			nerr := new(notaryapi.Error)			
+			resource, nerr = processRevealEntry(e)
+			if err  != nil {
+				fmt.Println("Error:", nerr.Error())
+			}
+			
+		case "commitentry2":
+			var err error
+			pub := new(notaryapi.Hash)
+			hash := new(notaryapi.Hash)
+			data, err := hex.DecodeString(r.Form.Get("data"))
+			if err != nil { fmt.Println("hex:data", err) }
+
+			sig, err := hex.DecodeString(r.Form.Get("signature"))
+ 			if err != nil { fmt.Println("hex:signature", err.Error()) }
+
+			pub.Bytes, err = hex.DecodeString(r.Form.Get("pubkey"))
+ 			if err != nil { fmt.Println("hex:pubkey", err.Error()) }
+
+ 			if ( !wallet.VerifySlice(pub.Bytes, data, sig) ) {
+				err = notaryapi.CreateError(notaryapi.ErrorVerifySignature, "commitentry Verify failed")
+				break;
+ 			}
+
+			timestamp := binary.BigEndian.Uint64(data[:8])
+			hash.Bytes = data[8:]
+			resource, err = processCommitEntry(hash, pub, int64(timestamp), 1) // needs the credits from client ??
+			if err != nil {
+				fmt.Println("Error:", err.Error())
+			}
+		case "revealentry2":
+			e := new(notaryapi.Entry)
+			bin, err := hex.DecodeString(r.Form.Get("entry"))
+			if err != nil {
+				fmt.Println("hex:", err.Error())
 			}
 			e.UnmarshalBinary(bin)
 			resource, err = processRevealEntry(e)
 			if err != nil {
-				fmt.Println("Error:", err)
-			}
+				fmt.Println("Error:", err.Error())
+			}			
+		// (commit|reveal)chain
 		case "chain":
 			resource, err = postChain("/"+strings.Join(path, "/"), form)
 		case "buycredit":
@@ -502,7 +617,8 @@ func serveRESTfulHTTP(w http.ResponseWriter, r *http.Request) {
 			http.ServeFile(w, r, dataStorePath + "csv/"+filename)
 			return							
 		default:
-			resource, err = postEntry("/"+strings.Join(path, "/"), form)
+			err = notaryapi.CreateError(notaryapi.ErrorBadMethod, fmt.Sprintf(`The %s datatype is not supported`, datatype))
+			return
 	}
 
 	default:
@@ -594,7 +710,7 @@ func processRevealEntry(newEntry *notaryapi.Entry) ([]byte, *notaryapi.Error) {
 		return nil, notaryapi.CreateError(notaryapi.ErrorInternal, `Entity to be POSTed is nil`)
 	}
 
-	fmt.Println("chainID:", newEntry.ChainID.String())
+
 	chain := chainIDMap[newEntry.ChainID.String()]
 	if chain == nil{
 		return nil, notaryapi.CreateError(notaryapi.ErrorInternal, `This chain is not supported`) //ErrorInternal?
@@ -604,18 +720,17 @@ func processRevealEntry(newEntry *notaryapi.Entry) ([]byte, *notaryapi.Error) {
 	entryBinary, _ := newEntry.MarshalBinary()
 	entryHash := notaryapi.Sha(entryBinary)
 	db.InsertEntryAndQueue( entryHash, &entryBinary, newEntry, &chain.ChainID.Bytes)
+	
+	// Calculate the required credits
+	credits := int32(binary.Size(entryBinary)/1000 + 1) 
 
 	// Precalculate the key for prePaidEntryMap
 	key := entryHash.String()
 	chain.BlockMutex.Lock()
 	// Delete the entry in the prePaidEntryMap in memory
-	payments, ok := prePaidEntryMap[key]
-	if ok {
-		if payments > 1 {
-			prePaidEntryMap[key] = payments - 1
-		} else {
-			delete (prePaidEntryMap, key)	
-		}
+	prepayment, ok := prePaidEntryMap[key]
+	if ok && prepayment >= credits {
+		delete (prePaidEntryMap, key)	// Only revealed once for multiple prepayments??
 	} else{
 		return nil, notaryapi.CreateError(notaryapi.ErrorInternal, `Credit needs to paid first before reveal an entry:` + entryHash.String())
 	}	
@@ -629,46 +744,65 @@ func processRevealEntry(newEntry *notaryapi.Entry) ([]byte, *notaryapi.Error) {
 	return entryHash.Bytes, nil
 }
 
-func processCommitEntry(entryHash *notaryapi.Hash, pubKey *notaryapi.Hash, 	timeStamp int64) ([]byte, error) {
-	
+func processCommitEntry(entryHash *notaryapi.Hash, pubKey *notaryapi.Hash, 	timeStamp int64, credits int32) ([]byte, error) {
+	// Make sure credits is negative
+	if credits > 0 {
+		credits = 0 - credits
+	}	
 	// Create PayEntryCBEntry
-	cbEntry := notaryapi.NewPayEntryCBEntry(pubKey, entryHash, creditsPerEntry, timeStamp)
+	cbEntry := notaryapi.NewPayEntryCBEntry(pubKey, entryHash, credits, timeStamp)
 	
 	cchain.BlockMutex.Lock()
 	// Update the credit balance in memory
-	credits, _ := eCreditMap[pubKey.String()]
-	if credits + creditsPerEntry < 0 {
+	creditBalance, _ := eCreditMap[pubKey.String()]
+	if creditBalance + credits < 0 {
 		return nil, errors.New("Not enough credit for public key:" + pubKey.String() + " Balance:" + fmt.Sprint(credits))
 	}
-	eCreditMap[pubKey.String()] = credits + creditsPerEntry
+	eCreditMap[pubKey.String()] = creditBalance + credits
 	err := cchain.Blocks[len(cchain.Blocks)-1].AddCBEntry(cbEntry)
 	// Update the prePaidEntryMapin memory
 	payments, _ := prePaidEntryMap[entryHash.String()]	
-	prePaidEntryMap[entryHash.String()]	= payments + 1
+	prePaidEntryMap[entryHash.String()]	= payments - credits
 	cchain.BlockMutex.Unlock()	 
 
 	return entryHash.Bytes, err
 }
 
-func processCommitChain(entryHash *notaryapi.Hash, chainIDHash *notaryapi.Hash, entryChainIDHash *notaryapi.Hash, pubKey *notaryapi.Hash) ([]byte, error) {
+func processCommitChain(entryHash *notaryapi.Hash, chainIDHash *notaryapi.Hash, entryChainIDHash *notaryapi.Hash, pubKey *notaryapi.Hash, credits int32) ([]byte, error) {
+	
+	// Make sure credits is negative
+	if credits > 0 {
+		credits = 0 - credits
+	}
+
+	// Check if the chain id already exists
+	_, existing := chainIDMap[chainIDHash.String()]
+	if !existing {
+		if chainIDHash.IsSameAs(dchain.ChainID) || chainIDHash.IsSameAs(cchain.ChainID) {
+			existing = true
+		}	
+	}
+	if existing {
+		return nil, errors.New("Already existing chain id:" + chainIDHash.String())
+	}
 	
 	// Precalculate the key and value pair for prePaidEntryMap
 	key := getPrePaidChainKey(entryHash, chainIDHash)
 		
 	// Create PayChainCBEntry
-	cbEntry := notaryapi.NewPayChainCBEntry(pubKey, entryHash, creditsPerChain, chainIDHash, entryChainIDHash)
+	cbEntry := notaryapi.NewPayChainCBEntry(pubKey, entryHash, credits, chainIDHash, entryChainIDHash)
 	
 	cchain.BlockMutex.Lock()
 	// Update the credit balance in memory
-	credits, _ := eCreditMap[pubKey.String()]
-	if credits + creditsPerEntry < 0 {
+	creditBalance, _ := eCreditMap[pubKey.String()]
+	if creditBalance + credits < 0 {
 		return nil, errors.New("Insufficient credits for public key:" + pubKey.String() + " Balance:" + fmt.Sprint(credits))
 	}	
-	eCreditMap[pubKey.String()] = credits + creditsPerChain
+	eCreditMap[pubKey.String()] = creditBalance + credits
 	err := cchain.Blocks[len(cchain.Blocks)-1].AddCBEntry(cbEntry)
-	// Update the prePaidEntryMapin memory
+	// Update the prePaidEntryMap in memory
 	payments, _ := prePaidEntryMap[key]	
-	prePaidEntryMap[key] = payments + 1
+	prePaidEntryMap[key] = payments - credits
 	cchain.BlockMutex.Unlock()	 
  
 	return chainIDHash.Bytes, err
@@ -686,25 +820,35 @@ func processBuyEntryCredit(pubKey *notaryapi.Hash, credits int32, factoidTxHash 
  
 	return pubKey.Bytes, err
 }
-func processRevealChain(newChain *notaryapi.EChain) ([]byte, *notaryapi.Error) {
 
-	chain := chainIDMap[newChain.ChainID.String()]
-	if chain != nil{
+func processRevealChain(newChain *notaryapi.EChain) ([]byte, *notaryapi.Error) {
+	// Check if the chain id already exists
+	_, existing := chainIDMap[newChain.ChainID.String()]
+	if !existing {
+		if newChain.ChainID.IsSameAs(dchain.ChainID) || newChain.ChainID.IsSameAs(cchain.ChainID) {
+			existing = true
+		}	
+	}
+	if existing{
 		return nil, notaryapi.CreateError(notaryapi.ErrorInternal, `This chain is already existing`) //ErrorInternal?
 	}	
 	
 	if newChain.FirstEntry == nil{
 		return nil, notaryapi.CreateError(notaryapi.ErrorInternal, `The first entry is required to create a new chain.`) //ErrorInternal?
 	}	
+	// Calculate the required credits
+	binaryChain, _ := newChain.MarshalBinary()
+	credits := int32(binary.Size(binaryChain)/1000 + 1) + creditsPerChain 
+	
 	// Remove the entry for prePaidEntryMap
 	binaryEntry, _ := newChain.FirstEntry.MarshalBinary()
 	firstEntryHash := notaryapi.Sha(binaryEntry)
 	key := getPrePaidChainKey(firstEntryHash, newChain.ChainID)	
-	_, ok := prePaidEntryMap[key]
-	if ok {
+	prepayment, ok := prePaidEntryMap[key]
+	if ok && prepayment >= credits {
 		delete(prePaidEntryMap, key)
 	} else{
-		return nil, notaryapi.CreateError(notaryapi.ErrorInternal, `Credit needs to paid first before creating a new chain:` + newChain.ChainID.String())
+		return nil, notaryapi.CreateError(notaryapi.ErrorInternal, `Enough credits need to paid first before creating a new chain:` + newChain.ChainID.String())
 	}
 	// Store the new chain in db
 	db.InsertChain(newChain)
@@ -724,9 +868,11 @@ func processRevealChain(newChain *notaryapi.EChain) ([]byte, *notaryapi.Error) {
 	newChain.BlockMutex.Lock()	
 	err := newChain.Blocks[len(newChain.Blocks)-1].AddEBEntry(newChain.FirstEntry)
 	newChain.BlockMutex.Unlock()	
+
 	if err != nil {
 		return nil, notaryapi.CreateError(notaryapi.ErrorInternal, fmt.Sprintf(`Error while adding the First Entry to Block: %s`, err.Error()))
 	}
+
 	ExportDataFromDbToFile()
 	
 	return newChain.ChainID.Bytes, nil	
@@ -737,6 +883,7 @@ func getEntryCreditBalance(pubKey *notaryapi.Hash) ([]byte, error) {
 	binary.Write(&buf, binary.BigEndian, eCreditMap[pubKey.String()])		 
 	return buf.Bytes(), nil
 }
+
 func postChain(context string, form url.Values) (interface{}, *notaryapi.Error) {
 	newChain := new(notaryapi.EChain)
 	format, data := form.Get("format"), form.Get("chain")
@@ -783,7 +930,7 @@ func saveDChain(chain *notaryapi.DChain) {
 			panic(err)
 		}
  
-		strChainID := notaryapi.EncodeBinary(chain.ChainID)
+		strChainID := chain.ChainID.String()
 		if fileNotExists (dataStorePath + strChainID){
 			err:= os.MkdirAll(dataStorePath + strChainID, 0777)
 			if err==nil{
@@ -841,10 +988,13 @@ func saveCChain(chain *notaryapi.CChain) {
 func initDChain() {
 	dchain = new (notaryapi.DChain)
 
+	//to be improved??
+	dchain.ChainID = new (notaryapi.Hash)	
 	barray := (make([]byte, 32))
-	dchain.ChainID = &barray
+	dchain.ChainID.SetBytes(barray)	
 	
-	matches, err := filepath.Glob(dataStorePath + notaryapi.EncodeBinary(dchain.ChainID) + "/store.*.block") // need to get it from a property file??
+	
+	matches, err := filepath.Glob(dataStorePath + dchain.ChainID.String() + "/store.*.block") // need to get it from a property file??
 	if err != nil {
 		panic(err)
 	}
@@ -885,7 +1035,7 @@ func initDChain() {
 	binaryTimestamp := make([]byte, 8)
 	binary.BigEndian.PutUint64(binaryTimestamp, uint64(0))
 	if dchain.Blocks[dchain.NextBlockID].IsSealed == true {
-		panic ("dchain.Blocks[dchain.NextBlockID].IsSealed for chain:" + notaryapi.EncodeBinary(dchain.ChainID))
+		panic ("dchain.Blocks[dchain.NextBlockID].IsSealed for chain:" + dchain.ChainID.String())
 	}
 	dchain.Blocks[dchain.NextBlockID].DBEntries, _ = db.FetchDBEntriesFromQueue(&binaryTimestamp)			
 
@@ -963,7 +1113,7 @@ func ExportDbToFile(dbHash *notaryapi.Hash) {
 	}
 	
 	//write the records to a csv file: 
-	filename := time.Now().Format(time.RFC3339) + "." + dbHash.String() + ".csv"
+	filename := fmt.Sprintf("%v." + dbHash.String() + ".csv", time.Now().Unix())
 	file, err := os.Create(dataStorePath+"csv/" + filename)
 	
 	if err != nil {panic(err)}
@@ -974,7 +1124,7 @@ func ExportDbToFile(dbHash *notaryapi.Hash) {
 	
  	if err != nil{
  		log.Println(err)
- 		return
+ 		return 
  	}
  	
     for key, value := range ldbMap{
@@ -995,7 +1145,7 @@ func ExportDataFromDbToFile() {
 	}
 	
 	//write the records to a csv file: 
-	filename := time.Now().Format(time.RFC3339) + ".supportdata.csv"
+	filename := fmt.Sprintf("%v.supportdata.csv",time.Now().Unix())
 	file, err := os.Create(dataStorePath+"csv/"  + filename)
 	if err != nil {panic(err)}
     defer file.Close()
@@ -1039,6 +1189,7 @@ func initChains() {
 		chainIDMap[newChain.ChainID.String()] = &newChain	
 		//chainIDMap[string(chain.ChainID.Bytes)] = &chain			
 	}
+	
 }
 
 

@@ -16,10 +16,10 @@ import (
 	"strings"
 	"time"	
 	"encoding/csv"
-	"net/http"
+	"net/http" 
 	"net/url"	 
-)  
- 
+)     
+  
 var (
  	logLevel = "DEBUG"
 	portNumber int = 8088 	
@@ -33,7 +33,7 @@ var (
 	
 	//Map to store imported csv files
 	clientDataFileMap map[string]string		
-	
+	 
 )
 
 func watchError(err error) {
@@ -131,7 +131,7 @@ func initDB() {
 	db, err = ldb.OpenLevelDB(ldbpath, false)
 	
 	if err != nil{
-		log.Println("err opening db: %v", err)
+		log.Println("err opening db: ", err)
 	}
 	
 	if db == nil{
@@ -154,12 +154,12 @@ func downloadAndImportDbRecords() {
 	data.Set("datatype", "filelist")
 	data.Set("format", "binary")
 	data.Set("password", "opensesame")	
-	
+	 
 	server := fmt.Sprintf(`http://%s/v1`, serverAddr)
 	resp, err := http.PostForm(server, data)
 	
 	if err != nil {
-		fmt.Println("Error:%v", err)
+		fmt.Println("Error:", err)
 		return
 	} 	
 

@@ -21,8 +21,12 @@ func (km *KeyManager) InitKeyManager(path string, file string ) (err error) {
 	return 
 }
 
-func (km *KeyManager) LoadOrGenerateKeys() (err error) {
+func (km *KeyManager) LoadOrGenerateKeys() (err error) {	
 	file, err := os.Open(km.FilePath())
+
+	defer func() {
+		file.Close()
+	} ()
 
 	if ( err == nil ) {
 		//try loading keys from file
@@ -59,7 +63,6 @@ func (km *KeyManager) LoadOrGenerateKeys() (err error) {
 		err = km.WriteKeys(file) // write keys
 	}
 
-	file.Close()
 
 	return  //err
 }

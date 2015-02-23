@@ -525,8 +525,6 @@ func (e *PayChainCBEntry) MarshalBinary() ([]byte, error) {
 		
 	data, _ = e.EntryChainIDHash.MarshalBinary()	
 	buf.Write(data)
-	
-	fmt.Println("buf.Bytes():", buf.Bytes())
 			
 	return buf.Bytes(), nil
 }

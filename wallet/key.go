@@ -64,3 +64,13 @@ func (k PublicKey) Verify(msg []byte, sig *[ed25519.SignatureSize]byte) bool {
 func Verify(publicKey *[ed25519.PublicKeySize]byte, message []byte, sig *[ed25519.SignatureSize]byte) bool {
 	return ed25519.Verify(publicKey, message, sig)
 }
+
+// Verify returns true iff sig is a valid signature of message by publicKey.
+func VerifySlice(p []byte, message []byte, s []byte) bool {
+
+	sig := new([64]byte)
+	pub := new([32]byte)
+	copy(sig[:],s)
+	copy(pub[:],p)
+	return Verify(pub, message, sig)
+}

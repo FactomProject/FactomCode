@@ -6,8 +6,11 @@ import (
 	"encoding/binary"
 
 	"github.com/FactomProject/FactomCode/notaryapi"
-	"github.com/conformal/goleveldb/leveldb"	
+	"github.com/FactomProject/goleveldb/leveldb"	
 	"log"
+	"github.com/FactomProject/goleveldb/leveldb/util"	
+	"strings"
+	"time"
 )
 
 
@@ -31,7 +34,7 @@ func (db *LevelDb) InsertEntryAndQueue(entrySha *notaryapi.Hash, binaryEntry *[]
 	key = append(key, *chainID ...) 									// Chain id (32 bytes)
 	
 	binaryTimestamp := make([]byte, 8)
-	binary.BigEndian.PutUint64(binaryTimestamp, uint64(entry.TimeStamp()))	
+	binary.BigEndian.PutUint64(binaryTimestamp, uint64(time.Now().Unix()))	
 	key = append(key, binaryTimestamp ...) 								// Timestamp (8 bytes)
 	
 	key = append(key, entrySha.Bytes ...) 								// Entry Hash (32 bytes)
@@ -97,6 +100,33 @@ func (db *LevelDb) FetchEntryInfoByHash(entryHash *notaryapi.Hash) (entryInfo *n
 	return entryInfo, nil
 } 
 
+// Initialize External ID map for explorer search
+func (db *LevelDb) InitializeExternalIDMap() (extIDMap map[string]bool, err error) {
 
+	var fromkey [] byte = []byte{byte(TBL_ENTRY)} 		  		// Table Name (1 bytes)
+
+	var tokey [] byte = []byte{byte(TBL_ENTRY+1)} 		  		// Table Name (1 bytes)
+	
+	extIDMap = make(map[string]bool)	
+	
+	iter := db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
+	
+	for iter.Next() {		
+			entry := new (notaryapi.Entry)
+			entry.UnmarshalBinary(iter.Value())
+			if entry.ExtIDs != nil {
+				for i:=0; i<len(entry.ExtIDs); i++{
+					mapKey := string(iter.Key()[1:])						
+					mapKey = mapKey + strings.ToLower(string(entry.ExtIDs[i]))
+					extIDMap[mapKey] = true
+				}
+			}
+
+	}
+	iter.Release()
+	err = iter.Error()
+	
+	return extIDMap, nil
+}	
 
 	

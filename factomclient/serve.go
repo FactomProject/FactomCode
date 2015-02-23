@@ -8,7 +8,6 @@ import (
 	"github.com/hoisie/web"
 	"github.com/FactomProject/FactomCode/notaryapi"
 	"github.com/FactomProject/FactomCode/factomapi"
-	"github.com/FactomProject/factom"
 	"net/url"
 	"strconv"
 	"encoding/base64"
@@ -20,11 +19,16 @@ var server = web.NewServer()
 
 func serve_init() {
 	
+
 	server.Post(`/v1/submitentry/?`, handleSubmitEntry)
-	server.Post(`/v1/addchain/?`, handleChainPost)	
+	server.Post(`/v1/submitchain/?`, handleSubmitChain)	
 	server.Post(`/v1/buycredit/?`, handleBuyCreditPost)		
 	server.Post(`/v1/creditbalance/?`, handleGetCreditBalancePost)			
-	
+	server.Post(`/v1/addentry/?`, handleSubmitEntry2)	// Needs to be removed later??
+
+	server.Get(`/v1/creditbalance/?`, handleGetCreditBalancePost)			
+	server.Get(`/v1/buycredit/?`, handleBuyCreditPost)		
+		
 	server.Get(`/v1/dblocksbyrange/([^/]+)(?:/([^/]+))?`, handleDBlocksByRange)
 	server.Get(`/v1/dblock/([^/]+)(?)`, handleDBlockByHash)	
 	server.Get(`/v1/eblock/([^/]+)(?)`, handleEBlockByHash)	
@@ -35,17 +39,49 @@ func serve_init() {
 
 func handleSubmitEntry(ctx *web.Context) {
 	// convert a json post to a factom.Entry then submit the entry to factom
+	fmt.Fprintln(ctx, "Entry Submitted")
+
+	switch ctx.Params["format"] {
+	case "json":
+		entry := new (notaryapi.Entry)
+		reader := gocoding.ReadBytes([]byte(ctx.Params["entry"]))
+		err := factomapi.SafeUnmarshal(reader, entry)
+		if  err != nil {
+			fmt.Fprintln(ctx,
+				"there was a problem with submitting the entry:", err.Error())
+		}
+		
+		if err := factomapi.CommitEntry(entry); err != nil {
+			fmt.Fprintln(ctx,
+				"there was a problem with submitting the entry:", err.Error())
+		}
+
+		time.Sleep(1 * time.Second)
+		if err := factomapi.RevealEntry(entry); err != nil {
+			fmt.Fprintln(ctx,
+				"there was a problem with submitting the entry:", err.Error())
+		}
+		fmt.Fprintln(ctx, "Entry Submitted")
+	default:
+		ctx.WriteHeader(403)
+	}
+}
+
+func handleSubmitEntry2(ctx *web.Context) {
+	// convert a json post to a factom.Entry then submit the entry to factom
+	fmt.Fprintln(ctx, "Entry Submitted")
+
 	switch ctx.Params["format"] {
 	case "json":
 		j := []byte(ctx.Params["entry"])
-		e := new(factom.Entry)
+		e := new(factomapi.Entry)
 		e.UnmarshalJSON(j)
-		if err := factom.CommitEntry(e); err != nil {
+		if err := factomapi.CommitEntry2(e); err != nil {
 			fmt.Fprintln(ctx,
 				"there was a problem with submitting the entry:", err)
 		}
 		time.Sleep(1 * time.Second)
-		if err := factom.RevealEntry(e); err != nil {
+		if err := factomapi.RevealEntry2(e); err != nil {
 			fmt.Fprintln(ctx,
 				"there was a problem with submitting the entry:", err)
 		}
@@ -54,6 +90,46 @@ func handleSubmitEntry(ctx *web.Context) {
 		ctx.WriteHeader(403)
 	}
 }
+
+func handleSubmitChain(ctx *web.Context) {
+
+	// convert a json post to a factomapi.Chain then submit the entry to factomapi
+	switch ctx.Params["format"] {
+	case "json":
+		reader := gocoding.ReadBytes([]byte(ctx.Params["chain"]))
+		c := new(notaryapi.EChain)
+		factomapi.SafeUnmarshal(reader,c)
+		
+		c.GenerateIDFromName()
+		if c.FirstEntry == nil {
+			fmt.Fprintln(ctx,
+				"The first entry is required for submitting the chain:")
+			return			
+		} else {
+			c.FirstEntry.ChainID = *c.ChainID
+		}
+		
+
+		fmt.Println("c.ChainID:", c.ChainID.String())
+				
+		if err := factomapi.CommitChain(c); err != nil {
+			fmt.Fprintln(ctx,
+				"there was a problem with submitting the chain:", err)
+		}
+		
+		time.Sleep(1 * time.Second) //?? do we need to queue them up and look for the confirmation
+		
+		if err := factomapi.RevealChain(c); err != nil {
+			fmt.Println(err.Error())
+			fmt.Fprintln(ctx,
+				"there was a problem with submitting the chain:", err)
+		}
+		
+		fmt.Fprintln(ctx, "Chain Submitted")
+	default:
+		ctx.WriteHeader(403)
+	}
+} 
 
 //func handleEntryPost(ctx *web.Context) {
 //	var abortMessage, abortReturn string
@@ -81,6 +157,14 @@ func handleSubmitEntry(ctx *web.Context) {
 //		
 //}
 func handleBuyCreditPost(ctx *web.Context) {
+	var httpcode int = 200
+	buf := new(bytes.Buffer)
+
+	defer func() {
+		ctx.WriteHeader(httpcode)
+		ctx.Write(buf.Bytes())
+	}()
+
 	var abortMessage, abortReturn string
 	
 	defer func() {
@@ -109,6 +193,23 @@ func handleBuyCreditPost(ctx *web.Context) {
 		abortMessage = fmt.Sprint("An error occured while submitting the buycredit request: ", err.Error())
 		return
 	}
+
+	balance, err := factomapi.GetEntryCreditBalance(ecPubKey)
+	
+	ecBalance := new(notaryapi.ECBalance)
+	ecBalance.Credits = balance
+	ecBalance.PublicKey = ecPubKey
+
+	fmt.Println("Balance for pubkey ", ctx.Params["pubkey"], " is: ", balance)
+	
+	// Send back JSON response
+	err = factomapi.SafeMarshal(buf, ecBalance)
+	if err != nil{
+		httpcode = 400
+		buf.WriteString("Bad request ")
+		return		
+	}			
+
 		 
 }
 func handleGetCreditBalancePost(ctx *web.Context) {	
@@ -146,7 +247,7 @@ func handleGetCreditBalancePost(ctx *web.Context) {
 	}			
 }
 
- 
+/*
 func handleChainPost(ctx *web.Context) {
 	var abortMessage, abortReturn string
 	defer func() {
@@ -170,6 +271,7 @@ func handleChainPost(ctx *web.Context) {
 	
 		 
 }
+*/
 
 func handleDBlocksByRange(ctx *web.Context, fromHeightStr string, toHeightStr string) {
 	var httpcode int = 200

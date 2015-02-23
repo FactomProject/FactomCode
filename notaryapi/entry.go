@@ -3,17 +3,18 @@ package notaryapi
 import (
 	"bytes"
 	"encoding/binary"
-	"time"
+	//"time"
 
 )
 
 type Entry struct {
 	ChainID Hash	
+	
 	//ExtHashes []Hash
 	ExtIDs	[][]byte
 	Data []byte
 	
-	timeStamp int64
+	//timeStamp int64
 }
 
 
@@ -35,12 +36,14 @@ type EntryInfoBranch struct {
     
 }
 
+/*
 func (e *Entry) StampTime() {
 	e.timeStamp = time.Now().Unix()
 }
 func (e *Entry) TimeStamp() int64 {
 	return e.timeStamp
 }
+*/
 
 func (e *Entry) MarshalBinary() ([]byte, error) {
 	var buf bytes.Buffer

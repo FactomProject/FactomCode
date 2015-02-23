@@ -276,7 +276,7 @@ func (b *EBlock) AddEBEntry(e *Entry) (err error) {
 
 
  	ebEntry := NewEBEntry(h, &b.Chain.ChainID.Bytes)	
- 	ebEntry.SetIntTimeStamp(e.TimeStamp())
+ 	//ebEntry.SetIntTimeStamp(e.TimeStamp())
 	
 	b.EBEntries = append(b.EBEntries, ebEntry) 
 	b.Salt = s
@@ -481,6 +481,16 @@ func (b *EChain) UnmarshalBinary(data []byte) (err error) {
 		b.FirstEntry.UnmarshalBinary(data)	
 	}
 	return nil
+}
+
+// For Json marshaling
+func (b *EChain) EncodableFields() map[string]reflect.Value {
+	fields := map[string]reflect.Value{
+		`ChainID`: reflect.ValueOf(b.ChainID),
+		`Name`: reflect.ValueOf(b.Name),
+		`FirstEntry`: reflect.ValueOf(b.FirstEntry),		
+	}
+	return fields
 }
 
 // To generate a chain id (hash) from a binary array name

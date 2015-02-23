@@ -2,10 +2,10 @@ package ldb
 
 import (
 	"github.com/FactomProject/FactomCode/notaryapi"		
-	"github.com/conformal/goleveldb/leveldb"
+	"github.com/FactomProject/goleveldb/leveldb"
 	"errors"
 	"log"
-	"github.com/conformal/goleveldb/leveldb/util"
+	"github.com/FactomProject/goleveldb/leveldb/util"
 	"bytes"
 	"time"
 	"encoding/binary"	
@@ -68,10 +68,17 @@ func (db *LevelDb) ProcessDBlockBatch(dblock *notaryapi.DBlock) error {
 			return err
 		}
 		
-		// Insert the binary factom block
+		// Insert the binary directory block
 		var key [] byte = []byte{byte(TBL_DB)} 
 		key = append (key, dblock.DBHash.Bytes ...)			
 		db.lbatch.Put(key, binaryDblock)
+		
+		// Insert block height cross reference
+		var dbNumkey [] byte = []byte{byte(TBL_DB_NUM)} 
+		var buf bytes.Buffer
+		binary.Write(&buf, binary.BigEndian, dblock.Header.BlockID)			
+		dbNumkey = append (dbNumkey, buf.Bytes() ...)			
+		db.lbatch.Put(dbNumkey, dblock.DBHash.Bytes)		
 		
 		// Update DBEntry process queue for each dbEntry in dblock
 		for i:=0; i< len(dblock.DBEntries); i++  {

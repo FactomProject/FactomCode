@@ -12,7 +12,7 @@ import (
 const DBlockVersion = 1 
 
 type DChain struct {
-	ChainID 	*[]byte
+	ChainID 	*Hash
 	Blocks 		[]*DBlock
 	CurrentBlock *DBlock
 	BlockMutex 	sync.Mutex	

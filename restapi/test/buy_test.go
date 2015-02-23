@@ -1,6 +1,7 @@
 package main
 
 import (
+<<<<<<< HEAD
 	"fmt"
 	"testing"
 	"github.com/FactomProject/FactomCode/notaryapi"		
@@ -14,12 +15,25 @@ func TestBuyCredit(t *testing.T) {
 	fmt.Println(barray)
 	pubKey := new(notaryapi.Hash)
 	pubKey.SetBytes(barray)	
+=======
+	"encoding/hex"
+	"github.com/FactomProject/FactomCode/notaryapi"		
+	"testing"
+)
+
+func TestBuyCredit(t *testing.T) {
+	hexkey := "ed14447c656241bf7727fce2e2a48108374bec6e71358f0a280608b292c7f3bc"
+	binkey, _ := hex.DecodeString(hexkey)
+	pubKey := new(notaryapi.Hash)
+	pubKey.SetBytes(binkey)	
+>>>>>>> master
 	
 	barray1 := (make([]byte, 32))
 	barray1[31] = 2
 	factoidTxHash := new (notaryapi.Hash)
 	factoidTxHash.SetBytes(barray1)	
 		
+<<<<<<< HEAD
 	_, err = processBuyEntryCredit(pubKey, 200000, factoidTxHash)
 	
 	
@@ -32,3 +46,11 @@ func TestBuyCredit(t *testing.T) {
 		t.Errorf("Error:%v", err)
 	}
 }
+=======
+	_, err := processBuyEntryCredit(pubKey, 200000, factoidTxHash)
+	
+	if err != nil {
+		t.Errorf("Error:", err)
+	}
+} 
+>>>>>>> master

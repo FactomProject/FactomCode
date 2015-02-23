@@ -3,14 +3,14 @@ package ldb
 
 import (
 	"github.com/FactomProject/FactomCode/notaryapi"	
-	"github.com/conformal/goleveldb/leveldb"
+	"github.com/FactomProject/goleveldb/leveldb"
 	"errors"
 	"log"
 	"bytes"
 	"encoding/binary"
 	"time"
 
-	"github.com/conformal/goleveldb/leveldb/util"
+	"github.com/FactomProject/goleveldb/leveldb/util"
 )
 
 

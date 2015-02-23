@@ -18,8 +18,8 @@ GETTING STARTED
 
 You need to set up Go environment and install the following packages:  
 
-* https://github.com/conformal/btcd
-* https://github.com/conformal/btcwallet
+* https://github.com/btcsuite/btcd
+* https://github.com/btcsuite/btcwallet
 * https://github.com/factomproject/factomcode
 
 
