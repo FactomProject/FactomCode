@@ -60,7 +60,6 @@ const (
 	CmdRevealChain = "revealchain"
 	CmdCommitEntry = "commitentry"
 	CmdRevealEntry = "revealentry"
-	CmdGetCredit   = "getcredits"
 
 	// using these commands we query & find the best chain & latest height for the Directory (all other chain heights are then known)
 	CmdGetDirBlocks = "getdirblocks"
@@ -157,8 +156,6 @@ func makeEmptyMessage(command string) (Message, error) {
 			case CmdReject:
 				msg = &MsgReject{}
 		*/
-	case CmdGetCredit:
-		msg = &MsgGetCredit{}
 
 	case CmdRevealEntry:
 		msg = &MsgRevealEntry{}

@@ -416,18 +416,20 @@ func serveMsgRequest(msg factomwire.Message) error {
 			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
 		}
 
-	case factomwire.CmdGetCredit:
-		msgGetCredit, ok := msg.(*factomwire.MsgGetCredit)
-		if ok {
-			fmt.Printf("msgGetCredit:%+v\n", msgGetCredit)
-			credits := msgGetCredit.FactoidBase * creditsPerFactoid / 1000000000
-			err := processBuyEntryCredit(msgGetCredit.ECPubKey, int32(credits), msgGetCredit.ECPubKey)
-			if err != nil {
-				return err
+		/*  There is no such command !
+		case factomwire.CmdGetCredit:
+			msgGetCredit, ok := msg.(*factomwire.MsgGetCredit)
+			if ok {
+				fmt.Printf("msgGetCredit:%+v\n", msgGetCredit)
+				credits := msgGetCredit.FactoidBase * creditsPerFactoid / 1000000000
+				err := processBuyEntryCredit(msgGetCredit.ECPubKey, int32(credits), msgGetCredit.ECPubKey)
+				if err != nil {
+					return err
+				}
+			} else {
+				return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
 			}
-		} else {
-			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
-		}
+		*/
 
 	default:
 		return errors.New("Message type unsupported:" + fmt.Sprintf("%+v", msg))

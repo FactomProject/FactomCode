@@ -29,11 +29,18 @@ var (
 // This method will be replaced with a Factoid transaction once we have the factoid implementation in place
 func BuyEntryCredit(version uint16, ecPubKey *notaryapi.Hash, from *notaryapi.Hash, value uint64, fee uint64, sig *notaryapi.Signature) error {
 
-	msgGetCredit := factomwire.NewMsgGetCredit()
-	msgGetCredit.ECPubKey = ecPubKey
-	msgGetCredit.FactoidBase = value
+	fmt.Println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+	fmt.Println("!!! NOT IMPLEMENTED !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+	fmt.Println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 
-	outMsgQueue <- msgGetCredit
+	// XXX TODO FIXME: gotta be linked to Factoid -- there is no buy or get credit P2P message
+	/*
+		msgGetCredit := factomwire.NewMsgGetCredit()
+		msgGetCredit.ECPubKey = ecPubKey
+		msgGetCredit.FactoidBase = value
+
+		outMsgQueue <- msgGetCredit
+	*/
 
 	return nil
 }

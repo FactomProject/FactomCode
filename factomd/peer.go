@@ -820,6 +820,7 @@ func (p *peer) handleTxMsg(msg *factomwire.MsgTx) {
 	<-p.txProcessed
 }
 
+/*
 // Handle factom app imcoming msg
 func (p *peer) handleBuyCreditMsg(msg *factomwire.MsgGetCredit) {
 	util.Trace()
@@ -827,6 +828,7 @@ func (p *peer) handleBuyCreditMsg(msg *factomwire.MsgGetCredit) {
 	// Add the msg to inbound msg queue
 	inMsgQueue <- msg
 }
+*/
 
 // Handle factom app imcoming msg
 func (p *peer) handleCommitChainMsg(msg *factomwire.MsgCommitChain) {
@@ -1594,9 +1596,11 @@ out:
 		case *factomwire.MsgAlert:
 			p.server.BroadcastMessage(msg, p)
 
-		case *factomwire.MsgGetCredit:
-			p.handleBuyCreditMsg(msg)
-			p.FactomRelay(msg)
+			/*
+				case *factomwire.MsgGetCredit:
+					p.handleBuyCreditMsg(msg)
+					p.FactomRelay(msg)
+			*/
 
 		case *factomwire.MsgCommitChain:
 			p.handleCommitChainMsg(msg)
