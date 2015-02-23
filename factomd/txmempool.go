@@ -12,7 +12,7 @@ import (
 // TxProcessor is an interface that abstracts methods needed to process a TxMessage
 // SetContext(*TxMessage) will store to concrete TxMessage in the concrete TxProcessor object
 type TxProcessor interface {
-	SetContext(*factomwire.MsgTx)
+	SetContext(*factomwire.MsgTx) 
 	Verify() bool
 	//Broadcast()
 	AddToMemPool()

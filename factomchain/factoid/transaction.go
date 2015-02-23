@@ -177,3 +177,17 @@ func (tx *Tx) Digest() []byte {
 func (txid *Txid) String() string {
 	return hex.EncodeToString(txid[:])
 }
+
+func (txid *Txid) FromString(stxid string) *Txid {
+	if txid == nil {
+		txid = new(Txid)
+	}
+	h, _ := notaryapi.HexToHash(stxid)
+
+	(*notaryapi.HashF)(txid).From(h)
+	return txid
+}
+
+func NewTxidFromString(stxid string) (txid *Txid) {
+	return txid.FromString(stxid)
+}
