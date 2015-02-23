@@ -35,18 +35,36 @@ type FactoidPool struct {
 	TxProcessor
 	sync.RWMutex
 	//server        *server
-	utxo    Utxo
-	context context
-	txpool  *txpool
+	utxo       Utxo
+	context    context
+	txpool     *txpool
+	orphanpool *orphanpool
 }
 
 //the context is the tx used by default when no tx is referenced
 // this is needed in order for mempool methods to be called from abstract interface
 // when different mempools have different tx structs  (no plyorphism in go)
 type context struct {
-	wire  *factomwire.MsgTx
-	tx    *Tx
-	index int //index into txpool txindex array of *Txid
+	wire    *factomwire.MsgTx
+	tx      *Tx
+	index   int //index into txpool txindex array of *Txid
+	missing []*Txid
+}
+
+//orphanpool stores an map of orphan Txids to context
+// and a map of missing parent txids to list of orphan children
+type orphanpool struct {
+	orphans map[Txid]context
+	parents map[Txid][]*Txid
+}
+
+//create new orphanpool
+func NewOrphanPool() *orphanpool {
+	return &orphanpool{
+		orphans: make(map[Txid]context),
+		parents: make(map[Txid][]*Txid),
+		//nexti: 		0
+	}
 }
 
 //txpool stores an array of Txids in order of insertion and
@@ -71,8 +89,9 @@ func NewTxPool() *txpool {
 func NewFactoidPool() *FactoidPool {
 	return &FactoidPool{
 		//server:        server,
-		utxo:   NewUtxo(),
-		txpool: NewTxPool(),
+		utxo:       NewUtxo(),
+		txpool:     NewTxPool(),
+		orphanpool: NewOrphanPool(),
 	}
 }
 
@@ -86,7 +105,6 @@ func (fp *FactoidPool) AddGenesisBlock() {
 	fp.txpool.AddContext(&c)
 
 	fp.utxo.AddUtxo(c.tx.Id(), c.tx.Txm.TxData.Outputs)
-
 }
 
 func (fp *FactoidPool) Utxo() *Utxo {
@@ -99,6 +117,24 @@ func (tp *txpool) AddContext(c *context) {
 	tp.txindex = append(tp.txindex, c.tx.Id())
 	tp.txlist[*c.tx.Id()] = *c
 
+}
+
+func (fp *FactoidPool) GetTxContext() *Tx {
+	return fp.context.tx
+}
+
+//add context tx to orphanpool
+func (op *orphanpool) AddContext(c *context) {
+	op.orphans[*c.tx.Id()] = *c
+	for _, id := range c.missing {
+		op.parents[*id] = append(op.parents[*id], c.tx.Id())
+	}
+}
+
+//add context tx to orphanpool
+func (op *orphanpool) FoundMissing(txid *Txid) (children []*Txid, ok bool) {
+	children, ok = op.parents[*txid]
+	return
 }
 
 //convert from wire format to TxMsg
@@ -121,30 +157,48 @@ func TxMsgToWire(txm *TxMsg) (tx *factomwire.MsgTx) {
 // by Verify and AddToMemPool
 // see factomd.TxMempool
 func (fp *FactoidPool) SetContext(tx *factomwire.MsgTx) {
+	rtx := NewTx(TxMsgFromWire(tx))
 	fp.context = context{
 		wire: tx,
-		tx:   NewTx(TxMsgFromWire(tx)),
+		tx:   rtx,
 	}
 }
 
 //Verify is designed to be called by external packages without
 // them needing to know the specific Tx foramt
 func (fp *FactoidPool) Verify() (ret bool) {
+	ok, parents := fp.utxo.InputsKnown(fp.context.tx.Txm.TxData.Inputs)
 
-	if !fp.utxo.IsValid(fp.context.tx.Txm.TxData.Inputs) {
-		fmt.Println("!fp.utxo.IsValid")
-		return false
+	if ok { // parents are known
+		if !fp.utxo.IsValid(fp.context.tx.Txm.TxData.Inputs) {
+			fmt.Println("!fp.utxo.IsValid")
+			return false
+		}
+
+		if _, ok := fp.txpool.txlist[*fp.context.tx.Id()]; ok {
+			fmt.Println("!Verify: tx already exists in fp.txpool.txlist")
+			return false
+		}
+	} else { // is orphan
+
+		if _, ok := fp.orphanpool.orphans[*fp.context.tx.Id()]; ok {
+			fmt.Println("!Verify: orphan tx already exists in fp.orphanpool.orphans")
+			return false
+		}
+
+		if len(parents) == 0 {
+			fmt.Println("!Verify: is orphan but no missing parents - should not happen")
+			return false
+		}
+		//ToDo: max orphan size
+		//fp.context.isorphan = true;
+		fp.context.missing = parents
 	}
 
-	if _, ok := fp.txpool.txlist[*fp.context.tx.Id()]; ok {
-		fmt.Println("fp.txpool.txlist")
-		return false
-	}
-
-	ok := VerifyTx(fp.context.tx)
+	ok = VerifyTx(fp.context.tx)
 	//verify signatures
 	if !ok {
-		fmt.Println("sigs", fp.context.tx, VerifyTx)
+		fmt.Println("!Verify sigs", fp.context.tx, VerifyTx)
 
 		return false
 	}
@@ -159,8 +213,36 @@ func (fp *FactoidPool) Verify() (ret bool) {
 func (fp *FactoidPool) AddToMemPool() {
 	fmt.Println("AddToMemPool", fp.context.tx.Id().String())
 
-	fp.utxo.AddTx(fp.context.tx)
-	fp.txpool.AddContext(&fp.context)
+	if len(fp.context.missing) > 0 { // is orphan
+		fp.orphanpool.AddContext(&fp.context)
+	} else {
+		fp.utxo.AddTx(fp.context.tx)
+		fp.txpool.AddContext(&fp.context)
+
+		//see if this tx is a missing parent of orphan[s]
+		if kids, ok := fp.orphanpool.FoundMissing(fp.context.tx.Id()); ok {
+			//for each orphan child of parent
+			for _, k := range kids {
+				ocontext := fp.orphanpool.orphans[*k]
+				//see if orphan is still missing more parents
+				ok2, missing := fp.utxo.InputsKnown(ocontext.tx.Txm.TxData.Inputs)
+				if ok2 { //all parents found
+					if fp.utxo.IsValid(ocontext.tx.Txm.TxData.Inputs) {
+						fp.utxo.AddTx(ocontext.tx)
+						ocontext.missing = missing
+						fp.txpool.AddContext(&ocontext)
+					}
+					delete(fp.orphanpool.orphans, *k)
+				} else { // still orphan
+					copy(fp.orphanpool.orphans[*k].missing[:], missing)
+				}
+			}
+
+			//remove parent from missing list
+			delete(fp.orphanpool.parents, *fp.context.tx.Id())
+		}
+	}
+
 	return
 }
 
