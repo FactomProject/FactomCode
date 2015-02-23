@@ -11,7 +11,7 @@ func TestNew(t *testing.T) {
 
 	name := "Michael"
 	
-	logger := New(&buf, "debug", "testing")
+	logger := New(&buf, "info", "testing")
 
 	logger.Infof("Hello %s!", name)
 	logger.Info("Hello ", name)
