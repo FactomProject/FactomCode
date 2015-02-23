@@ -47,7 +47,7 @@ func newTxMemPool(server *server) *txMemPool {
 	var txmp txMemPool
 	txmp.TxProcessorS = make(map[string]TxProcessor)
 
-	txmp.TxProcessorS["factoid"] = factoid.NewFactoidPool()
+	txmp.TxProcessorS["factoid"] = factoid.NewFactoidPool().TxProcessor//?? Pls double check
 
 	//txmp.TxProcessorS["entrycommit"] = factom.NewEntryPool()
 
