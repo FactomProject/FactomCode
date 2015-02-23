@@ -97,7 +97,7 @@ func TestAddChain(t *testing.T) {
 	barray[0] = 2
 	pubKey := new (notaryapi.Hash)
 	pubKey.SetBytes(barray)	
-	processCommitChain(entryHash, chain.ChainID, entryChainIDHash, pubKey)
+	processCommitChain(entryHash, chain.ChainID, entryChainIDHash, pubKey, 10)
 	time.Sleep(time.Second / 100)
 	processRevealChain(chain)	
 } 
@@ -119,7 +119,7 @@ func TestAddEntry(t *testing.T) {
 		binaryEntry, _ := e.MarshalBinary()
 		entryHash := notaryapi.Sha(binaryEntry)		
 		timestamp := time.Now().Unix()
-		processCommitEntry(entryHash, pubKey, timestamp)
+		processCommitEntry(entryHash, pubKey, timestamp, 1)
 		time.Sleep(time.Second / 500)
 		processRevealEntry(e)		
 	}	
