@@ -40,6 +40,9 @@ const (
 	CmdDirectoryBlock   = "dirblock"
 	CmdEntryBlock       = "entryblock"
 
+	// entry itself
+	CmdEntry = "entry"
+
 	CmdTx          = "tx"
 	CmdGetHeaders  = "getheaders"
 	CmdHeaders     = "headers"
@@ -168,6 +171,9 @@ func makeEmptyMessage(command string) (Message, error) {
 
 	case CmdCommitChain:
 		msg = &MsgCommitChain{}
+
+	case CmdConfirmation:
+		msg = &MsgConfirmation{}
 
 	default:
 		return nil, fmt.Errorf("unhandled command [%s]", command)

@@ -129,7 +129,7 @@ func initEChainFromDB(chain *notaryapi.EChain) {
 	chain.Blocks = make([]*notaryapi.EBlock, len(*eBlocks))
 
 	for i := 0; i < len(*eBlocks); i = i + 1 {
-		if (*eBlocks)[i].Header.BlockID != uint64(i){
+		if (*eBlocks)[i].Header.BlockID != uint64(i) {
 			panic("Error in initializing EChain:" + chain.ChainID.String())
 		}
 		(*eBlocks)[i].Chain = chain
@@ -167,7 +167,7 @@ func init_processor() {
 	// init Entry Credit Chain
 	initCChain()
 	fmt.Println("Loaded", len(cchain.Blocks)-1, "Entry Credit blocks for chain: "+cchain.ChainID.String())
-	
+
 	// init Entry Chains
 	initEChains()
 	for _, chain := range chainIDMap {
@@ -270,10 +270,7 @@ func Start_Processor(ldb database.Db, inMsgQ <-chan factomwire.Message, outMsgQ 
 	inMsgQueue = inMsgQ
 	outMsgQueue = outMsgQ
 
-	util.Trace()
-
 	init_processor()
-	util.Trace()
 
 	if nodeMode == SERVER_NODE {
 		err := initRPCClient()
@@ -285,9 +282,7 @@ func Start_Processor(ldb database.Db, inMsgQ <-chan factomwire.Message, outMsgQ 
 			log.Fatalf("cannot init wallet: %s", err)
 		}
 	}
-	util.Trace()
-
-	fmt.Println("before range inMsgQ")
+	util.Trace("before range inMsgQ")
 	// Process msg from the incoming queue
 	for msg := range inMsgQ {
 		fmt.Printf("in range inMsgQ, msg:%+v\n", msg)
@@ -715,19 +710,19 @@ func initDChain() {
 	dchain.Blocks = make([]*notaryapi.DBlock, len(dBlocks))
 
 	for i := 0; i < len(dBlocks); i = i + 1 {
-		if dBlocks[i].Header.BlockID != uint64(i){
+		if dBlocks[i].Header.BlockID != uint64(i) {
 			panic("Error in initializing dChain:" + dchain.ChainID.String())
 		}
 		dBlocks[i].Chain = dchain
 		dBlocks[i].IsSealed = true
 		dchain.Blocks[i] = &dBlocks[i]
 	}
-	
+
 	// double check the block ids
-	for i := 0; i < len(dchain.Blocks); i = i + 1 {		
-		if uint64(i) != dchain.Blocks[i].Header.BlockID {			
+	for i := 0; i < len(dchain.Blocks); i = i + 1 {
+		if uint64(i) != dchain.Blocks[i].Header.BlockID {
 			panic(errors.New("BlockID does not equal index for chain:" + dchain.ChainID.String() + " block:" + fmt.Sprintf("%v", dchain.Blocks[i].Header.BlockID)))
-		}			
+		}
 	}
 
 	//Create an empty block and append to the chain
@@ -771,22 +766,22 @@ func initCChain() {
 	cchain.Blocks = make([]*notaryapi.CBlock, len(cBlocks))
 
 	for i := 0; i < len(cBlocks); i = i + 1 {
-		if cBlocks[i].Header.BlockID != uint64(i){
+		if cBlocks[i].Header.BlockID != uint64(i) {
 			panic("Error in initializing dChain:" + cchain.ChainID.String())
 		}
 		cBlocks[i].Chain = cchain
 		cBlocks[i].IsSealed = true
 		cchain.Blocks[i] = &cBlocks[i]
-		
+
 		// Calculate the EC balance for each account
-		initializeECreditMap(cchain.Blocks[i])		
+		initializeECreditMap(cchain.Blocks[i])
 	}
-	
+
 	// double check the block ids
-	for i := 0; i < len(cchain.Blocks); i = i + 1 {		
-		if uint64(i) != cchain.Blocks[i].Header.BlockID {			
+	for i := 0; i < len(cchain.Blocks); i = i + 1 {
+		if uint64(i) != cchain.Blocks[i].Header.BlockID {
 			panic(errors.New("BlockID does not equal index for chain:" + cchain.ChainID.String() + " block:" + fmt.Sprintf("%v", cchain.Blocks[i].Header.BlockID)))
-		}			
+		}
 	}
 
 	//Create an empty block and append to the chain

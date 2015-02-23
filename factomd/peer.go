@@ -860,6 +860,14 @@ func (p *peer) handleRevealEntryMsg(msg *factomwire.MsgRevealEntry) {
 	inMsgQueue <- msg
 }
 
+// Handle factom app imcoming msg
+func (p *peer) handleConfirmationMsg(msg *factomwire.MsgConfirmation) {
+	util.Trace()
+
+	// Add the msg to inbound msg queue
+	//	inMsgQueue <- msg
+}
+
 /*
 // handleBlockMsg is invoked when a peer receives a block bitcoin message.  It
 // blocks until the bitcoin block has been fully processed.
@@ -1609,6 +1617,9 @@ out:
 		case *factomwire.MsgTx:
 			p.handleTxMsg(msg)
 
+		case *factomwire.MsgConfirmation:
+			p.handleConfirmationMsg(msg)
+
 			/*
 				case *factomwire.MsgMemPool:
 					p.handleMemPoolMsg(msg)
@@ -1653,6 +1664,7 @@ out:
 		case *factomwire.MsgReject:
 			// Nothing to do currently.  Logging of the rejected
 			// message is handled already in readMessage.
+
 		default:
 			fmt.Sprintf("Received unhandled message of type %v: Fix Me",
 				rmsg.Command())

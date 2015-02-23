@@ -457,6 +457,7 @@ func TestLengthChecks(t *testing.T) {
 	var errors = 0
 
 	cmdlist := []string{
+		factomwire.CmdEntry,
 		factomwire.CmdBlock,
 		factomwire.CmdCommitChain,
 		factomwire.CmdCommitEntry,
