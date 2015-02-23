@@ -153,7 +153,7 @@ func TestAddEntry(t *testing.T) {
 		binaryEntry, _ := e.MarshalBinary()
 		entryHash := notaryapi.Sha(binaryEntry)		
 		timestamp := time.Now().Unix()
-		processCommitEntry(entryHash, pubKey, timestamp)
+		processCommitEntry(entryHash, pubKey, timestamp, 5)
 		time.Sleep(time.Second / 10)
 		processRevealEntry(entry)		
 	}	
