@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/FactomProject/FactomCode/factomapi"
 	"github.com/FactomProject/FactomCode/factomchain/factoid"
-	"github.com/FactomProject/FactomCode/factomwire"
+//	"github.com/FactomProject/FactomCode/factomwire"
 	"github.com/FactomProject/FactomCode/notaryapi"
 	"github.com/FactomProject/FactomCode/restapi"
 	"github.com/FactomProject/FactomCode/wallet"
@@ -29,7 +29,7 @@ func serve_init() {
 	server.Post(`/v1/getfilelist/?`, handleGetFileListPost) // to be replaced by DHT
 	server.Post(`/v1/getfile/?`, handleGetFilePost)         // to be replaced by DHT
 	server.Post(`/v1/factoidtx/?`, handleFactoidTx)
-	server.Post(`/v1/bintx/?`, handleBinTx)
+//	server.Post(`/v1/bintx/?`, handleBinTx)
 
 	server.Get(`/v1/creditbalance/?`, handleGetCreditBalancePost)
 	server.Get(`/v1/buycredit/?`, handleBuyCreditPost)
@@ -186,30 +186,25 @@ func handleBuyCreditPost(ctx *web.Context) {
 //}
 
 func handleFactoidTx(ctx *web.Context) {
-	n, err := strconv.ParseUint(ctx.Params["ammount"], 10, 32)
+	n, err := strconv.ParseInt(ctx.Params["ammount"], 10, 32)
 	if err != nil {
 		fmt.Println(err)
 	}
-	amt := uint32(n)
+	amt := n
 
 	addr, _, err := factoid.DecodeAddress(ctx.Params["to"])
 	if err != nil {
 		fmt.Println(err)
 	}
 	
-	// instead of genb we will have to read from the current confirmed factoid
-	// state
-	genb := factoid.FactoidGenesis(factomwire.TestNet)
-	outs := factoid.OutputsTx(&genb.Transactions[0])
-	txm := factoid.NewTxFromOutputToAddr(
-		genb.Transactions[0].Id(),
-		outs,
+	txm := factoid.NewTxFromInputToAddr(
+		factoid.NewFaucetIn(),
 		amt,
-		factoid.AddressReveal(*wallet.ClientPublicKey().Key),
 		addr)
 	ds := wallet.DetachMarshalSign(txm.TxData)
 	ss := factoid.NewSingleSignature(ds)
 	factoid.AddSingleSigToTxMsg(txm, ss)
+
 	wire := factoid.TxMsgToWire(txm)
 	//factomwire.FactomRelay(wire)
 	fmt.Println(wire)
