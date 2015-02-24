@@ -23,11 +23,12 @@ import (
 )
 
 var (
-	logLevel            = "DEBUG"
+	logLevel            = "debug"
+	logPath             = "/home/.factom/factomclient/factomclient.log"
 	portNumber      int = 8088
 	applicationName     = "factom/client"
 	serverAddr          = "localhost:8083"
-	//ldbpath = "/tmp/factomclient/ldb9"
+	//ldbpath              = "/tmp/factomclient/ldb9"
 	dataStorePath        = "/tmp/store/seed/csv"
 	refreshInSeconds int = 60
 

@@ -17,7 +17,10 @@ import (
 	"time"
 )
 
-var server = web.NewServer()
+var (
+	server = web.NewServer()
+	log    = serverLog
+)
 
 func serve_init() {
 	server.Post(`/v1/submitentry/?`, handleSubmitEntry)
@@ -32,7 +35,6 @@ func serve_init() {
 
 	server.Get(`/v1/creditbalance/?`, handleGetCreditBalancePost)
 	server.Get(`/v1/buycredit/?`, handleBuyCreditPost)
-
 	server.Get(`/v1/dblocksbyrange/([^/]+)(?:/([^/]+))?`, handleDBlocksByRange)
 	server.Get(`/v1/dblock/([^/]+)(?)`, handleDBlockByHash)
 	server.Get(`/v1/eblock/([^/]+)(?)`, handleEBlockByHash)
