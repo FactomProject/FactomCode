@@ -22,17 +22,17 @@ var (
 )
 
 func serve_init() {
+	serverLog.Info("Starting api handlers")
 	server.Post(`/v1/submitentry/?`, handleSubmitEntry)
 	server.Post(`/v1/submitchain/?`, handleSubmitChain)
 	server.Post(`/v1/buycredit/?`, handleBuyCreditPost)
-	server.Post(`/v1/creditbalance/?`, handleGetCreditBalancePost)
-	server.Post(`/v1/addentry/?`, handleSubmitEntry2)       // Needs to be removed later??
+	server.Post(`/v1/creditbalance/?`, handleGetCreditBalance)
 	server.Post(`/v1/getfilelist/?`, handleGetFileListPost) // to be replaced by DHT
 	server.Post(`/v1/getfile/?`, handleGetFilePost)         // to be replaced by DHT
 	server.Post(`/v1/factoidtx/?`, handleFactoidTx)
 	//	server.Post(`/v1/bintx/?`, handleBinTx)
 
-	server.Get(`/v1/creditbalance/?`, handleGetCreditBalancePost)
+	server.Get(`/v1/creditbalance/?`, handleGetCreditBalance)
 	server.Get(`/v1/buycredit/?`, handleBuyCreditPost)
 	server.Get(`/v1/dblocksbyrange/([^/]+)(?:/([^/]+))?`, handleDBlocksByRange)
 	server.Get(`/v1/dblock/([^/]+)(?)`, handleDBlockByHash)
@@ -43,9 +43,11 @@ func serve_init() {
 	//	server.Get(`/v1/bintx/?`, handleBinTx)
 }
 
+// handle Submit Entry converts a json post to a factom.Entry then submits the
+// entry to factom.
 func handleSubmitEntry(ctx *web.Context) {
-	// convert a json post to a factom.Entry then submit the entry to factom
-	fmt.Fprintln(ctx, "Entry Submitted")
+	log := serverLog
+	log.Debug("handleSubmitEntry")
 
 	switch ctx.Params["format"] {
 	case "json":
@@ -55,17 +57,20 @@ func handleSubmitEntry(ctx *web.Context) {
 		if err != nil {
 			fmt.Fprintln(ctx,
 				"there was a problem with submitting the entry:", err.Error())
+			log.Error(err)
 		}
 
 		if err := factomapi.CommitEntry(entry); err != nil {
 			fmt.Fprintln(ctx,
 				"there was a problem with submitting the entry:", err.Error())
+			log.Error(err)
 		}
 
 		time.Sleep(1 * time.Second)
 		if err := factomapi.RevealEntry(entry); err != nil {
 			fmt.Fprintln(ctx,
 				"there was a problem with submitting the entry:", err.Error())
+			log.Error(err)
 		}
 		fmt.Fprintln(ctx, "Entry Submitted")
 	default:
@@ -73,33 +78,11 @@ func handleSubmitEntry(ctx *web.Context) {
 	}
 }
 
-func handleSubmitEntry2(ctx *web.Context) {
-	// convert a json post to a factom.Entry then submit the entry to factom
-	fmt.Fprintln(ctx, "Entry Submitted")
-
-	switch ctx.Params["format"] {
-	case "json":
-		j := []byte(ctx.Params["entry"])
-		e := new(factomapi.Entry)
-		e.UnmarshalJSON(j)
-		if err := factomapi.CommitEntry2(e); err != nil {
-			fmt.Fprintln(ctx,
-				"there was a problem with submitting the entry:", err)
-		}
-		time.Sleep(1 * time.Second)
-		if err := factomapi.RevealEntry2(e); err != nil {
-			fmt.Fprintln(ctx,
-				"there was a problem with submitting the entry:", err)
-		}
-		fmt.Fprintln(ctx, "Entry Submitted")
-	default:
-		ctx.WriteHeader(403)
-	}
-}
-
+// handleSubmitChain converts a json post to a factomapi.Chain then submits the
+// entry to factomapi.
 func handleSubmitChain(ctx *web.Context) {
-
-	// convert a json post to a factomapi.Chain then submit the entry to factomapi
+	log := serverLog
+	log.Debug("handleSubmitChain")
 	switch ctx.Params["format"] {
 	case "json":
 		reader := gocoding.ReadBytes([]byte(ctx.Params["chain"]))
@@ -110,24 +93,27 @@ func handleSubmitChain(ctx *web.Context) {
 		if c.FirstEntry == nil {
 			fmt.Fprintln(ctx,
 				"The first entry is required for submitting the chain:")
+			log.Warning("The first entry is required for submitting the chain")
 			return
 		} else {
 			c.FirstEntry.ChainID = *c.ChainID
 		}
 
-		fmt.Println("c.ChainID:", c.ChainID.String())
+		log.Debug("c.ChainID:", c.ChainID.String())
 
 		if err := factomapi.CommitChain(c); err != nil {
 			fmt.Fprintln(ctx,
 				"there was a problem with submitting the chain:", err)
+			log.Error(err)
 		}
 
-		time.Sleep(1 * time.Second) //?? do we need to queue them up and look for the confirmation
+		time.Sleep(1 * time.Second)
 
 		if err := factomapi.RevealChain(c); err != nil {
 			fmt.Println(err.Error())
 			fmt.Fprintln(ctx,
 				"there was a problem with submitting the chain:", err)
+			log.Error(err)
 		}
 
 		fmt.Fprintln(ctx, "Chain Submitted")
@@ -136,7 +122,11 @@ func handleSubmitChain(ctx *web.Context) {
 	}
 }
 
+// handleBuyCreditPost will add entry credites to the specified key. Currently
+// the entry credits are given without any factoid transactions occuring.
 func handleBuyCreditPost(ctx *web.Context) {
+	log := serverLog
+	log.Debug("handleBuyCreditPost")
 	var httpcode int = 200
 	buf := new(bytes.Buffer)
 
@@ -161,19 +151,21 @@ func handleBuyCreditPost(ctx *web.Context) {
 		ecPubKey.Bytes, _ = hex.DecodeString(ctx.Params["to"])
 	}
 
-	fmt.Println("handleBuyCreditPost using pubkey: ", ecPubKey, " requested", ctx.Params["to"])
+	log.Info("handleBuyCreditPost using pubkey: ", ecPubKey, " requested", ctx.Params["to"])
 
-	factoid, _ := strconv.ParseFloat(ctx.Params["value"], 10)
+	factoid, err := strconv.ParseFloat(ctx.Params["value"], 10)
+	if err != nil {
+		log.Error(err)
+	}
 	value := uint64(factoid * 1000000000)
-	err := factomapi.BuyEntryCredit(1, ecPubKey, nil, value, 0, nil)
-
+	err = factomapi.BuyEntryCredit(1, ecPubKey, nil, value, 0, nil)
 	if err != nil {
 		abortMessage = fmt.Sprint("An error occured while submitting the buycredit request: ", err.Error())
+		log.Error(err)
 		return
 	} else {
 		fmt.Fprintln(ctx, "MsgGetCredit Submitted")
 	}
-
 }
 
 //func handleBinTx(ctx *web.Context) {
@@ -186,17 +178,20 @@ func handleBuyCreditPost(ctx *web.Context) {
 //}
 
 func handleFactoidTx(ctx *web.Context) {
+	log := serverLog
+	log.Debug("handleFactoidTx")
 	n, err := strconv.ParseInt(ctx.Params["amount"], 10, 32)
 	if err != nil {
-		fmt.Println(err)
+		log.Error(err)
 	}
 	amt := n
 
 	addr, _, err := factoid.DecodeAddress(ctx.Params["to"])
 	if err != nil {
-		fmt.Println(err)
+		log.Error(err)
 	}
 
+	log.Debug("factoid.NewTxFromInputToAddr")
 	txm := factoid.NewTxFromInputToAddr(
 		factoid.NewFaucetIn(),
 		amt,
@@ -211,12 +206,17 @@ func handleFactoidTx(ctx *web.Context) {
 	if err := factomapi.SubmitFactoidTx(wire); err != nil {
 		fmt.Fprintln(ctx,
 			"there was a problem submitting the tx:", err.Error())
+		log.Error(err)
 	}
 
-	fmt.Println(wire)
+	log.Debug("MsgTx: ", wire)
 }
 
-func handleGetCreditBalancePost(ctx *web.Context) {
+// handleGetCreditBalance will return the current entry credit balance of the
+// spesified pubKey
+func handleGetCreditBalance(ctx *web.Context) {
+	log := serverLog
+	log.Debug("handleGetCreditBalance")
 	var httpcode int = 200
 	buf := new(bytes.Buffer)
 
@@ -229,29 +229,40 @@ func handleGetCreditBalancePost(ctx *web.Context) {
 	if ctx.Params["pubkey"] == "wallet" {
 		ecPubKey.Bytes = (*wallet.ClientPublicKey().Key)[:]
 	} else {
-		ecPubKey.Bytes, _ = hex.DecodeString(ctx.Params["pubkey"])
+		p, err := hex.DecodeString(ctx.Params["pubkey"])
+		if err != nil {
+			log.Error(err)
+		}
+		ecPubKey.Bytes = p
 	}
 
-	fmt.Println("handleGetCreditBalancePost using pubkey: ", ecPubKey, " requested", ctx.Params["pubkey"])
+	log.Info("handleGetCreditBalance using pubkey: ", ecPubKey,
+		" requested", ctx.Params["pubkey"])
 
 	balance, err := factomapi.GetEntryCreditBalance(ecPubKey)
+	if err != nil {
+		log.Error(err)
+	}
 
 	ecBalance := new(notaryapi.ECBalance)
 	ecBalance.Credits = balance
 	ecBalance.PublicKey = ecPubKey
 
-	fmt.Println("Balance for pubkey ", ctx.Params["pubkey"], " is: ", balance)
+	log.Info("Balance for pubkey ", ctx.Params["pubkey"], " is: ", balance)
 
 	// Send back JSON response
 	err = factomapi.SafeMarshal(buf, ecBalance)
 	if err != nil {
 		httpcode = 400
 		buf.WriteString("Bad request ")
+		log.Error(err)
 		return
 	}
 }
 
 func handleGetFileListPost(ctx *web.Context) {
+	log := serverLog
+	log.Debug("handleGetFileListPost")
 	var httpcode int = 200
 	buf := new(bytes.Buffer)
 
@@ -262,23 +273,28 @@ func handleGetFileListPost(ctx *web.Context) {
 
 	// Send back JSON response
 	err := factomapi.SafeMarshal(buf, restapi.ServerDataFileMap)
-
 	if err != nil {
 		httpcode = 400
 		buf.WriteString("Bad request ")
+		log.Error(err)
 		return
 	}
 }
 
 func handleGetFilePost(ctx *web.Context) {
+	log := serverLog
+	log.Debug("handleGetFilePost")
 
 	fileKey := ctx.Params["filekey"]
 	filename := restapi.ServerDataFileMap[fileKey]
 	http.ServeFile(ctx.ResponseWriter, ctx.Request, dataStorePath+"csv/"+filename)
-
 }
 
-func handleDBlocksByRange(ctx *web.Context, fromHeightStr string, toHeightStr string) {
+func handleDBlocksByRange(ctx *web.Context, fromHeightStr string,
+	toHeightStr string) {
+	log := serverLog
+	log.Debug("handleDBlocksByRange")
+
 	var httpcode int = 200
 	buf := new(bytes.Buffer)
 
@@ -291,12 +307,14 @@ func handleDBlocksByRange(ctx *web.Context, fromHeightStr string, toHeightStr st
 	if err != nil {
 		httpcode = 400
 		buf.WriteString("Bad fromBlockHeight")
+		log.Error(err)
 		return
 	}
 	toBlockHeight, err := strconv.Atoi(toHeightStr)
 	if err != nil {
 		httpcode = 400
 		buf.WriteString("Bad toBlockHeight")
+		log.Error(err)
 		return
 	}
 
@@ -304,6 +322,7 @@ func handleDBlocksByRange(ctx *web.Context, fromHeightStr string, toHeightStr st
 	if err != nil {
 		httpcode = 400
 		buf.WriteString("Bad request")
+		log.Error(err)
 		return
 	}
 
@@ -312,12 +331,14 @@ func handleDBlocksByRange(ctx *web.Context, fromHeightStr string, toHeightStr st
 	if err != nil {
 		httpcode = 400
 		buf.WriteString("Bad request")
+		log.Error(err)
 		return
 	}
-
 }
 
 func handleDBlockByHash(ctx *web.Context, hashStr string) {
+	log := serverLog
+	log.Debug("handleDBlockByHash")
 	var httpcode int = 200
 	buf := new(bytes.Buffer)
 
@@ -330,6 +351,7 @@ func handleDBlockByHash(ctx *web.Context, hashStr string) {
 	if err != nil {
 		httpcode = 400
 		buf.WriteString("Bad Request")
+		log.Error(err)
 		return
 	}
 
@@ -338,12 +360,14 @@ func handleDBlockByHash(ctx *web.Context, hashStr string) {
 	if err != nil {
 		httpcode = 400
 		buf.WriteString("Bad request ")
+		log.Error(err)
 		return
 	}
-
 }
 
 func handleEBlockByHash(ctx *web.Context, hashStr string) {
+	log := serverLog
+	log.Debug("handleEBlockByHash")
 	var httpcode int = 200
 	buf := new(bytes.Buffer)
 
@@ -356,6 +380,7 @@ func handleEBlockByHash(ctx *web.Context, hashStr string) {
 	if err != nil {
 		httpcode = 400
 		buf.WriteString("Bad Request")
+		log.Error(err)
 		return
 	}
 
@@ -364,11 +389,14 @@ func handleEBlockByHash(ctx *web.Context, hashStr string) {
 	if err != nil {
 		httpcode = 400
 		buf.WriteString("Bad request")
+		log.Error(err)
 		return
 	}
-
 }
+
 func handleEBlockByMR(ctx *web.Context, mrStr string) {
+	log := serverLog
+	log.Debug("handleEBlockByMR")
 	var httpcode int = 200
 	buf := new(bytes.Buffer)
 
@@ -376,13 +404,14 @@ func handleEBlockByMR(ctx *web.Context, mrStr string) {
 		ctx.WriteHeader(httpcode)
 		ctx.Write(buf.Bytes())
 	}()
-	fmt.Println("mrstr:", mrStr)
+	log.Info("mrstr:", mrStr)
 	newstr, _ := url.QueryUnescape(mrStr)
-	fmt.Println("newstr:", newstr)
+	log.Info("newstr:", newstr)
 	eBlock, err := factomapi.GetEntryBlokByMRStr(newstr)
 	if err != nil {
 		httpcode = 400
 		buf.WriteString("Bad Request")
+		log.Error(err)
 		return
 	}
 
@@ -391,12 +420,14 @@ func handleEBlockByMR(ctx *web.Context, mrStr string) {
 	if err != nil {
 		httpcode = 400
 		buf.WriteString("Bad request")
+		log.Error(err)
 		return
 	}
-
 }
 
 func handleEntryByHash(ctx *web.Context, hashStr string) {
+	log := serverLog
+	log.Debug("handleEBlockByMR")
 	var httpcode int = 200
 	buf := new(bytes.Buffer)
 
@@ -409,6 +440,7 @@ func handleEntryByHash(ctx *web.Context, hashStr string) {
 	if err != nil {
 		httpcode = 400
 		buf.WriteString("Bad Request")
+		log.Error(err)
 		return
 	}
 
@@ -417,6 +449,7 @@ func handleEntryByHash(ctx *web.Context, hashStr string) {
 	if err != nil {
 		httpcode = 400
 		buf.WriteString("Bad request")
+		log.Error(err)
 		return
 	}
 }
