@@ -10,12 +10,22 @@ import (
 	"encoding/hex"
 	"github.com/FactomProject/FactomCode/factomwire"
 	"github.com/FactomProject/FactomCode/notaryapi"
+	"sync"	
+	"time"
 )
+type FChain struct {
+	ChainID      *notaryapi.Hash
+	Name         [][]byte
+	Blocks       []*FBlock
+	CurrentBlock *FBlock
+	BlockMutex   sync.Mutex
+	NextBlockID  uint64
+}
 
 //Factoid Block header
 type FBlockHeader struct {
 	Height     uint64
-	ParentHash notaryapi.HashF
+	PrevBlockHash *notaryapi.Hash
 	TimeStamp  int64
 	TxCount    uint32
 }
@@ -61,4 +71,13 @@ func FactoidGenesis(net factomwire.FactomNet) (genesis *FBlock) {
 
 	genesis.Transactions[0] = *NewTx(txmsg)
 	return
+}
+
+
+func NewFBlockHeader(blockId uint64, prevHash *notaryapi.Hash, merkle *notaryapi.Hash) *FBlockHeader {
+	return &FBlockHeader{
+		PrevBlockHash: prevHash,
+		TimeStamp:     time.Now().Unix(),
+		Height:       blockId,
+	}
 }

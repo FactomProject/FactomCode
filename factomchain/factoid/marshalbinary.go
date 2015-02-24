@@ -7,8 +7,8 @@ package factoid
 import (
 	"bytes"
 	"encoding/binary"
-	//"github.com/FactomProject/FactomCode/notaryapi"
-	//"fmt"
+	"github.com/FactomProject/FactomCode/notaryapi"
+	//"fmt"	
 )
 
 func (i *Input) MarshalBinary() (data []byte, err error) {
@@ -246,6 +246,151 @@ func (txm *TxMsg) UnmarshalBinary(data []byte) (err error) {
 	for i := uint64(0); i < count; i++ {
 		txm.Sigs[i].UnmarshalBinary(data)
 		data = data[txm.Sigs[i].MarshalledSize():]
+	}
+
+	return nil
+}
+
+
+func (b *FChain) MarshalBinary() (data []byte, err error) {
+	var buf bytes.Buffer
+
+	data, _ = b.ChainID.MarshalBinary()
+	buf.Write(data)
+
+	count := len(b.Name)
+	binary.Write(&buf, binary.BigEndian, uint64(count))
+
+	for _, bytes := range b.Name {
+		count = len(bytes)
+		binary.Write(&buf, binary.BigEndian, uint64(count))
+		buf.Write(bytes)
+	}
+
+	return buf.Bytes(), err
+}
+
+func (b *FChain) MarshalledSize() uint64 {
+	var size uint64 = 0
+	size += 33 //b.ChainID
+	size += 8  //Name length
+	for _, bytes := range b.Name {
+		size += 8
+		size += uint64(len(bytes))
+	}
+	return size
+}
+
+func (b *FChain) UnmarshalBinary(data []byte) (err error) {
+	b.ChainID = new(notaryapi.Hash)
+	b.ChainID.UnmarshalBinary(data[:33])
+
+	data = data[33:]
+	count := binary.BigEndian.Uint64(data[0:8])
+	data = data[8:]
+
+	b.Name = make([][]byte, count, count)
+
+	for i := uint64(0); i < count; i++ {
+		length := binary.BigEndian.Uint64(data[0:8])
+		data = data[8:]
+		b.Name[i] = data[:length]
+		data = data[length:]
+	}
+
+	return nil
+}
+
+func (b *FBlockHeader) MarshalBinary() (data []byte, err error) {
+	var buf bytes.Buffer
+
+	binary.Write(&buf, binary.BigEndian, b.Height)
+	data, err = b.PrevBlockHash.MarshalBinary()
+	if err != nil {
+		return
+	}
+
+	buf.Write(data)
+	binary.Write(&buf, binary.BigEndian, b.TimeStamp)
+	binary.Write(&buf, binary.BigEndian, b.TxCount)
+
+	return buf.Bytes(), err
+}
+
+func (b *FBlockHeader) MarshalledSize() uint64 {
+	var size uint64 = 0
+
+	size += 8
+	size += b.PrevBlockHash.MarshalledSize()
+	size += 8
+	size += 4
+
+	return size
+}
+
+func (b *FBlockHeader) UnmarshalBinary(data []byte) (err error) {
+	b.Height, data = binary.BigEndian.Uint64(data[0:8]), data[8:]
+
+	b.PrevBlockHash = new(notaryapi.Hash)
+	b.PrevBlockHash.UnmarshalBinary(data)
+	data = data[b.PrevBlockHash.MarshalledSize():]
+
+	timeStamp, data := binary.BigEndian.Uint64(data[:8]), data[8:]
+	b.TimeStamp = int64(timeStamp)
+
+	b.TxCount = binary.BigEndian.Uint32(data[:4])
+
+	return nil
+}
+
+
+func (b *FBlock) MarshalBinary() (data []byte, err error) {
+	var buf bytes.Buffer
+
+	data, _ = b.Header.MarshalBinary()
+	buf.Write(data)
+
+	count := uint64(len(b.Transactions))
+	binary.Write(&buf, binary.BigEndian, count)
+	for i := uint64(0); i < count; i++ {
+		data, _ := b.Transactions[i].Txm.MarshalBinary()
+		buf.Write(data)
+	}
+	return buf.Bytes(), err
+}
+
+func (b *FBlock) MarshalledSize() uint64 {
+	var size uint64 = 0
+
+	size += b.Header.MarshalledSize()
+	size += 8 // len(Entries) uint64
+
+	for _, tx := range b.Transactions {
+		size += tx.Txm.MarshalledSize()
+	}
+
+	return size
+}
+
+func (b *FBlock) UnmarshalBinary(data []byte) (err error) {
+	h := new(FBlockHeader)
+	h.UnmarshalBinary(data)
+	b.Header = *h
+
+	data = data[h.MarshalledSize():]
+
+	count, data := binary.BigEndian.Uint64(data[0:8]), data[8:]
+
+	b.Transactions = make([]Tx, count)
+	for i := uint64(0); i < count; i++ {
+		txMsg := new (TxMsg)
+		err = txMsg.UnmarshalBinary(data)
+		if err != nil {
+			return
+		}
+		data = data[txMsg.MarshalledSize():]
+		
+		b.Transactions[i] =  *(NewTx(txMsg))
 	}
 
 	return nil
