@@ -46,34 +46,34 @@ func New(w io.Writer, level, prefix string) *FLogger {
 	}
 }
 
-// Emergency logs with an emergency level.
+// Emergency logs with an emergency level and exits the program.
 func (logger *FLogger) Emergency(args ...interface{}) {
 	logger.write(Emergency, args...)
 }
 
-// Emergencyf logs with an emergency level.
+// Emergencyf logs with an emergency level and exits the program.
 // Arguments are handled in the manner of fmt.Printf.
 func (logger *FLogger) Emergencyf(format string, args ...interface{}) {
 	logger.write(Emergency, fmt.Sprintf(format, args...))
 }
 
-// Alert logs with an alert level.
+// Alert logs with an alert level and exits the program.
 func (logger *FLogger) Alert(args ...interface{}) {
 	logger.write(Alert, args...)
 }
 
-// Alertf logs with an alert level.
+// Alertf logs with an alert level and exits the program.
 // Arguments are handled in the manner of fmt.Printf.
 func (logger *FLogger) Alertf(format string, args ...interface{}) {
 	logger.write(Alert, fmt.Sprintf(format, args...))
 }
 
-// Critical logs with a critical level.
+// Critical logs with a critical level and exits the program.
 func (logger *FLogger) Critical(args ...interface{}) {
 	logger.write(Critical, args...)
 }
 
-// Criticalf logs with a critical level.
+// Criticalf logs with a critical level and exits the program.
 // Arguments are handled in the manner of fmt.Printf.
 func (logger *FLogger) Criticalf(format string, args ...interface{}) {
 	logger.write(Critical, fmt.Sprintf(format, args...))
@@ -140,7 +140,7 @@ func (logger *FLogger) write(level Level, args ...interface{}) {
 	if level > logger.level {
 		return
 	}
-	
+
 	l := fmt.Sprint(args...) // get string for formatting
 	fmt.Fprintf(logger.out, "%s [%s] %s: %s\n", time.Now().Format(time.RFC3339), levelPrefix[level], logger.prefix, l)
 	if level <= Critical {
