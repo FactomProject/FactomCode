@@ -604,7 +604,7 @@ func (s *server) peerHandler() {
 	// things, it's easier and slightly faster to simply start and stop them
 	// in this handler.
 	s.addrManager.Start()
-	//	s.blockManager.Start()
+	s.blockManager.Start()
 
 	fmt.Println("Starting peer handler")
 	state := &peerState{
@@ -1302,7 +1302,6 @@ nowc:
 	s.blockManager = bm
 	s.txMemPool = newTxMemPool(&s)
 	///s.cpuMiner = newCPUMiner(&s)
-
 	/*
 		if !cfg.DisableRPC {
 			s.rpcServer, err = newRPCServer(cfg.RPCListeners, &s)
@@ -1335,3 +1334,5 @@ func dynamicTickDuration(remaining time.Duration) time.Duration {
 	}
 	return time.Hour
 }
+
+

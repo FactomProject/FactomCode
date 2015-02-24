@@ -31,6 +31,7 @@ var (
 	db              database.Db                          // database
 	inMsgQueue      = make(chan factomwire.Message, 100) //incoming message queue for factom application messages
 	outMsgQueue     = make(chan factomwire.Message, 100) //outgoing message queue for factom application messages
+	inRpcQueue      = make(chan factomwire.Message, 100) //incoming message queue for factom application messages
 )
 
 // winServiceMain is only invoked on Windows.  It detects when btcd is running
@@ -132,6 +133,19 @@ func factomdMain(serverChan chan<- *server) error {
 		}
 	}()
 
+	go func() {
+		for msg := range inRpcQueue {
+			fmt.Printf("in range inRpcQueue, msg:%+v\n", msg)
+			switch msg.Command() {
+				case factomwire.CmdTx:
+					server.blockManager.QueueTx(msg.(*factomwire.MsgTx), nil)
+				default:
+					inMsgQueue <- msg
+					outMsgQueue <- msg 
+			}
+		}
+	}()
+
 	// Monitor for graceful server shutdown and signal the main goroutine
 	// when done.  This is done in a separate goroutine rather than waiting
 	// directly so the main goroutine can be signaled for shutdown by either
@@ -165,6 +179,7 @@ func main() {
 	// Call serviceMain on Windows to handle running as a service.  When
 	// the return isService flag is true, exit now since we ran as a
 	// service.  Otherwise, just fall through to normal operation.
+	/*
 	if runtime.GOOS == "windows" {
 		isService, err := winServiceMain()
 		if err != nil {
@@ -175,7 +190,7 @@ func main() {
 			os.Exit(0)
 		}
 	}
-
+	*/
 	util.Trace()
 
 	// Work around defer not working after os.Exit()
@@ -200,8 +215,7 @@ func init() {
 	go restapi.Start_Processor(db, inMsgQueue, outMsgQueue)
 
 	// Start the RPC server module in a separate go-routine
-
-	go factomclient.Start_Rpcserver(db, outMsgQueue)
+	go factomclient.Start_Rpcserver(db, inRpcQueue)
 
 	util.Trace()
 }
