@@ -8,7 +8,12 @@ import (
 	//"github.com/FactomProject/FactomCode/notaryapi"
 )
 
+
 func TestFactoidGenesis(t *testing.T) {
+	if wallet.FactoidAddress() != factoid.GenesisAddress {
+		t.SkipNow()
+	}
+
 	genb := factoid.FactoidGenesis(factomwire.TestNet)
 
 	t.Logf("genb: %v ", genb)
@@ -26,6 +31,10 @@ func TestFactoidGenesis(t *testing.T) {
 }
 
 func TestGenesisInputTransaction(t *testing.T) {
+	if wallet.FactoidAddress() != factoid.GenesisAddress {
+		t.SkipNow()
+	}
+
 	genb := factoid.FactoidGenesis(factomwire.TestNet)
 
 	addr, _, _ := factoid.DecodeAddress("ExZ7hUZ7B4T3doVC6iLBPh9JP33huwELmLg6pM2LDNSiqk9mSs")
@@ -44,3 +53,4 @@ func TestGenesisInputTransaction(t *testing.T) {
 	}
 
 }
+

@@ -36,7 +36,9 @@ type FBlock struct {
 	Transactions []Tx
 }
 
-var genesis *FBlock
+const (
+	GenesisAddress = "FfZgRRHxuzsWkhXcb5Tb16EYuDEkbVCPAk1svfmYxyUXGPoS2X"
+)
 
 func FactoidGenesis(net factomwire.FactomNet) (genesis *FBlock) {
 	genesis = &FBlock{
@@ -58,7 +60,7 @@ func FactoidGenesis(net factomwire.FactomNet) (genesis *FBlock) {
 	case factomwire.MainNet:
 
 	default: //TestNet
-		addr, _, _ := DecodeAddress("FfZgRRHxuzsWkhXcb5Tb16EYuDEkbVCPAk1svfmYxyUXGPoS2X")
+		addr, _, _ := DecodeAddress(GenesisAddress)
 		out = NewOutput(FACTOID_ADDR, 1000000000, addr)
 		sigbytes, _ := hex.DecodeString("4369be19d8fe9cba655cadeb4441b646b94582d0dc890bdd2060220b61bdee10b9f96cce824c201151131b99df7201f6669e9fbd9ccc74c229c57c59ed37b100")
 		insig.AddSig(SingleSigFromByte(sigbytes))
