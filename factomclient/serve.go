@@ -5,6 +5,8 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/FactomProject/FactomCode/factomapi"
+	"github.com/FactomProject/FactomCode/factomchain/factoid"
+//	"github.com/FactomProject/FactomCode/factomwire"
 	"github.com/FactomProject/FactomCode/notaryapi"
 	"github.com/FactomProject/FactomCode/restapi"
 	"github.com/FactomProject/FactomCode/wallet"
@@ -19,7 +21,6 @@ import (
 var server = web.NewServer()
 
 func serve_init() {
-
 	server.Post(`/v1/submitentry/?`, handleSubmitEntry)
 	server.Post(`/v1/submitchain/?`, handleSubmitChain)
 	server.Post(`/v1/buycredit/?`, handleBuyCreditPost)
@@ -27,6 +28,8 @@ func serve_init() {
 	server.Post(`/v1/addentry/?`, handleSubmitEntry2)       // Needs to be removed later??
 	server.Post(`/v1/getfilelist/?`, handleGetFileListPost) // to be replaced by DHT
 	server.Post(`/v1/getfile/?`, handleGetFilePost)         // to be replaced by DHT
+	server.Post(`/v1/factoidtx/?`, handleFactoidTx)
+//	server.Post(`/v1/bintx/?`, handleBinTx)
 
 	server.Get(`/v1/creditbalance/?`, handleGetCreditBalancePost)
 	server.Get(`/v1/buycredit/?`, handleBuyCreditPost)
@@ -36,7 +39,8 @@ func serve_init() {
 	server.Get(`/v1/eblock/([^/]+)(?)`, handleEBlockByHash)
 	server.Get(`/v1/eblockbymr/([^/]+)(?)`, handleEBlockByMR)
 	server.Get(`/v1/entry/([^/]+)(?)`, handleEntryByHash)
-
+	server.Get(`/v1/factoidtx/?`, handleFactoidTx)
+//	server.Get(`/v1/bintx/?`, handleBinTx)
 }
 
 func handleSubmitEntry(ctx *web.Context) {
@@ -171,6 +175,41 @@ func handleBuyCreditPost(ctx *web.Context) {
 	}
 
 }
+
+//func handleBinTx(ctx *web.Context) {
+//	msg := new(factomwire.MsgTx)
+//	msg.Data, err := hex.DecodeString(ctx.Params["tx"])
+//	if err != nil {
+//		fmt.Println(err)
+//	}
+//	//factomwire.FactomRelay(msg)
+//}
+
+func handleFactoidTx(ctx *web.Context) {
+	n, err := strconv.ParseInt(ctx.Params["ammount"], 10, 32)
+	if err != nil {
+		fmt.Println(err)
+	}
+	amt := n
+
+	addr, _, err := factoid.DecodeAddress(ctx.Params["to"])
+	if err != nil {
+		fmt.Println(err)
+	}
+	
+	txm := factoid.NewTxFromInputToAddr(
+		factoid.NewFaucetIn(),
+		amt,
+		addr)
+	ds := wallet.DetachMarshalSign(txm.TxData)
+	ss := factoid.NewSingleSignature(ds)
+	factoid.AddSingleSigToTxMsg(txm, ss)
+
+	wire := factoid.TxMsgToWire(txm)
+	//factomwire.FactomRelay(wire)
+	fmt.Println(wire)
+}
+
 func handleGetCreditBalancePost(ctx *web.Context) {
 	var httpcode int = 200
 	buf := new(bytes.Buffer)
