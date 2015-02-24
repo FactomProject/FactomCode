@@ -31,7 +31,6 @@ var (
 	//ldbpath              = "/tmp/factomclient/ldb9"
 	dataStorePath        = "/tmp/store/seed/csv"
 	refreshInSeconds int = 60
-	log					= rpcLog
 
 	db database.Db // database
 
@@ -48,6 +47,7 @@ func readError(err error) {
 }
 
 func init_rpcserver() {
+	log := rpcLog
 	log.Debug("dynrsrc.Start")
 	err := dynrsrc.Start(watchError, readError)
 	if err != nil {
@@ -68,12 +68,11 @@ func init_rpcserver() {
 }
 
 func Start_Rpcserver(ldb database.Db, outMsgQ chan<- factomwire.Message) {
-
 	db = ldb
 	factomapi.SetDB(db)
 	factomapi.SetOutMsgQueue(outMsgQ)
 
-	log.Info("Starting rpcserver")
+	rpcLog.Info("Starting rpcserver")
 	init_rpcserver()
 
 	defer func() {
@@ -98,6 +97,8 @@ func LoadConfigurations(cfg *util.FactomdConfig) {
 
 // to be replaced by DHT
 func downloadAndImportDbRecords() {
+	log := rpcLog
+	
 	data := url.Values{}
 	data.Set("accept", "json")
 	data.Set("datatype", "filelist")
@@ -108,13 +109,13 @@ func downloadAndImportDbRecords() {
 	resp, err := http.PostForm(server, data)
 
 	if err != nil {
-		fmt.Println("Error:", err)
+		log.Error(err)
 		return
 	}
 
 	contents, _ := ioutil.ReadAll(resp.Body)
 	if len(contents) < 5 {
-		log.Info("The server file list is empty")
+		log.Notice("The server file list is empty")
 		return
 	}
 
@@ -177,6 +178,7 @@ func downloadAndImportDbRecords() {
 
 // Initialize the imported file list
 func initClientDataFileMap() error {
+	log := rpcLog
 	clientDataFileMap = make(map[string]string)
 
 	fiList, err := ioutil.ReadDir(dataStorePath)
