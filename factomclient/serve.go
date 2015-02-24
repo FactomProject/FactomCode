@@ -19,7 +19,6 @@ import (
 
 var (
 	server = web.NewServer()
-	log    = serverLog
 )
 
 func serve_init() {
