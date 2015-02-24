@@ -1,9 +1,10 @@
-// Copyright (c) 2015 FactomProject/FactomCode Systems LLC.
-// Use of this source code is governed by an ISC
-// license that can be found in the LICENSE file.
+// Copyright 2015 FactomProject Authors. All rights reserved.
+// Use of this source code is governed by the MIT license
+// that can be found in the LICENSE file.
 
 // factomlog is based on github.com/alexcesaro/log and
 // github.com/alexcesaro/log/golog (MIT License)
+
 package factomlog
 
 import (
@@ -141,8 +142,8 @@ func (logger *FLogger) write(level Level, args ...interface{}) {
 	}
 	
 	l := fmt.Sprint(args...) // get string for formatting
-	fmt.Fprintln(logger.out, time.Now().Round(time.Second), logger.prefix, levelPrefix[level], l)
-	if level <= Error {
+	fmt.Fprintln(logger.out, time.Now().Format(time.RFC3339), logger.prefix, levelPrefix[level], l)
+	if level <= Critical {
 		os.Exit(1)
 	}
 }
