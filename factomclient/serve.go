@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/FactomProject/FactomCode/factomapi"
 	"github.com/FactomProject/FactomCode/factomchain/factoid"
-//	"github.com/FactomProject/FactomCode/factomwire"
 	"github.com/FactomProject/FactomCode/notaryapi"
 	"github.com/FactomProject/FactomCode/restapi"
 	"github.com/FactomProject/FactomCode/wallet"
@@ -29,7 +28,7 @@ func serve_init() {
 	server.Post(`/v1/getfilelist/?`, handleGetFileListPost) // to be replaced by DHT
 	server.Post(`/v1/getfile/?`, handleGetFilePost)         // to be replaced by DHT
 	server.Post(`/v1/factoidtx/?`, handleFactoidTx)
-//	server.Post(`/v1/bintx/?`, handleBinTx)
+	//	server.Post(`/v1/bintx/?`, handleBinTx)
 
 	server.Get(`/v1/creditbalance/?`, handleGetCreditBalancePost)
 	server.Get(`/v1/buycredit/?`, handleBuyCreditPost)
@@ -40,7 +39,7 @@ func serve_init() {
 	server.Get(`/v1/eblockbymr/([^/]+)(?)`, handleEBlockByMR)
 	server.Get(`/v1/entry/([^/]+)(?)`, handleEntryByHash)
 	server.Get(`/v1/factoidtx/?`, handleFactoidTx)
-//	server.Get(`/v1/bintx/?`, handleBinTx)
+	//	server.Get(`/v1/bintx/?`, handleBinTx)
 }
 
 func handleSubmitEntry(ctx *web.Context) {
@@ -186,7 +185,7 @@ func handleBuyCreditPost(ctx *web.Context) {
 //}
 
 func handleFactoidTx(ctx *web.Context) {
-	n, err := strconv.ParseInt(ctx.Params["ammount"], 10, 32)
+	n, err := strconv.ParseInt(ctx.Params["amount"], 10, 32)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -196,7 +195,7 @@ func handleFactoidTx(ctx *web.Context) {
 	if err != nil {
 		fmt.Println(err)
 	}
-	
+
 	txm := factoid.NewTxFromInputToAddr(
 		factoid.NewFaucetIn(),
 		amt,
@@ -206,7 +205,13 @@ func handleFactoidTx(ctx *web.Context) {
 	factoid.AddSingleSigToTxMsg(txm, ss)
 
 	wire := factoid.TxMsgToWire(txm)
-	//factomwire.FactomRelay(wire)
+
+	time.Sleep(1 * time.Second)
+	if err := factomapi.SubmitFactoidTx(wire); err != nil {
+		fmt.Fprintln(ctx,
+			"there was a problem submitting the tx:", err.Error())
+	}
+
 	fmt.Println(wire)
 }
 

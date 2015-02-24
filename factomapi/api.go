@@ -5,7 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/FactomProject/FactomCode/database"
-//	"github.com/FactomProject/FactomCode/factomchain/factoid"
+	//	"github.com/FactomProject/FactomCode/factomchain/factoid"
 	"github.com/FactomProject/FactomCode/factomwire"
 	"github.com/FactomProject/FactomCode/notaryapi"
 	"github.com/FactomProject/FactomCode/wallet"
@@ -55,7 +55,7 @@ func BuyEntryCredit(version uint16, ecPubKey *notaryapi.Hash, from *notaryapi.Ha
 //	ds := wallet.DetachMarshalSign(txm.TxData)
 //	ss := factoid.NewSingleSignature(ds)
 //	factoid.AddSingleSigToTxMsg(txm, ss)
-//	
+//
 //	msg.Data, err := txm.MarshalBinary()
 //	if err != nil {
 //		fmt.Println(err)
@@ -545,3 +545,10 @@ func Submit(f FactomWriter) (err error) {
 	return nil
 }
 */
+
+func SubmitFactoidTx(m factomwire.Message) error {
+
+	outMsgQueue <- m
+
+	return nil
+}
