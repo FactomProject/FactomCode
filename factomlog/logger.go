@@ -142,7 +142,7 @@ func (logger *FLogger) write(level Level, args ...interface{}) {
 	}
 	
 	l := fmt.Sprint(args...) // get string for formatting
-	fmt.Fprintln(logger.out, time.Now().Format(time.RFC3339), logger.prefix, levelPrefix[level], l)
+	fmt.Fprintf(logger.out, "%s [%s] %s: %s\n", time.Now().Format(time.RFC3339), levelPrefix[level], logger.prefix, l)
 	if level <= Critical {
 		os.Exit(1)
 	}
