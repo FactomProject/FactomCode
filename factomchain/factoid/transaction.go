@@ -21,7 +21,7 @@ type Txid notaryapi.HashF
 type Input struct {
 	Txid       Txid
 	Index      uint32
-	RevealAddr notaryapi.ByteArray
+	RevealAddr AddressReveal//notaryapi.ByteArray
 }
 
 func (o *Input) String() string {
@@ -30,7 +30,7 @@ func (o *Input) String() string {
 
 // NewInput returns a new factoid transaction input with the provided
 // Txid, index, and revealed address
-func NewInput(id *Txid, index uint32, reveal notaryapi.ByteArray) *Input {
+func NewInput(id *Txid, index uint32, reveal AddressReveal) *Input {
 	return &Input{
 		Txid:       *id,
 		Index:      index,
