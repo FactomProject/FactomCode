@@ -19,15 +19,20 @@ import (
 //
 type TxSpentList []bool
 
+type TxOutSpent struct {
+	Outs  *[]Output
+	Spent  TxSpentList
+}
+
 //Unspent TransaXtion Outputs is implimented as a hashtable from Txid to bool array  TxSpentList
 type Utxo struct {
-	Txspent map[Txid]TxSpentList
+	Txspent map[Txid]TxOutSpent
 }
 
 //Utxo constructor
 func NewUtxo() Utxo {
 	return Utxo{
-		Txspent: make(map[Txid]TxSpentList),
+		Txspent: make(map[Txid]TxOutSpent),
 	}
 }
 
@@ -53,7 +58,7 @@ func (u *Utxo) AddTx(t *Tx) {
 //add all outputs for txid to UTXO
 func (u *Utxo) AddUtxo(id *Txid, outs []Output) {
 	txs := make(TxSpentList, len(outs))
-	u.Txspent[*id] = txs
+	u.Txspent[*id] = TxOutSpent{&outs,txs}
 }
 
 //IsValid checks Inputs and returns true if all inputs are in current Utxo
@@ -71,17 +76,20 @@ func (u *Utxo) IsValid(in []Input) bool {
 			return false
 		}
 
-		if i.Index < 1 || i.Index > uint32(len(spends)) {
+		if i.Index < 1 || i.Index > uint32(len(spends.Spent)) {
 			fmt.Println("utxo bad index", i.Txid.String(), " Index ", i.Index)
 
 			return false
 		}
-		if spends[i.Index-1] {
-
+		if spends.Spent[i.Index-1] {
 			fmt.Println("Output already spent ", i.Txid.String(), " Index ", i.Index)
-
 			return false
 		}
+		if ok := VerifyAddressReveal((*spends.Outs)[i.Index-1].ToAddr,i.RevealAddr); !ok {
+			fmt.Println("!VerifyAddressReveal ", (*spends.Outs)[i.Index-1].ToAddr, " i.RevealAddr ", i.RevealAddr)
+			return false
+		}
+
 	}
 
 	return true
@@ -120,12 +128,21 @@ func (u *Utxo) Spend(in []Input) {
 			continue
 		}
 
-		if i.Index < 1 || i.Index > uint32(len(spends)) {
+		if i.Index < 1 || i.Index > uint32(len(spends.Spent)) {
 			continue
 		}
 
-		if !spends[i.Index-1] {
-			spends[i.Index-1] = true
+		if !spends.Spent[i.Index-1] {
+			spends.Spent[i.Index-1] = true
 		}
 	}
 }
+
+//Meant for adding verified blocks to Utxo 
+func(u *Utxo) AddVerifiedTxList(tx []Tx) {
+	for _, t := range tx {
+		u.AddUtxo(t.Id(),OutputsTx(&t))
+	}	
+}
+
+

@@ -885,7 +885,7 @@ func initFChain() {
 		fchain.Blocks[i] = &fBlocks[i]
 
 		// Load the block into utxo pool
-		
+		factoid.GlobalUtxo.AddVerifiedTxList(fBlocks[i].Transactions)
 	}
 
 	// double check the block ids

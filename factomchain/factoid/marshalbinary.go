@@ -20,12 +20,15 @@ func (i *Input) MarshalBinary() (data []byte, err error) {
 
 	binary.Write(&buf, binary.BigEndian, i.Index) //32
 
+	/*
 	//count := uint64(len(i.RevealAddr)) // 64
 	//binary.Write(&buf, binary.BigEndian, count)
 	data, err = i.RevealAddr.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
+	*/
+	buf.Write(i.RevealAddr[:]) //32
 	buf.Write(data)
 	//fmt.Println("xx2 i.RevealAddr",len(i.RevealAddr))
 
@@ -38,7 +41,7 @@ func (i *Input) MarshalBinary() (data []byte, err error) {
 func (i *Input) MarshalledSize() uint64 {
 	var size uint64 = 0
 
-	size += 32 + 4 + i.RevealAddr.MarshalledSize()
+	size += 32 + 4 + 32 //i.RevealAddr.MarshalledSize()
 	//fmt.Println("i.RevealAddr",len(i.RevealAddr))
 	//fmt.Println("iiii.RevealAddr.MarshalledSize()",i.RevealAddr.MarshalledSize())
 
@@ -54,9 +57,11 @@ func (i *Input) UnmarshalBinary(data []byte) (err error) {
 
 	////fmt.Println("ddd %#v",data)
 
-	_, i.RevealAddr = i.RevealAddr.UnmarshalBinary(data)
+	//_, i.RevealAddr = i.RevealAddr.UnmarshalBinary(data)
 	//fmt.Println("bdd i.RevealAddr",len(i.RevealAddr),i.RevealAddr)
 
+	copy(i.RevealAddr[:], data[:32])
+	data = data[32:]
 	return nil
 }
 

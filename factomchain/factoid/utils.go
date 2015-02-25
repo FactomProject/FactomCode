@@ -69,7 +69,7 @@ func VerifyInputSig(in *Input, sig *InputSig, tx *Tx) bool {
 
 	///ToDo: MultiSig
 	for i := 0; i < len(sig.Sigs); i++ {
-		if notaryapi.VerifySlice(in.RevealAddr, tx.Digest(), sig.Sigs[i].Sig[:]) {
+		if notaryapi.VerifySlice(in.RevealAddr[:], tx.Digest(), sig.Sigs[i].Sig[:]) {
 			return true
 		}
 
@@ -96,12 +96,12 @@ func NewTxFromOutputToAddr(txid *Txid, outs []Output, outnum uint32, from Addres
 		fmt.Println("NewTxFromOutputToAddr err1 %#v", outs)
 		return nil
 	}
-	if !VerifyAddressReveal(outs[outnum-1].ToAddr, from) {
+	if ok := VerifyAddressReveal(outs[outnum-1].ToAddr, from); !ok {
 		fmt.Println("NewTxFromOutputToAddr !VerifyAddressReveal %#v %#v", from, outs)
 		return nil
 	}
 
-	in := NewInput(txid, outnum, from[:])
+	in := NewInput(txid, outnum, from)
 	return NewTxFromInputToAddr(in, outs[outnum-1].Amount, to)
 }
 
@@ -166,12 +166,12 @@ func AddSingleSigToTxMsg(txm *TxMsg, ss *SingleSignature) {
 // only need to update nonce when rest to Tx is same a previous one.
 ///ToDo: remove before production
 func NewFaucetInput(nonce uint32) *Input {
-	return NewInput(FaucetTxid, nonce, nil)
+	return NewInput(FaucetTxid, nonce, AddressReveal{})
 }
 
 //use time as nonce - shouls always work
 func NewFaucetIn() *Input {
-	return NewInput(FaucetTxid, uint32(time.Now().Unix()), nil)
+	return NewInput(FaucetTxid, uint32(time.Now().Unix()), AddressReveal{})
 }
 
 func IsFaucet(in *Input) bool {

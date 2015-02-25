@@ -16,6 +16,14 @@ const (
 	TxPoolAllocSize = 1000
 )
 
+//GlobalUtxo will store utxo for all blocks
+// temp use global var, to be called from "restapi"
+// ToDo: redesign
+var GlobalUtxo Utxo
+func init() {
+	GlobalUtxo = NewUtxo()
+}
+
 // ToDo: TxProcessor was copied from factomd.txmempool due to import cycle issues. fix this
 //
 // TxProcessor is an interface that abstracts methods needed to process a TxMessage
@@ -35,7 +43,7 @@ type FactoidPool struct {
 	TxProcessor
 	sync.RWMutex
 	//server        *server
-	utxo       Utxo
+	utxo       *Utxo
 	context    context
 	txpool     *txpool
 	orphanpool *orphanpool
@@ -89,7 +97,7 @@ func NewTxPool() *txpool {
 func NewFactoidPool() *FactoidPool {
 	return &FactoidPool{
 		//server:        server,
-		utxo:       NewUtxo(),
+		utxo:       &GlobalUtxo,
 		txpool:     NewTxPool(),
 		orphanpool: NewOrphanPool(),
 	}
@@ -108,7 +116,7 @@ func (fp *FactoidPool) AddGenesisBlock() {
 }
 
 func (fp *FactoidPool) Utxo() *Utxo {
-	return &fp.utxo
+	return fp.utxo
 }
 
 //add context tx to txpool
