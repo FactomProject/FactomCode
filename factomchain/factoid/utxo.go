@@ -20,7 +20,7 @@ import (
 type TxSpentList []bool
 
 type TxOutSpent struct {
-	Outs  *[]Output
+	Outs   []Output
 	Spent  TxSpentList
 }
 
@@ -58,7 +58,7 @@ func (u *Utxo) AddTx(t *Tx) {
 //add all outputs for txid to UTXO
 func (u *Utxo) AddUtxo(id *Txid, outs []Output) {
 	txs := make(TxSpentList, len(outs))
-	u.Txspent[*id] = TxOutSpent{&outs,txs}
+	u.Txspent[*id] = TxOutSpent{outs,txs}
 }
 
 //IsValid checks Inputs and returns true if all inputs are in current Utxo
@@ -85,8 +85,8 @@ func (u *Utxo) IsValid(in []Input) bool {
 			fmt.Println("Output already spent ", i.Txid.String(), " Index ", i.Index)
 			return false
 		}
-		if ok := VerifyAddressReveal((*spends.Outs)[i.Index-1].ToAddr,i.RevealAddr); !ok {
-			fmt.Println("!VerifyAddressReveal ", (*spends.Outs)[i.Index-1].ToAddr, " i.RevealAddr ", i.RevealAddr)
+		if ok := VerifyAddressReveal(spends.Outs[i.Index-1].ToAddr,i.RevealAddr); !ok {
+			fmt.Println("!VerifyAddressReveal ", spends.Outs[i.Index-1].ToAddr, " i.RevealAddr ", i.RevealAddr)
 			return false
 		}
 
