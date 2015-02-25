@@ -10,6 +10,7 @@ import (
 	"github.com/FactomProject/FactomCode/factomapi"
 	"github.com/FactomProject/FactomCode/factomwire"
 	"github.com/FactomProject/FactomCode/notaryapi"
+	"github.com/FactomProject/FactomCode/factomchain/factoid"	
 	"github.com/FactomProject/FactomCode/util"
 	//"github.com/FactomProject/FactomCode/wallet"
 	"github.com/FactomProject/btcrpcclient"
@@ -42,6 +43,7 @@ var (
 	//chainNameMap map[string]*notaryapi.Chain // ChainNameMap with chain name string as key
 	dchain *notaryapi.DChain //Directory Block Chain
 	cchain *notaryapi.CChain //Entry Credit Chain
+	fchain *factoid.FChain //Factoid Chain
 
 	creditsPerChain   int32            = 10
 	creditsPerFactoid uint64           = 1000
@@ -168,6 +170,10 @@ func init_processor() {
 	initCChain()
 	fmt.Println("Loaded", len(cchain.Blocks)-1, "Entry Credit blocks for chain: "+cchain.ChainID.String())
 
+	// init Factoind Chain
+	initFChain()
+	fmt.Println("Loaded", len(cchain.Blocks)-1, "Factoid blocks for chain: "+fchain.ChainID.String())
+	
 	// init Entry Chains
 	initEChains()
 	for _, chain := range chainIDMap {
@@ -221,6 +227,14 @@ func init_processor() {
 			}
 			saveCChain(cchain)
 
+
+			// Factoid Chain
+			fBlock := newFBlock(fchain)
+			if fBlock != nil {
+				dchain.AddFBlockToDBEntry(factoid.NewDBEntryFromFBlock(fBlock))
+			}
+			saveFChain(fchain)
+			
 			// Directory Block chain
 			dbBlock := newDirectoryBlock(dchain)
 			if dbBlock != nil {
@@ -696,6 +710,45 @@ func saveCChain(chain *notaryapi.CChain) {
 	}
 }
 
+func saveFChain(chain *factoid.FChain) {
+	if len(chain.Blocks) == 0 {
+		//log.Println("no blocks to save for chain: " + string (*chain.ChainID))
+		return
+	}
+
+	bcp := make([]*factoid.FBlock, len(chain.Blocks))
+
+	chain.BlockMutex.Lock()
+	copy(bcp, chain.Blocks)
+	chain.BlockMutex.Unlock()
+
+	for i, block := range bcp {
+		//the open block is not saved
+		if block.IsSealed == false {
+			continue
+		}
+
+		data, err := block.MarshalBinary()
+		if err != nil {
+			panic(err)
+		}
+
+		strChainID := chain.ChainID.String()
+		if fileNotExists(dataStorePath + strChainID) {
+			err := os.MkdirAll(dataStorePath+strChainID, 0777)
+			if err == nil {
+				log.Println("Created directory " + dataStorePath + strChainID)
+			} else {
+				log.Println(err)
+			}
+		}
+		err = ioutil.WriteFile(fmt.Sprintf(dataStorePath+strChainID+"/store.%09d.block", i), data, 0777)
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
 func initDChain() {
 	dchain = new(notaryapi.DChain)
 
@@ -807,6 +860,54 @@ func initCChain() {
 		dchain.Blocks[dchain.NextBlockID].DBEntries, _ = db.FetchDBEntriesFromQueue(&binaryTimestamp)
 	*/
 }
+// Initialize factoid chain from db and initialize the mempool??
+func initFChain() {
+
+	//Initialize the Entry Credit Chain ID
+	fchain = new(factoid.FChain)
+	barray := []byte{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+		0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}
+	fchain.ChainID = new(notaryapi.Hash)
+	fchain.ChainID.SetBytes(barray)
+
+	// get all dBlocks from db
+	fBlocks, _ := db.FetchAllFBlocks()
+	sort.Sort(util.ByFBlockIDAccending(fBlocks))
+
+	fchain.Blocks = make([]*factoid.FBlock, len(fBlocks))
+
+	for i := 0; i < len(fBlocks); i = i + 1 {
+		if fBlocks[i].Header.Height != uint64(i) {
+			panic("Error in initializing fChain:" + fchain.ChainID.String())
+		}
+		fBlocks[i].Chain = fchain
+		fBlocks[i].IsSealed = true
+		fchain.Blocks[i] = &fBlocks[i]
+
+		// Load the block into utxo pool
+		
+	}
+
+	// double check the block ids
+	for i := 0; i < len(fchain.Blocks); i = i + 1 {
+		if uint64(i) != fchain.Blocks[i].Header.Height {
+			panic(errors.New("BlockID does not equal index for chain:" + fchain.ChainID.String() + " block:" + fmt.Sprintf("%v", fchain.Blocks[i].Header.Height)))
+		}
+	}
+
+	//Create an empty block and append to the chain
+	if len(fchain.Blocks) == 0 {
+		fchain.NextBlockID = 0
+		newblock, _ := factoid.CreateFBlock(fchain, nil, 10)
+		fchain.Blocks = append(fchain.Blocks, newblock)
+
+	} else {
+		fchain.NextBlockID = uint64(len(fchain.Blocks))
+		newblock, _ := factoid.CreateFBlock(fchain, fchain.Blocks[len(fchain.Blocks)-1], 10)
+		fchain.Blocks = append(fchain.Blocks, newblock)
+	}
+}
+
 
 func ExportDbToFile(dbHash *notaryapi.Hash) {
 

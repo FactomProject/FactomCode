@@ -8,10 +8,12 @@ import (
 	//"bytes"
 	//"fmt"
 	"encoding/hex"
+	"encoding/binary"	
 	"github.com/FactomProject/FactomCode/factomwire"
-	"github.com/FactomProject/FactomCode/notaryapi"
+	"github.com/FactomProject/FactomCode/notaryapi"	
 	"sync"	
 	"time"
+	"errors"	
 )
 type FChain struct {
 	ChainID      *notaryapi.Hash
@@ -34,6 +36,12 @@ type FBlockHeader struct {
 type FBlock struct {
 	Header       FBlockHeader
 	Transactions []Tx
+	
+	//Not Marshalized
+	FBHash   *notaryapi.Hash
+	Salt     *notaryapi.Hash
+	Chain    *FChain
+	IsSealed bool	
 }
 
 const (
@@ -82,4 +90,44 @@ func NewFBlockHeader(blockId uint64, prevHash *notaryapi.Hash, merkle *notaryapi
 		TimeStamp:     time.Now().Unix(),
 		Height:       blockId,
 	}
+}
+
+
+
+func CreateFBlock(chain *FChain, prev *FBlock, cap uint) (b *FBlock, err error) {
+	if prev == nil && chain.NextBlockID != 0 {
+		return nil, errors.New("Previous block cannot be nil")
+	} else if prev != nil && chain.NextBlockID == 0 {
+		return nil, errors.New("Origin block cannot have a parent block")
+	}
+
+	b = new(FBlock)
+
+	var prevHash *notaryapi.Hash
+	if prev == nil {
+		prevHash = notaryapi.NewHash()
+	} else {
+		prevHash, err = notaryapi.CreateHash(prev)
+	}
+
+	b.Header = *(NewFBlockHeader(chain.NextBlockID, prevHash, notaryapi.NewHash()))
+	b.Chain = chain
+	b.Transactions = make([]Tx, 0, cap)
+	b.Salt = notaryapi.NewHash()
+	b.IsSealed = false
+
+	return b, err
+}
+
+func NewDBEntryFromFBlock(b *FBlock) *notaryapi.DBEntry {
+	e := &notaryapi.DBEntry{}
+	
+	bytes := make([]byte, 8)
+	binary.BigEndian.PutUint64(bytes, uint64(b.Header.TimeStamp))
+	e.SetTimeStamp(bytes)	
+
+	e.ChainID = b.Chain.ChainID
+	e.MerkleRoot = b.FBHash //To use MerkleRoot??
+
+	return e
 }

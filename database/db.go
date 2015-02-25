@@ -2,6 +2,7 @@ package database
 
 import (
 	"github.com/FactomProject/FactomCode/notaryapi"
+	"github.com/FactomProject/FactomCode/factomchain/factoid"		
 )
 
 // AllShas is a special value that can be used as the final sha when requesting
@@ -110,16 +111,14 @@ type Db interface {
 
 	// Initialize External ID map for explorer search
 	InitializeExternalIDMap() (extIDMap map[string]bool, err error)
+	
+	// ProcessFBlockBatche inserts the FBlock 
+	ProcessFBlockBatch(block *factoid.FBlock) error	
+	
+	// FetchCntryBlock gets a block by hash from the database.
+	FetchFBlockByHash(fBlockHash *notaryapi.Hash) (fBlock *factoid.FBlock, err error)	
+	
+	// FetchAllFBlocks gets all of the factoid blocks
+	FetchAllFBlocks() (fBlocks []factoid.FBlock, err error)	
 
-	//---------------------------
-
-	Put(key []byte, value []byte) error
-
-	Get(key []byte) ([]byte, error)
-
-	Delete(key []byte) error
-
-	LastKnownTD() []byte
-
-	Print()
 }
