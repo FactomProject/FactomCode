@@ -97,6 +97,8 @@ func NewDBEntryFromCBlock(cb *CBlock) *DBEntry {
 	return e
 }
 
+
+
 func (e *DBEntry) Hash() *Hash {
 	return e.hash
 }
@@ -304,6 +306,17 @@ func (dchain *DChain) AddCBlockToDBEntry(cb *CBlock) (err error) {
 	b := make([]byte, 8)
 	binary.BigEndian.PutUint64(b, uint64(cb.Header.TimeStamp))
 	dbEntry.SetTimeStamp(b)
+
+	dchain.BlockMutex.Lock()
+	dBlock.DBEntries = append(dBlock.DBEntries, dbEntry)
+	dchain.BlockMutex.Unlock()
+
+	return nil
+}
+
+// Add DBEntry from a Factoid Block
+func (dchain *DChain) AddFBlockToDBEntry(dbEntry *DBEntry) (err error) {
+	dBlock := dchain.Blocks[len(dchain.Blocks)-1]
 
 	dchain.BlockMutex.Lock()
 	dBlock.DBEntries = append(dBlock.DBEntries, dbEntry)
