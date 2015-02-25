@@ -866,6 +866,8 @@ func (p *peer) handleRevealEntryMsg(msg *factomwire.MsgRevealEntry) {
 func (p *peer) handleConfirmationMsg(msg *factomwire.MsgConfirmation) {
 	util.Trace()
 
+	p.server.blockManager.QueueConf(msg, p)
+
 	// Add the msg to inbound msg queue
 	//	inMsgQueue <- msg
 }

@@ -140,6 +140,9 @@ func factomdMain(serverChan chan<- *server) error {
 			switch msg.Command() {
 				case factomwire.CmdTx:
 					server.blockManager.QueueTx(msg.(*factomwire.MsgTx), nil)
+				case factomwire.CmdConfirmation:
+					server.blockManager.QueueConf(msg.(*factomwire.MsgConfirmation), nil)
+
 				default:
 					inMsgQueue <- msg
 					outMsgQueue <- msg 

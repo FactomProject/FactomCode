@@ -18,6 +18,11 @@ type txMsg struct {
 	peer *peer
 }
 
+type confMsg struct {
+	conf   *factomwire.MsgConfirmation
+	peer *peer
+}
+
 type blockManager struct {
 	server   *server
 	started  int32
@@ -79,9 +84,26 @@ func (b *blockManager) QueueTx(msg *factomwire.MsgTx, p *peer) {
 	b.msgChan <- &txMsg{tx: msg, peer: p}
 }
 
+// QueueTx adds the passed transaction message and peer to the block handling
+// queue.
+func (b *blockManager) QueueConf(msg *factomwire.MsgConfirmation, p *peer) {
+	// Don't accept more transactions if we're shutting down.
+	if atomic.LoadInt32(&b.shutdown) != 0 {
+		p.txProcessed <- struct{}{}
+		return
+	}
+
+	b.msgChan <- &confMsg{conf: msg, peer: p}
+}
 func (b *blockManager) handleTxMsg(tmsg *txMsg) {
 	if b.server.txMemPool.ProcessTransaction(tmsg.tx) {
 		b.server.BroadcastMessage(tmsg.tx, tmsg.peer)
+	}
+}
+
+func (b *blockManager) handleMsgConfirmation(msgc *confMsg) {
+	if b.server.txMemPool.ProcessConfirmation(msgc.conf) {
+		b.server.BroadcastMessage(msgc.conf, msgc.peer)
 	}
 }
 
@@ -97,7 +119,10 @@ out:
 				if msg.peer != nil {
 					msg.peer.txProcessed <- struct{}{}
 				}
+			case *confMsg:
+				b.handleMsgConfirmation(msg)
 			}
+
 		case <-b.quit:
 			break out
 		}
