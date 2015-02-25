@@ -23,11 +23,12 @@ import (
 )
 
 var (
-	logLevel            = "DEBUG"
+	logLevel            = "debug"
+	logPath             = "/home/.factom/factomclient/factomclient.log"
 	portNumber      int = 8088
 	applicationName     = "factom/client"
 	serverAddr          = "localhost:8083"
-	//ldbpath = "/tmp/factomclient/ldb9"
+	//ldbpath              = "/tmp/factomclient/ldb9"
 	dataStorePath        = "/tmp/store/seed/csv"
 	refreshInSeconds int = 60
 
@@ -46,12 +47,14 @@ func readError(err error) {
 }
 
 func init_rpcserver() {
-
+	log := rpcLog
+	log.Debug("dynrsrc.Start")
 	err := dynrsrc.Start(watchError, readError)
 	if err != nil {
-		panic(err)
+		log.Alert(err)
 	}
 
+	log.Info("Starting server")
 	serve_init()
 	//initClientDataFileMap()
 
@@ -65,11 +68,11 @@ func init_rpcserver() {
 }
 
 func Start_Rpcserver(ldb database.Db, outMsgQ chan<- factomwire.Message) {
-
 	db = ldb
 	factomapi.SetDB(db)
 	factomapi.SetOutMsgQueue(outMsgQ)
 
+	rpcLog.Info("Starting rpcserver")
 	init_rpcserver()
 
 	defer func() {
@@ -94,6 +97,8 @@ func LoadConfigurations(cfg *util.FactomdConfig) {
 
 // to be replaced by DHT
 func downloadAndImportDbRecords() {
+	log := rpcLog
+	
 	data := url.Values{}
 	data.Set("accept", "json")
 	data.Set("datatype", "filelist")
@@ -104,13 +109,13 @@ func downloadAndImportDbRecords() {
 	resp, err := http.PostForm(server, data)
 
 	if err != nil {
-		fmt.Println("Error:", err)
+		log.Error(err)
 		return
 	}
 
 	contents, _ := ioutil.ReadAll(resp.Body)
 	if len(contents) < 5 {
-		fmt.Println("The server file list is empty")
+		log.Notice("The server file list is empty")
 		return
 	}
 
@@ -130,23 +135,33 @@ func downloadAndImportDbRecords() {
 
 			server := fmt.Sprintf(`http://%s/v1/getfile`, serverAddr)
 			resp, err := http.PostForm(server, data)
+			if err != nil {
+				log.Error(err)
+			}
 
 			if fileNotExists(dataStorePath) {
+				log.Infof("%s does not exist. creating it now.", dataStorePath)
 				os.MkdirAll(dataStorePath, 0755)
 			}
 			out, err := os.Create(dataStorePath + "/" + value)
+			if err != nil {
+				log.Error(err)
+			}
 			io.Copy(out, resp.Body)
 			out.Close()
 
 			// import records from the file into db
 			file, err := os.Open(dataStorePath + "/" + value)
 			if err != nil {
-				panic(err)
+				log.Alert(err)
 			}
 
 			reader := csv.NewReader(file)
 			//csv header: key, value
 			records, err := reader.ReadAll()
+			if err != nil {
+				log.Error(err)
+			}
 
 			var ldbMap = make(map[string]string)
 			for _, record := range records {
@@ -163,11 +178,12 @@ func downloadAndImportDbRecords() {
 
 // Initialize the imported file list
 func initClientDataFileMap() error {
+	log := rpcLog
 	clientDataFileMap = make(map[string]string)
 
 	fiList, err := ioutil.ReadDir(dataStorePath)
 	if err != nil {
-		fmt.Println("Error in initServerDataFileMap:", err.Error())
+		log.Error("initServerDataFileMap:", err)
 		return err
 	}
 

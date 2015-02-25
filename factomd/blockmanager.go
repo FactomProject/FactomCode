@@ -94,7 +94,9 @@ out:
 
 			case *txMsg:
 				b.handleTxMsg(msg)
-				msg.peer.txProcessed <- struct{}{}
+				if msg.peer != nil {
+					msg.peer.txProcessed <- struct{}{}
+				}
 			}
 		case <-b.quit:
 			break out
