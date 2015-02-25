@@ -58,7 +58,7 @@ type FactoidPool struct {
 type context struct {
 	wire    *factomwire.MsgTx
 	tx      *Tx
-	index   int //index into txpool txindex array of *Txid
+	//index   int //index into txpool txindex array of *Txid
 	missing []*Txid
 }
 
@@ -81,7 +81,7 @@ func NewOrphanPool() *orphanpool {
 //txpool stores an array of Txids in order of insertion and
 //a map from Txid to the context tx
 type txpool struct {
-	txindex []*Txid
+	//txindex []*Txid
 	txlist  map[Txid]context
 	//nexti		int
 }
@@ -89,7 +89,7 @@ type txpool struct {
 //create new txpool, allocate TxPoolAllocSize
 func NewTxPool() *txpool {
 	return &txpool{
-		txindex: make([]*Txid, 0, TxPoolAllocSize),
+		//txindex: make([]*Txid, 0, TxPoolAllocSize),
 		txlist:  make(map[Txid]context),
 		//nexti: 		0
 	}
@@ -124,8 +124,8 @@ func (fp *FactoidPool) Utxo() *Utxo {
 
 //add context tx to txpool
 func (tp *txpool) AddContext(c *context) {
-	c.index = len(tp.txindex)
-	tp.txindex = append(tp.txindex, c.tx.Id())
+	//c.index = len(tp.txindex)
+	//tp.txindex = append(tp.txindex, c.tx.Id())
 	tp.txlist[*c.tx.Id()] = *c
 
 }
@@ -261,9 +261,16 @@ func (fp *FactoidPool) doAdd(c *context) *notaryapi.HashF {
 	return (*notaryapi.HashF)(c.tx.Id())
 }
 
-
-func (fp *FactoidPool) Confirm(*factomwire.MsgConfirmation) (bool, []*notaryapi.HashF) {
-	return false, nil
+//Confirm is called when receivedd a confirmation msg from federatd server
+// should only be called after already received the Tx 
+// ToDo: deal with confirms that come in diff order than in pool, 
+//		may need to store doubel spends, they may become valid
+func (fp *FactoidPool) Confirm(fm *factomwire.MsgConfirmation) (ok bool, confirmed []*notaryapi.HashF) {
+	if cx, ok := fp.txpool.txlist[fm.Affirmation]; ok {
+		confirmed = append(confirmed,(*notaryapi.HashF)(cx.tx.Id()))
+		delete(fp.txpool.txlist,fm.Affirmation) 
+	}
+	return 
 }
 
 
