@@ -7,6 +7,8 @@ package factoid
 import (
 	"fmt"
 	"github.com/FactomProject/FactomCode/factomwire"
+	"github.com/FactomProject/FactomCode/notaryapi"
+
 	"sync"
 )
 
@@ -32,7 +34,8 @@ type TxProcessor interface {
 	SetContext(*factomwire.MsgTx)
 	Verify() bool
 	//Broadcast()
-	AddToMemPool()
+	AddToMemPool() []*notaryapi.HashF
+	Confirm(*factomwire.MsgConfirmation) (bool, []*notaryapi.HashF)
 }
 
 // txMemPool is used as a source of transactions that need to be mined into
@@ -218,15 +221,13 @@ func (fp *FactoidPool) Verify() (ret bool) {
 //add transaction to memorypool after passing verification of signature and utxo
 //assume the transaction is already set to factoidpool.context via call to
 // SetContext
-func (fp *FactoidPool) AddToMemPool() {
+func (fp *FactoidPool) AddToMemPool() (verified []*notaryapi.HashF) {
 	fmt.Println("AddToMemPool", fp.context.tx.Id().String())
 
 	if len(fp.context.missing) > 0 { // is orphan
 		fp.orphanpool.AddContext(&fp.context)
 	} else {
-		fp.utxo.AddTx(fp.context.tx)
-		fp.txpool.AddContext(&fp.context)
-
+		verified = append(verified,fp.doAdd(&fp.context))
 		//see if this tx is a missing parent of orphan[s]
 		if kids, ok := fp.orphanpool.FoundMissing(fp.context.tx.Id()); ok {
 			//for each orphan child of parent
@@ -236,9 +237,8 @@ func (fp *FactoidPool) AddToMemPool() {
 				ok2, missing := fp.utxo.InputsKnown(ocontext.tx.Txm.TxData.Inputs)
 				if ok2 { //all parents found
 					if fp.utxo.IsValid(ocontext.tx.Txm.TxData.Inputs) {
-						fp.utxo.AddTx(ocontext.tx)
 						ocontext.missing = missing
-						fp.txpool.AddContext(&ocontext)
+						verified = append(verified,fp.doAdd(&ocontext))
 					}
 					delete(fp.orphanpool.orphans, *k)
 				} else { // still orphan
@@ -253,5 +253,18 @@ func (fp *FactoidPool) AddToMemPool() {
 
 	return
 }
+
+func (fp *FactoidPool) doAdd(c *context) *notaryapi.HashF {
+	fp.utxo.AddTx(c.tx)
+	fp.txpool.AddContext(c)
+
+	return (*notaryapi.HashF)(c.tx.Id())
+}
+
+
+func (fp *FactoidPool) Confirm(*factomwire.MsgConfirmation) (bool, []*notaryapi.HashF) {
+	return false, nil
+}
+
 
 //******//

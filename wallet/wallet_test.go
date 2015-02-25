@@ -79,4 +79,8 @@ func TestSignData(t *testing.T) {
 
 func TestGetAddress(t *testing.T) {
 	t.Logf("Address: %v", FactoidAddress())
+
+	t.Logf("ClientPublicKeyStr: %v", ClientPublicKeyStr())
+
+	
 }

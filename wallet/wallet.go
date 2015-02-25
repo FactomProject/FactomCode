@@ -82,3 +82,7 @@ func FactoidAddress() string {
 	netid := byte('\x07')
 	return factoid.AddressFromPubKey(ClientPublicKey().Key, netid)
 }
+
+func ClientPublicKeyStr() string {
+	return ClientPublicKey().String()
+}

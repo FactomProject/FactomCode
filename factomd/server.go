@@ -126,6 +126,7 @@ type server struct {
 	broadcast            chan broadcastMsg
 	wg                   sync.WaitGroup
 	quit                 chan struct{}
+	fedprocesslist       FedProcessList
 	//	nat                  NAT
 	//	db                   btcdb.Db
 	//	timeSource           btcchain.MedianTimeSource

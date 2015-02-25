@@ -9,6 +9,7 @@ type FactomdConfig struct {
 		DataStorePath           string
 		DirectoryBlockInSeconds int
 		NodeMode                string
+		FederatedId				string
 	}
 	Btc struct {
 		BTCPubAddr         string

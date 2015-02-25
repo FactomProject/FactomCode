@@ -3,6 +3,7 @@ package notaryapi
 import (
 	"crypto/rand"
 	"github.com/agl/ed25519"
+	"encoding/hex"
 )
 
 // Verifyer objects can Verify signed messages
@@ -33,6 +34,17 @@ func (pk *PrivateKey) AllocateNew() {
 // PublicKey contains only Public part of Public/Private key pair
 type PublicKey struct {
 	Key *[ed25519.PublicKeySize]byte
+}
+
+func (pk PublicKey) String() string {
+	return hex.EncodeToString((*pk.Key)[:])
+}
+
+func PubKeyFromString(instr string) (pk PublicKey) {
+	p, _ := hex.DecodeString(instr)
+	pk.Key = new([32]byte)
+	copy(pk.Key[:],p)
+	return
 }
 
 // Sign signs msg with PrivateKey and return Signature
