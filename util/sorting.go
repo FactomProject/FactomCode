@@ -2,7 +2,6 @@ package util
 
 import (
 	"github.com/FactomProject/FactomCode/notaryapi"
-	"github.com/FactomProject/FactomCode/factomchain/factoid"	
 )
 
 //------------------------------------------------
@@ -30,20 +29,6 @@ func (f ByCBlockIDAccending) Less(i, j int) bool {
 	return f[i].Header.BlockID < f[j].Header.BlockID
 }
 func (f ByCBlockIDAccending) Swap(i, j int) {
-	f[i], f[j] = f[j], f[i]
-}
-
-//------------------------------------------------
-// FBlock array sorting implementation - accending
-type ByFBlockIDAccending []factoid.FBlock
-
-func (f ByFBlockIDAccending) Len() int {
-	return len(f)
-}
-func (f ByFBlockIDAccending) Less(i, j int) bool {
-	return f[i].Header.Height < f[j].Header.Height
-}
-func (f ByFBlockIDAccending) Swap(i, j int) {
 	f[i], f[j] = f[j], f[i]
 }
 

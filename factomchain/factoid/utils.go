@@ -177,3 +177,17 @@ func NewFaucetIn() *Input {
 func IsFaucet(in *Input) bool {
 	return in.Txid == *FaucetTxid
 }
+
+//------------------------------------------------
+// FBlock array sorting implementation - accending
+type ByFBlockIDAccending []FBlock
+
+func (f ByFBlockIDAccending) Len() int {
+	return len(f)
+}
+func (f ByFBlockIDAccending) Less(i, j int) bool {
+	return f[i].Header.Height < f[j].Header.Height
+}
+func (f ByFBlockIDAccending) Swap(i, j int) {
+	f[i], f[j] = f[j], f[i]
+}

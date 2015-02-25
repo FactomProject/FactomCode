@@ -872,7 +872,7 @@ func initFChain() {
 
 	// get all dBlocks from db
 	fBlocks, _ := db.FetchAllFBlocks()
-	sort.Sort(util.ByFBlockIDAccending(fBlocks))
+	sort.Sort(factoid.ByFBlockIDAccending(fBlocks))
 
 	fchain.Blocks = make([]*factoid.FBlock, len(fBlocks))
 
