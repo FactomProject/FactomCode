@@ -134,6 +134,14 @@ func newTxMemPool(server *server) *txMemPool {
 	txmp.TxProcessorS["factoid"] = factoid.NewFactoidPool()
 
 	//txmp.TxProcessorS["entrycommit"] = factom.NewEntryPool()
+	
+	// Please double check ?? --------------------------------------
+	//have tx need conf
+	txmp.waitingconf  = make (map[notaryapi.HashF]*factomwire.MsgTx)
+	//have conf need tx
+	txmp.waitingtx  = make (map[notaryapi.HashF]*factomwire.MsgConfirmation)
+	txmp.orphanconf = make (map[uint32]*factomwire.MsgConfirmation)
+	//----------------------------------------------------------------
 
 	return &txmp
 }
