@@ -47,6 +47,8 @@ type FactomdConfig struct {
 	DisableDNSSeed bool   `long:"nodnsseed" description:"Disable DNS seeding for peers"`
 }
 
+// GetConfig reads the default factomd.conf file and returns a FactomConfig
+// object corresponding to the state of the file.
 func GetConfig() *FactomdConfig {
 	cfg := new(FactomdConfig)
 	filename := os.Getenv("HOME")+"/.factom/factomd.conf"
