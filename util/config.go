@@ -1,6 +1,9 @@
 package util
 
-import ()
+import (
+	"os"
+	"code.google.com/p/gcfg"
+)
 
 type FactomdConfig struct {
 	App struct {
@@ -42,4 +45,11 @@ type FactomdConfig struct {
 	DisableRPC     bool   `long:"norpc" description:"Disable built-in RPC server -- NOTE: The RPC server is disabled by default if no rpcuser/rpcpass is specified"`
 	DisableTLS     bool   `long:"notls" description:"Disable TLS for the RPC server -- NOTE: This is only allowed if the RPC server is bound to localhost"`
 	DisableDNSSeed bool   `long:"nodnsseed" description:"Disable DNS seeding for peers"`
+}
+
+func GetConfig() *FactomdConfig {
+	cfg := new(FactomdConfig)
+	filename := os.Getenv("HOME")+"/.factom/factomd.conf"
+	gcfg.ReadFileInto(&cfg, filename)
+	return cfg
 }

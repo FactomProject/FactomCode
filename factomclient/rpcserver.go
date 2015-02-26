@@ -23,8 +23,6 @@ import (
 )
 
 var (
-	logLevel         string
-	logPath          string
 	portNumber       int = 8088
 	applicationName      = "factom/client"
 	serverAddr           = "localhost:8083"
@@ -85,14 +83,6 @@ func Start_Rpcserver(ldb database.Db, outMsgQ chan<- factomwire.Message) {
 }
 
 func LoadConfigurations(cfg *util.FactomdConfig) {
-	logLevel = cfg.Log.LogLevel
-	if logLevel == "" {
-		logLevel = "warning"
-	}
-	logPath = cfg.Log.LogPath
-	if logPath == "" {
-		logPath = os.Getenv("HOME") + ".factom/factomd.log"
-	}
 	applicationName = cfg.Rpc.ApplicationName
 	portNumber = cfg.Rpc.PortNumber
 	dataStorePath = cfg.App.DataStorePath
