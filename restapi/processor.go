@@ -172,7 +172,7 @@ func init_processor() {
 
 	// init Factoind Chain
 	initFChain()
-	fmt.Println("Loaded", len(cchain.Blocks)-1, "Factoid blocks for chain: "+fchain.ChainID.String())
+	fmt.Println("Loaded", len(fchain.Blocks)-1, "Factoid blocks for chain: "+fchain.ChainID.String())
 
 	// init Entry Chains
 	initEChains()
@@ -418,6 +418,7 @@ func serveMsgRequest(msg factomwire.Message) error {
 		} else {
 			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
 		}
+		
 	case factomwire.CmdRevealEntry:
 		msgRevealEntry, ok := msg.(*factomwire.MsgRevealEntry)
 		if ok {
@@ -428,7 +429,22 @@ func serveMsgRequest(msg factomwire.Message) error {
 		} else {
 			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
 		}
-
+		
+	case factomwire.CmdTx:
+		wireMsgTx, ok := msg.(*factomwire.MsgTx)
+		if ok {
+			txm := new(factoid.TxMsg)
+			err := txm.UnmarshalBinary(wireMsgTx.Data)		
+			if err != nil {
+				return err
+			}				
+			err = processFactoidTx(factoid.NewTx(txm))
+			if err != nil {
+				return err
+			}
+		} else {
+			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
+		}
 		/*  There is no such command !
 		case factomwire.CmdGetCredit:
 			msgGetCredit, ok := msg.(*factomwire.MsgGetCredit)
@@ -442,11 +458,26 @@ func serveMsgRequest(msg factomwire.Message) error {
 			} else {
 				return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
 			}
-		*/
+		*/ 
 
 	default:
 		return errors.New("Message type unsupported:" + fmt.Sprintf("%+v", msg))
 	}
+	return nil
+}
+
+// to be improved??
+func processFactoidTx(tx *factoid.Tx) error {
+
+
+	fchain.BlockMutex.Lock()
+	err := fchain.Blocks[len(fchain.Blocks)-1].AddFBTransaction(*tx)
+	fchain.BlockMutex.Unlock()
+
+	if err != nil {
+		return errors.New("Error while adding Factoid transaction to Block:" + err.Error())
+	}
+
 	return nil
 }
 
@@ -886,6 +917,7 @@ func initFChain() {
 
 		// Load the block into utxo pool
 		factoid.GlobalUtxo.AddVerifiedTxList(fBlocks[i].Transactions)
+		//fmt.Printf("fchain.Blocks:%+v\n", fchain.Blocks[i])
 	}
 
 	// double check the block ids

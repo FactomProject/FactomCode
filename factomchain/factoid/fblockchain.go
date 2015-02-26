@@ -125,7 +125,13 @@ func NewDBEntryFromFBlock(b *FBlock) *notaryapi.DBEntry {
 	e.SetTimeStamp(bytes)
 
 	e.ChainID = b.Chain.ChainID
+	e.SetHash(b.FBHash.Bytes) // To be improved??
 	e.MerkleRoot = b.FBHash //To use MerkleRoot??
 
 	return e
+}
+
+func (b *FBlock) AddFBTransaction(t Tx) (err error) {
+	b.Transactions = append(b.Transactions, t)
+	return
 }

@@ -139,6 +139,7 @@ func factomdMain(serverChan chan<- *server) error {
 			fmt.Printf("in range inRpcQueue, msg:%+v\n", msg)
 			switch msg.Command() {
 			case factomwire.CmdTx:
+				// inMsgQueue <- msg			for testing
 				server.blockManager.QueueTx(msg.(*factomwire.MsgTx), nil)
 			case factomwire.CmdConfirmation:
 				server.blockManager.QueueConf(msg.(*factomwire.MsgConfirmation), nil)
