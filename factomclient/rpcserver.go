@@ -24,7 +24,7 @@ import (
 
 var (
 	logLevel            = "debug"
-	logPath             = "/home/.factom/factomclient/factomclient.log"
+	logPath             = "/home/jlu/.factom/factomclient/factomclient.log"
 	portNumber      int = 8088
 	applicationName     = "factom/client"
 	serverAddr          = "localhost:8083"
