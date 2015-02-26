@@ -4,12 +4,16 @@ import (
 	"fmt"
 	"os"
 	"testing"
+	
+	"github.com/FactomProject/FactomCode/util"
 )
 
 var _ = fmt.Sprint("")
 var _ = os.DevNull
 
 func TestLoadConfigurations(t *testing.T) {
-	fmt.Println("LogLevel =", logLevel)
-	fmt.Println("LogPath =", logPath)
+	cfg := util.GetConfig()
+	fmt.Printf("%v\n", cfg)
+	fmt.Println("LogLevel =", cfg.Log.LogLevel)
+	fmt.Println("LogPath =", cfg.Log.LogPath)
 }

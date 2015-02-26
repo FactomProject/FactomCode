@@ -47,11 +47,54 @@ type FactomdConfig struct {
 	DisableDNSSeed bool   `long:"nodnsseed" description:"Disable DNS seeding for peers"`
 }
 
+// defaultConfig
+const defaultConfig = `
+; ------------------------------------------------------------------------------
+; App settings
+; ------------------------------------------------------------------------------
+[app]
+PortNumber				= 8088 
+LdbPath					= "/tmp/ldb9"
+DataStorePath			= "/tmp/store/seed/"
+DirectoryBlockInSeconds	= 60
+;---- NodeMode - FULL,SERVER,LIGHT -----
+NodeMode				= FULL
+FederatedId				= "5706d2ebbc0e1dc7fb1df24d0b6fc6f2b3b35bb04ec316c4683c2"
+
+[btc]
+BTCPubAddr				= "movaFTARmsaTMk3j71MpX8HtMURpsKhdra"
+SendToBTCinSeconds  	= 600
+WalletPassphrase 		= "lindasilva"
+CertHomePath			= "btcwallet"
+RpcClientHost			= "localhost:18332"
+RpcClientEndpoint		= "ws"
+RpcClientUser			= "testuser"
+RpcClientPass 			= "notarychain"
+BtcTransFee				= 0.0001
+CertHomePathBtcd		= "btcd"
+RpcBtcdHost 			= "localhost:18334"
+
+[rpc]
+ApplicationName			= "Factom/factomclient"
+PortNumber				= 8088 
+RefreshInSeconds		= 60
+
+; ------------------------------------------------------------------------------
+; LogLevel - debug,info,notice,warning,error,critical,alert,emergency,none
+; ------------------------------------------------------------------------------
+[log]
+LogLevel 				= warning
+LogPath					= /tmp/factomd.log
+`
+
 // GetConfig reads the default factomd.conf file and returns a FactomConfig
 // object corresponding to the state of the file.
 func GetConfig() *FactomdConfig {
 	cfg := new(FactomdConfig)
 	filename := os.Getenv("HOME")+"/.factom/factomd.conf"
-	gcfg.ReadFileInto(&cfg, filename)
+	err := gcfg.ReadFileInto(cfg, filename)
+	if err != nil {
+		gcfg.ReadStringInto(cfg, defaultConfig)
+	}
 	return cfg
 }
