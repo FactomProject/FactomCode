@@ -181,7 +181,8 @@ func levelFromString(levelName string) (level Level) {
 		level = None
 	default:
 		fmt.Fprintf(os.Stderr, "Invalid level value %q, allowed values are: debug, info, notice, warning, error, critical, alert, emergency and none\n", levelName)
-		os.Exit(2)
+		fmt.Fprintln(os.Stderr, "Using log level of warning")
+		level = Warning
 	}
 	return
 }
