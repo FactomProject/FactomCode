@@ -22,6 +22,7 @@ const (
 // temp use global var, to be called from "restapi"
 // ToDo: redesign
 var GlobalUtxo Utxo
+
 func init() {
 	GlobalUtxo = NewUtxo()
 }
@@ -56,8 +57,8 @@ type FactoidPool struct {
 // this is needed in order for mempool methods to be called from abstract interface
 // when different mempools have different tx structs  (no plyorphism in go)
 type context struct {
-	wire    *factomwire.MsgTx
-	tx      *Tx
+	wire *factomwire.MsgTx
+	tx   *Tx
 	//index   int //index into txpool txindex array of *Txid
 	missing []*Txid
 }
@@ -82,7 +83,7 @@ func NewOrphanPool() *orphanpool {
 //a map from Txid to the context tx
 type txpool struct {
 	//txindex []*Txid
-	txlist  map[Txid]context
+	txlist map[Txid]context
 	//nexti		int
 }
 
@@ -90,7 +91,7 @@ type txpool struct {
 func NewTxPool() *txpool {
 	return &txpool{
 		//txindex: make([]*Txid, 0, TxPoolAllocSize),
-		txlist:  make(map[Txid]context),
+		txlist: make(map[Txid]context),
 		//nexti: 		0
 	}
 }
@@ -227,7 +228,7 @@ func (fp *FactoidPool) AddToMemPool() (verified []*notaryapi.HashF) {
 	if len(fp.context.missing) > 0 { // is orphan
 		fp.orphanpool.AddContext(&fp.context)
 	} else {
-		verified = append(verified,fp.doAdd(&fp.context))
+		verified = append(verified, fp.doAdd(&fp.context))
 		//see if this tx is a missing parent of orphan[s]
 		if kids, ok := fp.orphanpool.FoundMissing(fp.context.tx.Id()); ok {
 			//for each orphan child of parent
@@ -238,7 +239,7 @@ func (fp *FactoidPool) AddToMemPool() (verified []*notaryapi.HashF) {
 				if ok2 { //all parents found
 					if fp.utxo.IsValid(ocontext.tx.Txm.TxData.Inputs) {
 						ocontext.missing = missing
-						verified = append(verified,fp.doAdd(&ocontext))
+						verified = append(verified, fp.doAdd(&ocontext))
 					}
 					delete(fp.orphanpool.orphans, *k)
 				} else { // still orphan
@@ -262,16 +263,15 @@ func (fp *FactoidPool) doAdd(c *context) *notaryapi.HashF {
 }
 
 //Confirm is called when receivedd a confirmation msg from federatd server
-// should only be called after already received the Tx 
-// ToDo: deal with confirms that come in diff order than in pool, 
+// should only be called after already received the Tx
+// ToDo: deal with confirms that come in diff order than in pool,
 //		may need to store doubel spends, they may become valid
 func (fp *FactoidPool) Confirm(fm *factomwire.MsgConfirmation) (ok bool, confirmed []*notaryapi.HashF) {
 	if cx, ok := fp.txpool.txlist[fm.Affirmation]; ok {
-		confirmed = append(confirmed,(*notaryapi.HashF)(cx.tx.Id()))
-		delete(fp.txpool.txlist,fm.Affirmation) 
+		confirmed = append(confirmed, (*notaryapi.HashF)(cx.tx.Id()))
+		delete(fp.txpool.txlist, fm.Affirmation)
 	}
-	return 
+	return
 }
-
 
 //******//

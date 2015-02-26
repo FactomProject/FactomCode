@@ -1335,5 +1335,3 @@ func dynamicTickDuration(remaining time.Duration) time.Duration {
 	}
 	return time.Hour
 }
-
-

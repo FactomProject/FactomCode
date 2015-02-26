@@ -2,8 +2,8 @@ package notaryapi
 
 import (
 	"crypto/rand"
-	"github.com/agl/ed25519"
 	"encoding/hex"
+	"github.com/agl/ed25519"
 )
 
 // Verifyer objects can Verify signed messages
@@ -43,7 +43,7 @@ func (pk PublicKey) String() string {
 func PubKeyFromString(instr string) (pk PublicKey) {
 	p, _ := hex.DecodeString(instr)
 	pk.Key = new([32]byte)
-	copy(pk.Key[:],p)
+	copy(pk.Key[:], p)
 	return
 }
 

@@ -45,10 +45,10 @@ const (
 	TBL_CB //14
 	TBL_CB_NUM
 	TBL_CB_INFO
-	
+
 	TBL_FB //17
 	TBL_FB_NUM
-	TBL_FB_INFO	
+	TBL_FB_INFO
 )
 
 // the process status in db

@@ -7,14 +7,15 @@ package factoid
 import (
 	//"bytes"
 	//"fmt"
+	"encoding/binary"
 	"encoding/hex"
-	"encoding/binary"	
+	"errors"
 	"github.com/FactomProject/FactomCode/factomwire"
-	"github.com/FactomProject/FactomCode/notaryapi"	
-	"sync"	
+	"github.com/FactomProject/FactomCode/notaryapi"
+	"sync"
 	"time"
-	"errors"	
 )
+
 type FChain struct {
 	ChainID      *notaryapi.Hash
 	Name         [][]byte
@@ -26,22 +27,22 @@ type FChain struct {
 
 //Factoid Block header
 type FBlockHeader struct {
-	Height     uint64
+	Height        uint64
 	PrevBlockHash *notaryapi.Hash
-	TimeStamp  int64
-	TxCount    uint32
+	TimeStamp     int64
+	TxCount       uint32
 }
 
 //Factoid Block - contains list of Tx, which has raw MsgTx plus the Txid
 type FBlock struct {
 	Header       FBlockHeader
 	Transactions []Tx
-	
+
 	//Not Marshalized
 	FBHash   *notaryapi.Hash
 	Salt     *notaryapi.Hash
 	Chain    *FChain
-	IsSealed bool	
+	IsSealed bool
 }
 
 const (
@@ -83,16 +84,13 @@ func FactoidGenesis(net factomwire.FactomNet) (genesis *FBlock) {
 	return
 }
 
-
 func NewFBlockHeader(blockId uint64, prevHash *notaryapi.Hash, merkle *notaryapi.Hash) *FBlockHeader {
 	return &FBlockHeader{
 		PrevBlockHash: prevHash,
 		TimeStamp:     time.Now().Unix(),
-		Height:       blockId,
+		Height:        blockId,
 	}
 }
-
-
 
 func CreateFBlock(chain *FChain, prev *FBlock, cap uint) (b *FBlock, err error) {
 	if prev == nil && chain.NextBlockID != 0 {
@@ -121,10 +119,10 @@ func CreateFBlock(chain *FChain, prev *FBlock, cap uint) (b *FBlock, err error) 
 
 func NewDBEntryFromFBlock(b *FBlock) *notaryapi.DBEntry {
 	e := &notaryapi.DBEntry{}
-	
+
 	bytes := make([]byte, 8)
 	binary.BigEndian.PutUint64(bytes, uint64(b.Header.TimeStamp))
-	e.SetTimeStamp(bytes)	
+	e.SetTimeStamp(bytes)
 
 	e.ChainID = b.Chain.ChainID
 	e.MerkleRoot = b.FBHash //To use MerkleRoot??

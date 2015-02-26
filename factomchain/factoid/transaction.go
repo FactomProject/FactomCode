@@ -21,7 +21,7 @@ type Txid notaryapi.HashF
 type Input struct {
 	Txid       Txid
 	Index      uint32
-	RevealAddr AddressReveal//notaryapi.ByteArray
+	RevealAddr AddressReveal //notaryapi.ByteArray
 }
 
 func (o *Input) String() string {

@@ -4,15 +4,15 @@
 package main
 
 import (
-	"github.com/FactomProject/FactomCode/notaryapi"
 	"github.com/FactomProject/FactomCode/factomchain/factoid"
 	"github.com/FactomProject/FactomCode/factomwire"
+	"github.com/FactomProject/FactomCode/notaryapi"
 )
 
 // TxProcessor is an interface that abstracts methods needed to process a TxMessage
 // SetContext(*TxMessage) will store to concrete TxMessage in the concrete TxProcessor object
 type TxProcessor interface {
-	SetContext(*factomwire.MsgTx) 
+	SetContext(*factomwire.MsgTx)
 	Verify() bool
 	//Broadcast()
 	AddToMemPool() []*notaryapi.HashF
@@ -41,22 +41,24 @@ type txMemPool struct {
 	server       *server
 	TxProcessorS map[string]TxProcessor
 	//have tx need conf
-	waitingconf  map[notaryapi.HashF]*factomwire.MsgTx
+	waitingconf map[notaryapi.HashF]*factomwire.MsgTx
 	//have conf need tx
-	waitingtx   map[notaryapi.HashF]*factomwire.MsgConfirmation
-	orphanconf	map[uint32]*factomwire.MsgConfirmation
-	next        uint32
+	waitingtx  map[notaryapi.HashF]*factomwire.MsgConfirmation
+	orphanconf map[uint32]*factomwire.MsgConfirmation
+	next       uint32
 }
 
 func (txm *txMemPool) ProcessTransaction(tm *factomwire.MsgTx) bool {
 	ok, verified := ProcessTx(txm.TxProcessorS[tm.TxType()], tm)
-	if !ok { return false }
+	if !ok {
+		return false
+	}
 
 	for _, v := range verified {
 		if conf, ok := txm.waitingtx[*v]; ok {
 			txm.waitingconf[*v] = tm
 			//txm.ProcessConfirmation(conf)
-			delete(txm.waitingtx,*v)
+			delete(txm.waitingtx, *v)
 			defer func() { inRpcQueue <- conf }()
 		} else {
 			txm.waitingconf[*v] = tm
@@ -78,38 +80,44 @@ func (txm *txMemPool) ProcessConfirmation(tm *factomwire.MsgConfirmation) (ok bo
 		return k
 	}
 
-	if ok = VerifyResponsible((*notaryapi.HashF)(&tm.Affirmation),tm.Affirmation[:],&tm.Signature); !ok {
+	if ok = VerifyResponsible((*notaryapi.HashF)(&tm.Affirmation), tm.Affirmation[:], &tm.Signature); !ok {
 		return
 	}
 
 	if tm.Index > txm.next {
 		txm.orphanconf[tm.Index] = tm
 		return true
-	} else if tm.Index < txm.next { return false }
-
-	ok = txm.doConf(tx,tm)
-	
-	for {
-		txm.next++
-		if nc, y := txm.orphanconf[txm.next]; y { 
-			tx, k := txm.waitingconf[nc.Affirmation]
-			if !k { panic("should have tx waitingconf") }
-			txm.doConf(tx,nc)
-			delete(txm.orphanconf,txm.next)
-		} else { break }
+	} else if tm.Index < txm.next {
+		return false
 	}
 
-	return 
+	ok = txm.doConf(tx, tm)
+
+	for {
+		txm.next++
+		if nc, y := txm.orphanconf[txm.next]; y {
+			tx, k := txm.waitingconf[nc.Affirmation]
+			if !k {
+				panic("should have tx waitingconf")
+			}
+			txm.doConf(tx, nc)
+			delete(txm.orphanconf, txm.next)
+		} else {
+			break
+		}
+	}
+
+	return
 }
 
-func (txm *txMemPool) doConf(itx *factomwire.MsgTx,tm *factomwire.MsgConfirmation) bool {
+func (txm *txMemPool) doConf(itx *factomwire.MsgTx, tm *factomwire.MsgConfirmation) bool {
 	ret, confirmed := ProcessConf(txm.TxProcessorS[itx.TxType()], tm)
 	for _, c := range confirmed {
 		if tx, ok := txm.waitingconf[*c]; ok {
 			//kludge to write blocks. processed by restapi for now
 			//ToDo: fix
 			defer func() { inMsgQueue <- tx }()
-			delete(txm.waitingconf,*c)
+			delete(txm.waitingconf, *c)
 		}
 	}
 

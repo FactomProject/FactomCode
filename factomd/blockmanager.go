@@ -19,7 +19,7 @@ type txMsg struct {
 }
 
 type confMsg struct {
-	conf   *factomwire.MsgConfirmation
+	conf *factomwire.MsgConfirmation
 	peer *peer
 }
 

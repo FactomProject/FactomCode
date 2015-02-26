@@ -8,7 +8,6 @@ import (
 	//"github.com/FactomProject/FactomCode/notaryapi"
 )
 
-
 func TestFactoidGenesis(t *testing.T) {
 	if wallet.FactoidAddress() != factoid.GenesisAddress {
 		t.SkipNow()
@@ -53,4 +52,3 @@ func TestGenesisInputTransaction(t *testing.T) {
 	}
 
 }
-

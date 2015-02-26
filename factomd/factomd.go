@@ -32,7 +32,7 @@ var (
 	inMsgQueue      = make(chan factomwire.Message, 100) //incoming message queue for factom application messages
 	outMsgQueue     = make(chan factomwire.Message, 100) //outgoing message queue for factom application messages
 	inRpcQueue      = make(chan factomwire.Message, 100) //incoming message queue for factom application messages
-	federatedid 	string
+	federatedid     string
 )
 
 // winServiceMain is only invoked on Windows.  It detects when btcd is running
@@ -138,14 +138,14 @@ func factomdMain(serverChan chan<- *server) error {
 		for msg := range inRpcQueue {
 			fmt.Printf("in range inRpcQueue, msg:%+v\n", msg)
 			switch msg.Command() {
-				case factomwire.CmdTx:
-					server.blockManager.QueueTx(msg.(*factomwire.MsgTx), nil)
-				case factomwire.CmdConfirmation:
-					server.blockManager.QueueConf(msg.(*factomwire.MsgConfirmation), nil)
+			case factomwire.CmdTx:
+				server.blockManager.QueueTx(msg.(*factomwire.MsgTx), nil)
+			case factomwire.CmdConfirmation:
+				server.blockManager.QueueConf(msg.(*factomwire.MsgConfirmation), nil)
 
-				default:
-					inMsgQueue <- msg
-					outMsgQueue <- msg 
+			default:
+				inMsgQueue <- msg
+				outMsgQueue <- msg
 			}
 		}
 	}()
@@ -184,16 +184,16 @@ func main() {
 	// the return isService flag is true, exit now since we ran as a
 	// service.  Otherwise, just fall through to normal operation.
 	/*
-	if runtime.GOOS == "windows" {
-		isService, err := winServiceMain()
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+		if runtime.GOOS == "windows" {
+			isService, err := winServiceMain()
+			if err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
+			if isService {
+				os.Exit(0)
+			}
 		}
-		if isService {
-			os.Exit(0)
-		}
-	}
 	*/
 	util.Trace()
 

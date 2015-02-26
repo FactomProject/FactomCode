@@ -98,7 +98,7 @@ func LoadConfigurations(cfg *util.FactomdConfig) {
 // to be replaced by DHT
 func downloadAndImportDbRecords() {
 	log := rpcLog
-	
+
 	data := url.Values{}
 	data.Set("accept", "json")
 	data.Set("datatype", "filelist")

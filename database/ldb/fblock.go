@@ -2,14 +2,14 @@ package ldb
 
 import (
 	"errors"
+	"github.com/FactomProject/FactomCode/factomchain/factoid"
 	"github.com/FactomProject/FactomCode/notaryapi"
-	"github.com/FactomProject/FactomCode/factomchain/factoid"	
 	"github.com/FactomProject/goleveldb/leveldb"
-	"github.com/FactomProject/goleveldb/leveldb/util"	
+	"github.com/FactomProject/goleveldb/leveldb/util"
 	"log"
 )
 
-// ProcessFBlockBatche inserts the FBlock 
+// ProcessFBlockBatche inserts the FBlock
 func (db *LevelDb) ProcessFBlockBatch(block *factoid.FBlock) error {
 
 	if block != nil {
@@ -58,7 +58,6 @@ func (db *LevelDb) FetchFBlockByHash(fBlockHash *notaryapi.Hash) (fBlock *factoi
 	}
 	return fBlock, nil
 }
-
 
 // FetchAllFBlocks gets all of the factoid blocks
 func (db *LevelDb) FetchAllFBlocks() (fBlocks []factoid.FBlock, err error) {

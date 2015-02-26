@@ -82,5 +82,4 @@ func TestGetAddress(t *testing.T) {
 
 	t.Logf("ClientPublicKeyStr: %v", ClientPublicKeyStr())
 
-	
 }

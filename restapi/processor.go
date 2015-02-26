@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/factomapi"
+	"github.com/FactomProject/FactomCode/factomchain/factoid"
 	"github.com/FactomProject/FactomCode/factomwire"
 	"github.com/FactomProject/FactomCode/notaryapi"
-	"github.com/FactomProject/FactomCode/factomchain/factoid"	
 	"github.com/FactomProject/FactomCode/util"
 	//"github.com/FactomProject/FactomCode/wallet"
 	"github.com/FactomProject/btcrpcclient"
@@ -43,7 +43,7 @@ var (
 	//chainNameMap map[string]*notaryapi.Chain // ChainNameMap with chain name string as key
 	dchain *notaryapi.DChain //Directory Block Chain
 	cchain *notaryapi.CChain //Entry Credit Chain
-	fchain *factoid.FChain //Factoid Chain
+	fchain *factoid.FChain   //Factoid Chain
 
 	creditsPerChain   int32            = 10
 	creditsPerFactoid uint64           = 1000
@@ -173,7 +173,7 @@ func init_processor() {
 	// init Factoind Chain
 	initFChain()
 	fmt.Println("Loaded", len(cchain.Blocks)-1, "Factoid blocks for chain: "+fchain.ChainID.String())
-	
+
 	// init Entry Chains
 	initEChains()
 	for _, chain := range chainIDMap {
@@ -227,14 +227,13 @@ func init_processor() {
 			}
 			saveCChain(cchain)
 
-
 			// Factoid Chain
 			fBlock := newFBlock(fchain)
 			if fBlock != nil {
 				dchain.AddFBlockToDBEntry(factoid.NewDBEntryFromFBlock(fBlock))
 			}
 			saveFChain(fchain)
-			
+
 			// Directory Block chain
 			dbBlock := newDirectoryBlock(dchain)
 			if dbBlock != nil {
@@ -860,6 +859,7 @@ func initCChain() {
 		dchain.Blocks[dchain.NextBlockID].DBEntries, _ = db.FetchDBEntriesFromQueue(&binaryTimestamp)
 	*/
 }
+
 // Initialize factoid chain from db and initialize the mempool??
 func initFChain() {
 
@@ -907,7 +907,6 @@ func initFChain() {
 		fchain.Blocks = append(fchain.Blocks, newblock)
 	}
 }
-
 
 func ExportDbToFile(dbHash *notaryapi.Hash) {
 

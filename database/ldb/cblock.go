@@ -4,7 +4,7 @@ import (
 	"errors"
 	"github.com/FactomProject/FactomCode/notaryapi"
 	"github.com/FactomProject/goleveldb/leveldb"
-	"github.com/FactomProject/goleveldb/leveldb/util"	
+	"github.com/FactomProject/goleveldb/leveldb/util"
 	"log"
 )
 
@@ -57,7 +57,6 @@ func (db *LevelDb) FetchCBlockByHash(cBlockHash *notaryapi.Hash) (cBlock *notary
 	}
 	return cBlock, nil
 }
-
 
 // FetchAllCBlocks gets all of the entry credit blocks
 func (db *LevelDb) FetchAllCBlocks() (cBlocks []notaryapi.CBlock, err error) {

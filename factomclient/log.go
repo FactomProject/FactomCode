@@ -2,8 +2,8 @@ package factomclient
 
 import (
 	"fmt"
-	"os"
 	"github.com/FactomProject/FactomCode/factomlog"
+	"os"
 )
 
 var (
@@ -18,7 +18,7 @@ func init() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	
-	rpcLog    = factomlog.New(logfile, logLevel, "rpc")
+
+	rpcLog = factomlog.New(logfile, logLevel, "rpc")
 	serverLog = factomlog.New(logfile, logLevel, "serv")
 }

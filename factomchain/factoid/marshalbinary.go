@@ -8,7 +8,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"github.com/FactomProject/FactomCode/notaryapi"
-	//"fmt"	
+	//"fmt"
 )
 
 func (i *Input) MarshalBinary() (data []byte, err error) {
@@ -21,12 +21,12 @@ func (i *Input) MarshalBinary() (data []byte, err error) {
 	binary.Write(&buf, binary.BigEndian, i.Index) //32
 
 	/*
-	//count := uint64(len(i.RevealAddr)) // 64
-	//binary.Write(&buf, binary.BigEndian, count)
-	data, err = i.RevealAddr.MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
+		//count := uint64(len(i.RevealAddr)) // 64
+		//binary.Write(&buf, binary.BigEndian, count)
+		data, err = i.RevealAddr.MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
 	*/
 	buf.Write(i.RevealAddr[:]) //32
 	buf.Write(data)
@@ -256,7 +256,6 @@ func (txm *TxMsg) UnmarshalBinary(data []byte) (err error) {
 	return nil
 }
 
-
 func (b *FChain) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
 
@@ -348,7 +347,6 @@ func (b *FBlockHeader) UnmarshalBinary(data []byte) (err error) {
 	return nil
 }
 
-
 func (b *FBlock) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
 
@@ -388,14 +386,14 @@ func (b *FBlock) UnmarshalBinary(data []byte) (err error) {
 
 	b.Transactions = make([]Tx, count)
 	for i := uint64(0); i < count; i++ {
-		txMsg := new (TxMsg)
+		txMsg := new(TxMsg)
 		err = txMsg.UnmarshalBinary(data)
 		if err != nil {
 			return
 		}
 		data = data[txMsg.MarshalledSize():]
-		
-		b.Transactions[i] =  *(NewTx(txMsg))
+
+		b.Transactions[i] = *(NewTx(txMsg))
 	}
 
 	return nil

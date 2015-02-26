@@ -20,8 +20,8 @@ import (
 type TxSpentList []bool
 
 type TxOutSpent struct {
-	Outs   []Output
-	Spent  TxSpentList
+	Outs  []Output
+	Spent TxSpentList
 }
 
 //Unspent TransaXtion Outputs is implimented as a hashtable from Txid to bool array  TxSpentList
@@ -58,7 +58,7 @@ func (u *Utxo) AddTx(t *Tx) {
 //add all outputs for txid to UTXO
 func (u *Utxo) AddUtxo(id *Txid, outs []Output) {
 	txs := make(TxSpentList, len(outs))
-	u.Txspent[*id] = TxOutSpent{outs,txs}
+	u.Txspent[*id] = TxOutSpent{outs, txs}
 }
 
 //IsValid checks Inputs and returns true if all inputs are in current Utxo
@@ -85,7 +85,7 @@ func (u *Utxo) IsValid(in []Input) bool {
 			fmt.Println("Output already spent ", i.Txid.String(), " Index ", i.Index)
 			return false
 		}
-		if ok := VerifyAddressReveal(spends.Outs[i.Index-1].ToAddr,i.RevealAddr); !ok {
+		if ok := VerifyAddressReveal(spends.Outs[i.Index-1].ToAddr, i.RevealAddr); !ok {
 			fmt.Println("!VerifyAddressReveal ", spends.Outs[i.Index-1].ToAddr, " i.RevealAddr ", i.RevealAddr)
 			return false
 		}
@@ -138,11 +138,9 @@ func (u *Utxo) Spend(in []Input) {
 	}
 }
 
-//Meant for adding verified blocks to Utxo 
-func(u *Utxo) AddVerifiedTxList(tx []Tx) {
+//Meant for adding verified blocks to Utxo
+func (u *Utxo) AddVerifiedTxList(tx []Tx) {
 	for _, t := range tx {
-		u.AddUtxo(t.Id(),OutputsTx(&t))
-	}	
+		u.AddUtxo(t.Id(), OutputsTx(&t))
+	}
 }
-
-

@@ -97,8 +97,6 @@ func NewDBEntryFromCBlock(cb *CBlock) *DBEntry {
 	return e
 }
 
-
-
 func (e *DBEntry) Hash() *Hash {
 	return e.hash
 }

@@ -21,8 +21,8 @@ import (
 	"github.com/FactomProject/btcutil"
 	"github.com/FactomProject/btcws"
 
+	"github.com/FactomProject/FactomCode/factomchain/factoid"
 	"github.com/FactomProject/FactomCode/notaryapi"
-	"github.com/FactomProject/FactomCode/factomchain/factoid"		
 
 	"errors"
 )
@@ -588,11 +588,11 @@ func newFBlock(chain *factoid.FChain) *factoid.FBlock {
 
 	// acquire the last block
 	block := chain.Blocks[len(chain.Blocks)-1]
-	
+
 	if len(block.Transactions) < 1 {
 		//log.Println("No Directory block created for chain ... because no new entry is found.")
 		return nil
-	}	
+	}
 
 	// Create the block and add a new block for new coming entries
 	chain.BlockMutex.Lock()
