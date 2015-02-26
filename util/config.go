@@ -30,6 +30,7 @@ type FactomdConfig struct {
 		RefreshInSeconds int
 	}
 	Log struct {
+		LogPath  string
 		LogLevel string
 	}
 

@@ -23,8 +23,9 @@ import (
 )
 
 var (
-	logLevel            = "debug"
-	logPath             = "/home/jlu/.factom/factomclient/factomclient.log"
+
+	logLevel            = "warning"
+	logPath             = "/home/.factom/factomclient/factomclient.log"
 	portNumber      int = 8088
 	applicationName     = "factom/client"
 	serverAddr          = "localhost:8083"
@@ -85,14 +86,12 @@ func Start_Rpcserver(ldb database.Db, outMsgQ chan<- factomwire.Message) {
 }
 
 func LoadConfigurations(cfg *util.FactomdConfig) {
-
-	//setting the variables by the valued form the config file
 	logLevel = cfg.Log.LogLevel
+	logPath = cfg.Log.LogPath
 	applicationName = cfg.Rpc.ApplicationName
 	portNumber = cfg.Rpc.PortNumber
 	dataStorePath = cfg.App.DataStorePath
 	refreshInSeconds = cfg.Rpc.RefreshInSeconds
-
 }
 
 // to be replaced by DHT
