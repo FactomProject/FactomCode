@@ -1,24 +1,12 @@
 package factomclient
 
 import (
-	"fmt"
 	"github.com/FactomProject/FactomCode/factomlog"
 	"os"
 )
 
 var (
-	rpcLog    *factomlog.FLogger
-	serverLog *factomlog.FLogger
+	logfile, _ = os.OpenFile(logPath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0660)
+	rpcLog     = factomlog.New(logfile, logLevel, "rpc")
+	serverLog  = factomlog.New(logfile, logLevel, "serv")
 )
-
-func init() {
-	logfile, err := os.OpenFile(logPath, os.O_WRONLY|os.O_CREATE|os.O_APPEND,
-		0660)
-	if err != nil {
-		fmt.Println(err, "Using STDERR")
-		logfile = os.Stderr
-	}
-
-	rpcLog = factomlog.New(logfile, logLevel, "rpc")
-	serverLog = factomlog.New(logfile, logLevel, "serv")
-}
