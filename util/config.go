@@ -89,7 +89,7 @@ LogPath					= /tmp/factomd.log
 
 // GetConfig reads the default factomd.conf file and returns a FactomConfig
 // object corresponding to the state of the file.
-func GetConfig() *FactomdConfig {
+func ReadConfig() *FactomdConfig {
 	cfg := new(FactomdConfig)
 	filename := os.Getenv("HOME")+"/.factom/factomd.conf"
 	err := gcfg.ReadFileInto(cfg, filename)

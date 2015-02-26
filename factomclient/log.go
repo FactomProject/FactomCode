@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	cfg        = util.GetConfig()
+	cfg        = util.ReadConfig()
 	logPath    = cfg.Log.LogPath
 	logLevel   = cfg.Log.LogLevel
 	logfile, _ = os.OpenFile(logPath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0660)
