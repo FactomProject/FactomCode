@@ -23,20 +23,11 @@ import (
 )
 
 var (
-<<<<<<< HEAD
 	logLevel         string
 	logPath          string
 	portNumber       int = 8088
 	applicationName      = "factom/client"
 	serverAddr           = "localhost:8083"
-=======
-
-	logLevel            = "warning"
-	logPath             = "/home/.factom/factomclient/factomclient.log"
-	portNumber      int = 8088
-	applicationName     = "factom/client"
-	serverAddr          = "localhost:8083"
->>>>>>> 271e82c95734268c5b4ed125f2b149d23c7385dc
 	//ldbpath              = "/tmp/factomclient/ldb9"
 	dataStorePath        = "/tmp/store/seed/csv"
 	refreshInSeconds int = 60
