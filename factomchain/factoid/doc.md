@@ -79,12 +79,12 @@ http://godoc.org/github.com/jaybny/FactomCode/factomchain/factoid#NewTxFromOutpu
 txid := tx.Id() // the txid of output trying to spend
 index := uint32(1) //the output index 
 
-txmsg2 = factoid.NewTxFromOutputToAddr(txid, outs, index, revealaddress, address2)
+txmsg2 := factoid.NewTxFromOutputToAddr(txid, outs, index, revealaddress, address2)
 ```
 
 5) sign with wallet and add signature to transaction  
 ```
-factoid.AddSingleSigToTxMsg(txmsg, factoid.NewSingleSignature(wallet.DetachMarshalSign(txmsg2.TxData)))
+factoid.AddSingleSigToTxMsg(txmsg2, factoid.NewSingleSignature(wallet.DetachMarshalSign(txmsg2.TxData)))
 ```
 
 6) validate inputs againts Utxo, if valid verify signatures and add to Utxo 
