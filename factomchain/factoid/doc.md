@@ -91,7 +91,7 @@ factoid.AddSingleSigToTxMsg(txmsg2, factoid.NewSingleSignature(wallet.DetachMars
 ```
 ok = utxo.IsValid(txmsg2.TxData.Inputs)
 if ok {
-  tx2 := NewTx(txmsg2)
+  tx2 := factoid.NewTx(txmsg2)
   ok = factoid.VerifyTx(tx2)
   if ok {
     utxo.AddTx(tx2)
