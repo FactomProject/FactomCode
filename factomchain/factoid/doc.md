@@ -5,6 +5,7 @@ http://godoc.org/github.com/jaybny/FactomCode/factomchain/factoid
 ### To Create a factoid transaction:
 
 1) create an Input from the "faucet": 
+
 http://godoc.org/github.com/jaybny/FactomCode/factomchain/factoid#NewFaucetIn
 ```
 myinput := factoid.NewFaucetIn()
