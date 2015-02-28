@@ -22,7 +22,7 @@ http://godoc.org/github.com/jaybny/FactomCode/factomchain/factoid#NewTxFromInput
 
 4) use wallet to create a signature of the transaction. (TxMsg.TxData)
 ```
-signature := wallet.DetachMarshalSign(txm.TxData)
+signature := wallet.DetachMarshalSign(txmsg.TxData)
 ```
 5) create a factoid SingleSignature and attach it to the factoid transaction 
 ```
@@ -54,5 +54,47 @@ utxo := factoid.NewUtxo()
 utxo.AddTx(tx) 
 ```
 ##### output of 1000 snow from your transaction is now an Unspent Transaction Output 
+
+### To verify that your transaction is in UTXO, lets try to spend it:
+
+1) get outputs from previous transaction 
+
+```
+outs := factoid.OutputsTx(prevtx)
+```
+2) generate external address to send to:
+```
+address2, _, _ := factoid.DecodeAddress("ExZ7hUZ7B4T3doVC6iLBPh9JP33huwELmLg6pM2LDNSiqk9mSx")
 ```
 
+3) generate "Reveal Address", your public-key needed to spend previous output 
+```
+revealaddress := factoid.AddressReveal(*wallet.ClientPublicKey().Key)
+```
+
+4) call util.NewTxFromOutputToAddr to generate the new transaction
+http://godoc.org/github.com/jaybny/FactomCode/factomchain/factoid#NewTxFromOutputToAddr
+```
+txid := tx.Id() // the txid of output trying to spend
+index := uint32(1) //the output index 
+
+txmsg2 = factoid.NewTxFromOutputToAddr(txid, outs, index, revealaddress, address2)
+```
+
+5) sign with wallet and add signature to transaction  
+```
+factoid.AddSingleSigToTxMsg(txmsg, factoid.NewSingleSignature(wallet.DetachMarshalSign(txmsg2.TxData)))
+```
+
+6) validate inputs againts Utxo, if valid verify signatures and add to Utxo 
+```
+ok = utxo.IsValid(txmsg2.TxData.Inputs)
+if ok {
+  tx2 := NewTx(txmsg2)
+  ok = factoid.VerifyTx(tx2)
+  if ok {
+    utxo.AddTx(tx2)
+  }
+}
+```
+##### We now just sent the 1000 coins we received from the faucet to "ExZ7hUZ7B4T3doVC6iLBPh9JP33huwELmLg6pM2LDNSiqk9mSx"
