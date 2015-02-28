@@ -12,7 +12,7 @@ myinput := factoid.NewFaucetIn()
 ```
 2) create an Address from your wallet address
 ```
-mywaletaddress := wallet.FactoidAddress()
+mywalletaddress := wallet.FactoidAddress()
 address, _, _ := factoid.DecodeAddress(mywalletaddress)
 ```
 3) create a TxMsg - a factoid transaction to add 1000 Snow to your wallet address 
