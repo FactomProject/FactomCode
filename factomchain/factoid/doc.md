@@ -43,3 +43,16 @@ tx := NewTx(txmsg)
 ok := factoid.VerifyTx(tx)
 ```
 ##### we have created a faucet transaction and verified its signatures 
+
+### To Create UTXO and add your transaction:
+1) create Utxo 
+```
+utxo := factoid.NewUtxo()
+```
+2) Add above faucet transaction to Utxo 
+```
+utxo.AddTx(tx) 
+```
+##### output of 1000 snow from your transaction is now an Unspent Transaction Output 
+```
+
