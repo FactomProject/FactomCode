@@ -61,7 +61,7 @@ utxo.AddTx(tx)
 1) get outputs from previous transaction 
 
 ```
-outs := factoid.OutputsTx(prevtx)
+outs := factoid.OutputsTx(tx)
 ```
 2) generate external address to send to:
 ```
