@@ -10,6 +10,7 @@ import (
 	"github.com/FactomProject/FactomCode/factomwire"
 	"github.com/FactomProject/FactomCode/notaryapi"
 	"github.com/FactomProject/FactomCode/wallet"
+	"fmt"
 )
 
 //which federated server is responsible for confirming this msg?
@@ -19,16 +20,17 @@ func WhosResponsible(*notaryapi.HashF) notaryapi.PublicKey {
 
 //is this federated server  responsible for confirming this msg?
 func IsResponsible(h *notaryapi.HashF, pk notaryapi.PublicKey) bool {
-	return WhosResponsible(h) == pk
+
+	return (*WhosResponsible(h).Key) == *pk.Key
 }
 
 //am I a federated server responsible for confirming this msg?
 func ImResponsible(h *notaryapi.HashF) bool {
-	return IsResponsible(h, wallet.ClientPublicKey())
+	return IsResponsible(h, wallet.ClientPublicKey()) == true
 }
 
 func VerifyResponsible(h *notaryapi.HashF, msg []byte, sig *[64]byte) bool {
-	return WhosResponsible(h).Verify(msg, sig)
+	return WhosResponsible(h).Verify(msg, sig) == true
 }
 
 type FedProcessList struct {

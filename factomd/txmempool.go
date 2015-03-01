@@ -143,5 +143,6 @@ func newTxMemPool(server *server) *txMemPool {
 	txmp.orphanconf = make (map[uint32]*factomwire.MsgConfirmation)
 	//----------------------------------------------------------------
 
+	txmp.server = server;
 	return &txmp
 }
