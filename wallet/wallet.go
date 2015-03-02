@@ -86,3 +86,8 @@ func FactoidAddress() string {
 func ClientPublicKeyStr() string {
 	return ClientPublicKey().String()
 }
+
+func GetMyBalance() (bal int64) {
+	bal =  factoid.GetBalance(FactoidAddress())
+	return
+}

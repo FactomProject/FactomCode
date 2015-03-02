@@ -61,9 +61,14 @@ func TestFaucet(t *testing.T) {
 	fp.AddToMemPool()
 	t.Logf("%#v ", *fp.Utxo())
 
+	bal := factoid.GetBalance(wallet.FactoidAddress())
+	if bal != 1000 {
+		t.Fatalf("bal != 1000")
+	}
+
 	//spend to external address
 	prevtx := tx
-	addr, _, _ = factoid.DecodeAddress("ExZ7hUZ7B4T3doVC6iLBPh9JP33huwELmLg6pM2LDNSiqk9mSx")
+	addr, _, _ = factoid.DecodeAddress("ExZ7hUZ7B4T3doVC6iLBPh9JP33huwELmLg6pM2LDNSiqk9mSs")
 	outs := factoid.OutputsTx(prevtx)
 	txm = factoid.NewTxFromOutputToAddr(prevtx.Id(), outs, uint32(1), factoid.AddressReveal(*wallet.ClientPublicKey().Key), addr)
 	ds = wallet.DetachMarshalSign(txm.TxData)
@@ -79,9 +84,19 @@ func TestFaucet(t *testing.T) {
 	fp.AddToMemPool()
 	t.Logf("%#v ", *fp.Utxo())
 
+	bal = factoid.GetBalance(wallet.FactoidAddress())
+	if bal != 0 {
+		t.Fatalf("bal != 0", bal)
+	}
+
+	bal = factoid.GetBalance("ExZ7hUZ7B4T3doVC6iLBPh9JP33huwELmLg6pM2LDNSiqk9mSs")
+	if bal != 1000 {
+		t.Fatalf("bal != 1000")
+	}
+
 	//try again - should fail
 	//prevtx = factoid.NewTx(txm)
-	addr, _, _ = factoid.DecodeAddress("ExZ7hUZ7B4T3doVC6iLBPh9JP33huwELmLg6pM2LDNSiqk9mSx")
+	addr, _, _ = factoid.DecodeAddress("ExZ7hUZ7B4T3doVC6iLBPh9JP33huwELmLg6pM2LDNSiqk9mSs")
 	outs = factoid.OutputsTx(prevtx)
 	txm = factoid.NewTxFromOutputToAddr(prevtx.Id(), outs, uint32(1), factoid.AddressReveal(*wallet.ClientPublicKey().Key), addr)
 	ds = wallet.DetachMarshalSign(txm.TxData)
@@ -93,6 +108,12 @@ func TestFaucet(t *testing.T) {
 	if ok := fp.Verify(); ok {
 		t.Fatalf("should fail Verify3")
 	}
+
+	bal = factoid.GetBalance("ExZ7hUZ7B4T3doVC6iLBPh9JP33huwELmLg6pM2LDNSiqk9mSs")
+	if bal != 1000 {
+		t.Fatalf("bal != 1000")
+	}
+
 
 	//try new faucet - should fail with nonce0
 	//add 1000 factoids to my address using faucet
@@ -108,6 +129,12 @@ func TestFaucet(t *testing.T) {
 	if ok := fp.Verify(); ok {
 		t.Fatalf("Verify should fail")
 	}
+
+	bal = factoid.GetBalance(wallet.FactoidAddress())
+	if bal != 0 {
+		t.Fatalf("bal != 0", bal)
+	}
+
 
 	//fp.AddToMemPool()
 	//t.Logf("%#v ", *fp.Utxo())
@@ -133,6 +160,10 @@ func TestFaucet(t *testing.T) {
 
 	fp.AddToMemPool()
 	t.Logf("%#v ", *fp.Utxo())
+	bal = factoid.GetBalance(wallet.FactoidAddress())
+	if bal != 1000 {
+		t.Fatalf("bal != 1000")
+	}
 
 	//inn := factoid.NewFaucetIn()
 	//t.Logf("infa %d ", inn.Index)
@@ -157,6 +188,10 @@ func TestFaucet(t *testing.T) {
 
 	fp.AddToMemPool()
 	t.Logf("%#v ", *fp.Utxo())
+	bal = wallet.GetMyBalance()
+	if bal != 2000 {
+		t.Fatalf("bal != 2000")
+	}
 
 	//try sending from faucet tx input
 	//spend to my wallet address
@@ -177,11 +212,15 @@ func TestFaucet(t *testing.T) {
 
 	fp.AddToMemPool()
 	t.Logf("%#v ", *fp.Utxo())
+	bal = factoid.GetBalance(wallet.FactoidAddress())
+	if bal != 2000 {
+		t.Fatalf("bal != 2000")
+	}
 
 	//try sending from prev tx input
 	//spend to an external address
 	prevtx = tx
-	addr, _, _ = factoid.DecodeAddress("ExZ7hUZ7B4T3doVC6iLBPh9JP33huwELmLg6pM2LDNSiqk9mSx")
+	addr, _, _ = factoid.DecodeAddress("ExZ7hUZ7B4T3doVC6iLBPh9JP33huwELmLg6pM2LDNSiqk9mSs")
 	outs = factoid.OutputsTx(prevtx)
 	txm = factoid.NewTxFromOutputToAddr(prevtx.Id(), outs, uint32(1), factoid.AddressReveal(*wallet.ClientPublicKey().Key), addr)
 	ds = wallet.DetachMarshalSign(txm.TxData)
@@ -196,6 +235,15 @@ func TestFaucet(t *testing.T) {
 
 	fp.AddToMemPool()
 	t.Logf("%#v ", *fp.Utxo())
+	bal = factoid.GetBalance(wallet.FactoidAddress())
+	if bal != 1000 {
+		t.Fatalf("bal != 1000", bal)
+	}
+
+	bal = factoid.GetBalance("ExZ7hUZ7B4T3doVC6iLBPh9JP33huwELmLg6pM2LDNSiqk9mSs")
+	if bal != 2000 {
+		t.Fatalf("bal != 2000")
+	}
 
 	//try sending from prev tx input
 	//should fail - bad sig
@@ -212,6 +260,17 @@ func TestFaucet(t *testing.T) {
 	if ok := fp.Verify(); ok {
 		t.Fatalf("!Should fail 5")
 	}
+
+	bal = wallet.GetMyBalance()
+	if bal != 1000 {
+		t.Fatalf("bal != 1000", bal)
+	}
+
+	bal = factoid.GetBalance("ExZ7hUZ7B4T3doVC6iLBPh9JP33huwELmLg6pM2LDNSiqk9mSs")
+	if bal != 2000 {
+		t.Fatalf("bal != 1000")
+	}
+
 
 	//fp.AddToMemPool()
 	//t.Logf("%#v ", *fp.Utxo())

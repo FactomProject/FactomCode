@@ -185,8 +185,14 @@ func handleFactoidTx(ctx *web.Context) {
 		log.Error(err)
 	}
 	amt := n
+	var toaddress string
+	if ctx.Params["to"] == "wallet" {
+		toaddress = wallet.FactoidAddress()
+	} else {
+		toaddress = ctx.Params["to"]
+	}
 
-	addr, _, err := factoid.DecodeAddress(ctx.Params["to"])
+	addr, _, err := factoid.DecodeAddress(toaddress)
 	if err != nil {
 		log.Error(err)
 	}
