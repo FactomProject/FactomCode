@@ -9,6 +9,7 @@ import (
 	//"fmt"
 	"encoding/hex"
 	"github.com/FactomProject/FactomCode/notaryapi"
+	"strconv"
 )
 
 type Txid notaryapi.HashF
@@ -61,7 +62,7 @@ type Output struct {
 func (o *Output) String() string {
 	netid := byte('\x07')
 
-	return EncodeAddress(o.ToAddr, netid) + " amount:" + string(o.Amount)
+	return EncodeAddress(o.ToAddr, netid) + " amount:" + strconv.FormatInt(o.Amount,10)
 }
 
 func (o *Output) ToAddressString() string {
