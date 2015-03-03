@@ -21,7 +21,7 @@ type EntryInfoBranch struct {
 	EntryHash *Hash
 	EntryInfo *EntryInfo
 	EBInfo    *EBInfo
-	DBBatch   *DBBatch
+	DBInfo   *DBInfo
 }
 
 func (e *Entry) MarshalBinary() ([]byte, error) {

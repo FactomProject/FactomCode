@@ -31,11 +31,11 @@ type DBlock struct {
 	DBHash   *Hash
 }
 
-type DBBatch struct {
-	// DBlocks usually include 10 DBlocks, merkle root of which
-	// is written into BTC. Only hash of each DBlock will be marshalled
-	DBlocks []*DBlock
+type DBInfo struct {
 
+	// Serial hash for the directory block
+	DBHash *Hash
+	
 	// BTCTxHash is the Tx hash returned from rpcclient.SendRawTransaction
 	BTCTxHash *Hash // use string or *btcwire.ShaHash ???
 
@@ -47,10 +47,10 @@ type DBBatch struct {
 
 	//BTCBlockHash is the hash of the block where this TX is stored in BTC
 	BTCBlockHash *Hash // use string or *btcwire.ShaHash ???
-
-	// FBBatchMerkleRoot is the merkle root of a batch of 10 FactomBlocks
+	
+	// DBMerkleRoot is the merkle root of the Directory Block
 	// and is written into BTC as OP_RETURN data
-	FBBatchMerkleRoot *Hash
+	DBMerkleRoot *Hash	
 }
 
 type DBlockHeader struct {
@@ -63,7 +63,6 @@ type DBlockHeader struct {
 	EntryCount    uint32
 }
 
-const fBlockHeaderLen = 88
 
 type DBEntry struct {
 	timeStamp  int64
@@ -93,6 +92,14 @@ func NewDBEntryFromCBlock(cb *CBlock) *DBEntry {
 
 	e.ChainID = cb.Chain.ChainID
 	e.MerkleRoot = cb.CBHash //To use MerkleRoot??
+
+	return e
+}
+
+func NewDBInfoFromDBlock(b *DBlock) *DBInfo {
+	e := &DBInfo{}
+	e.DBHash = b.DBHash
+	e.DBMerkleRoot = b.Header.MerkleRoot //?? double check
 
 	return e
 }
@@ -319,7 +326,7 @@ func (dchain *DChain) AddFBlockToDBEntry(dbEntry *DBEntry) (err error) {
 	dchain.BlockMutex.Lock()
 	dBlock.DBEntries = append(dBlock.DBEntries, dbEntry)
 	dchain.BlockMutex.Unlock()
-
+ 
 	return nil
 }
 
@@ -409,18 +416,14 @@ func (b *DBlock) EncodableFields() map[string]reflect.Value {
 	return fields
 }
 
-func (b *DBBatch) MarshalBinary() (data []byte, err error) {
+func (b *DBInfo) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
 
-	count := uint32(len(b.DBlocks))
-	binary.Write(&buf, binary.BigEndian, count)
-	for _, fb := range b.DBlocks {
-		data, err = fb.DBHash.MarshalBinary()
-		if err != nil {
-			return
-		}
-		buf.Write(data)
+	data, err = b.DBHash.MarshalBinary()
+	if err != nil {
+		return
 	}
+	buf.Write(data)
 
 	data, err = b.BTCTxHash.MarshalBinary()
 	if err != nil {
@@ -437,7 +440,7 @@ func (b *DBBatch) MarshalBinary() (data []byte, err error) {
 	}
 	buf.Write(data)
 
-	data, err = b.FBBatchMerkleRoot.MarshalBinary()
+	data, err = b.DBMerkleRoot.MarshalBinary()
 	if err != nil {
 		return
 	}
@@ -446,30 +449,21 @@ func (b *DBBatch) MarshalBinary() (data []byte, err error) {
 	return buf.Bytes(), err
 }
 
-func (b *DBBatch) MarshalledSize() uint64 {
+func (b *DBInfo) MarshalledSize() uint64 {
 	var size uint64 = 0
-	size += 4 + uint64(33*len(b.DBlocks)) //DBlocks
+	size += 33                            //DBHash
 	size += 33                            //BTCTxHash
 	size += 4                             //BTCTxOffset
 	size += 4                             //BTCBlockHeight
 	size += 33                            //BTCBlockHash
-	size += 33                            //FBBatchMerkleRoot
+	size += 33                            //DBMerkleRoot
 
 	return size
 }
 
-func (b *DBBatch) UnmarshalBinary(data []byte) (err error) {
-	count, data := binary.BigEndian.Uint32(data[0:4]), data[4:]
-	b.DBlocks = make([]*DBlock, count)
-	for i := uint32(0); i < count; i++ {
-		b.DBlocks[i] = new(DBlock)
-		b.DBlocks[i].DBHash = new(Hash)
-		err = b.DBlocks[i].DBHash.UnmarshalBinary(data)
-		if err != nil {
-			return
-		}
-		data = data[33:]
-	}
+func (b *DBInfo) UnmarshalBinary(data []byte) (err error) {
+	b.DBHash = new(Hash)
+	b.DBHash.UnmarshalBinary(data[:33])
 
 	b.BTCTxHash = new(Hash)
 	b.BTCTxHash.UnmarshalBinary(data[:33])
@@ -484,8 +478,8 @@ func (b *DBBatch) UnmarshalBinary(data []byte) (err error) {
 	b.BTCBlockHash = new(Hash)
 	b.BTCBlockHash.UnmarshalBinary(data[:33])
 
-	b.FBBatchMerkleRoot = new(Hash)
-	b.FBBatchMerkleRoot.UnmarshalBinary(data[:33])
+	b.DBMerkleRoot = new(Hash)
+	b.DBMerkleRoot.UnmarshalBinary(data[:33])
 
 	return nil
 }

@@ -335,7 +335,7 @@ func validateMsgTx(msgtx *wire.MsgTx, inputs []btcjson.ListUnspentResult) error 
 		}
 	}
 	return nil
-}
+} 
 
 func sendRawTransaction(msgtx *wire.MsgTx) (*wire.ShaHash, error) {
 
@@ -403,7 +403,7 @@ func createBtcdNotificationHandlers() btcrpcclient.NotificationHandlers {
 
 			if details != nil {
 				// do not block OnRedeemingTx callback
-				go saveDBBatch(transaction, details)
+				go saveDirBlockInfo(transaction, details)
 			}
 		},
 	}
@@ -411,48 +411,32 @@ func createBtcdNotificationHandlers() btcrpcclient.NotificationHandlers {
 	return ntfnHandlers
 }
 
-func saveDBBatch(transaction *btcutil.Tx, details *btcws.BlockDetails) {
-	fmt.Println("In saveDBBatch, len(dbBatches.batches)=", len(dbBatches.batches))
-	var i int
-	var found bool
-	for i = 0; i < len(dbBatches.batches); i++ {
-		fmt.Printf("i=%d, dbBatch=%#v\n", i, dbBatches.batches[i])
+// Save the BTC anchor transaction details into db
+func saveDirBlockInfo(transaction *btcutil.Tx, details *btcws.BlockDetails) {
+	
+	for _, dbInfo := range dbInfoMap {
 
-		if dbBatches.batches[i].BTCTxHash != nil &&
-			bytes.Compare(dbBatches.batches[i].BTCTxHash.Bytes, transaction.Sha().Bytes()) == 0 {
+		if dbInfo.BTCTxHash != nil &&
+			bytes.Compare(dbInfo.BTCTxHash.Bytes, transaction.Sha().Bytes()) == 0 {
 
-			dbBatches.batches[i].BTCTxOffset = details.Index
-			dbBatches.batches[i].BTCBlockHeight = details.Height
+			dbInfo.BTCTxOffset = details.Index
+			dbInfo.BTCBlockHeight = details.Height
 
 			txHash, _ := wire.NewShaHashFromStr(details.Hash)
-			dbBatches.batches[i].BTCBlockHash = toHash(txHash)
+			dbInfo.BTCBlockHash = toHash(txHash)
 
-			found = true
+			// Update db with DBBatch
+			db.InsertDBInfo(*dbInfo)
+			
+			//delete dbInfo from dbInfoMap
+			delete(dbInfoMap, dbInfo.DBHash.String())
+			
+			fmt.Println("In saveDirBlockInfo, dbInfo:%+v", dbInfo)
+
 			break
 		}
 	}
-	fmt.Println("In saveFBBatch, found=", found)
 
-	if found {
-		fmt.Printf("found in dbBatches: i=%d, len=%d, DELETE dbBatch%#v\n", i, len(dbBatches.batches), dbBatches.batches[i])
-
-		//delete dbBatches.batches[i]
-		dbBatch := dbBatches.batches[i]
-		dbBatches.batchMutex.Lock()
-		dbBatches.batches = append(dbBatches.batches[:i], dbBatches.batches[i+1:]...)
-		/*
-			copy(dbBatches.batches[i:], dbBatches.batches[i+1:])
-			dbBatches.batches[len(dbBatches.batches) - 1] = nil
-			dbBatches.batches = dbBatches.batches[:len(dbBatches.batches) - 1]
-		*/
-		dbBatches.batchMutex.Unlock()
-
-		// Update db with DBBatch
-		db.InsertDBBatch(dbBatch)
-		ExportDataFromDbToFile()
-
-		fmt.Println("found in dbBatches: after deletion, len=", len(dbBatches.batches))
-	}
 }
 
 func initRPCClient() error {
@@ -643,39 +627,23 @@ func newDirectoryBlock(chain *notaryapi.DChain) *notaryapi.DBlock {
 
 	log.Println("DirectoryBlock: block" + strconv.FormatUint(block.Header.BlockID, 10) + " created for directory block chain: " + chain.ChainID.String())
 
-	//update FBBlock with FBHash & FBlockID
-
-	//block.FBlockID = block.Header.BlockID
-
-	//Export all db records associated w/ this new factom block
-	ExportDbToFile(blkhash)
-
 	return block
 }
 
-func saveDBBatchMerkleRoottoBTC(dbBatch *notaryapi.DBBatch) {
-	fmt.Println("in saveFBBatchMerkleRoottoBTC: len(dbBatch.DBlocks)=", len(dbBatch.DBlocks))
+func saveDBMerkleRoottoBTC(dbInfo *notaryapi.DBInfo) {
 
-	//calculate batch merkle root
-	hashes := make([]*notaryapi.Hash, 0, len(dbBatch.DBlocks))
-	for i := 0; i < len(dbBatch.DBlocks); i++ {
-		fmt.Printf("i=%d, merkle root: %s\n", i, dbBatch.DBlocks[i].Header.MerkleRoot.String())
-		hashes = append(hashes, dbBatch.DBlocks[i].Header.MerkleRoot)
-	}
-	merkle := notaryapi.BuildMerkleTreeStore(hashes)
-	merkleRoot := merkle[len(merkle)-1]
-	dbBatch.FBBatchMerkleRoot = merkleRoot
-
-	txHash, err := writeToBTC(merkleRoot.Bytes)
+	txHash, err := writeToBTC(dbInfo.DBMerkleRoot.Bytes)
 	if err != nil {
-		failedMerkles = append(failedMerkles, merkleRoot)
-		fmt.Println("failed to record ", merkleRoot.Bytes, " to BTC: ", err.Error())
+		failedMerkles = append(failedMerkles, dbInfo.DBMerkleRoot)
+		fmt.Println("failed to record ", dbInfo.DBMerkleRoot.Bytes, " to BTC: ", err.Error())
 	}
 
-	//convert btc tx hash to factom hash, and update dbBatch
-	dbBatch.BTCTxHash = toHash(txHash)
+	//convert btc tx hash to factom hash, and update dbInfo
+	dbInfo.BTCTxHash = toHash(txHash)
+	//put dbInfo in the map for btc callback
+	dbInfoMap[dbInfo.DBHash.String()] = dbInfo
 
-	fmt.Print("Recorded FBBatch merkle root in BTC tx hash:\n", txHash, "\nconverted hash: ", dbBatch.BTCTxHash.String(), "\n")
+	fmt.Print("Recorded Direcory Block merkle root in BTC tx hash:\n", txHash, "\nconverted hash: ", dbInfo.BTCTxHash.String(), "\n")
 
 }
 

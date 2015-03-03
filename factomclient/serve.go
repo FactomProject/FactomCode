@@ -7,11 +7,9 @@ import (
 	"github.com/FactomProject/FactomCode/factomapi"
 	"github.com/FactomProject/FactomCode/factomchain/factoid"
 	"github.com/FactomProject/FactomCode/notaryapi"
-	"github.com/FactomProject/FactomCode/restapi"
 	"github.com/FactomProject/FactomCode/wallet"
 	"github.com/FactomProject/gocoding"
 	"github.com/hoisie/web"
-	"net/http"
 	"net/url"
 	"strconv"
 	"time"
@@ -27,8 +25,6 @@ func serve_init() {
 	server.Post(`/v1/submitchain/?`, handleSubmitChain)
 	server.Post(`/v1/buycredit/?`, handleBuyCreditPost)
 	server.Post(`/v1/creditbalance/?`, handleGetCreditBalance)
-	server.Post(`/v1/getfilelist/?`, handleGetFileListPost) // to be replaced by DHT
-	server.Post(`/v1/getfile/?`, handleGetFilePost)         // to be replaced by DHT
 	server.Post(`/v1/factoidtx/?`, handleFactoidTx)
 	//	server.Post(`/v1/bintx/?`, handleBinTx)
 
@@ -258,36 +254,6 @@ func handleGetCreditBalance(ctx *web.Context) {
 		log.Error(err)
 		return
 	}
-}
-
-func handleGetFileListPost(ctx *web.Context) {
-	log := serverLog
-	log.Debug("handleGetFileListPost")
-	var httpcode int = 200
-	buf := new(bytes.Buffer)
-
-	defer func() {
-		ctx.WriteHeader(httpcode)
-		ctx.Write(buf.Bytes())
-	}()
-
-	// Send back JSON response
-	err := factomapi.SafeMarshal(buf, restapi.ServerDataFileMap)
-	if err != nil {
-		httpcode = 400
-		buf.WriteString("Bad request ")
-		log.Error(err)
-		return
-	}
-}
-
-func handleGetFilePost(ctx *web.Context) {
-	log := serverLog
-	log.Debug("handleGetFilePost")
-
-	fileKey := ctx.Params["filekey"]
-	filename := restapi.ServerDataFileMap[fileKey]
-	http.ServeFile(ctx.ResponseWriter, ctx.Request, dataStorePath+"csv/"+filename)
 }
 
 func handleDBlocksByRange(ctx *web.Context, fromHeightStr string,

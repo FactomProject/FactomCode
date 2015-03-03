@@ -10,7 +10,7 @@ import (
 	"github.com/FactomProject/FactomCode/factomwire"
 	"github.com/FactomProject/FactomCode/notaryapi"
 	"github.com/FactomProject/FactomCode/wallet"
-	"fmt"
+//	"fmt"
 )
 
 //which federated server is responsible for confirming this msg?

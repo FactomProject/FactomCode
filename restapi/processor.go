@@ -1,9 +1,15 @@
+// Copyright 2015 FactomProject Authors. All rights reserved.
+// Use of this source code is governed by the MIT license
+// that can be found in the LICENSE file.
+
+// factomlog is based on github.com/alexcesaro/log and
+// github.com/alexcesaro/log/golog (MIT License)
+
 package restapi
 
 import (
 	"bytes"
 	"encoding/binary"
-	"encoding/csv"
 	"errors"
 	"fmt"
 	"github.com/FactomProject/FactomCode/database"
@@ -12,7 +18,6 @@ import (
 	"github.com/FactomProject/FactomCode/factomwire"
 	"github.com/FactomProject/FactomCode/notaryapi"
 	"github.com/FactomProject/FactomCode/util"
-	//"github.com/FactomProject/FactomCode/wallet"
 	"github.com/FactomProject/btcrpcclient"
 	"github.com/FactomProject/btcutil"
 	"io/ioutil"
@@ -21,7 +26,6 @@ import (
 	"reflect"
 	"sort"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -40,7 +44,6 @@ var (
 	tickers     [2]*time.Ticker
 	db          database.Db                  // database
 	chainIDMap  map[string]*notaryapi.EChain // ChainIDMap with chainID string([32]byte) as key
-	//chainNameMap map[string]*notaryapi.Chain // ChainNameMap with chain name string as key
 	dchain *notaryapi.DChain //Directory Block Chain
 	cchain *notaryapi.CChain //Entry Credit Chain
 	fchain *factoid.FChain   //Factoid Chain
@@ -50,12 +53,8 @@ var (
 	eCreditMap        map[string]int32 // eCreditMap with public key string([32]byte) as key, credit balance as value
 	prePaidEntryMap   map[string]int32 // Paid but unrevealed entries string(Etnry Hash) as key, Number of payments as value
 
-	//	dbBatches []*notaryapi.FBBatch
-	dbBatches *DBBatches
-	dbBatch   *notaryapi.DBBatch
-
-	//Map to store export csv files
-	ServerDataFileMap map[string]string
+	//Diretory Block meta data map
+	dbInfoMap  map[string]*notaryapi.DBInfo // dbInfoMap with dbHash string([32]byte) as key
 
 	inMsgQueue  <-chan factomwire.Message //incoming message queue for factom application messages
 	outMsgQueue chan<- factomwire.Message //outgoing message queue for factom application messages
@@ -85,11 +84,6 @@ var (
 
 )
 
-type DBBatches struct {
-	batches    []*notaryapi.DBBatch
-	batchMutex sync.Mutex
-}
-
 func LoadConfigurations(cfg *util.FactomdConfig) {
 
 	//setting the variables by the valued form the config file
@@ -100,7 +94,7 @@ func LoadConfigurations(cfg *util.FactomdConfig) {
 	directoryBlockInSeconds = cfg.App.DirectoryBlockInSeconds
 	nodeMode = cfg.App.NodeMode
 
-	//		addrStr = cfg.Btc.BTCPubAddr
+	//addrStr = cfg.Btc.BTCPubAddr
 	sendToBTCinSeconds = cfg.Btc.SendToBTCinSeconds
 	walletPassphrase = cfg.Btc.WalletPassphrase
 	certHomePath = cfg.Btc.CertHomePath
@@ -189,18 +183,6 @@ func init_processor() {
 
 	}
 
-	// init dbBatches, dbBatch
-	dbBatches = &DBBatches{
-		batches: make([]*notaryapi.DBBatch, 0, 100),
-	}
-	dbBatch := &notaryapi.DBBatch{
-		DBlocks: make([]*notaryapi.DBlock, 0, 10),
-	}
-	dbBatches.batches = append(dbBatches.batches, dbBatch)
-
-	// init the export file list for client distribution
-	initServerDataFileMap()
-
 	// create EBlocks and FBlock every 60 seconds
 	tickers[0] = time.NewTicker(time.Second * time.Duration(directoryBlockInSeconds))
 
@@ -236,42 +218,13 @@ func init_processor() {
 
 			// Directory Block chain
 			dbBlock := newDirectoryBlock(dchain)
-			if dbBlock != nil {
-				// mark the start block of a DBBatch
-				fmt.Println("in tickers[0]: len(dbBatch.DBlocks)=", len(dbBatch.DBlocks))
-				if len(dbBatch.DBlocks) == 0 {
-					dbBlock.Header.BatchFlag = byte(1)
-				}
-				dbBatch.DBlocks = append(dbBatch.DBlocks, dbBlock)
-				fmt.Println("in tickers[0]: ADDED FBBLOCK: len(dbBatch.DBlocks)=", len(dbBatch.DBlocks))
-			}
-			saveDChain(dchain)
-
-		}
-	}()
-
-	go func() {
-		for _ = range tickers[1].C {
-			fmt.Println("in tickers[1]: new FBBatch. len(dbBatch.DBlocks)=", len(dbBatch.DBlocks))
-
-			// skip empty dbBatch.
-			if len(dbBatch.DBlocks) > 0 {
-				doneBatch := dbBatch
-				dbBatch = &notaryapi.DBBatch{
-					DBlocks: make([]*notaryapi.DBlock, 0, 10),
-				}
-
-				dbBatches.batchMutex.Lock()
-				dbBatches.batches = append(dbBatches.batches, doneBatch)
-				dbBatches.batchMutex.Unlock()
-
-				fmt.Printf("in tickers[1]: doneBatch=%#v\n", doneBatch)
-
-				// Only Servers can write the anchor to Bitcoin network
-				if nodeMode == SERVER_NODE {
-					saveDBBatchMerkleRoottoBTC(doneBatch)
-				}
-			}
+			saveDChain(dchain)		
+			
+			// Only Servers can write the anchor to Bitcoin network
+			if nodeMode == SERVER_NODE {
+				dbInfo := notaryapi.NewDBInfoFromDBlock(dbBlock)
+				saveDBMerkleRoottoBTC(dbInfo)
+			}				
 		}
 	}()
 
@@ -651,8 +604,6 @@ func processRevealChain(newChain *notaryapi.EChain) error {
 		return errors.New(fmt.Sprintf(`Error while adding the First Entry to Block: %s`, err.Error()))
 	}
 
-	ExportDataFromDbToFile()
-
 	return nil
 }
 
@@ -781,6 +732,9 @@ func saveFChain(chain *factoid.FChain) {
 
 func initDChain() {
 	dchain = new(notaryapi.DChain)
+	
+	//Initialize dbInfoMap
+	dbInfoMap = make(map[string]*notaryapi.DBInfo)
 
 	//Initialize the Directory Block Chain ID
 	dchain.ChainID = new(notaryapi.Hash)
@@ -940,74 +894,6 @@ func initFChain() {
 	}
 }
 
-func ExportDbToFile(dbHash *notaryapi.Hash) {
-
-	if fileNotExists(dataStorePath + "csv/") {
-		os.MkdirAll(dataStorePath+"csv/", 0755)
-	}
-
-	//write the records to a csv file:
-	filename := fmt.Sprintf("%v."+dbHash.String()+".csv", time.Now().Unix())
-	file, err := os.Create(dataStorePath + "csv/" + filename)
-
-	if err != nil {
-		panic(err)
-	}
-	defer file.Close()
-	writer := csv.NewWriter(file)
-
-	ldbMap, err := db.FetchAllDBRecordsByDBHash(dbHash, cchain.ChainID)
-
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
-	for key, value := range ldbMap {
-		//csv header: key, value
-		writer.Write([]string{key, value})
-	}
-	writer.Flush()
-
-	// Add the file to the distribution list
-	hash := notaryapi.Sha([]byte(filename))
-	ServerDataFileMap[hash.String()] = filename
-}
-
-func ExportDataFromDbToFile() {
-
-	if fileNotExists(dataStorePath + "csv/") {
-		os.MkdirAll(dataStorePath+"csv/", 0755)
-	}
-
-	//write the records to a csv file:
-	filename := fmt.Sprintf("%v.supportdata.csv", time.Now().Unix())
-	file, err := os.Create(dataStorePath + "csv/" + filename)
-	if err != nil {
-		panic(err)
-	}
-	defer file.Close()
-	writer := csv.NewWriter(file)
-
-	ldbMap, err := db.FetchSupportDBRecords()
-
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
-	for key, value := range ldbMap {
-		//csv header: key, value
-		writer.Write([]string{key, value})
-	}
-	writer.Flush()
-
-	// Add the file to the distribution list
-	hash := notaryapi.Sha([]byte(filename))
-	ServerDataFileMap[hash.String()] = filename
-
-}
-
 func initEChains() {
 
 	chainIDMap = make(map[string]*notaryapi.EChain)
@@ -1104,27 +990,5 @@ func printCChain() {
 			fmt.Println("Error:%v", err)
 		}
 	}
-
-}
-
-// Initialize the export file list
-func initServerDataFileMap() error {
-	ServerDataFileMap = make(map[string]string)
-
-	fiList, err := ioutil.ReadDir(dataStorePath + "csv")
-	if err != nil {
-		fmt.Println("Error in initServerDataFileMap:", err.Error())
-		return err
-	}
-
-	for _, file := range fiList {
-		if !file.IsDir() && strings.HasSuffix(file.Name(), ".csv") {
-			hash := notaryapi.Sha([]byte(file.Name()))
-
-			ServerDataFileMap[hash.String()] = file.Name()
-
-		}
-	}
-	return nil
 
 }
