@@ -18,8 +18,6 @@ import (
 var server = web.NewServer()
 
 func serve_init() {
-	
-
 	server.Post(`/v1/submitentry/?`, handleSubmitEntry)
 	server.Post(`/v1/submitchain/?`, handleSubmitChain)	
 	server.Post(`/v1/buycredit/?`, handleBuyCreditPost)		
@@ -33,8 +31,7 @@ func serve_init() {
 	server.Get(`/v1/dblock/([^/]+)(?)`, handleDBlockByHash)	
 	server.Get(`/v1/eblock/([^/]+)(?)`, handleEBlockByHash)	
 	server.Get(`/v1/eblockbymr/([^/]+)(?)`, handleEBlockByMR)		
-	server.Get(`/v1/entry/([^/]+)(?)`, handleEntryByHash)	
-
+	server.Get(`/v1/entry/([^/]+)(?)`, handleEntryByHash)
 } 
 
 func handleSubmitEntry(ctx *web.Context) {
