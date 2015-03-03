@@ -9,6 +9,7 @@ import (
 	//"fmt"
 	"encoding/hex"
 	"github.com/FactomProject/FactomCode/notaryapi"
+	"strconv"
 )
 
 type Txid notaryapi.HashF
@@ -25,7 +26,7 @@ type Input struct {
 }
 
 func (o *Input) String() string {
-	return o.Txid.String() + " -- " + hex.EncodeToString(o.RevealAddr[:])
+	return o.Txid.String() + " -- " + hex.EncodeToString(o.RevealAddr[:]) 
 }
 
 // NewInput returns a new factoid transaction input with the provided
@@ -61,9 +62,14 @@ type Output struct {
 func (o *Output) String() string {
 	netid := byte('\x07')
 
-	return EncodeAddress(o.ToAddr, netid)
+	return EncodeAddress(o.ToAddr, netid) + " amount:" + strconv.FormatInt(o.Amount,10)
 }
 
+func (o *Output) ToAddressString() string {
+	netid := byte('\x07')
+
+	return EncodeAddress(o.ToAddr, netid)
+}
 // NewOutput returns a new bitcoin transaction output with the provided
 // transaction value and public key script.
 func NewOutput(ty byte, amount int64, to Address) *Output {

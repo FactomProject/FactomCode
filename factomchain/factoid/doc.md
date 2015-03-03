@@ -56,6 +56,12 @@ utxo.AddTx(tx)
 ```
 ##### output of 1000 snow from your transaction is now an Unspent Transaction Output 
 
+3) Get address balance from utxo
+
+```
+balance := utxo.AddressBalance(mywalletaddress) // 1000
+```
+
 ### To verify that your transaction is in UTXO, lets try to spend it:
 
 1) get outputs from previous transaction 
@@ -65,7 +71,7 @@ outs := factoid.OutputsTx(tx)
 ```
 2) generate external address to send to:
 ```
-address2, _, _ := factoid.DecodeAddress("ExZ7hUZ7B4T3doVC6iLBPh9JP33huwELmLg6pM2LDNSiqk9mSx")
+address2, _, _ := factoid.DecodeAddress("ExZ7hUZ7B4T3doVC6iLBPh9JP33huwELmLg6pM2LDNSiqk9mSs")
 ```
 
 3) generate "Reveal Address", your public-key needed to spend previous output 
@@ -98,4 +104,12 @@ if ok {
   }
 }
 ```
-##### We now just sent the 1000 coins we received from the faucet to "ExZ7hUZ7B4T3doVC6iLBPh9JP33huwELmLg6pM2LDNSiqk9mSx"
+
+7) check balances
+
+```
+walletbalance := utxo.AddressBalance(mywalletaddress) // 0
+balance2 := utxo.AddressBalance(""ExZ7hUZ7B4T3doVC6iLBPh9JP33huwELmLg6pM2LDNSiqk9mSs") // 1000
+```
+
+##### We now just sent the 1000 coins we received from the faucet to "ExZ7hUZ7B4T3doVC6iLBPh9JP33huwELmLg6pM2LDNSiqk9mSs"

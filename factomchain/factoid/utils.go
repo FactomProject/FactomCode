@@ -130,7 +130,7 @@ func NewTxFromOutAmountToAddr(txid *Txid, outs []Output, outnum uint32, amount i
 */
 
 func NewTxFromInputToAddr(in *Input, snowAmount int64, to Address) (txm *TxMsg) {
-	//fmt.Println("NewTxFromOutputToAddr %#v", from)
+	fmt.Println("NewTxFromOutputToAddr %#v %#v", to, snowAmount)
 
 	txd := NewTxData()
 	txd.AddInput(*in)
@@ -190,4 +190,15 @@ func (f ByFBlockIDAccending) Less(i, j int) bool {
 }
 func (f ByFBlockIDAccending) Swap(i, j int) {
 	f[i], f[j] = f[j], f[i]
+}
+
+//GetBalance from GlobalUtxo helper function 
+// ToDo: should be depricated on GlobalUtxo redesign 
+func GetBalance(address string) (bal int64) {
+	bal = GetGlobUtxo().AddressBalance(address)
+	return
+}
+
+func GetGlobUtxo() *Utxo {
+	return &GlobalUtxo
 }

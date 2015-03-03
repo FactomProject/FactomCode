@@ -27,12 +27,17 @@ type TxOutSpent struct {
 //Unspent TransaXtion Outputs is implimented as a hashtable from Txid to bool array  TxSpentList
 type Utxo struct {
 	Txspent map[Txid]TxOutSpent
+	//BalanceByAddress is used to store current address balance 
+	// used during testing of factoid, while full wallet in developent
+	//ToDo: refactor
+	BalanceByAddress map[string]int64
 }
 
 //Utxo constructor
 func NewUtxo() Utxo {
 	return Utxo{
 		Txspent: make(map[Txid]TxOutSpent),
+		BalanceByAddress: make(map[string]int64),
 	}
 }
 
@@ -59,6 +64,40 @@ func (u *Utxo) AddTx(t *Tx) {
 func (u *Utxo) AddUtxo(id *Txid, outs []Output) {
 	txs := make(TxSpentList, len(outs))
 	u.Txspent[*id] = TxOutSpent{outs, txs}
+	u.creditBalance(outs)
+}
+
+//update address balance 
+func (u *Utxo) creditBalance(outs []Output) {
+	for _, o := range(outs) {
+		addr := o.ToAddressString()
+
+		//bal := uint64(0)
+		bal := u.BalanceByAddress[addr]
+		u.BalanceByAddress[addr] = bal + o.Amount
+		fmt.Println("creditBalance",addr,bal,o.Amount,u.BalanceByAddress[addr],o.String())
+	}
+}
+
+func (u *Utxo) debitBalance(in []Input) {
+	for _, i := range(in) {
+
+		if is := IsFaucet(&i); is { continue } 		//ToDo: remove for production
+
+		outs := u.Txspent[i.Txid].Outs
+		out := outs[i.Index-1]
+		addr := out.ToAddressString()
+
+		//bal := uint64(0)
+		bal := u.BalanceByAddress[addr]
+		u.BalanceByAddress[addr] = bal - out.Amount
+		fmt.Println("debitBalance",addr,bal,out.Amount,u.BalanceByAddress[addr])
+
+	}
+}
+
+func (u *Utxo) AddressBalance(addr string) int64 {
+	return u.BalanceByAddress[addr]
 }
 
 //IsValid checks Inputs and returns true if all inputs are in current Utxo
@@ -66,9 +105,7 @@ func (u *Utxo) IsValid(in []Input) bool {
 	for _, i := range in {
 
 		//ToDo: remove for production
-		if IsFaucet(&i) {
-			continue
-		}
+		if is := IsFaucet(&i); is { continue }
 
 		spends, ok := u.Txspent[i.Txid]
 		if !ok {
@@ -119,7 +156,7 @@ func (u *Utxo) Spend(in []Input) {
 	for _, i := range in {
 		fmt.Println("Utxo Spent", i.Txid.String(), " Index ", i.Index)
 		//ToDo: remove for production
-		if IsFaucet(&i) {
+		if y := IsFaucet(&i); y {
 			continue
 		}
 
@@ -136,6 +173,8 @@ func (u *Utxo) Spend(in []Input) {
 			spends.Spent[i.Index-1] = true
 		}
 	}
+
+	u.debitBalance(in)
 }
 
 //Meant for adding verified blocks to Utxo
