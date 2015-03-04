@@ -7,6 +7,7 @@ import (
 	"code.google.com/p/gcfg"
 	"github.com/FactomProject/FactomCode/factomchain/factoid"
 	"github.com/FactomProject/FactomCode/notaryapi"
+	"github.com/FactomProject/FactomCode/util"
 )
 
 var (
@@ -88,6 +89,7 @@ func ClientPublicKeyStr() string {
 }
 
 func GetMyBalance() (bal int64) {
-	bal =  factoid.GetBalance(FactoidAddress())
-	return
+	//	bal =  factoid.GetBalance(FactoidAddress())
+	util.Trace("NOT IMPLEMENTED !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!") // FIXME
+	return 0
 }

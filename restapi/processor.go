@@ -424,11 +424,13 @@ func serveMsgRequest(msg wire.Message) error {
 	return nil
 }
 
+/*
 // to be improved??
 func processFactoidTx(tx *factoid.Tx) error {
 
 	fchain.BlockMutex.Lock()
-	err := fchain.Blocks[len(fchain.Blocks)-1].AddFBTransaction(*tx)
+	//	err := fchain.Blocks[len(fchain.Blocks)-1].AddFBTransaction(*tx)
+	err := errors.New("NOT IMPLEMENTED !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 	fchain.BlockMutex.Unlock()
 
 	if err != nil {
@@ -437,6 +439,7 @@ func processFactoidTx(tx *factoid.Tx) error {
 
 	return nil
 }
+*/
 
 func processRevealEntry(newEntry *notaryapi.Entry) error {
 
@@ -682,29 +685,33 @@ func newEntryCreditBlock(chain *notaryapi.CChain) *notaryapi.CBlock {
 func newFBlock(chain *factoid.FChain) *factoid.FBlock {
 
 	// acquire the last block
-	block := chain.Blocks[len(chain.Blocks)-1]
+	//	block := chain.Blocks[len(chain.Blocks)-1]
 
-	if len(block.Transactions) < 1 {
-		//log.Println("No Directory block created for chain ... because no new entry is found.")
-		return nil
-	}
+	//	if len(block.Transactions) < 1 {
+	//log.Println("No Directory block created for chain ... because no new entry is found.")
 
-	// Create the block and add a new block for new coming entries
-	chain.BlockMutex.Lock()
-	block.Header.TxCount = uint32(len(block.Transactions))
-	blkhash, _ := notaryapi.CreateHash(block)
-	block.IsSealed = true
-	chain.NextBlockID++
-	newblock, _ := factoid.CreateFBlock(chain, block, 10)
-	chain.Blocks = append(chain.Blocks, newblock)
-	chain.BlockMutex.Unlock()
-	block.FBHash = blkhash
+	util.Trace("NOT IMPLEMENETED !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+	return nil
+	//	}
 
-	//Store the block in db
-	db.ProcessFBlockBatch(block)
-	log.Println("Factoid block" + strconv.FormatUint(block.Header.Height, 10) + " created for chain: " + chain.ChainID.String())
+	/*
+		// Create the block and add a new block for new coming entries
+		chain.BlockMutex.Lock()
+		block.Header.TxCount = uint32(len(block.Transactions))
+		blkhash, _ := notaryapi.CreateHash(block)
+		block.IsSealed = true
+		chain.NextBlockID++
+		newblock, _ := factoid.CreateFBlock(chain, block, 10)
+		chain.Blocks = append(chain.Blocks, newblock)
+		chain.BlockMutex.Unlock()
+		block.FBHash = blkhash
 
-	return block
+		//Store the block in db
+		db.ProcessFBlockBatch(block)
+		log.Println("Factoid block" + strconv.FormatUint(block.Header.Height, 10) + " created for chain: " + chain.ChainID.String())
+
+		return block
+	*/
 }
 
 func newDirectoryBlock(chain *notaryapi.DChain) *notaryapi.DBlock {
@@ -826,42 +833,45 @@ func saveCChain(chain *notaryapi.CChain) {
 }
 
 func saveFChain(chain *factoid.FChain) {
-	if len(chain.Blocks) == 0 {
-		//log.Println("no blocks to save for chain: " + string (*chain.ChainID))
-		return
-	}
-
-	bcp := make([]*factoid.FBlock, len(chain.Blocks))
-
-	chain.BlockMutex.Lock()
-	copy(bcp, chain.Blocks)
-	chain.BlockMutex.Unlock()
-
-	for i, block := range bcp {
-		//the open block is not saved
-		if block.IsSealed == false {
-			continue
+	util.Trace("NOT IMPLEMENTED !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+	/*
+		if len(chain.Blocks) == 0 {
+			//log.Println("no blocks to save for chain: " + string (*chain.ChainID))
+			return
 		}
 
-		data, err := block.MarshalBinary()
-		if err != nil {
-			panic(err)
-		}
+		bcp := make([]*factoid.FBlock, len(chain.Blocks))
 
-		strChainID := chain.ChainID.String()
-		if fileNotExists(dataStorePath + strChainID) {
-			err := os.MkdirAll(dataStorePath+strChainID, 0777)
-			if err == nil {
-				log.Println("Created directory " + dataStorePath + strChainID)
-			} else {
-				log.Println(err)
+		chain.BlockMutex.Lock()
+		copy(bcp, chain.Blocks)
+		chain.BlockMutex.Unlock()
+
+		for i, block := range bcp {
+			//the open block is not saved
+			if block.IsSealed == false {
+				continue
+			}
+
+			data, err := block.MarshalBinary()
+			if err != nil {
+				panic(err)
+			}
+
+			strChainID := chain.ChainID.String()
+			if fileNotExists(dataStorePath + strChainID) {
+				err := os.MkdirAll(dataStorePath+strChainID, 0777)
+				if err == nil {
+					log.Println("Created directory " + dataStorePath + strChainID)
+				} else {
+					log.Println(err)
+				}
+			}
+			err = ioutil.WriteFile(fmt.Sprintf(dataStorePath+strChainID+"/store.%09d.block", i), data, 0777)
+			if err != nil {
+				panic(err)
 			}
 		}
-		err = ioutil.WriteFile(fmt.Sprintf(dataStorePath+strChainID+"/store.%09d.block", i), data, 0777)
-		if err != nil {
-			panic(err)
-		}
-	}
+	*/
 }
 
 func initDChain() {
@@ -989,47 +999,49 @@ func initFChain() {
 	fchain.ChainID = new(notaryapi.Hash)
 	fchain.ChainID.SetBytes(barray)
 
-	// get all dBlocks from db
-	fBlocks, _ := db.FetchAllFBlocks()
-	sort.Sort(factoid.ByFBlockIDAccending(fBlocks))
+	util.Trace("NOT IMPLEMENTED: FIXME !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!") // FIXME
 
-	fchain.Blocks = make([]*factoid.FBlock, len(fBlocks))
+	/*
+		// get all dBlocks from db
+		fBlocks, _ := db.FetchAllFBlocks()
+		sort.Sort(factoid.ByFBlockIDAccending(fBlocks))
 
-	for i := 0; i < len(fBlocks); i = i + 1 {
-		if fBlocks[i].Header.Height != uint64(i) {
-			panic("Error in initializing fChain:" + fchain.ChainID.String())
+		fchain.Blocks = make([]*factoid.FBlock, len(fBlocks))
+
+		for i := 0; i < len(fBlocks); i = i + 1 {
+			if fBlocks[i].Header.Height != uint64(i) {
+				panic("Error in initializing fChain:" + fchain.ChainID.String())
+			}
+			fBlocks[i].Chain = fchain
+			fBlocks[i].IsSealed = true
+			fchain.Blocks[i] = &fBlocks[i]
+
+			util.Trace("CODE DISABLED !!!! MUST BE REDONE !!!!") // FIXME
+
+				// Load the block into utxo pool
+				factoid.GlobalUtxo.AddVerifiedTxList(fBlocks[i].Transactions)
+				//fmt.Printf("fchain.Blocks:%+v\n", fchain.Blocks[i])
 		}
-		fBlocks[i].Chain = fchain
-		fBlocks[i].IsSealed = true
-		fchain.Blocks[i] = &fBlocks[i]
 
-		util.Trace("CODE DISABLED !!!! MUST BE REDONE !!!!") // FIXME
-
-		/*
-			// Load the block into utxo pool
-			factoid.GlobalUtxo.AddVerifiedTxList(fBlocks[i].Transactions)
-			//fmt.Printf("fchain.Blocks:%+v\n", fchain.Blocks[i])
-		*/
-	}
-
-	// double check the block ids
-	for i := 0; i < len(fchain.Blocks); i = i + 1 {
-		if uint64(i) != fchain.Blocks[i].Header.Height {
-			panic(errors.New("BlockID does not equal index for chain:" + fchain.ChainID.String() + " block:" + fmt.Sprintf("%v", fchain.Blocks[i].Header.Height)))
+		// double check the block ids
+		for i := 0; i < len(fchain.Blocks); i = i + 1 {
+			if uint64(i) != fchain.Blocks[i].Header.Height {
+				panic(errors.New("BlockID does not equal index for chain:" + fchain.ChainID.String() + " block:" + fmt.Sprintf("%v", fchain.Blocks[i].Header.Height)))
+			}
 		}
-	}
 
-	//Create an empty block and append to the chain
-	if len(fchain.Blocks) == 0 {
-		fchain.NextBlockID = 0
-		newblock, _ := factoid.CreateFBlock(fchain, nil, 10)
-		fchain.Blocks = append(fchain.Blocks, newblock)
+		//Create an empty block and append to the chain
+		if len(fchain.Blocks) == 0 {
+			fchain.NextBlockID = 0
+			newblock, _ := factoid.CreateFBlock(fchain, nil, 10)
+			fchain.Blocks = append(fchain.Blocks, newblock)
 
-	} else {
-		fchain.NextBlockID = uint64(len(fchain.Blocks))
-		newblock, _ := factoid.CreateFBlock(fchain, fchain.Blocks[len(fchain.Blocks)-1], 10)
-		fchain.Blocks = append(fchain.Blocks, newblock)
-	}
+		} else {
+			fchain.NextBlockID = uint64(len(fchain.Blocks))
+			newblock, _ := factoid.CreateFBlock(fchain, fchain.Blocks[len(fchain.Blocks)-1], 10)
+			fchain.Blocks = append(fchain.Blocks, newblock)
+		}
+	*/
 }
 
 func initEChains() {

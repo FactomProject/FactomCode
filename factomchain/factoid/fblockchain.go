@@ -8,7 +8,6 @@ import (
 	//"bytes"
 	//"fmt"
 	"encoding/binary"
-	"encoding/hex"
 	"errors"
 	"github.com/FactomProject/FactomCode/notaryapi"
 	"github.com/FactomProject/btcd/wire"
@@ -35,8 +34,8 @@ type FBlockHeader struct {
 
 //Factoid Block - contains list of Tx, which has raw MsgTx plus the Txid
 type FBlock struct {
-	Header       FBlockHeader
-	Transactions []Tx
+	Header FBlockHeader
+	//	Transactions []Tx
 
 	//Not Marshalized
 	FBHash   *notaryapi.Hash
@@ -56,31 +55,8 @@ func FactoidGenesis(net wire.BitcoinNet) (genesis *FBlock) {
 			TimeStamp: 1424305819, //Thu, 19 Feb 2015 00:30:19 GMT
 			TxCount:   1,
 		},
-		Transactions: make([]Tx, 1),
 	}
 
-	var td TxData
-	var in Input //blank input
-	td.AddInput(in)
-
-	var out *Output
-	var insig InputSig
-	switch net {
-	case wire.MainNet:
-
-	default: //TestNet
-		addr, _, _ := DecodeAddress(GenesisAddress)
-		out = NewOutput(FACTOID_ADDR, 1000000000, addr)
-		sigbytes, _ := hex.DecodeString("4369be19d8fe9cba655cadeb4441b646b94582d0dc890bdd2060220b61bdee10b9f96cce824c201151131b99df7201f6669e9fbd9ccc74c229c57c59ed37b100")
-		insig.AddSig(SingleSigFromByte(sigbytes))
-
-	}
-
-	td.AddOutput(*out)
-	txmsg := NewTxMsg(&td)
-	txmsg.AddInputSig(insig)
-
-	genesis.Transactions[0] = *NewTx(txmsg)
 	return
 }
 
@@ -101,18 +77,20 @@ func CreateFBlock(chain *FChain, prev *FBlock, cap uint) (b *FBlock, err error) 
 
 	b = new(FBlock)
 
-	var prevHash *notaryapi.Hash
-	if prev == nil {
-		prevHash = notaryapi.NewHash()
-	} else {
-		prevHash, err = notaryapi.CreateHash(prev)
-	}
+	/*
+		var prevHash *notaryapi.Hash
+		if prev == nil {
+			prevHash = notaryapi.NewHash()
+		} else {
+			prevHash, err = notaryapi.CreateHash(prev)
+		}
 
-	b.Header = *(NewFBlockHeader(chain.NextBlockID, prevHash, notaryapi.NewHash()))
-	b.Chain = chain
-	b.Transactions = make([]Tx, 0, cap)
-	b.Salt = notaryapi.NewHash()
-	b.IsSealed = false
+		b.Header = *(NewFBlockHeader(chain.NextBlockID, prevHash, notaryapi.NewHash()))
+		b.Chain = chain
+		b.Transactions = make([]Tx, 0, cap)
+		b.Salt = notaryapi.NewHash()
+		b.IsSealed = false
+	*/
 
 	return b, err
 }
@@ -129,9 +107,4 @@ func NewDBEntryFromFBlock(b *FBlock) *notaryapi.DBEntry {
 	e.MerkleRoot = b.FBHash   //To use MerkleRoot??
 
 	return e
-}
-
-func (b *FBlock) AddFBTransaction(t Tx) (err error) {
-	b.Transactions = append(b.Transactions, t)
-	return
 }
