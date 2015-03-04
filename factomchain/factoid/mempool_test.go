@@ -2,7 +2,7 @@ package factoid_test
 
 import (
 	"github.com/FactomProject/FactomCode/factomchain/factoid"
-	//"github.com/FactomProject/FactomCode/factomwire"
+	//"github.com/FactomProject/FactomCode/wire"
 	"github.com/FactomProject/FactomCode/wallet"
 	"testing"
 	//"fmt"
@@ -114,7 +114,6 @@ func TestFaucet(t *testing.T) {
 		t.Fatalf("bal != 1000")
 	}
 
-
 	//try new faucet - should fail with nonce0
 	//add 1000 factoids to my address using faucet
 	addr, _, _ = factoid.DecodeAddress(wallet.FactoidAddress())
@@ -134,7 +133,6 @@ func TestFaucet(t *testing.T) {
 	if bal != 0 {
 		t.Fatalf("bal != 0", bal)
 	}
-
 
 	//fp.AddToMemPool()
 	//t.Logf("%#v ", *fp.Utxo())
@@ -271,7 +269,6 @@ func TestFaucet(t *testing.T) {
 		t.Fatalf("bal != 1000")
 	}
 
-
 	//fp.AddToMemPool()
 	//t.Logf("%#v ", *fp.Utxo())
 
@@ -281,7 +278,7 @@ func TestFaucet(t *testing.T) {
 func TestMemPoolGenesisSpend(t *testing.T) {
 	t.Logf("herer ")
 
-	genb := factoid.FactoidGenesis(factomwire.TestNet)
+	genb := factoid.FactoidGenesis(wire.TestNet)
 
 	addr, _, _ := factoid.DecodeAddress("ExZ7hUZ7B4T3doVC6iLBPh9JP33huwELmLg6pM2LDNSiqk9mSs")
 	outs := factoid.OutputsTx(&genb.Transactions[0])

@@ -8,15 +8,15 @@ import (
 	"github.com/FactomProject/FactomCode/database"
 	//	"github.com/FactomProject/FactomCode/database/ldb"
 	"github.com/FactomProject/FactomCode/factomapi"
-	"github.com/FactomProject/FactomCode/factomwire"
 	"github.com/FactomProject/FactomCode/util"
+	"github.com/FactomProject/btcd/wire"
 	"time"
 )
 
 var (
-	portNumber       int = 8088
-	applicationName      = "factom/client"
-	serverAddr           = "localhost:8083"
+	portNumber      int = 8088
+	applicationName     = "factom/client"
+	serverAddr          = "localhost:8083"
 	//ldbpath              = "/tmp/factomclient/ldb9"
 	dataStorePath        = "/tmp/store/seed/csv"
 	refreshInSeconds int = 60
@@ -56,7 +56,7 @@ func init_rpcserver() {
 	}()
 }
 
-func Start_Rpcserver(ldb database.Db, outMsgQ chan<- factomwire.Message) {
+func Start_Rpcserver(ldb database.Db, outMsgQ chan<- wire.Message) {
 	db = ldb
 	factomapi.SetDB(db)
 	factomapi.SetOutMsgQueue(outMsgQ)

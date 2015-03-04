@@ -165,12 +165,12 @@ func handleBuyCreditPost(ctx *web.Context) {
 }
 
 //func handleBinTx(ctx *web.Context) {
-//	msg := new(factomwire.MsgTx)
+//	msg := new(wire.MsgTx)
 //	msg.Data, err := hex.DecodeString(ctx.Params["tx"])
 //	if err != nil {
 //		fmt.Println(err)
 //	}
-//	//factomwire.FactomRelay(msg)
+//	//wire.FactomRelay(msg)
 //}
 
 func handleFactoidTx(ctx *web.Context) {

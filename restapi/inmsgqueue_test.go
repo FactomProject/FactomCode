@@ -3,8 +3,8 @@ package restapi
 import (
 	"fmt"
 	"github.com/FactomProject/FactomCode/database/ldb"
-	"github.com/FactomProject/FactomCode/factomwire"
 	"github.com/FactomProject/FactomCode/notaryapi"
+	"github.com/FactomProject/btcd/wire"
 	"log"
 	"testing"
 	//	"time"
@@ -14,8 +14,8 @@ import (
 func TestBuyCredit(t *testing.T) {
 
 	initDB()
-	inMsgQ := make(chan factomwire.Message, 100)  //incoming message queue for factom application messages
-	outMsgQ := make(chan factomwire.Message, 100) //outgoing message queue for factom application messages
+	inMsgQ := make(chan wire.Message, 100)  //incoming message queue for factom application messages
+	outMsgQ := make(chan wire.Message, 100) //outgoing message queue for factom application messages
 
 	hexkey := "ed14447c656241bf7727fce2e2a48108374bec6e71358f0a280608b292c7f3bc"
 	binkey, _ := hex.DecodeString(hexkey)
@@ -23,7 +23,7 @@ func TestBuyCredit(t *testing.T) {
 	pubKey.SetBytes(binkey)
 
 	//Write msg
-	msgOutgoing := factomwire.NewMsgGetCredit()
+	msgOutgoing := wire.NewMsgGetCredit()
 	msgOutgoing.ECPubKey = pubKey
 	msgOutgoing.FactoidBase = uint64(2000000000)
 	fmt.Printf("msgOutgoing:%+v\n", msgOutgoing)

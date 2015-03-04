@@ -2,8 +2,8 @@ package factoid_test
 
 import (
 	"github.com/FactomProject/FactomCode/factomchain/factoid"
-	"github.com/FactomProject/FactomCode/factomwire"
 	"github.com/FactomProject/FactomCode/wallet"
+	"github.com/FactomProject/btcd/wire"
 	"testing"
 	//"github.com/FactomProject/FactomCode/notaryapi"
 )
@@ -13,7 +13,7 @@ func TestFactoidGenesis(t *testing.T) {
 		t.SkipNow()
 	}
 
-	genb := factoid.FactoidGenesis(factomwire.TestNet)
+	genb := factoid.FactoidGenesis(wire.TestNet)
 
 	t.Logf("genb: %v ", genb)
 
@@ -34,7 +34,7 @@ func TestGenesisInputTransaction(t *testing.T) {
 		t.SkipNow()
 	}
 
-	genb := factoid.FactoidGenesis(factomwire.TestNet)
+	genb := factoid.FactoidGenesis(wire.TestNet)
 
 	addr, _, _ := factoid.DecodeAddress("ExZ7hUZ7B4T3doVC6iLBPh9JP33huwELmLg6pM2LDNSiqk9mSs")
 	outs := factoid.OutputsTx(&genb.Transactions[0])

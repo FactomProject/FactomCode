@@ -15,9 +15,9 @@ import (
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/factomapi"
 	"github.com/FactomProject/FactomCode/factomchain/factoid"
-	"github.com/FactomProject/FactomCode/factomwire"
 	"github.com/FactomProject/FactomCode/notaryapi"
 	"github.com/FactomProject/FactomCode/util"
+	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/btcrpcclient"
 	"github.com/FactomProject/btcutil"
 	"io/ioutil"
@@ -25,9 +25,9 @@ import (
 	"os"
 	"reflect"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
-	"strconv"	
 )
 
 const (
@@ -45,9 +45,9 @@ var (
 	tickers     [2]*time.Ticker
 	db          database.Db                  // database
 	chainIDMap  map[string]*notaryapi.EChain // ChainIDMap with chainID string([32]byte) as key
-	dchain *notaryapi.DChain //Directory Block Chain
-	cchain *notaryapi.CChain //Entry Credit Chain
-	fchain *factoid.FChain   //Factoid Chain
+	dchain      *notaryapi.DChain            //Directory Block Chain
+	cchain      *notaryapi.CChain            //Entry Credit Chain
+	fchain      *factoid.FChain              //Factoid Chain
 
 	creditsPerChain   int32            = 10
 	creditsPerFactoid uint64           = 1000
@@ -55,10 +55,10 @@ var (
 	prePaidEntryMap   map[string]int32 // Paid but unrevealed entries string(Etnry Hash) as key, Number of payments as value
 
 	//Diretory Block meta data map
-	dbInfoMap  map[string]*notaryapi.DBInfo // dbInfoMap with dbHash string([32]byte) as key
+	dbInfoMap map[string]*notaryapi.DBInfo // dbInfoMap with dbHash string([32]byte) as key
 
-	inMsgQueue  <-chan factomwire.Message //incoming message queue for factom application messages
-	outMsgQueue chan<- factomwire.Message //outgoing message queue for factom application messages
+	inMsgQueue  <-chan wire.Message //incoming message queue for factom application messages
+	outMsgQueue chan<- wire.Message //outgoing message queue for factom application messages
 )
 
 var (
@@ -219,19 +219,19 @@ func init_processor() {
 
 			// Directory Block chain
 			dbBlock := newDirectoryBlock(dchain)
-			saveDChain(dchain)		
-			
+			saveDChain(dchain)
+
 			// Only Servers can write the anchor to Bitcoin network
 			if nodeMode == SERVER_NODE && dbBlock != nil {
 				dbInfo := notaryapi.NewDBInfoFromDBlock(dbBlock)
 				saveDBMerkleRoottoBTC(dbInfo)
-			}				
+			}
 		}
 	}()
 
 }
 
-func Start_Processor(ldb database.Db, inMsgQ <-chan factomwire.Message, outMsgQ chan<- factomwire.Message) {
+func Start_Processor(ldb database.Db, inMsgQ <-chan wire.Message, outMsgQ chan<- wire.Message) {
 
 	db = ldb
 	inMsgQueue = inMsgQ
@@ -314,14 +314,14 @@ func save(chain *notaryapi.EChain) {
 	}
 }
 
-func serveMsgRequest(msg factomwire.Message) error {
+func serveMsgRequest(msg wire.Message) error {
 	//var buf bytes.Buffer
 
 	util.Trace()
 
 	switch msg.Command() {
-	case factomwire.CmdCommitChain:
-		msgCommitChain, ok := msg.(*factomwire.MsgCommitChain)
+	case wire.CmdCommitChain:
+		msgCommitChain, ok := msg.(*wire.MsgCommitChain)
 		if ok {
 			//Verify signature (timestamp + chainid + entry hash + entryChainIDHash + credits)
 			var buf bytes.Buffer
@@ -342,8 +342,8 @@ func serveMsgRequest(msg factomwire.Message) error {
 			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
 		}
 
-	case factomwire.CmdRevealChain:
-		msgRevealChain, ok := msg.(*factomwire.MsgRevealChain)
+	case wire.CmdRevealChain:
+		msgRevealChain, ok := msg.(*wire.MsgRevealChain)
 		if ok {
 			err := processRevealChain(msgRevealChain.Chain)
 			if err != nil {
@@ -353,8 +353,8 @@ func serveMsgRequest(msg factomwire.Message) error {
 			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
 		}
 
-	case factomwire.CmdCommitEntry:
-		msgCommitEntry, ok := msg.(*factomwire.MsgCommitEntry)
+	case wire.CmdCommitEntry:
+		msgCommitEntry, ok := msg.(*wire.MsgCommitEntry)
 		if ok {
 			//Verify signature (timestamp + entry hash + credits)
 			var buf bytes.Buffer
@@ -372,9 +372,9 @@ func serveMsgRequest(msg factomwire.Message) error {
 		} else {
 			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
 		}
-		
-	case factomwire.CmdRevealEntry:
-		msgRevealEntry, ok := msg.(*factomwire.MsgRevealEntry)
+
+	case wire.CmdRevealEntry:
+		msgRevealEntry, ok := msg.(*wire.MsgRevealEntry)
 		if ok {
 			err := processRevealEntry(msgRevealEntry.Entry)
 			if err != nil {
@@ -383,15 +383,15 @@ func serveMsgRequest(msg factomwire.Message) error {
 		} else {
 			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
 		}
-		
-	case factomwire.CmdTx:
-		wireMsgTx, ok := msg.(*factomwire.MsgTx)
+
+	case wire.CmdTx:
+		wireMsgTx, ok := msg.(*wire.MsgTx)
 		if ok {
 			txm := new(factoid.TxMsg)
-			err := txm.UnmarshalBinary(wireMsgTx.Data)		
+			err := txm.UnmarshalBinary(wireMsgTx.Data)
 			if err != nil {
 				return err
-			}				
+			}
 			err = processFactoidTx(factoid.NewTx(txm))
 			if err != nil {
 				return err
@@ -400,8 +400,8 @@ func serveMsgRequest(msg factomwire.Message) error {
 			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
 		}
 		/*  There is no such command !
-		case factomwire.CmdGetCredit:
-			msgGetCredit, ok := msg.(*factomwire.MsgGetCredit)
+		case wire.CmdGetCredit:
+			msgGetCredit, ok := msg.(*wire.MsgGetCredit)
 			if ok {
 				fmt.Printf("msgGetCredit:%+v\n", msgGetCredit)
 				credits := msgGetCredit.FactoidBase * creditsPerFactoid / 1000000000
@@ -412,7 +412,7 @@ func serveMsgRequest(msg factomwire.Message) error {
 			} else {
 				return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
 			}
-		*/ 
+		*/
 
 	default:
 		return errors.New("Message type unsupported:" + fmt.Sprintf("%+v", msg))
@@ -422,7 +422,6 @@ func serveMsgRequest(msg factomwire.Message) error {
 
 // to be improved??
 func processFactoidTx(tx *factoid.Tx) error {
-
 
 	fchain.BlockMutex.Lock()
 	err := fchain.Blocks[len(fchain.Blocks)-1].AddFBTransaction(*tx)
@@ -863,7 +862,7 @@ func saveFChain(chain *factoid.FChain) {
 
 func initDChain() {
 	dchain = new(notaryapi.DChain)
-	
+
 	//Initialize dbInfoMap
 	dbInfoMap = make(map[string]*notaryapi.DBInfo)
 

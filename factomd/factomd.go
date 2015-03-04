@@ -13,9 +13,9 @@ import (
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/database/ldb"
 	"github.com/FactomProject/FactomCode/factomclient"
-	"github.com/FactomProject/FactomCode/factomwire"
 	"github.com/FactomProject/FactomCode/restapi"
 	"github.com/FactomProject/FactomCode/util"
+	"github.com/FactomProject/btcd/wire"
 	"log"
 	"os"
 	"runtime"
@@ -28,10 +28,10 @@ var (
 	cfg             *util.FactomdConfig
 	shutdownChannel = make(chan struct{})
 	ldbpath         = "/tmp/ldb9"
-	db              database.Db                          // database
-	inMsgQueue      = make(chan factomwire.Message, 100) //incoming message queue for factom application messages
-	outMsgQueue     = make(chan factomwire.Message, 100) //outgoing message queue for factom application messages
-	inRpcQueue      = make(chan factomwire.Message, 100) //incoming message queue for factom application messages
+	db              database.Db                    // database
+	inMsgQueue      = make(chan wire.Message, 100) //incoming message queue for factom application messages
+	outMsgQueue     = make(chan wire.Message, 100) //outgoing message queue for factom application messages
+	inRpcQueue      = make(chan wire.Message, 100) //incoming message queue for factom application messages
 	federatedid     string
 )
 

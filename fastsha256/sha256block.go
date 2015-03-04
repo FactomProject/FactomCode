@@ -8,7 +8,7 @@
 // In its own file so that a faster assembly or C version
 // can be substituted easily.
 
-package factomwire
+package wire
 
 var _K = []uint32{
 	0x428a2f98,

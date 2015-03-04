@@ -8,7 +8,7 @@ import (
 	//	"errors"
 	"math/big"
 
-	"github.com/FactomProject/FactomCode/factomwire"
+	"github.com/FactomProject/btcd/wire"
 )
 
 // These variables are the chain proof-of-work limit parameters for each default
@@ -33,14 +33,14 @@ var (
 // and keys for one network from those intended for use on another network.
 type Params struct {
 	Name        string
-	Net         factomwire.FactomNet
+	Net         wire.FactomNet
 	DefaultPort string
 }
 
 // MainNetParams defines the network parameters for the main Bitcoin network.
 var MainNetParams = Params{
 	Name:        "mainnet",
-	Net:         factomwire.MainNet,
+	Net:         wire.MainNet,
 	DefaultPort: "4012",
 }
 
@@ -49,6 +49,6 @@ var MainNetParams = Params{
 // network is sometimes simply called "testnet".
 var TestNet3Params = Params{
 	Name:        "testnet3",
-	Net:         factomwire.TestNet3,
+	Net:         wire.TestNet3,
 	DefaultPort: "40123",
 }

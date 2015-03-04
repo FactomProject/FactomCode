@@ -6,8 +6,8 @@ package factoid
 
 import (
 	"fmt"
-	"github.com/FactomProject/FactomCode/factomwire"
 	"github.com/FactomProject/FactomCode/notaryapi"
+	"github.com/FactomProject/btcd/wire"
 
 	"sync"
 )
@@ -32,11 +32,11 @@ func init() {
 // TxProcessor is an interface that abstracts methods needed to process a TxMessage
 // SetContext(*TxMessage) will store to concrete TxMessage in the concrete TxProcessor object
 type TxProcessor interface {
-	SetContext(*factomwire.MsgTx)
+	SetContext(*wire.MsgTx)
 	Verify() bool
 	//Broadcast()
 	AddToMemPool() []*notaryapi.HashF
-	Confirm(*factomwire.MsgConfirmation) (bool, []*notaryapi.HashF)
+	Confirm(*wire.MsgConfirmation) (bool, []*notaryapi.HashF)
 }
 
 // txMemPool is used as a source of transactions that need to be mined into
@@ -57,7 +57,7 @@ type FactoidPool struct {
 // this is needed in order for mempool methods to be called from abstract interface
 // when different mempools have different tx structs  (no plyorphism in go)
 type context struct {
-	wire *factomwire.MsgTx
+	wire *wire.MsgTx
 	tx   *Tx
 	//index   int //index into txpool txindex array of *Txid
 	missing []*Txid
@@ -108,7 +108,7 @@ func NewFactoidPool() *FactoidPool {
 }
 
 func (fp *FactoidPool) AddGenesisBlock() {
-	genb := FactoidGenesis(factomwire.TestNet)
+	genb := FactoidGenesis(wire.TestNet)
 
 	c := context{
 		wire: nil,
@@ -150,7 +150,7 @@ func (op *orphanpool) FoundMissing(txid *Txid) (children []*Txid, ok bool) {
 }
 
 //convert from wire format to TxMsg
-func TxMsgFromWire(tx *factomwire.MsgTx) (txm *TxMsg) {
+func TxMsgFromWire(tx *wire.MsgTx) (txm *TxMsg) {
 	txm = new(TxMsg)
 	txm.UnmarshalBinary(tx.Data)
 	//fmt.Println("---%#v",txm)
@@ -158,8 +158,8 @@ func TxMsgFromWire(tx *factomwire.MsgTx) (txm *TxMsg) {
 }
 
 //convert from TxMsg to wire format
-func TxMsgToWire(txm *TxMsg) (tx *factomwire.MsgTx) {
-	tx = new(factomwire.MsgTx)
+func TxMsgToWire(txm *TxMsg) (tx *wire.MsgTx) {
+	tx = new(wire.MsgTx)
 	tx.Data, _ = txm.MarshalBinary()
 	return
 }
@@ -168,7 +168,7 @@ func TxMsgToWire(txm *TxMsg) (tx *factomwire.MsgTx) {
 //set context to tx, this context will be used by default when
 // by Verify and AddToMemPool
 // see factomd.TxMempool
-func (fp *FactoidPool) SetContext(tx *factomwire.MsgTx) {
+func (fp *FactoidPool) SetContext(tx *wire.MsgTx) {
 	rtx := NewTx(TxMsgFromWire(tx))
 	fp.context = context{
 		wire: tx,
@@ -266,7 +266,7 @@ func (fp *FactoidPool) doAdd(c *context) *notaryapi.HashF {
 // should only be called after already received the Tx
 // ToDo: deal with confirms that come in diff order than in pool,
 //		may need to store doubel spends, they may become valid
-func (fp *FactoidPool) Confirm(fm *factomwire.MsgConfirmation) (ok bool, confirmed []*notaryapi.HashF) {
+func (fp *FactoidPool) Confirm(fm *wire.MsgConfirmation) (ok bool, confirmed []*notaryapi.HashF) {
 	if cx, ok := fp.txpool.txlist[fm.Affirmation]; ok {
 		confirmed = append(confirmed, (*notaryapi.HashF)(cx.tx.Id()))
 		delete(fp.txpool.txlist, fm.Affirmation)

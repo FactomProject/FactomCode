@@ -10,8 +10,8 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
-	"github.com/FactomProject/FactomCode/factomwire"
 	"github.com/FactomProject/FactomCode/notaryapi"
+	"github.com/FactomProject/btcd/wire"
 	"sync"
 	"time"
 )
@@ -49,7 +49,7 @@ const (
 	GenesisAddress = "FfZgRRHxuzsWkhXcb5Tb16EYuDEkbVCPAk1svfmYxyUXGPoS2X"
 )
 
-func FactoidGenesis(net factomwire.FactomNet) (genesis *FBlock) {
+func FactoidGenesis(net wire.FactomNet) (genesis *FBlock) {
 	genesis = &FBlock{
 		Header: FBlockHeader{
 			Height:    0,
@@ -66,7 +66,7 @@ func FactoidGenesis(net factomwire.FactomNet) (genesis *FBlock) {
 	var out *Output
 	var insig InputSig
 	switch net {
-	case factomwire.MainNet:
+	case wire.MainNet:
 
 	default: //TestNet
 		addr, _, _ := DecodeAddress(GenesisAddress)
@@ -126,7 +126,7 @@ func NewDBEntryFromFBlock(b *FBlock) *notaryapi.DBEntry {
 
 	e.ChainID = b.Chain.ChainID
 	e.SetHash(b.FBHash.Bytes) // To be improved??
-	e.MerkleRoot = b.FBHash //To use MerkleRoot??
+	e.MerkleRoot = b.FBHash   //To use MerkleRoot??
 
 	return e
 }

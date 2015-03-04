@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"github.com/FactomProject/FactomCode/database"
 	//	"github.com/FactomProject/FactomCode/factomchain/factoid"
-	"github.com/FactomProject/FactomCode/factomwire"
 	"github.com/FactomProject/FactomCode/notaryapi"
 	"github.com/FactomProject/FactomCode/wallet"
+	"github.com/FactomProject/btcd/wire"
 	"net/http"
 	"net/url"
 	"sort"
@@ -23,8 +23,8 @@ import (
 var (
 	serverAddr      = "localhost:8083"
 	db              database.Db
-	creditsPerChain uint32                    = 10
-	outMsgQueue     chan<- factomwire.Message //outgoing message queue for factom application messages
+	creditsPerChain uint32              = 10
+	outMsgQueue     chan<- wire.Message //outgoing message queue for factom application messages
 )
 
 // This method will be replaced with a Factoid transaction once we have the factoid implementation in place
@@ -36,7 +36,7 @@ func BuyEntryCredit(version uint16, ecPubKey *notaryapi.Hash, from *notaryapi.Ha
 
 	// XXX TODO FIXME: gotta be linked to Factoid -- there is no buy or get credit P2P message
 	/*
-		msgGetCredit := factomwire.NewMsgGetCredit()
+		msgGetCredit := wire.NewMsgGetCredit()
 		msgGetCredit.ECPubKey = ecPubKey
 		msgGetCredit.FactoidBase = value
 
@@ -47,8 +47,8 @@ func BuyEntryCredit(version uint16, ecPubKey *notaryapi.Hash, from *notaryapi.Ha
 }
 
 //func FactoidTx(addr factoid.Address, n uint32) {
-//	var msg factomwire.MsgTx
-//	genb := factoid.FactoidGenesis(factomwire.TestNet)
+//	var msg wire.MsgTx
+//	genb := factoid.FactoidGenesis(wire.TestNet)
 //	outs := factoid.OutputsTx(&genb.Transactions[0])
 //	txm := factoid.NewTxFromOutputToAddr(genb.Transactions[0].Id(), outs,
 //		n, factoid.AddressReveal(*wallet.ClientPublicKey().Key), addr)
@@ -171,7 +171,7 @@ func SetDB(database database.Db) error {
 
 	return nil
 }
-func SetOutMsgQueue(outMsgQ chan<- factomwire.Message) error {
+func SetOutMsgQueue(outMsgQ chan<- wire.Message) error {
 	outMsgQueue = outMsgQ
 
 	return nil
@@ -309,7 +309,7 @@ func CommitChain(c *notaryapi.EChain) error {
 	sig := wallet.SignData(buf.Bytes())
 
 	//Construct a msg and add it to the msg queue
-	msgCommitChain := factomwire.NewMsgCommitChain()
+	msgCommitChain := wire.NewMsgCommitChain()
 	msgCommitChain.ChainID = c.ChainID
 	msgCommitChain.Credits = credits
 	msgCommitChain.ECPubKey = new(notaryapi.Hash)
@@ -330,7 +330,7 @@ func CommitChain(c *notaryapi.EChain) error {
 func RevealChain(c *notaryapi.EChain) error {
 
 	//Construct a msg and add it to the msg queue
-	msgRevealChain := factomwire.NewMsgRevealChain()
+	msgRevealChain := wire.NewMsgRevealChain()
 	msgRevealChain.Chain = c
 
 	outMsgQueue <- msgRevealChain
@@ -394,7 +394,7 @@ func CommitEntry(e *notaryapi.Entry) error {
 	sig := wallet.SignData(buf.Bytes())
 
 	//Construct a msg and add it to the msg queue
-	msgCommitEntry := factomwire.NewMsgCommitEntry()
+	msgCommitEntry := wire.NewMsgCommitEntry()
 	msgCommitEntry.Credits = credits
 	msgCommitEntry.ECPubKey = new(notaryapi.Hash)
 	msgCommitEntry.ECPubKey.Bytes = (*sig.Pub.Key)[:]
@@ -413,7 +413,7 @@ func CommitEntry(e *notaryapi.Entry) error {
 func RevealEntry(e *notaryapi.Entry) error {
 
 	//Construct a msg and add it to the msg queue
-	msgRevealEntry := factomwire.NewMsgRevealEntry()
+	msgRevealEntry := wire.NewMsgRevealEntry()
 	msgRevealEntry.Entry = e
 
 	outMsgQueue <- msgRevealEntry
@@ -434,7 +434,7 @@ func CommitEntry2(e *Entry) error {
 
 	data := url.Values{
 		//		"datatype":  {"commitentry"},
-		"datatype":  {factomwire.CmdCommitEntry},
+		"datatype":  {wire.CmdCommitEntry},
 		"format":    {"binary"},
 		"signature": {hex.EncodeToString((*sig.Sig)[:])},
 		"pubkey":    {hex.EncodeToString((*sig.Pub.Key)[:])},
@@ -546,7 +546,7 @@ func Submit(f FactomWriter) (err error) {
 }
 */
 
-func SubmitFactoidTx(m factomwire.Message) error {
+func SubmitFactoidTx(m wire.Message) error {
 
 	outMsgQueue <- m
 
