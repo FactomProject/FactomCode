@@ -385,20 +385,24 @@ func serveMsgRequest(msg wire.Message) error {
 		}
 
 	case wire.CmdTx:
-		wireMsgTx, ok := msg.(*wire.MsgTx)
-		if ok {
-			txm := new(factoid.TxMsg)
-			err := txm.UnmarshalBinary(wireMsgTx.Data)
-			if err != nil {
-				return err
+		return errors.New("TX type unsupported:" + fmt.Sprintf("%+v", msg) + "MUST BE REDONE !!!!!!!!!!!!!!!") // FIXME
+		/*
+			wireMsgTx, ok := msg.(*wire.MsgTx)
+			if ok {
+				txm := new(factoid.TxMsg)
+				err := txm.UnmarshalBinary(wireMsgTx.Data)
+				if err != nil {
+					return err
+				}
+				err = processFactoidTx(factoid.NewTx(txm))
+				if err != nil {
+					return err
+				}
+			} else {
+				return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
 			}
-			err = processFactoidTx(factoid.NewTx(txm))
-			if err != nil {
-				return err
-			}
-		} else {
-			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
-		}
+		*/
+
 		/*  There is no such command !
 		case wire.CmdGetCredit:
 			msgGetCredit, ok := msg.(*wire.MsgGetCredit)
@@ -999,9 +1003,13 @@ func initFChain() {
 		fBlocks[i].IsSealed = true
 		fchain.Blocks[i] = &fBlocks[i]
 
-		// Load the block into utxo pool
-		factoid.GlobalUtxo.AddVerifiedTxList(fBlocks[i].Transactions)
-		//fmt.Printf("fchain.Blocks:%+v\n", fchain.Blocks[i])
+		util.Trace("CODE DISABLED !!!! MUST BE REDONE !!!!") // FIXME
+
+		/*
+			// Load the block into utxo pool
+			factoid.GlobalUtxo.AddVerifiedTxList(fBlocks[i].Transactions)
+			//fmt.Printf("fchain.Blocks:%+v\n", fchain.Blocks[i])
+		*/
 	}
 
 	// double check the block ids

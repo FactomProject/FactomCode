@@ -49,7 +49,7 @@ const (
 	GenesisAddress = "FfZgRRHxuzsWkhXcb5Tb16EYuDEkbVCPAk1svfmYxyUXGPoS2X"
 )
 
-func FactoidGenesis(net wire.FactomNet) (genesis *FBlock) {
+func FactoidGenesis(net wire.BitcoinNet) (genesis *FBlock) {
 	genesis = &FBlock{
 		Header: FBlockHeader{
 			Height:    0,

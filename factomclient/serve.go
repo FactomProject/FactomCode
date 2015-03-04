@@ -7,6 +7,7 @@ import (
 	"github.com/FactomProject/FactomCode/factomapi"
 	"github.com/FactomProject/FactomCode/factomchain/factoid"
 	"github.com/FactomProject/FactomCode/notaryapi"
+	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/FactomCode/wallet"
 	"github.com/FactomProject/gocoding"
 	"github.com/hoisie/web"
@@ -202,16 +203,21 @@ func handleFactoidTx(ctx *web.Context) {
 	ss := factoid.NewSingleSignature(ds)
 	factoid.AddSingleSigToTxMsg(txm, ss)
 
-	wire := factoid.TxMsgToWire(txm)
+	/*
+			wire := factoid.TxMsgToWire(txm)
 
-	time.Sleep(1 * time.Second)
-	if err := factomapi.SubmitFactoidTx(wire); err != nil {
-		fmt.Fprintln(ctx,
-			"there was a problem submitting the tx:", err.Error())
-		log.Error(err)
-	}
+				time.Sleep(1 * time.Second)
+				if err := factomapi.SubmitFactoidTx(wire); err != nil {
+					fmt.Fprintln(ctx,
+						"there was a problem submitting the tx:", err.Error())
+					log.Error(err)
+				}
 
-	log.Debug("MsgTx: ", wire)
+		log.Debug("MsgTx: ", wire)
+	*/
+	log.Error(" NOT IMPLEMENTED !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+	util.Trace(" NOT IMPLEMENTED !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+
 }
 
 // handleGetCreditBalance will return the current entry credit balance of the

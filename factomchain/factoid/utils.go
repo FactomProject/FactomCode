@@ -192,13 +192,14 @@ func (f ByFBlockIDAccending) Swap(i, j int) {
 	f[i], f[j] = f[j], f[i]
 }
 
-//GetBalance from GlobalUtxo helper function 
-// ToDo: should be depricated on GlobalUtxo redesign 
+//GetBalance from GlobalUtxo helper function
+// ToDo: should be depricated on GlobalUtxo redesign
 func GetBalance(address string) (bal int64) {
 	bal = GetGlobUtxo().AddressBalance(address)
 	return
 }
 
 func GetGlobUtxo() *Utxo {
-	return &GlobalUtxo
+	//	return &GlobalUtxo
+	return nil
 }
