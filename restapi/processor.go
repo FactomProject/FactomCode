@@ -27,6 +27,7 @@ import (
 	"sort"
 	"strings"
 	"time"
+	"strconv"	
 )
 
 const (
@@ -221,7 +222,7 @@ func init_processor() {
 			saveDChain(dchain)		
 			
 			// Only Servers can write the anchor to Bitcoin network
-			if nodeMode == SERVER_NODE {
+			if nodeMode == SERVER_NODE && dbBlock != nil {
 				dbInfo := notaryapi.NewDBInfoFromDBlock(dbBlock)
 				saveDBMerkleRoottoBTC(dbInfo)
 			}				
@@ -605,6 +606,136 @@ func processRevealChain(newChain *notaryapi.EChain) error {
 	}
 
 	return nil
+}
+func newEntryBlock(chain *notaryapi.EChain) *notaryapi.EBlock {
+
+	// acquire the last block
+	block := chain.Blocks[len(chain.Blocks)-1]
+
+	if len(block.EBEntries) < 1 {
+		//log.Println("No new entry found. No block created for chain: "  + notaryapi.EncodeChainID(chain.ChainID))
+		return nil
+	}
+
+	// Create the block and add a new block for new coming entries
+	chain.BlockMutex.Lock()
+	blkhash, _ := notaryapi.CreateHash(block)
+	log.Println("blkhash:%v", blkhash.Bytes)
+	block.IsSealed = true
+	chain.NextBlockID++
+	newblock, _ := notaryapi.CreateBlock(chain, block, 10)
+	chain.Blocks = append(chain.Blocks, newblock)
+	chain.BlockMutex.Unlock()
+	block.EBHash = blkhash
+
+	// Create the Entry Block Merkle Root for FB Entry
+	hashes := make([]*notaryapi.Hash, 0, len(block.EBEntries)+1)
+	for _, entry := range block.EBEntries {
+		data, _ := entry.MarshalBinary()
+		hashes = append(hashes, notaryapi.Sha(data))
+	}
+	binaryEBHeader, _ := block.Header.MarshalBinary()
+	hashes = append(hashes, notaryapi.Sha(binaryEBHeader))
+	merkle := notaryapi.BuildMerkleTreeStore(hashes)
+	block.MerkleRoot = merkle[len(merkle)-1] // MerkleRoot is not marshalized in Entry Block
+	fmt.Println("block.MerkleRoot:%v", block.MerkleRoot.String())
+
+	//Store the block in db
+	db.ProcessEBlockBatch(block)
+	log.Println("EntryBlock: block" + strconv.FormatUint(block.Header.BlockID, 10) + " created for chain: " + chain.ChainID.String())
+
+	return block
+}
+
+func newEntryCreditBlock(chain *notaryapi.CChain) *notaryapi.CBlock {
+
+	// acquire the last block
+	block := chain.Blocks[len(chain.Blocks)-1]
+
+	if len(block.CBEntries) < 1 {
+		//log.Println("No new entry found. No block created for chain: "  + notaryapi.EncodeChainID(chain.ChainID))
+		return nil
+	}
+
+	// Create the block and add a new block for new coming entries
+	chain.BlockMutex.Lock()
+	block.Header.EntryCount = uint32(len(block.CBEntries))
+	blkhash, _ := notaryapi.CreateHash(block)
+	log.Println("blkhash:%v", blkhash.Bytes)
+	block.IsSealed = true
+	chain.NextBlockID++
+	newblock, _ := notaryapi.CreateCBlock(chain, block, 10)
+	chain.Blocks = append(chain.Blocks, newblock)
+	chain.BlockMutex.Unlock()
+	block.CBHash = blkhash
+
+	//Store the block in db
+	db.ProcessCBlockBatch(block)
+	log.Println("EntryCreditBlock: block" + strconv.FormatUint(block.Header.BlockID, 10) + " created for chain: " + chain.ChainID.String())
+
+	return block
+}
+
+func newFBlock(chain *factoid.FChain) *factoid.FBlock {
+
+	// acquire the last block
+	block := chain.Blocks[len(chain.Blocks)-1]
+
+	if len(block.Transactions) < 1 {
+		//log.Println("No Directory block created for chain ... because no new entry is found.")
+		return nil
+	}
+
+	// Create the block and add a new block for new coming entries
+	chain.BlockMutex.Lock()
+	block.Header.TxCount = uint32(len(block.Transactions))
+	blkhash, _ := notaryapi.CreateHash(block)
+	block.IsSealed = true
+	chain.NextBlockID++
+	newblock, _ := factoid.CreateFBlock(chain, block, 10)
+	chain.Blocks = append(chain.Blocks, newblock)
+	chain.BlockMutex.Unlock()
+	block.FBHash = blkhash
+
+	//Store the block in db
+	db.ProcessFBlockBatch(block)
+	log.Println("Factoid block" + strconv.FormatUint(block.Header.Height, 10) + " created for chain: " + chain.ChainID.String())
+
+	return block
+}
+
+func newDirectoryBlock(chain *notaryapi.DChain) *notaryapi.DBlock {
+
+	// acquire the last block
+	block := chain.Blocks[len(chain.Blocks)-1]
+
+	if len(block.DBEntries) < 1 {
+		//log.Println("No Directory block created for chain ... because no new entry is found.")
+		return nil
+	}
+
+	// Create the block add a new block for new coming entries
+	chain.BlockMutex.Lock()
+	block.Header.EntryCount = uint32(len(block.DBEntries))
+	// Calculate Merkle Root for FBlock and store it in header
+	if block.Header.MerkleRoot == nil {
+		block.Header.MerkleRoot = block.CalculateMerkleRoot()
+		fmt.Println("block.Header.MerkleRoot:%v", block.Header.MerkleRoot.String())
+	}
+	blkhash, _ := notaryapi.CreateHash(block)
+	block.IsSealed = true
+	chain.NextBlockID++
+	newblock, _ := notaryapi.CreateDBlock(chain, block, 10)
+	chain.Blocks = append(chain.Blocks, newblock)
+	chain.BlockMutex.Unlock()
+
+	//Store the block in db
+	block.DBHash = blkhash
+	db.ProcessDBlockBatch(block)
+
+	log.Println("DirectoryBlock: block" + strconv.FormatUint(block.Header.BlockID, 10) + " created for directory block chain: " + chain.ChainID.String())
+
+	return block
 }
 
 func getEntryCreditBalance(pubKey *notaryapi.Hash) ([]byte, error) {
