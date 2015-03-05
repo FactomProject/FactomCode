@@ -96,6 +96,7 @@ type Db interface {
 
 	// Initialize External ID map for explorer search
 	InitializeExternalIDMap() (extIDMap map[string]bool, err error)
+	
 
 	/*
 		// ProcessFBlockBatche inserts the FBlock

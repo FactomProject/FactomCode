@@ -12,7 +12,7 @@ import (
 
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/goleveldb/leveldb"
-	"github.com/FactomProject/goleveldb/leveldb/cache"
+//	"github.com/FactomProject/goleveldb/leveldb/cache"
 	"github.com/FactomProject/goleveldb/leveldb/opt"
 )
 
@@ -143,11 +143,11 @@ func openDB(dbpath string, create bool) (pbdb database.Db, err error) {
 		}
 	}
 
-	myCache := cache.NewEmptyCache()
+	//myCache := cache.NewEmptyCache()
 	opts := &opt.Options{
-		BlockCache:   myCache,
-		MaxOpenFiles: 256,
-		Compression:  opt.NoCompression,
+		//		BlockCacher: opt.DefaultBlockCacher,
+		Compression: opt.NoCompression,
+		//		OpenFilesCacher: opt.DefaultOpenFilesCacher,
 	}
 
 	switch dbversion {

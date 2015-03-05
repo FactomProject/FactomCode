@@ -405,7 +405,7 @@ func (b *DBlock) UnmarshalBinary(data []byte) (err error) {
 	b.Salt.UnmarshalBinary(data)
 	data = data[b.Salt.MarshalledSize():]
 
-	return nil
+ 	return nil
 }
 
 func (b *DBlock) EncodableFields() map[string]reflect.Value {
