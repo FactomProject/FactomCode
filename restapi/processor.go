@@ -57,8 +57,8 @@ var (
 	//Diretory Block meta data map
 	dbInfoMap map[string]*notaryapi.DBInfo // dbInfoMap with dbHash string([32]byte) as key
 
-	inMsgQueue  <-chan wire.Message //incoming message queue for factom application messages
-	outMsgQueue chan<- wire.Message //outgoing message queue for factom application messages
+	inMsgQueue2  <-chan wire.Message //incoming message queue for factom application messages
+	outMsgQueue2 chan<- wire.Message //outgoing message queue for factom application messages
 )
 
 var (
@@ -232,10 +232,9 @@ func init_processor() {
 }
 
 func Start_Processor(ldb database.Db, inMsgQ <-chan wire.Message, outMsgQ chan<- wire.Message) {
-
 	db = ldb
-	inMsgQueue = inMsgQ
-	outMsgQueue = outMsgQ
+	inMsgQueue2 = inMsgQ
+	outMsgQueue2 = outMsgQ
 
 	init_processor()
 
