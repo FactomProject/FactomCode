@@ -91,7 +91,7 @@ func Factomd_init() {
 	go restapi.Start_Processor(db, InMsgQueue, OutMsgQueue)
 
 	// Start the RPC server module in a separate go-routine
-	go factomclient.Start_Rpcserver(db, inRpcQueue)
+	go factomclient.Start_Rpcserver(db, OutMsgQueue)
 
 	util.Trace()
 }
