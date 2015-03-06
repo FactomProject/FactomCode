@@ -65,7 +65,6 @@ func Factomd_main() {
 			}
 		}
 	*/
-	util.Trace()
 
 	/*
 		// Work around defer not working after os.Exit()
@@ -74,7 +73,6 @@ func Factomd_main() {
 		}
 	*/
 
-	util.Trace()
 }
 
 func Factomd_init() {
@@ -93,7 +91,6 @@ func Factomd_init() {
 	// Start the RPC server module in a separate go-routine
 	go factomclient.Start_Rpcserver(db, OutMsgQueue)
 
-	util.Trace()
 }
 
 // Load settings from configuration file: factomd.conf
@@ -117,9 +114,7 @@ func loadConfigurations() {
 		factomclient.LoadConfigurations(cfg)
 	}
 
-	util.Trace()
 	fmt.Println("CHECK cfg= ", cfg)
-	util.Trace()
 }
 
 // Initialize the level db and share it with other components

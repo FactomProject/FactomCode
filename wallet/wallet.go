@@ -19,6 +19,7 @@ var (
 )
 
 func init() {
+	util.Trace()
 	loadConfigurations()
 	loadKeys()
 }
