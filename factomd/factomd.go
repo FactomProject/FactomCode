@@ -30,7 +30,7 @@ var (
 	ldbpath         = "/tmp/ldb9"
 	db              database.Db                    // database
 	InMsgQueue      = make(chan wire.Message, 100) //incoming message queue for factom application messages
-	outMsgQueue     = make(chan wire.Message, 100) //outgoing message queue for factom application messages
+	OutMsgQueue     = make(chan wire.Message, 100) //outgoing message queue for factom application messages
 	inRpcQueue      = make(chan wire.Message, 100) //incoming message queue for factom application messages
 	federatedid     string
 )
@@ -88,7 +88,7 @@ func Factomd_init() {
 	initDB()
 
 	// Start the processor module
-	go restapi.Start_Processor(db, InMsgQueue, outMsgQueue)
+	go restapi.Start_Processor(db, InMsgQueue, OutMsgQueue)
 
 	// Start the RPC server module in a separate go-routine
 	go factomclient.Start_Rpcserver(db, inRpcQueue)

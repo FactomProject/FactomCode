@@ -7,6 +7,7 @@ import (
 	"github.com/FactomProject/FactomCode/database"
 	//	"github.com/FactomProject/FactomCode/factomchain/factoid"
 	"github.com/FactomProject/FactomCode/notaryapi"
+	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/FactomCode/wallet"
 	"github.com/FactomProject/btcd/wire"
 	"net/http"
@@ -23,8 +24,9 @@ import (
 var (
 	serverAddr      = "localhost:8083"
 	db              database.Db
-	creditsPerChain uint32              = 10
-	outMsgQueue     chan<- wire.Message //outgoing message queue for factom application messages
+	creditsPerChain uint32 = 10
+
+	outMsgQueue chan<- wire.Message //outgoing message queue for factom application messages
 )
 
 // This method will be replaced with a Factoid transaction once we have the factoid implementation in place
@@ -36,9 +38,9 @@ func BuyEntryCredit(version uint16, ecPubKey *notaryapi.Hash, from *notaryapi.Ha
 
 	// XXX TODO FIXME: gotta be linked to Factoid -- there is no buy or get credit P2P message
 	/*
-		msgGetCredit := wire.NewMsgGetCredit()
-		msgGetCredit.ECPubKey = ecPubKey
-		msgGetCredit.FactoidBase = value
+			msgGetCredit := wire.NewMsgGetCredit()
+			msgGetCredit.ECPubKey = ecPubKey
+				msgGetCredit.FactoidBase = value
 
 		outMsgQueue <- msgGetCredit
 	*/
@@ -288,6 +290,7 @@ func RevealEntry(e *Entry) error {
 // CommitChain sends a message to the factom network containing a series of
 // hashes to be used to verify the later RevealChain.
 func CommitChain(c *notaryapi.EChain) error {
+	util.Trace()
 	var buf bytes.Buffer
 
 	// Calculate the required credits
@@ -379,6 +382,7 @@ func NewChain(name []string, eids []string, data []byte) (c *Chain, err error) {
 // CommitEntry sends a message to the factom network containing a hash of the
 // entry to be used to verify the later RevealEntry.
 func CommitEntry(e *notaryapi.Entry) error {
+	util.Trace()
 	var buf bytes.Buffer
 
 	bEntry, _ := e.MarshalBinary()
@@ -402,7 +406,9 @@ func CommitEntry(e *notaryapi.Entry) error {
 	msgCommitEntry.Sig = (*sig.Sig)[:]
 	msgCommitEntry.Timestamp = timestamp
 
+	util.Trace()
 	outMsgQueue <- msgCommitEntry
+	util.Trace()
 
 	return nil
 }

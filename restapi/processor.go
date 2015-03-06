@@ -233,6 +233,7 @@ func init_processor() {
 
 func Start_Processor(ldb database.Db, inMsgQ <-chan wire.Message, outMsgQ chan<- wire.Message) {
 	db = ldb
+
 	inMsgQueue2 = inMsgQ
 	outMsgQueue2 = outMsgQ
 
