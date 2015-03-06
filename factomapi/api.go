@@ -405,7 +405,9 @@ func CommitEntry(e *notaryapi.Entry) error {
 	msgCommitEntry.Sig = (*sig.Sig)[:]
 	msgCommitEntry.Timestamp = timestamp
 
+	util.Trace()
 	OutMsgQueue <- msgCommitEntry
+	util.Trace()
 
 	return nil
 }
