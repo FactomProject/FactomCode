@@ -1,43 +1,20 @@
-package factomclient
+package wsapi
 
 import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"net/url"
+	"strconv"
+	"time"
+
 	"github.com/FactomProject/FactomCode/factomapi"
 	"github.com/FactomProject/FactomCode/factomchain/factoid"
 	"github.com/FactomProject/FactomCode/notaryapi"
 	"github.com/FactomProject/FactomCode/wallet"
 	"github.com/FactomProject/gocoding"
 	"github.com/hoisie/web"
-	"net/url"
-	"strconv"
-	"time"
 )
-
-var (
-	server = web.NewServer()
-)
-
-func serve_init() {
-	serverLog.Info("Starting api handlers")
-	server.Post(`/v1/submitentry/?`, handleSubmitEntry)
-	server.Post(`/v1/submitchain/?`, handleSubmitChain)
-	server.Post(`/v1/buycredit/?`, handleBuyCreditPost)
-	server.Post(`/v1/creditbalance/?`, handleGetCreditBalance)
-	server.Post(`/v1/factoidtx/?`, handleFactoidTx)
-	//	server.Post(`/v1/bintx/?`, handleBinTx)
-
-	server.Get(`/v1/creditbalance/?`, handleGetCreditBalance)
-	server.Get(`/v1/buycredit/?`, handleBuyCreditPost)
-	server.Get(`/v1/dblocksbyrange/([^/]+)(?:/([^/]+))?`, handleDBlocksByRange)
-	server.Get(`/v1/dblock/([^/]+)(?)`, handleDBlockByHash)
-	server.Get(`/v1/eblock/([^/]+)(?)`, handleEBlockByHash)
-	server.Get(`/v1/eblockbymr/([^/]+)(?)`, handleEBlockByMR)
-	server.Get(`/v1/entry/([^/]+)(?)`, handleEntryByHash)
-	server.Get(`/v1/factoidtx/?`, handleFactoidTx)
-	//	server.Get(`/v1/bintx/?`, handleBinTx)
-}
 
 // handle Submit Entry converts a json post to a factom.Entry then submits the
 // entry to factom.
@@ -118,9 +95,9 @@ func handleSubmitChain(ctx *web.Context) {
 	}
 }
 
-// handleBuyCreditPost will add entry credites to the specified key. Currently
-// the entry credits are given without any factoid transactions occuring.
-func handleBuyCreditPost(ctx *web.Context) {
+// handleBuyCredit will add entry credites to the specified key. Currently the
+// entry credits are given without any factoid transactions occuring.
+func handleBuyCredit(ctx *web.Context) {
 	log := serverLog
 	log.Debug("handleBuyCreditPost")
 	var httpcode int = 200
@@ -164,15 +141,6 @@ func handleBuyCreditPost(ctx *web.Context) {
 	}
 }
 
-//func handleBinTx(ctx *web.Context) {
-//	msg := new(factomwire.MsgTx)
-//	msg.Data, err := hex.DecodeString(ctx.Params["tx"])
-//	if err != nil {
-//		fmt.Println(err)
-//	}
-//	//factomwire.FactomRelay(msg)
-//}
-
 func handleFactoidTx(ctx *web.Context) {
 	log := serverLog
 	log.Debug("handleFactoidTx")
@@ -214,9 +182,9 @@ func handleFactoidTx(ctx *web.Context) {
 	log.Debug("MsgTx: ", wire)
 }
 
-// handleGetCreditBalance will return the current entry credit balance of the
+// handleCreditBalance will return the current entry credit balance of the
 // spesified pubKey
-func handleGetCreditBalance(ctx *web.Context) {
+func handleCreditBalance(ctx *web.Context) {
 	log := serverLog
 	log.Debug("handleGetCreditBalance")
 	var httpcode int = 200

@@ -32,6 +32,11 @@ type FactomdConfig struct {
 		ApplicationName  string
 		RefreshInSeconds int
 	}
+	Wsapi struct {
+		PortNumber       int
+		ApplicationName  string
+		RefreshInSeconds int
+	}
 	Log struct {
 		LogPath  string
 		LogLevel string
@@ -76,6 +81,11 @@ RpcBtcdHost 			= "localhost:18334"
 
 [rpc]
 ApplicationName			= "Factom/factomclient"
+PortNumber				= 8088 
+RefreshInSeconds		= 60
+
+[wsapi]
+ApplicationName			= "Factom/wsapi"
 PortNumber				= 8088 
 RefreshInSeconds		= 60
 

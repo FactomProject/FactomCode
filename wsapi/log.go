@@ -1,4 +1,4 @@
-package factomclient
+package wsapi
 
 import (
 	"os"
@@ -18,4 +18,5 @@ var (
 var (
 	rpcLog     = factomlog.New(logfile, logLevel, "rpc")
 	serverLog  = factomlog.New(logfile, logLevel, "serv")
+	wsLog  = factomlog.New(logfile, logLevel, "wsapi")
 )
