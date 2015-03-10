@@ -16,85 +16,6 @@ import (
 	"github.com/hoisie/web"
 )
 
-// handle Submit Entry converts a json post to a factom.Entry then submits the
-// entry to factom.
-func handleSubmitEntry(ctx *web.Context) {
-	log := serverLog
-	log.Debug("handleSubmitEntry")
-
-	switch ctx.Params["format"] {
-	case "json":
-		entry := new(notaryapi.Entry)
-		reader := gocoding.ReadBytes([]byte(ctx.Params["entry"]))
-		err := factomapi.SafeUnmarshal(reader, entry)
-		if err != nil {
-			fmt.Fprintln(ctx,
-				"there was a problem with submitting the entry:", err.Error())
-			log.Error(err)
-		}
-
-		if err := factomapi.CommitEntry(entry); err != nil {
-			fmt.Fprintln(ctx,
-				"there was a problem with submitting the entry:", err.Error())
-			log.Error(err)
-		}
-
-		time.Sleep(1 * time.Second)
-		if err := factomapi.RevealEntry(entry); err != nil {
-			fmt.Fprintln(ctx,
-				"there was a problem with submitting the entry:", err.Error())
-			log.Error(err)
-		}
-		fmt.Fprintln(ctx, "Entry Submitted")
-	default:
-		ctx.WriteHeader(403)
-	}
-}
-
-// handleSubmitChain converts a json post to a factomapi.Chain then submits the
-// entry to factomapi.
-func handleSubmitChain(ctx *web.Context) {
-	log := serverLog
-	log.Debug("handleSubmitChain")
-	switch ctx.Params["format"] {
-	case "json":
-		reader := gocoding.ReadBytes([]byte(ctx.Params["chain"]))
-		c := new(notaryapi.EChain)
-		factomapi.SafeUnmarshal(reader, c)
-
-		c.GenerateIDFromName()
-		if c.FirstEntry == nil {
-			fmt.Fprintln(ctx,
-				"The first entry is required for submitting the chain:")
-			log.Warning("The first entry is required for submitting the chain")
-			return
-		} else {
-			c.FirstEntry.ChainID = *c.ChainID
-		}
-
-		log.Debug("c.ChainID:", c.ChainID.String())
-
-		if err := factomapi.CommitChain(c); err != nil {
-			fmt.Fprintln(ctx,
-				"there was a problem with submitting the chain:", err)
-			log.Error(err)
-		}
-
-		time.Sleep(1 * time.Second)
-
-		if err := factomapi.RevealChain(c); err != nil {
-			fmt.Println(err.Error())
-			fmt.Fprintln(ctx,
-				"there was a problem with submitting the chain:", err)
-			log.Error(err)
-		}
-
-		fmt.Fprintln(ctx, "Chain Submitted")
-	default:
-		ctx.WriteHeader(403)
-	}
-}
-
 // handleBuyCredit will add entry credites to the specified key. Currently the
 // entry credits are given without any factoid transactions occuring.
 func handleBuyCredit(ctx *web.Context) {
@@ -112,7 +33,8 @@ func handleBuyCredit(ctx *web.Context) {
 
 	defer func() {
 		if abortMessage != "" && abortReturn != "" {
-			ctx.Header().Add("Location", fmt.Sprint("/failed?message=", abortMessage, "&return=", abortReturn))
+			ctx.Header().Add("Location", fmt.Sprint("/failed?message=",
+				abortMessage, "&return=", abortReturn))
 			ctx.WriteHeader(303)
 		}
 	}()
@@ -124,7 +46,8 @@ func handleBuyCredit(ctx *web.Context) {
 		ecPubKey.Bytes, _ = hex.DecodeString(ctx.Params["to"])
 	}
 
-	log.Info("handleBuyCreditPost using pubkey: ", ecPubKey, " requested", ctx.Params["to"])
+	log.Info("handleBuyCreditPost using pubkey: ", ecPubKey, " requested",
+		ctx.Params["to"])
 
 	factoid, err := strconv.ParseFloat(ctx.Params["value"], 10)
 	if err != nil {
@@ -139,47 +62,6 @@ func handleBuyCredit(ctx *web.Context) {
 	} else {
 		fmt.Fprintln(ctx, "MsgGetCredit Submitted")
 	}
-}
-
-func handleFactoidTx(ctx *web.Context) {
-	log := serverLog
-	log.Debug("handleFactoidTx")
-	n, err := strconv.ParseInt(ctx.Params["amount"], 10, 32)
-	if err != nil {
-		log.Error(err)
-	}
-	amt := n
-	var toaddress string
-	if ctx.Params["to"] == "wallet" {
-		toaddress = wallet.FactoidAddress()
-	} else {
-		toaddress = ctx.Params["to"]
-	}
-
-	addr, _, err := factoid.DecodeAddress(toaddress)
-	if err != nil {
-		log.Error(err)
-	}
-
-	log.Debug("factoid.NewTxFromInputToAddr")
-	txm := factoid.NewTxFromInputToAddr(
-		factoid.NewFaucetIn(),
-		amt,
-		addr)
-	ds := wallet.DetachMarshalSign(txm.TxData)
-	ss := factoid.NewSingleSignature(ds)
-	factoid.AddSingleSigToTxMsg(txm, ss)
-
-	wire := factoid.TxMsgToWire(txm)
-
-	time.Sleep(1 * time.Second)
-	if err := factomapi.SubmitFactoidTx(wire); err != nil {
-		fmt.Fprintln(ctx,
-			"there was a problem submitting the tx:", err.Error())
-		log.Error(err)
-	}
-
-	log.Debug("MsgTx: ", wire)
 }
 
 // handleCreditBalance will return the current entry credit balance of the
@@ -230,6 +112,39 @@ func handleCreditBalance(ctx *web.Context) {
 	}
 }
 
+// handleDBlockByHash will take a directory block hash and return the directory
+// block information in json format.
+func handleDBlockByHash(ctx *web.Context, hashStr string) {
+	log := serverLog
+	log.Debug("handleDBlockByHash")
+	var httpcode int = 200
+	buf := new(bytes.Buffer)
+
+	defer func() {
+		ctx.WriteHeader(httpcode)
+		ctx.Write(buf.Bytes())
+	}()
+
+	dBlock, err := factomapi.GetDirectoryBlokByHashStr(hashStr)
+	if err != nil {
+		httpcode = 400
+		buf.WriteString("Bad Request")
+		log.Error(err)
+		return
+	}
+
+	// Send back JSON response
+	err = factomapi.SafeMarshal(buf, dBlock)
+	if err != nil {
+		httpcode = 400
+		buf.WriteString("Bad request ")
+		log.Error(err)
+		return
+	}
+}
+
+// handleDBlockByRange will get a block height range and return the information
+// for all of the directory blocks within the range in json format.
 func handleDBlocksByRange(ctx *web.Context, fromHeightStr string,
 	toHeightStr string) {
 	log := serverLog
@@ -258,7 +173,8 @@ func handleDBlocksByRange(ctx *web.Context, fromHeightStr string,
 		return
 	}
 
-	dBlocks, err := factomapi.GetDirectoryBloks(uint64(fromBlockHeight), uint64(toBlockHeight))
+	dBlocks, err := factomapi.GetDirectoryBloks(uint64(fromBlockHeight),
+		uint64(toBlockHeight))
 	if err != nil {
 		httpcode = 400
 		buf.WriteString("Bad request")
@@ -271,35 +187,6 @@ func handleDBlocksByRange(ctx *web.Context, fromHeightStr string,
 	if err != nil {
 		httpcode = 400
 		buf.WriteString("Bad request")
-		log.Error(err)
-		return
-	}
-}
-
-func handleDBlockByHash(ctx *web.Context, hashStr string) {
-	log := serverLog
-	log.Debug("handleDBlockByHash")
-	var httpcode int = 200
-	buf := new(bytes.Buffer)
-
-	defer func() {
-		ctx.WriteHeader(httpcode)
-		ctx.Write(buf.Bytes())
-	}()
-
-	dBlock, err := factomapi.GetDirectoryBlokByHashStr(hashStr)
-	if err != nil {
-		httpcode = 400
-		buf.WriteString("Bad Request")
-		log.Error(err)
-		return
-	}
-
-	// Send back JSON response
-	err = factomapi.SafeMarshal(buf, dBlock)
-	if err != nil {
-		httpcode = 400
-		buf.WriteString("Bad request ")
 		log.Error(err)
 		return
 	}
@@ -391,5 +278,125 @@ func handleEntryByHash(ctx *web.Context, hashStr string) {
 		buf.WriteString("Bad request")
 		log.Error(err)
 		return
+	}
+}
+
+func handleFactoidTx(ctx *web.Context) {
+	log := serverLog
+	log.Debug("handleFactoidTx")
+	n, err := strconv.ParseInt(ctx.Params["amount"], 10, 32)
+	if err != nil {
+		log.Error(err)
+	}
+	amt := n
+	var toaddress string
+	if ctx.Params["to"] == "wallet" {
+		toaddress = wallet.FactoidAddress()
+	} else {
+		toaddress = ctx.Params["to"]
+	}
+
+	addr, _, err := factoid.DecodeAddress(toaddress)
+	if err != nil {
+		log.Error(err)
+	}
+
+	log.Debug("factoid.NewTxFromInputToAddr")
+	txm := factoid.NewTxFromInputToAddr(
+		factoid.NewFaucetIn(),
+		amt,
+		addr)
+	ds := wallet.DetachMarshalSign(txm.TxData)
+	ss := factoid.NewSingleSignature(ds)
+	factoid.AddSingleSigToTxMsg(txm, ss)
+
+	wire := factoid.TxMsgToWire(txm)
+
+	time.Sleep(1 * time.Second)
+	if err := factomapi.SubmitFactoidTx(wire); err != nil {
+		fmt.Fprintln(ctx,
+			"there was a problem submitting the tx:", err.Error())
+		log.Error(err)
+	}
+
+	log.Debug("MsgTx: ", wire)
+}
+
+// handleSubmitChain converts a json post to a factomapi.Chain then submits the
+// entry to factomapi.
+func handleSubmitChain(ctx *web.Context) {
+	log := serverLog
+	log.Debug("handleSubmitChain")
+	switch ctx.Params["format"] {
+	case "json":
+		reader := gocoding.ReadBytes([]byte(ctx.Params["chain"]))
+		c := new(notaryapi.EChain)
+		factomapi.SafeUnmarshal(reader, c)
+
+		c.GenerateIDFromName()
+		if c.FirstEntry == nil {
+			fmt.Fprintln(ctx,
+				"The first entry is required for submitting the chain:")
+			log.Warning("The first entry is required for submitting the chain")
+			return
+		} else {
+			c.FirstEntry.ChainID = *c.ChainID
+		}
+
+		log.Debug("c.ChainID:", c.ChainID.String())
+
+		if err := factomapi.CommitChain(c); err != nil {
+			fmt.Fprintln(ctx,
+				"there was a problem with submitting the chain:", err)
+			log.Error(err)
+		}
+
+		time.Sleep(1 * time.Second)
+
+		if err := factomapi.RevealChain(c); err != nil {
+			fmt.Println(err.Error())
+			fmt.Fprintln(ctx,
+				"there was a problem with submitting the chain:", err)
+			log.Error(err)
+		}
+
+		fmt.Fprintln(ctx, "Chain Submitted")
+	default:
+		ctx.WriteHeader(403)
+	}
+}
+
+// handleSubmitEntry converts a json post to a factom.Entry then submits the
+// entry to factom.
+func handleSubmitEntry(ctx *web.Context) {
+	log := serverLog
+	log.Debug("handleSubmitEntry")
+
+	switch ctx.Params["format"] {
+	case "json":
+		entry := new(notaryapi.Entry)
+		reader := gocoding.ReadBytes([]byte(ctx.Params["entry"]))
+		err := factomapi.SafeUnmarshal(reader, entry)
+		if err != nil {
+			fmt.Fprintln(ctx,
+				"there was a problem with submitting the entry:", err.Error())
+			log.Error(err)
+		}
+
+		if err := factomapi.CommitEntry(entry); err != nil {
+			fmt.Fprintln(ctx,
+				"there was a problem with submitting the entry:", err.Error())
+			log.Error(err)
+		}
+
+		time.Sleep(1 * time.Second)
+		if err := factomapi.RevealEntry(entry); err != nil {
+			fmt.Fprintln(ctx,
+				"there was a problem with submitting the entry:", err.Error())
+			log.Error(err)
+		}
+		fmt.Fprintln(ctx, "Entry Submitted")
+	default:
+		ctx.WriteHeader(403)
 	}
 }
