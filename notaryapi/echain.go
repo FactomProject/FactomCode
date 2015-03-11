@@ -109,7 +109,7 @@ func (e *EBEntry) StampTime() {
 
 func (e *EBEntry) EncodableFields() map[string]reflect.Value {
 	fields := map[string]reflect.Value{
-		`TimeStamp`: reflect.ValueOf(e.TimeStamp()),
+//		`TimeStamp`: reflect.ValueOf(e.TimeStamp()),
 		`Hash`:      reflect.ValueOf(e.Hash()),
 	}
 	return fields
@@ -118,7 +118,7 @@ func (e *EBEntry) EncodableFields() map[string]reflect.Value {
 func (e *EBEntry) MarshalBinary() ([]byte, error) {
 	var buf bytes.Buffer
 
-	binary.Write(&buf, binary.BigEndian, e.TimeStamp())
+//	binary.Write(&buf, binary.BigEndian, e.TimeStamp())
 
 	data, err := e.Hash().MarshalBinary()
 	if err != nil {
@@ -133,15 +133,15 @@ func (e *EBEntry) MarshalBinary() ([]byte, error) {
 func (e *EBEntry) MarshalledSize() uint64 {
 	var size uint64 = 0
 
-	size += 8 // TimeStamp() int64
+//	size += 8 // TimeStamp() int64
 	size += e.Hash().MarshalledSize()
 
 	return size
 }
 
 func (e *EBEntry) UnmarshalBinary(data []byte) (err error) {
-	timeStamp, data := binary.BigEndian.Uint64(data[:8]), data[8:]
-	e.timeStamp = int64(timeStamp)
+//	timeStamp, data := binary.BigEndian.Uint64(data[:8]), data[8:]
+//	e.timeStamp = int64(timeStamp)
 	e.hash = new(Hash)
 	e.hash.UnmarshalBinary(data)
 	return nil
