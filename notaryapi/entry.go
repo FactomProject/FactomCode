@@ -26,17 +26,7 @@ type EntryInfoBranch struct {
 
 func (e *Entry) MarshalBinary() ([]byte, error) {
 	var buf bytes.Buffer
-
-	data, err := e.ChainID.MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = buf.Write(data)
-	if err != nil {
-		return nil, err
-	}
-
+	
 	count := len(e.ExtIDs)
 	binary.Write(&buf, binary.BigEndian, uint8(count))
 
@@ -48,6 +38,16 @@ func (e *Entry) MarshalBinary() ([]byte, error) {
 			return nil, err
 		}
 	}
+	
+	data, err := e.ChainID.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = buf.Write(data)
+	if err != nil {
+		return nil, err
+	}
 
 	buf.Write(e.Data)
 
@@ -56,26 +56,18 @@ func (e *Entry) MarshalBinary() ([]byte, error) {
 
 func (e *Entry) MarshalledSize() uint64 {
 	var size uint64 = 0
-
-	size += e.ChainID.MarshalledSize() //33
 	size += 1
 	for _, bytes := range e.ExtIDs {
 		size += 4
 		size += uint64(len(bytes))
 	}
+	size += e.ChainID.MarshalledSize() //33
 	size += uint64(len(e.Data))
 
 	return size
 }
 
 func (e *Entry) UnmarshalBinary(data []byte) (err error) {
-	err = e.ChainID.UnmarshalBinary(data[:33])
-	if err != nil {
-		return err
-	}
-
-	data = data[33:]
-
 	count, data := data[0], data[1:]
 	e.ExtIDs = make([][]byte, count, count)
 
@@ -85,6 +77,13 @@ func (e *Entry) UnmarshalBinary(data []byte) (err error) {
 		e.ExtIDs[i] = data[:length]
 		data = data[length:]
 	}
+
+	err = e.ChainID.UnmarshalBinary(data[:33])
+	if err != nil {
+		return err
+	}
+
+	data = data[33:]
 
 	e.Data = data
 
