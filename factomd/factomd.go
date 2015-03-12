@@ -221,6 +221,8 @@ func init() {
 
 	// Start the wsapi server module in a separate go-routine
 	wsapi.Start(db, inRpcQueue)
+	
+	defer wsapi.Stop()
 
 	util.Trace()
 }
