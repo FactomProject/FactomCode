@@ -5,7 +5,7 @@ import (
 
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/factomapi"
-	"github.com/FactomProject/FactomCode/factomwire"
+	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/hoisie/web"
 )
@@ -21,7 +21,7 @@ var (
 var server = web.NewServer()
 
 // Start runs the wsapi server which 
-func Start(db database.Db, outMsgQ chan<- factomwire.Message) {
+func Start(db database.Db, inMsgQ chan<- wire.Message) {
 	factomapi.SetDB(db)
 	factomapi.SetOutMsgQueue(outMsgQ)
 
