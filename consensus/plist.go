@@ -2,6 +2,7 @@ package consensus
 
 import (
 	"github.com/FactomProject/btcd/wire"
+	//"fmt"
 )
 
 // Orphan process list map to hold our of order confirmation messages
@@ -41,6 +42,16 @@ func (pl *ProcessList) AddToProcessList(msg *wire.MsgAcknowledgement) error {
 	}
 	
 	pl.PlEntries[msg.Index] = msg
+ 
+	return nil
+}
+
+// Add a factom transaction to the process list
+func (pl *ProcessList) AddFtmTxToProcessList(msg wire.Message, msgHash *wire.ShaHash) error {
+
+	if wire.CmdTx == msg.Command(){
+		// tx := wire.MsgTx (msg)
+	}
  
 	return nil
 }
