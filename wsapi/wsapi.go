@@ -21,14 +21,14 @@ var (
 var server = web.NewServer()
 
 // Start runs the wsapi server which 
-func Start(db database.Db, inMsgQ chan<- wire.Message) {
+func Start(db database.Db, outMsgQ chan<- wire.Message) {
 	factomapi.SetDB(db)
 	factomapi.SetOutMsgQueue(outMsgQ)
 
 	wsLog.Debug("Setting handlers")
 	server.Post(`/v1/buycredit/?`, handleBuyCredit)
 	server.Post(`/v1/creditbalance/?`, handleCreditBalance)
-	server.Post(`/v1/factoidtx/?`, handleFactoidTx)
+//	server.Post(`/v1/factoidtx/?`, handleFactoidTx)
 	server.Post(`/v1/submitchain/?`, handleSubmitChain)
 	server.Post(`/v1/submitentry/?`, handleSubmitEntry)
 
@@ -39,7 +39,7 @@ func Start(db database.Db, inMsgQ chan<- wire.Message) {
 	server.Get(`/v1/eblock/([^/]+)(?)`, handleEBlockByHash)
 	server.Get(`/v1/eblockbymr/([^/]+)(?)`, handleEBlockByMR)
 	server.Get(`/v1/entry/([^/]+)(?)`, handleEntryByHash)
-	server.Get(`/v1/factoidtx/?`, handleFactoidTx)
+//	server.Get(`/v1/factoidtx/?`, handleFactoidTx)
 
 	wsLog.Info("Starting server")
 	go server.Run("localhost:" + strconv.Itoa(portNumber))

@@ -11,7 +11,6 @@ import (
 	"github.com/FactomProject/FactomCode/factomapi"
 	//	"github.com/FactomProject/FactomCode/factomchain/factoid"
 	"github.com/FactomProject/FactomCode/notaryapi"
-	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/FactomCode/wallet"
 	"github.com/FactomProject/gocoding"
 	"github.com/hoisie/web"
@@ -282,46 +281,46 @@ func handleEntryByHash(ctx *web.Context, hashStr string) {
 	}
 }
 
-func handleFactoidTx(ctx *web.Context) {
-	log := serverLog
-	log.Debug("handleFactoidTx")
-	n, err := strconv.ParseInt(ctx.Params["amount"], 10, 32)
-	if err != nil {
-		log.Error(err)
-	}
-	amt := n
-	var toaddress string
-	if ctx.Params["to"] == "wallet" {
-		toaddress = wallet.FactoidAddress()
-	} else {
-		toaddress = ctx.Params["to"]
-	}
-
-	addr, _, err := factoid.DecodeAddress(toaddress)
-	if err != nil {
-		log.Error(err)
-	}
-
-	log.Debug("factoid.NewTxFromInputToAddr")
-	txm := factoid.NewTxFromInputToAddr(
-		factoid.NewFaucetIn(),
-		amt,
-		addr)
-	ds := wallet.DetachMarshalSign(txm.TxData)
-	ss := factoid.NewSingleSignature(ds)
-	factoid.AddSingleSigToTxMsg(txm, ss)
-
-	wire := factoid.TxMsgToWire(txm)
-
-	time.Sleep(1 * time.Second)
-	if err := factomapi.SubmitFactoidTx(wire); err != nil {
-		fmt.Fprintln(ctx,
-			"there was a problem submitting the tx:", err.Error())
-		log.Error(err)
-	}
-
-	log.Debug("MsgTx: ", wire)
-}
+//func handleFactoidTx(ctx *web.Context) {
+//	log := serverLog
+//	log.Debug("handleFactoidTx")
+//	n, err := strconv.ParseInt(ctx.Params["amount"], 10, 32)
+//	if err != nil {
+//		log.Error(err)
+//	}
+//	amt := n
+//	var toaddress string
+//	if ctx.Params["to"] == "wallet" {
+//		toaddress = wallet.FactoidAddress()
+//	} else {
+//		toaddress = ctx.Params["to"]
+//	}
+//
+//	addr, _, err := factoid.DecodeAddress(toaddress)
+//	if err != nil {
+//		log.Error(err)
+//	}
+//
+//	log.Debug("factoid.NewTxFromInputToAddr")
+//	txm := factoid.NewTxFromInputToAddr(
+//		factoid.NewFaucetIn(),
+//		amt,
+//		addr)
+//	ds := wallet.DetachMarshalSign(txm.TxData)
+//	ss := factoid.NewSingleSignature(ds)
+//	factoid.AddSingleSigToTxMsg(txm, ss)
+//
+//	wire := factoid.TxMsgToWire(txm)
+//
+//	time.Sleep(1 * time.Second)
+//	if err := factomapi.SubmitFactoidTx(wire); err != nil {
+//		fmt.Fprintln(ctx,
+//			"there was a problem submitting the tx:", err.Error())
+//		log.Error(err)
+//	}
+//
+//	log.Debug("MsgTx: ", wire)
+//}
 
 // handleSubmitChain converts a json post to a factomapi.Chain then submits the
 // entry to factomapi.
