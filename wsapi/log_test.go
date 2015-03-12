@@ -1,4 +1,4 @@
-package factomclient
+package wsapi
 
 import (
 	"fmt"
