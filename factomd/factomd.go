@@ -12,7 +12,7 @@ import (
 	"code.google.com/p/gcfg"
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/database/ldb"
-	"github.com/FactomProject/FactomCode/factomclient"
+	"github.com/FactomProject/FactomCode/wsapi"
 	"github.com/FactomProject/FactomCode/restapi"
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd/wire"
@@ -88,9 +88,10 @@ func Factomd_init() {
 	// Start the processor module
 	go restapi.Start_Processor(db, InMsgQueue, OutMsgQueue)
 
-	// Start the RPC server module in a separate go-routine
-	go factomclient.Start_Rpcserver(db, OutMsgQueue)
-
+	// Start the wsapi server module in a separate go-routine
+	wsapi.Start(db, inRpcQueue)
+	
+	defer wsapi.Stop()
 }
 
 // Load settings from configuration file: factomd.conf
@@ -111,7 +112,6 @@ func loadConfigurations() {
 		ldbpath = cfg.App.LdbPath
 		federatedid = cfg.App.FederatedId
 		restapi.LoadConfigurations(cfg)
-		factomclient.LoadConfigurations(cfg)
 	}
 
 	fmt.Println("CHECK cfg= ", cfg)
