@@ -1,4 +1,4 @@
-package main
+package factomapi
 
 import (
 	"bytes"
@@ -9,13 +9,21 @@ import (
 
 func TestWriteVarint(t *testing.T) {
 	var (
+		num1 uint64 = 1e9
 		bigNum uint64 = 0xFFFFF
 		smallNum uint64 = 5
 	)
 	
 	buf := new(bytes.Buffer)
 
-	n, err := WriteVarint(buf, bigNum)
+	n, err := WriteVarint(buf, num1)
+	if err != nil {
+		t.Errorf(err.Error())
+	}
+	fmt.Println("n=", n)
+	fmt.Println(hex.EncodeToString(buf.Bytes()))
+
+	n, err = WriteVarint(buf, bigNum)
 	if err != nil {
 		t.Errorf(err.Error())
 	}
@@ -31,7 +39,7 @@ func TestWriteVarint(t *testing.T) {
 }
 
 func TestReadVarint(t *testing.T) {
-	var num uint64 = 0xFFFFFFFFF
+	var num uint64 = 1e9
 	buf := new(bytes.Buffer)
 
 	n, err := WriteVarint(buf, num)

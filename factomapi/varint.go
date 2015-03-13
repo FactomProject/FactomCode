@@ -1,4 +1,4 @@
-package main
+package factomapi
 
 import (
 	"bytes"
@@ -12,7 +12,7 @@ type byteAndReader interface {
 	io.ByteReader
 }
 
-func ReadVarint(r byteAndReader) (uint64, error) {
+func ReadVarint(r byteAndReader) (x uint64, err error) {
 	var blen int
 	
 	b, err := r.ReadByte()
@@ -36,36 +36,34 @@ func ReadVarint(r byteAndReader) (uint64, error) {
 		return 0, fmt.Errorf("Could not read Varint from %v", r)
 	}
 	
-	x, n := binary.Uvarint(val)
-	if n == 0 {
-		return 0, fmt.Errorf("%v is too small\n", val)
-	}
-	if n < 0 {
-		return 0, fmt.Errorf("%v is too large\n", val)
+	m := uint64(1)
+	for i, j := 0, n-1; i <= j; i++ {
+		x += uint64(val[j-i]) * m
+		m *= 256
 	}
 	
-	return x, nil
+	return
 }
 
-func WriteVarint(w io.Writer, x uint64) (int, error){
+func WriteVarint(w io.Writer, x uint64) (int, error) {
 	buf := new(bytes.Buffer)
 	binary.Write(buf, binary.BigEndian, x)
 	val := buf.Bytes()
-	b := make([]byte, 1, 9)
+	p := make([]byte, 1, 9)
 	
 	switch {
 	case x < 0xFD:
-		b[0] = byte(x)
+		p[0] = byte(x)
 	case x <= 0xFFFF:
-		b[0] = 0xFD
-		b = append(b, val[7:]...)
+		p[0] = 0xFD
+		p = append(p, val[7:]...)
 	case x <= 0xFFFFFFFF:
-		b[0] = 0xFE
-		b = append(b, val[5:]...)
+		p[0] = 0xFE
+		p = append(p, val[4:]...)
 	case x <= 0xFFFFFFFFFFFFFFFF:
-		b[0] = 0xFF
-		b = append(b, val...)
+		p[0] = 0xFF
+		p = append(p, val...)
 	}
 	
-	return w.Write(b)
+	return w.Write(p)
 }
