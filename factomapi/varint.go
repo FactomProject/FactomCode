@@ -56,7 +56,7 @@ func WriteVarint(w io.Writer, x uint64) (int, error) {
 		p[0] = byte(x)
 	case x <= 0xFFFF:
 		p[0] = 0xFD
-		p = append(p, val[7:]...)
+		p = append(p, val[6:]...)
 	case x <= 0xFFFFFFFF:
 		p[0] = 0xFE
 		p = append(p, val[4:]...)
