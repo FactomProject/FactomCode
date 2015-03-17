@@ -16,6 +16,7 @@ import (
 	"github.com/FactomProject/FactomCode/factomapi"
 	"github.com/FactomProject/FactomCode/factomchain/factoid"
 	"github.com/FactomProject/FactomCode/notaryapi"
+	"github.com/FactomProject/FactomCode/consensus"	
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/btcrpcclient"
@@ -59,6 +60,8 @@ var (
 
 	inMsgQueue2  <-chan wire.Message //incoming message queue for factom application messages
 	outMsgQueue2 chan<- wire.Message //outgoing message queue for factom application messages
+	
+	plMgr *consensus.ProcessListMgr
 )
 
 var (
@@ -1066,6 +1069,10 @@ func initializeECreditMap(block *notaryapi.CBlock) {
 		credits, _ := eCreditMap[cbEntry.PublicKey().String()]
 		eCreditMap[cbEntry.PublicKey().String()] = credits + cbEntry.Credits()
 	}
+}
+func initProcessListMgr() {
+	plMgr = consensus.NewProcessListMgr(dchain.NextBlockID,1,10)
+	
 }
 
 func getPrePaidChainKey(entryHash *notaryapi.Hash, chainIDHash *notaryapi.Hash) string {
