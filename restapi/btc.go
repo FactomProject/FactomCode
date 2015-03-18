@@ -12,12 +12,13 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
-	"time"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"path/filepath"
+	"time"
 
+	"github.com/FactomProject/FactomCode/notaryapi"
 	"github.com/FactomProject/btcd/chaincfg"
 	"github.com/FactomProject/btcd/txscript"
 	"github.com/FactomProject/btcd/wire"
@@ -25,7 +26,6 @@ import (
 	"github.com/FactomProject/btcrpcclient"
 	"github.com/FactomProject/btcutil"
 	"github.com/FactomProject/btcws"
-	"github.com/FactomProject/FactomCode/notaryapi"
 
 	"errors"
 )
@@ -338,7 +338,7 @@ func validateMsgTx(msgtx *wire.MsgTx, inputs []btcjson.ListUnspentResult) error 
 		}
 	}
 	return nil
-} 
+}
 
 func sendRawTransaction(msgtx *wire.MsgTx) (*wire.ShaHash, error) {
 
@@ -416,7 +416,7 @@ func createBtcdNotificationHandlers() btcrpcclient.NotificationHandlers {
 
 // Save the BTC anchor transaction details into db
 func saveDirBlockInfo(transaction *btcutil.Tx, details *btcws.BlockDetails) {
-	
+
 	for _, dbInfo := range dbInfoMap {
 
 		if dbInfo.BTCTxHash != nil &&
@@ -430,10 +430,10 @@ func saveDirBlockInfo(transaction *btcutil.Tx, details *btcws.BlockDetails) {
 
 			// Update db with DBBatch
 			db.InsertDBInfo(*dbInfo)
-			
+
 			//delete dbInfo from dbInfoMap
 			delete(dbInfoMap, dbInfo.DBHash.String())
-			
+
 			fmt.Println("In saveDirBlockInfo, dbInfo:%+v", dbInfo)
 
 			break
@@ -501,7 +501,6 @@ func shutdown() {
 	wclient.WaitForShutdown()
 	dclient.WaitForShutdown()
 }
-
 
 func saveDBMerkleRoottoBTC(dbInfo *notaryapi.DBInfo) {
 
