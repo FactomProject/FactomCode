@@ -15,8 +15,8 @@ import (
 	"github.com/FactomProject/FactomCode/consensus"
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/factomapi"
-	"github.com/FactomProject/FactomCode/factomchain/factoid"
 	"github.com/FactomProject/FactomCode/notaryapi"
+	"github.com/FactomProject/FactomCode/old/oldcoin"
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/btcrpcclient"
@@ -49,7 +49,7 @@ var (
 	chainIDMapBackup map[string]*notaryapi.EChain //previous block bakcup - ChainIDMap with chainID string([32]byte) as key
 	dchain           *notaryapi.DChain            //Directory Block Chain
 	cchain           *notaryapi.CChain            //Entry Credit Chain
-	fchain           *factoid.FChain              //Factoid Chain
+	fchain           *oldcoin.FChain              //Factoid Chain
 
 	creditsPerChain   int32            = 10
 	creditsPerFactoid uint64           = 1000
@@ -220,12 +220,16 @@ func init_processor() {
 			}
 			saveCChain(cchain)
 
-			// Factoid Chain
-			fBlock := newFBlock(fchain)
-			if fBlock != nil {
-				dchain.AddFBlockToDBEntry(factoid.NewDBEntryFromFBlock(fBlock))
-			}
-			saveFChain(fchain)
+			util.Trace("NOT IMPLEMENTED: Factoid Chain init was here !!!!!!!!!!!")
+
+			/*
+				// Factoid Chain
+				fBlock := newFBlock(fchain)
+				if fBlock != nil {
+					dchain.AddFBlockToDBEntry(factoid.NewDBEntryFromFBlock(fBlock))
+				}
+				saveFChain(fchain)
+			*/
 
 			// Directory Block chain
 			dbBlock := newDirectoryBlock(dchain)
@@ -264,7 +268,7 @@ func Start_Processor(ldb database.Db, inMsgQ <-chan wire.Message, outMsgQ chan<-
 	for msg := range inMsgQ {
 		fmt.Printf("in range inMsgQ, msg:%+v\n", msg)
 		err := serveMsgRequest(msg)
-		if err != nil{
+		if err != nil {
 			log.Println(err)
 		}
 	}
@@ -667,7 +671,7 @@ func newEntryCreditBlock(chain *notaryapi.CChain) *notaryapi.CBlock {
 	return block
 }
 
-func newFBlock(chain *factoid.FChain) *factoid.FBlock {
+func newFBlock(chain *oldcoin.FChain) *oldcoin.FBlock {
 
 	// acquire the last block
 	//	block := chain.Blocks[len(chain.Blocks)-1]
@@ -817,7 +821,7 @@ func saveCChain(chain *notaryapi.CChain) {
 	}
 }
 
-func saveFChain(chain *factoid.FChain) {
+func saveFChain(chain *oldcoin.FChain) {
 	util.Trace("NOT IMPLEMENTED !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 	/*
 		if len(chain.Blocks) == 0 {
@@ -982,7 +986,7 @@ func initCChain() {
 func initFChain() {
 
 	//Initialize the Entry Credit Chain ID
-	fchain = new(factoid.FChain)
+	fchain = new(oldcoin.FChain)
 	barray := []byte{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
 		0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}
 	fchain.ChainID = new(notaryapi.Hash)

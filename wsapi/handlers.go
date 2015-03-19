@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/FactomProject/FactomCode/factomapi"
-	//	"github.com/FactomProject/FactomCode/factomchain/factoid"
 	"github.com/FactomProject/FactomCode/notaryapi"
 	"github.com/FactomProject/FactomCode/wallet"
 	"github.com/FactomProject/gocoding"

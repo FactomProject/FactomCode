@@ -1,9 +1,9 @@
-package factoid_test
+package oldcoin_test
 
 import (
 	"encoding/hex"
-	"github.com/FactomProject/FactomCode/factomchain/factoid"
 	"github.com/FactomProject/FactomCode/notaryapi"
+	"github.com/FactomProject/FactomCode/old/oldcoin"
 	"github.com/FactomProject/FactomCode/wallet"
 	"testing"
 )
@@ -14,10 +14,10 @@ func TestECAddress(t *testing.T) {
 	pk := (*mypub.Key)[:]
 
 	netid := byte('\x14')
-	addr := factoid.EncodeAddress(pk, netid)
+	addr := oldcoin.EncodeAddress(pk, netid)
 	t.Logf("addr: %v len %v", addr, len(addr))
 
-	decoded, ver, err := factoid.DecodeAddress(addr)
+	decoded, ver, err := oldcoin.DecodeAddress(addr)
 
 	t.Logf("pk: %v decoded %v ver %v len %v err %v", pk, decoded, ver, len(decoded), err)
 
@@ -36,16 +36,16 @@ func TestECAddress(t *testing.T) {
 	}
 }
 
-func TestFactoidAddress(t *testing.T) {
+func TestOldcoinAddress(t *testing.T) {
 	var mypub = wallet.ClientPublicKey()
 
 	hash := notaryapi.Sha((*mypub.Key)[:])
 
 	netid := byte('\x07')
-	addr := factoid.EncodeAddress(hash.Bytes, netid)
+	addr := oldcoin.EncodeAddress(hash.Bytes, netid)
 	t.Logf("addr: %v len %v", addr, len(addr))
 
-	decoded, ver, err := factoid.DecodeAddress(addr)
+	decoded, ver, err := oldcoin.DecodeAddress(addr)
 
 	t.Logf("hash: %v decoded %v ver %v len %v err %v", hash.Bytes, decoded, ver, len(decoded), err)
 
@@ -66,12 +66,12 @@ func TestFactoidAddress(t *testing.T) {
 }
 
 func TestTrans(t *testing.T) {
-	var td factoid.TxData
-	var in factoid.Input //blank input
+	var td oldcoin.TxData
+	var in oldcoin.Input //blank input
 	td.AddInput(in)
 
-	addr, _, _ := factoid.DecodeAddress("FfZgRRHxuzsWkhXcb5Tb16EYuDEkbVCPAk1svfmYxyUXGPoS2X")
-	out := factoid.NewOutput(factoid.FACTOID_ADDR, 1000000000, addr)
+	addr, _, _ := oldcoin.DecodeAddress("FfZgRRHxuzsWkhXcb5Tb16EYuDEkbVCPAk1svfmYxyUXGPoS2X")
+	out := oldcoin.NewOutput(oldcoin.OLDCOIN_ADDR, 1000000000, addr)
 	td.AddOutput(*out)
 
 	txid := td.Txid(nil)
@@ -82,12 +82,12 @@ func TestTrans(t *testing.T) {
 	//	t.Logf("txid: %v lenin %v lenout %v hash %v err %v",txid,len(td.Inputs),len(td.Outputs),hash,err)
 
 	ds := wallet.DetachMarshalSign(&td)
-	ss := factoid.NewSingleSignature(ds)
+	ss := oldcoin.NewSingleSignature(ds)
 	ss.Hint = '\u554a'
 	t.Logf("ss : %v ", ss)
 
 	ssb, _ := hex.DecodeString("4369be19d8fe9cba655cadeb4441b646b94582d0dc890bdd2060220b61bdee10b9f96cce824c201151131b99df7201f6669e9fbd9ccc74c229c57c59ed37b100")
-	var ss2 factoid.SingleSignature
+	var ss2 oldcoin.SingleSignature
 	copy(ss2.Sig[:], ssb)
 	t.Logf("ssb: %v ", ssb)
 	ss2.Hint = '\u554a'

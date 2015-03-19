@@ -2,15 +2,15 @@ package ldb
 
 import (
 	"errors"
-	"github.com/FactomProject/FactomCode/factomchain/factoid"
 	"github.com/FactomProject/FactomCode/notaryapi"
+	"github.com/FactomProject/FactomCode/old/oldcoin"
 	//	"github.com/FactomProject/goleveldb/leveldb"
 	"github.com/FactomProject/goleveldb/leveldb/util"
 	//	"log"
 )
 
 // ProcessFBlockBatche inserts the FBlock
-func (db *LevelDb) ProcessFBlockBatch(block *factoid.FBlock) error {
+func (db *LevelDb) ProcessFBlockBatch(block *oldcoin.FBlock) error {
 
 	/*
 		if block != nil {
@@ -47,7 +47,7 @@ func (db *LevelDb) ProcessFBlockBatch(block *factoid.FBlock) error {
 }
 
 // FetchCntryBlock gets a block by hash from the database.
-func (db *LevelDb) FetchFBlockByHash(fBlockHash *notaryapi.Hash) (fBlock *factoid.FBlock, err error) {
+func (db *LevelDb) FetchFBlockByHash(fBlockHash *notaryapi.Hash) (fBlock *oldcoin.FBlock, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -56,26 +56,26 @@ func (db *LevelDb) FetchFBlockByHash(fBlockHash *notaryapi.Hash) (fBlock *factoi
 	data, err := db.lDb.Get(key, db.ro)
 
 	if data != nil {
-		fBlock = new(factoid.FBlock)
+		fBlock = new(oldcoin.FBlock)
 		//		fBlock.UnmarshalBinary(data)
 	}
 	return fBlock, nil
 }
 
-// FetchAllFBlocks gets all of the factoid blocks
-func (db *LevelDb) FetchAllFBlocks() (fBlocks []factoid.FBlock, err error) {
+// FetchAllFBlocks gets all of the oldcoin blocks
+func (db *LevelDb) FetchAllFBlocks() (fBlocks []oldcoin.FBlock, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
 	var fromkey []byte = []byte{byte(TBL_FB)}   // Table Name (1 bytes)						// Timestamp  (8 bytes)
 	var tokey []byte = []byte{byte(TBL_FB + 1)} // Table Name (1 bytes)
 
-	fBlockSlice := make([]factoid.FBlock, 0, 10)
+	fBlockSlice := make([]oldcoin.FBlock, 0, 10)
 
 	iter := db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
 
 	for iter.Next() {
-		var fBlock factoid.FBlock
+		var fBlock oldcoin.FBlock
 		//		fBlock.UnmarshalBinary(iter.Value())
 		fBlock.FBHash = notaryapi.Sha(iter.Value()) //to be optimized??
 
