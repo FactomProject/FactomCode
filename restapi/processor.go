@@ -64,6 +64,9 @@ var (
 
 	inMsgQueue2  <-chan wire.Message //incoming message queue for factom application messages
 	outMsgQueue2 chan<- wire.Message //outgoing message queue for factom application messages
+	
+	intInMsgQueue  <-chan wire.FtmInternalMsg //incoming message queue for factom internal messages (from Factoid module to Factomd module)
+	intOutMsgQueue chan<- wire.FtmInternalMsg //outgoing message queue for factom internal messages	(from Factomd module to Factoid module)
 
 	plMgr *consensus.ProcessListMgr
 )
@@ -332,7 +335,7 @@ func serveMsgRequest(msg wire.Message) error {
 	case wire.CmdCommitChain:
 		msgCommitChain, ok := msg.(*wire.MsgCommitChain)
 		if ok && msgCommitChain.IsValid() {
-			err := processCommitChain(msgCommitChain.EntryHash, msgCommitChain.ChainID, msgCommitChain.EntryChainIDHash, msgCommitChain.ECPubKey, int32(msgCommitChain.Credits))
+			err := processCommitChain(msgCommitChain)
 			if err != nil {
 				return err
 			}
@@ -343,7 +346,7 @@ func serveMsgRequest(msg wire.Message) error {
 	case wire.CmdRevealChain:
 		msgRevealChain, ok := msg.(*wire.MsgRevealChain)
 		if ok {
-			err := processRevealChain(msgRevealChain.Chain)
+			err := processRevealChain(msgRevealChain)
 			if err != nil {
 				return err
 			}
@@ -354,7 +357,7 @@ func serveMsgRequest(msg wire.Message) error {
 	case wire.CmdCommitEntry:
 		msgCommitEntry, ok := msg.(*wire.MsgCommitEntry)
 		if ok && msgCommitEntry.IsValid() {
-			err := processCommitEntry(msgCommitEntry.EntryHash, msgCommitEntry.ECPubKey, int64(msgCommitEntry.Timestamp), int32(msgCommitEntry.Credits))
+			err := processCommitEntry(msgCommitEntry)
 			if err != nil {
 				return err
 			}
@@ -365,7 +368,7 @@ func serveMsgRequest(msg wire.Message) error {
 	case wire.CmdRevealEntry:
 		msgRevealEntry, ok := msg.(*wire.MsgRevealEntry)
 		if ok {
-			err := processRevealEntry(msgRevealEntry.Entry)
+			err := processRevealEntry(msgRevealEntry)
 			if err != nil {
 				return err
 			}
@@ -398,15 +401,15 @@ func serveMsgRequest(msg wire.Message) error {
 	return nil
 }
 
-func processRevealEntry(newEntry *notaryapi.Entry) error {
+func processRevealEntry(msg *wire.MsgRevealEntry) error {	
 
-	chain := chainIDMap[newEntry.ChainID.String()]
+	chain := chainIDMap[msg.Entry.ChainID.String()]
 	if chain == nil {
-		return errors.New("This chain is not supported:" + newEntry.ChainID.String())
+		return errors.New("This chain is not supported:" + msg.Entry.ChainID.String())
 	}
 
 	// store the new entry in db
-	entryBinary, _ := newEntry.MarshalBinary()
+	entryBinary, _ := msg.Entry.MarshalBinary()
 	entryHash := notaryapi.Sha(entryBinary)
 
 	// Calculate the required credits
@@ -426,58 +429,47 @@ func processRevealEntry(newEntry *notaryapi.Entry) error {
 	return nil
 }
 
-func processCommitEntry(entryHash *notaryapi.Hash, pubKey *notaryapi.Hash, timeStamp int64, credits int32) error {
-	// Make sure credits is negative
-	if credits > 0 {
-		credits = 0 - credits
-	}
+func processCommitEntry(msg *wire.MsgCommitEntry) error {	
 
 	// Update the credit balance in memory
-	creditBalance, _ := eCreditMap[pubKey.String()]
-	if creditBalance+credits < 0 {
-		cchain.BlockMutex.Unlock()
-		return errors.New("Not enough credit for public key:" + pubKey.String() + " Balance:" + fmt.Sprint(credits))
+	creditBalance, _ := eCreditMap[msg.ECPubKey.String()]
+	if creditBalance < int32(msg.Credits) {
+		return errors.New("Not enough credit for public key:" + msg.ECPubKey.String() + " Balance:" + fmt.Sprint(creditBalance))
 	}
-	eCreditMap[pubKey.String()] = creditBalance + credits
+	eCreditMap[msg.ECPubKey.String()] = creditBalance - int32(msg.Credits)
 	// Update the prePaidEntryMapin memory
-	payments, _ := prePaidEntryMap[entryHash.String()]
-	prePaidEntryMap[entryHash.String()] = payments - credits
+	payments, _ := prePaidEntryMap[msg.EntryHash.String()]
+	prePaidEntryMap[msg.EntryHash.String()] = payments + int32(msg.Credits)
 
 	return nil
 }
 
-func processCommitChain(entryHash *notaryapi.Hash, chainIDHash *notaryapi.Hash, entryChainIDHash *notaryapi.Hash, pubKey *notaryapi.Hash, credits int32) error {
-
-	// Make sure credits is negative
-	if credits > 0 {
-		credits = 0 - credits
-	}
+func processCommitChain(msg *wire.MsgCommitChain) error {	
 
 	// Check if the chain id already exists
-	_, existing := chainIDMap[chainIDHash.String()]
+	_, existing := chainIDMap[msg.ChainID.String()]
 	if !existing {
-		if chainIDHash.IsSameAs(dchain.ChainID) || chainIDHash.IsSameAs(cchain.ChainID) {
+		if msg.ChainID.IsSameAs(dchain.ChainID) || msg.ChainID.IsSameAs(cchain.ChainID) {
 			existing = true
 		}
 	}
 	if existing {
-		return errors.New("Already existing chain id:" + chainIDHash.String())
+		return errors.New("Already existing chain id:" + msg.ChainID.String())
 	}
 
 	// Precalculate the key and value pair for prePaidEntryMap
-	key := getPrePaidChainKey(entryHash, chainIDHash)
+	key := getPrePaidChainKey(msg.EntryHash, msg.ChainID)
 
 	// Update the credit balance in memory
-	creditBalance, _ := eCreditMap[pubKey.String()]
-	if creditBalance+credits < 0 {
-		cchain.BlockMutex.Unlock()
-		return errors.New("Insufficient credits for public key:" + pubKey.String() + " Balance:" + fmt.Sprint(credits))
+	creditBalance, _ := eCreditMap[msg.ECPubKey.String()]
+	if creditBalance < int32(msg.Credits) {
+		return errors.New("Insufficient credits for public key:" + msg.ECPubKey.String() + " Balance:" + fmt.Sprint(creditBalance))
 	}
-	eCreditMap[pubKey.String()] = creditBalance + credits
+	eCreditMap[msg.ECPubKey.String()] = creditBalance - int32(msg.Credits)
 
 	// Update the prePaidEntryMap in memory
 	payments, _ := prePaidEntryMap[key]
-	prePaidEntryMap[key] = payments - credits
+	prePaidEntryMap[key] = payments + int32(msg.Credits)
 
 	return nil
 }
@@ -491,7 +483,9 @@ func processBuyEntryCredit(pubKey *notaryapi.Hash, credits int32, factoidTxHash 
 	return nil
 }
 
-func processRevealChain(newChain *notaryapi.EChain) error {
+func processRevealChain(msg *wire.MsgRevealChain) error {
+	newChain := msg.Chain
+	
 	// Check if the chain id already exists
 	_, existing := chainIDMap[newChain.ChainID.String()]
 	if !existing {
