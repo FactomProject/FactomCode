@@ -5,7 +5,6 @@ import (
 	"os"
 	//"fmt"
 	"code.google.com/p/gcfg"
-	"github.com/FactomProject/FactomCode/factomchain/factoid"
 	"github.com/FactomProject/FactomCode/notaryapi"
 	"github.com/FactomProject/FactomCode/util"
 )
@@ -80,13 +79,15 @@ func DetachMarshalSign(msg notaryapi.BinaryMarshallable) *notaryapi.DetachedSign
 	return sig.DetachSig()
 }
 
-func FactoidAddress() string {
-	netid := byte('\x07')
-	return factoid.AddressFromPubKey(ClientPublicKey().Key, netid)
-}
-
 func ClientPublicKeyStr() string {
 	return ClientPublicKey().String()
+}
+
+/*
+func FactoidAddress() string {
+	netid := byte('\x07')
+	util.Trace("NOT IMPLEMENTED !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!") // FIXME
+	return factoid.AddressFromPubKey(ClientPublicKey().Key, netid)
 }
 
 func GetMyBalance() (bal int64) {
@@ -94,3 +95,4 @@ func GetMyBalance() (bal int64) {
 	util.Trace("NOT IMPLEMENTED !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!") // FIXME
 	return 0
 }
+*/

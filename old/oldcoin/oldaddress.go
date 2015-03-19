@@ -2,7 +2,7 @@
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
-package factoid
+package oldcoin
 
 import (
 	"bytes"
@@ -13,7 +13,7 @@ import (
 	//"errors"
 )
 
-//raw address, either a hash of *Reveal (for factoid tx)
+//raw address, either a hash of *Reveal (for oldcoin tx)
 //	or a raw PublicKey (for entrycredit tx)
 type Address notaryapi.ByteArray
 
@@ -142,7 +142,7 @@ func (is *InputSig) UnmarshalBinary(data []byte) (err error) {
 
 // encodeAddress returns a human-readable payment address given a 32 bytes hash or
 // publike-key and netID which encodes the factom network and address type.  It is used
-// in both entrycredit and factoid transactions.
+// in both entrycredit and oldcoin transactions.
 func EncodeAddress(hashokey Address, netID byte) string {
 	// Format is 1 byte for a network and address class
 	// 32 bytes for a SHA256 hash or raw PublicKey,

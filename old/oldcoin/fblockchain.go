@@ -2,7 +2,7 @@
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
-package factoid
+package oldcoin
 
 import (
 	//"bytes"
@@ -24,7 +24,7 @@ type FChain struct {
 	NextBlockID  uint64
 }
 
-//Factoid Block header
+//Oldcoin Block header
 type FBlockHeader struct {
 	Height        uint64
 	PrevBlockHash *notaryapi.Hash
@@ -32,7 +32,7 @@ type FBlockHeader struct {
 	TxCount       uint32
 }
 
-//Factoid Block - contains list of Tx, which has raw MsgTx plus the Txid
+//Oldcoin Block - contains list of Tx, which has raw MsgTx plus the Txid
 type FBlock struct {
 	Header FBlockHeader
 	//	Transactions []Tx
@@ -48,7 +48,7 @@ const (
 	GenesisAddress = "FfZgRRHxuzsWkhXcb5Tb16EYuDEkbVCPAk1svfmYxyUXGPoS2X"
 )
 
-func FactoidGenesis(net wire.BitcoinNet) (genesis *FBlock) {
+func OldcoinGenesis(net wire.BitcoinNet) (genesis *FBlock) {
 	genesis = &FBlock{
 		Header: FBlockHeader{
 			Height:    0,
