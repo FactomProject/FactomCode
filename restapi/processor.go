@@ -257,10 +257,13 @@ func Start_Processor(ldb database.Db, inMsgQ <-chan wire.Message, outMsgQ chan<-
 		}
 	}
 	util.Trace("before range inMsgQ")
-	// Process msg from the incoming queue
+	// Process msg from the incoming queue one by one
 	for msg := range inMsgQ {
 		fmt.Printf("in range inMsgQ, msg:%+v\n", msg)
-		go serveMsgRequest(msg)
+		err := serveMsgRequest(msg)
+		if err != nil{
+			log.Println(err)
+		}
 	}
 
 	util.Trace()
