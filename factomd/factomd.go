@@ -12,9 +12,9 @@ import (
 	"code.google.com/p/gcfg"
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/database/ldb"
-	"github.com/FactomProject/FactomCode/wsapi"
 	"github.com/FactomProject/FactomCode/restapi"
 	"github.com/FactomProject/FactomCode/util"
+	"github.com/FactomProject/FactomCode/wsapi"
 	"github.com/FactomProject/btcd/wire"
 	"log"
 	"os"
@@ -34,6 +34,12 @@ var (
 	inRpcQueue      = make(chan wire.Message, 100) //incoming message queue for factom application messages
 	federatedid     string
 )
+
+// trying out some flags to optionally disable old BTC functionality ... WIP
+var FactomOverride struct {
+	//	TxIgnoreMissingParents bool
+	temp1 bool
+}
 
 // winServiceMain is only invoked on Windows.  It detects when btcd is running
 // as a service and reacts accordingly.
@@ -90,7 +96,7 @@ func Factomd_init() {
 
 	// Start the wsapi server module in a separate go-routine
 	wsapi.Start(db, inRpcQueue)
-	
+
 	defer wsapi.Stop()
 }
 
