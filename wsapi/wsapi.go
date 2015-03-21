@@ -32,6 +32,7 @@ func Start(db database.Db, outMsgQ chan<- wire.Message) {
 	server.Post(`/v1/submitchain/?`, handleSubmitChain)
 	server.Post(`/v1/submitentry/?`, handleSubmitEntry)
 
+	server.Get(`/v1/blockheight/?`, handleBlockHeight)
 	server.Get(`/v1/buycredit/?`, handleBuyCredit)
 	server.Get(`/v1/creditbalance/?`, handleCreditBalance)
 	server.Get(`/v1/dblock/([^/]+)(?)`, handleDBlockByHash)

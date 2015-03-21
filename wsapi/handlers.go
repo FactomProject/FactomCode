@@ -15,6 +15,28 @@ import (
 	"github.com/hoisie/web"
 )
 
+func handleBlockHeight(ctx *web.Context) {
+	log := serverLog
+	log.Debug("handleBlockHeight")
+	var httpcode int = 200
+	buf := new(bytes.Buffer)
+
+	defer func() {
+		ctx.WriteHeader(httpcode)
+		ctx.Write(buf.Bytes())
+	}()
+
+	height, err := factomapi.GetBlokHeight()
+	if err != nil {
+		httpcode = 400
+		buf.WriteString("Bad Request")
+		log.Error(err)
+		return
+	}
+	
+	fmt.Fprint(buf, height)	
+}
+
 // handleBuyCredit will add entry credites to the specified key. Currently the
 // entry credits are given without any factoid transactions occuring.
 func handleBuyCredit(ctx *web.Context) {

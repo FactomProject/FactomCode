@@ -131,6 +131,15 @@ func GetEntryBlokByMRStr(addr string) (*notaryapi.EBlock, error) {
 	return db.FetchEBlockByMR(hash)
 }
 
+func GetBlokHeight() (int, error) {
+	b := make([]notaryapi.DBlock, 0)
+	b, err := db.FetchAllDBlocks()
+	if err != nil {
+		return 0, err
+	}
+	return len(b), nil
+}
+
 func GetEntryByHashStr(addr string) (*notaryapi.Entry, error) {
 	hash := new(notaryapi.Hash)
 	a, err := hex.DecodeString(addr)
