@@ -65,11 +65,11 @@ var (
 	dbInfoMap map[string]*notaryapi.DBInfo // dbInfoMap with dbHash string([32]byte) as key
 
 	// to be removed??
-	inMsgQueue2  <-chan wire.Message //incoming message queue for factom application messages
-	outMsgQueue2 chan<- wire.Message //outgoing message queue for factom application messages
+	inMsgQueue2  <-chan wire.FtmInternalMsg //incoming message queue for factom application messages
+	outMsgQueue2 chan<- wire.FtmInternalMsg //outgoing message queue for factom application messages
 
-	intInMsgQueue  <-chan wire.FtmInternalMsg //incoming message queue for factom internal messages (from Factoid module to Factomd module)
-	intOutMsgQueue chan<- wire.FtmInternalMsg //outgoing message queue for factom internal messages	(from Factomd module to Factoid module)
+//	intInMsgQueue  <-chan wire.FtmInternalMsg //incoming message queue for factom internal messages (from Factoid module to Factomd module)
+//	intOutMsgQueue chan<- wire.FtmInternalMsg //outgoing message queue for factom internal messages	(from Factomd module to Factoid module)
 
 	fMemPool *ftmMemPool
 	plMgr *consensus.ProcessListMgr
@@ -249,7 +249,7 @@ func init_processor() {
 
 }
 
-func Start_Processor(ldb database.Db, inMsgQ <-chan wire.Message, outMsgQ chan<- wire.Message) {
+func Start_Processor(ldb database.Db, inMsgQ <-chan wire.FtmInternalMsg, outMsgQ chan<- wire.FtmInternalMsg) {
 	db = ldb
 
 	inMsgQueue2 = inMsgQ
@@ -335,7 +335,7 @@ func save(chain *notaryapi.EChain) {
 	}
 }
 
-func serveMsgRequest(msg wire.Message) error {
+func serveMsgRequest(msg wire.FtmInternalMsg) error {
 
 	util.Trace()
 

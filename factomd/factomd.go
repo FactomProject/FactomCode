@@ -29,8 +29,8 @@ var (
 	shutdownChannel = make(chan struct{})
 	ldbpath         = "/tmp/ldb9"
 	db              database.Db                    // database
-	InMsgQueue      = make(chan wire.Message, 100) //incoming message queue for factom application messages
-	OutMsgQueue     = make(chan wire.Message, 100) //outgoing message queue for factom application messages
+	InMsgQueue      = make(chan wire.FtmInternalMsg, 100) //incoming message queue for factom application messages
+	OutMsgQueue     = make(chan wire.FtmInternalMsg, 100) //outgoing message queue for factom application messages
 	inRpcQueue      = make(chan wire.Message, 100) //incoming message queue for factom application messages
 	federatedid     string
 )
