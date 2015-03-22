@@ -38,7 +38,9 @@ var (
 // trying out some flags to optionally disable old BTC functionality ... WIP
 var FactomOverride struct {
 	//	TxIgnoreMissingParents bool
-	temp1 bool
+	temp1                     bool
+	TxOrphansInsteadOfMempool bool // allow orphans for block creation
+	BlockDisableChecks        bool
 }
 
 // winServiceMain is only invoked on Windows.  It detects when btcd is running
