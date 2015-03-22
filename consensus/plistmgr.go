@@ -2,16 +2,18 @@ package consensus
 
 import (
 	"errors"
+	"sync"	
 	"github.com/FactomProject/btcd/wire"
 )
 
 // Process list contains a list of valid confirmation messages
 // and is used for consensus building
 type ProcessListMgr struct {
+	sync.RWMutex	
 	MyProcessList     *ProcessList
 	OtherProcessLists []*ProcessList
 
-	DirBlkHeight uint64
+	NextDBlockHeight uint64
 
 	// Orphan process list map to hold our of order confirmation messages
 	// key: MsgAcknowledgement.MsgHash.String()
@@ -27,7 +29,7 @@ func NewProcessListMgr(height uint64, otherPLSize int, plSizeHint uint) *Process
 	for i := 0; i < len(plMgr.OtherProcessLists); i++ {
 		plMgr.OtherProcessLists[i] = NewProcessList(plSizeHint)
 	}
-	plMgr.DirBlkHeight = height
+	plMgr.NextDBlockHeight = height
 
 	return plMgr
 }
@@ -77,7 +79,7 @@ func (plMgr *ProcessListMgr) AddToMyProcessList(plItem *ProcessListItem) error {
 					return errors.New("Invalid process list index.")
 				}
 			}
-			msgAck := wire.NewMsgAcknowledgement(plMgr.DirBlkHeight, index, plItem.msgHash)
+			msgAck := wire.NewMsgAcknowledgement(plMgr.NextDBlockHeight, index, plItem.msgHash, wire.ACK_FACTOID_TX)
 			//msgAck.Affirmation = plItem.msgHash.Bytes
 
 			plItem.ack = msgAck
@@ -98,12 +100,29 @@ func (plMgr *ProcessListMgr) AddToMyProcessList(plItem *ProcessListItem) error {
 func (plMgr *ProcessListMgr) InitProcessListFromOrphanMap() error {
 
 	for key, plItem := range plMgr.OrphanPLMap {
-		if plMgr.DirBlkHeight == plItem.ack.Height {
+		if plMgr.NextDBlockHeight == plItem.ack.Height {
 			plMgr.MyProcessList.AddToProcessList(plItem)
 			delete(plMgr.OrphanPLMap, key)
 		}
 
 	}
 
+	return nil
+}
+
+// Create a new process list item and add it to the MyProcessList
+func (plMgr *ProcessListMgr) AddProcessListItem(msg wire.FtmInternalMsg, hash *wire.ShaHash, msgType byte) error {
+	plMgr.Lock()
+	ack := wire.NewMsgAcknowledgement(plMgr.NextDBlockHeight, uint32(plMgr.MyProcessList.nextIndex), hash, msgType)
+	plMgr.MyProcessList.nextIndex++
+	plMgr.Unlock()
+	
+	plItem := &ProcessListItem{
+		ack:	ack,
+		msg:	msg,
+		msgHash:hash,
+		}
+	plMgr.AddToProcessList(plItem)
+		
 	return nil
 }

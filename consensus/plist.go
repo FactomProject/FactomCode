@@ -9,13 +9,15 @@ import (
 // and is used for consensus building
 type ProcessList struct {
 	plItems []*ProcessListItem
+	nextIndex int
+	totalItems int
 }
 
 // Process list contains a list of valid confirmation messages
 // and is used for consensus building
 type ProcessListItem struct {
 	ack     *wire.MsgAcknowledgement
-	msg     wire.Message
+	msg     wire.FtmInternalMsg
 	msgHash *wire.ShaHash
 }
 
@@ -24,6 +26,8 @@ func NewProcessList(sizeHint uint) *ProcessList {
 
 	return &ProcessList{
 		plItems: make([]*ProcessListItem, 0, sizeHint),
+		nextIndex: 0,
+		totalItems: 0,
 	}
 }
 

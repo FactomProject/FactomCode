@@ -45,34 +45,38 @@ var (
 	currentAddr      btcutil.Address
 	tickers          [2]*time.Ticker
 	db               database.Db                  // database
-	chainIDMap       map[string]*notaryapi.EChain // ChainIDMap with chainID string([32]byte) as key
-	chainIDMapBackup map[string]*notaryapi.EChain //previous block bakcup - ChainIDMap with chainID string([32]byte) as key
 	dchain           *notaryapi.DChain            //Directory Block Chain
 	cchain           *notaryapi.CChain            //Entry Credit Chain
 	fchain           *oldcoin.FChain              //Factoid Chain
 
 	creditsPerChain   int32            = 10
 	creditsPerFactoid uint64           = 1000
-	eCreditMap        map[string]int32 // eCreditMap with public key string([32]byte) as key, credit balance as value
-	prePaidEntryMap   map[string]int32 // Paid but unrevealed entries string(Etnry Hash) as key, Number of payments as value
 
-	eCreditMapBackup      map[string]int32 // backup from previous block - eCreditMap with public key string([32]byte) as key, credit balance as value
-	prePaidEntryMapBackup map[string]int32 // backup from previous block - Paid but unrevealed entries string(Etnry Hash) as key, Number of payments as value
+	// To be moved to ftmMemPool??
+	chainIDMap       		map[string]*notaryapi.EChain // ChainIDMap with chainID string([32]byte) as key
+	eCreditMap       		map[string]int32 // eCreditMap with public key string([32]byte) as key, credit balance as value
+	prePaidEntryMap  		map[string]int32 // Paid but unrevealed entries string(Etnry Hash) as key, Number of payments as value
+
+	chainIDMapBackup 		map[string]*notaryapi.EChain //previous block bakcup - ChainIDMap with chainID string([32]byte) as key
+	eCreditMapBackup      	map[string]int32 // backup from previous block - eCreditMap with public key string([32]byte) as key, credit balance as value
+	prePaidEntryMapBackup 	map[string]int32 // backup from previous block - Paid but unrevealed entries string(Etnry Hash) as key, Number of payments as value
 
 	//Diretory Block meta data map
 	dbInfoMap map[string]*notaryapi.DBInfo // dbInfoMap with dbHash string([32]byte) as key
 
+	// to be removed??
 	inMsgQueue2  <-chan wire.Message //incoming message queue for factom application messages
 	outMsgQueue2 chan<- wire.Message //outgoing message queue for factom application messages
-	
+
 	intInMsgQueue  <-chan wire.FtmInternalMsg //incoming message queue for factom internal messages (from Factoid module to Factomd module)
 	intOutMsgQueue chan<- wire.FtmInternalMsg //outgoing message queue for factom internal messages	(from Factomd module to Factoid module)
 
+	fMemPool *ftmMemPool
 	plMgr *consensus.ProcessListMgr
+	
 )
 
 var (
-	logLevel                    = "DEBUG"
 	portNumber              int = 8083
 	sendToBTCinSeconds          = 600
 	directoryBlockInSeconds     = 60
@@ -405,16 +409,20 @@ func serveMsgRequest(msg wire.Message) error {
 	return nil
 }
 
-func processRevealEntry(msg *wire.MsgRevealEntry) error {	
+// Process a reveal-entry message and put it in the mem pool and the process list
+// Put the message in the orphan pool if the message is out of order
+func processRevealEntry(msg *wire.MsgRevealEntry) error {
+
+	// Calculate the hash
+	entryBinary, _ := msg.Entry.MarshalBinary()
+	entryHash := notaryapi.Sha(entryBinary)
+	shaHash, _ := wire.NewShaHash(entryHash.Bytes)	
 
 	chain := chainIDMap[msg.Entry.ChainID.String()]
 	if chain == nil {
-		return errors.New("This chain is not supported:" + msg.Entry.ChainID.String())
+		fMemPool.addOrphanMsg(msg, shaHash)
+		procLog.Debug("This chain is not supported:" + msg.Entry.ChainID.String())
 	}
-
-	// store the new entry in db
-	entryBinary, _ := msg.Entry.MarshalBinary()
-	entryHash := notaryapi.Sha(entryBinary)
 
 	// Calculate the required credits
 	credits := int32(binary.Size(entryBinary)/1000 + 1)
@@ -424,31 +432,58 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 
 	// Delete the entry in the prePaidEntryMap in memory
 	prepayment, ok := prePaidEntryMap[key]
-	if ok && prepayment >= credits {
-		delete(prePaidEntryMap, key) // Only revealed once for multiple prepayments??
-	} else {
-		return errors.New("Credit needs to paid first before reveal an entry:" + entryHash.String())
+	if !ok || prepayment < credits {
+		fMemPool.addOrphanMsg(msg, shaHash)		
+		procLog.Debug("Credit needs to paid first before an entry is revealed:" + entryHash.String())
+	}
+
+	// Add the msg to the Mem pool
+	fMemPool.addMsg(msg, shaHash)
+	
+	// Add to MyPL if Server Node
+	if nodeMode == SERVER_NODE {
+		err := plMgr.AddProcessListItem(msg, shaHash, wire.ACK_REVEAL_ENTRY)
+		if err == nil {
+			delete(prePaidEntryMap, key) // Only revealed once for multiple prepayments??
+		} else {
+			return err
+		}
+
 	}
 
 	return nil
 }
 
-func processCommitEntry(msg *wire.MsgCommitEntry) error {	
+// Process a commint-entry message and put it in the mem pool and the process list
+// Put the message in the orphan pool if the message is out of order
+func processCommitEntry(msg *wire.MsgCommitEntry) error {
 
+	shaHash,_ := msg.Sha()
+	
 	// Update the credit balance in memory
 	creditBalance, _ := eCreditMap[msg.ECPubKey.String()]
 	if creditBalance < int32(msg.Credits) {
-		return errors.New("Not enough credit for public key:" + msg.ECPubKey.String() + " Balance:" + fmt.Sprint(creditBalance))
+		fMemPool.addOrphanMsg(msg, &shaHash)	
+		procLog.Debug("Not enough credit for public key:" + msg.ECPubKey.String() + " Balance:" + fmt.Sprint(creditBalance))
 	}
 	eCreditMap[msg.ECPubKey.String()] = creditBalance - int32(msg.Credits)
 	// Update the prePaidEntryMapin memory
 	payments, _ := prePaidEntryMap[msg.EntryHash.String()]
-	prePaidEntryMap[msg.EntryHash.String()] = payments + int32(msg.Credits)
 
+	// Add to MyPL if Server Node
+	if nodeMode == SERVER_NODE {
+		err := plMgr.AddProcessListItem(msg, &shaHash, wire.ACK_COMMIT_ENTRY)
+		if err == nil {
+			prePaidEntryMap[msg.EntryHash.String()] = payments + int32(msg.Credits)
+		} else {
+			return err
+		}
+
+	}
 	return nil
 }
 
-func processCommitChain(msg *wire.MsgCommitChain) error {	
+func processCommitChain(msg *wire.MsgCommitChain) error {
 
 	// Check if the chain id already exists
 	_, existing := chainIDMap[msg.ChainID.String()]
@@ -489,7 +524,7 @@ func processBuyEntryCredit(pubKey *notaryapi.Hash, credits int32, factoidTxHash 
 
 func processRevealChain(msg *wire.MsgRevealChain) error {
 	newChain := msg.Chain
-	
+
 	// Check if the chain id already exists
 	_, existing := chainIDMap[newChain.ChainID.String()]
 	if !existing {
