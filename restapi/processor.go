@@ -412,15 +412,21 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		*/
 	case wire.CmdInt_EOM:
 		msgEom, ok := msg.(*wire.MsgInt_EOM)
-		if ok && msgEom.EOM_Type == wire.END_MINUTE_10 {
+		if !ok {
+			return errors.New("Error in build blocks:" + fmt.Sprintf("%+v", msg))
+		}
+		if msgEom.EOM_Type == wire.END_MINUTE_10 {
+			// Process from Orphan pool before the end of process list
+			processFromOrphanPool()
+			
 			plMgr.AddProcessListItem(msgEom, nil, wire.END_MINUTE_10)
 
-			err := buildFromProcessListMgr()
+			err := buildBlocks()
 			if err != nil {
 				return err
 			}
-		} else {
-			return errors.New("Error in build blocks:" + fmt.Sprintf("%+v", msg))
+		} else if msgEom.EOM_Type >= wire.END_MINUTE_1 &&  msgEom.EOM_Type < wire.END_MINUTE_10{
+			//??
 		}
 	default:
 		return errors.New("Message type unsupported:" + fmt.Sprintf("%+v", msg))
@@ -598,6 +604,49 @@ func processRevealChain(msg *wire.MsgRevealChain) error {
 	return nil
 }
 
+// Process Orphan pool before the end of 10 min
+func processFromOrphanPool() error {
+	for k, msg := range fMemPool.orphans {
+		switch msg.Command() {
+		case wire.CmdCommitChain:
+			msgCommitChain, _ := msg.(*wire.MsgCommitChain)
+			err := processCommitChain(msgCommitChain)
+			if err != nil {	
+				return err
+			} else{
+				delete(fMemPool.orphans, k)
+			}
+	
+		case wire.CmdRevealChain:
+			msgRevealChain, _ := msg.(*wire.MsgRevealChain)
+			err := processRevealChain(msgRevealChain)
+			if err != nil {
+				return err
+			} else{
+				delete(fMemPool.orphans, k)
+			}
+
+		case wire.CmdCommitEntry:
+			msgCommitEntry, _ := msg.(*wire.MsgCommitEntry)
+			err := processCommitEntry(msgCommitEntry)
+			if err != nil {
+				return err
+			} else{
+				delete(fMemPool.orphans, k)
+			}
+
+		case wire.CmdRevealEntry:
+			msgRevealEntry, _ := msg.(*wire.MsgRevealEntry)
+			err := processRevealEntry(msgRevealEntry)
+			if err != nil {
+				return err
+			} else{
+				delete(fMemPool.orphans, k)
+			}
+		}
+	}
+	return nil
+}
 func buildRevealEntry(msg *wire.MsgRevealEntry) error {
 
 	chain := chainIDMap[msg.Entry.ChainID.String()]
@@ -669,10 +718,47 @@ func buildRevealChain(msg *wire.MsgRevealChain) error {
 }
 
 // build blocks from all process lists
-func buildFromProcessListMgr() error {
+func buildBlocks() error {
 
 	if plMgr.MyProcessList.IsValid() {
 		buildFromProcessList(plMgr.MyProcessList)
+	}
+
+	// Entry Chains
+	for _, chain := range chainIDMap {
+		eblock := newEntryBlock(chain)
+		if eblock != nil {
+			dchain.AddDBEntry(eblock)
+		}
+		save(chain)
+	}
+
+	// Entry Credit Chain
+	cBlock := newEntryCreditBlock(cchain)
+	if cBlock != nil {
+		dchain.AddCBlockToDBEntry(cBlock)
+	}
+	saveCChain(cchain)
+
+	util.Trace("NOT IMPLEMENTED: Factoid Chain init was here !!!!!!!!!!!")
+
+	/*
+	// Factoid Chain
+	fBlock := newFBlock(fchain)
+	if fBlock != nil {
+		dchain.AddFBlockToDBEntry(factoid.NewDBEntryFromFBlock(fBlock))
+	}
+	saveFChain(fchain)
+	*/
+
+	// Directory Block chain
+	dbBlock := newDirectoryBlock(dchain)
+	saveDChain(dchain)
+
+	// Only Servers can write the anchor to Bitcoin network
+	if nodeMode == SERVER_NODE && dbBlock != nil {
+		dbInfo := notaryapi.NewDBInfoFromDBlock(dbBlock)
+		saveDBMerkleRoottoBTC(dbInfo)
 	}
 
 	return nil
@@ -697,6 +783,8 @@ func buildFromProcessList(pl *consensus.ProcessList) error {
 
 	return nil
 }
+
+
 
 func newEntryBlock(chain *notaryapi.EChain) *notaryapi.EBlock {
 
