@@ -2,14 +2,14 @@ package consensus
 
 import (
 	"errors"
-	"sync"	
 	"github.com/FactomProject/btcd/wire"
+	"sync"
 )
 
 // Process list contains a list of valid confirmation messages
 // and is used for consensus building
 type ProcessListMgr struct {
-	sync.RWMutex	
+	sync.RWMutex
 	MyProcessList     *ProcessList
 	OtherProcessLists []*ProcessList
 
@@ -38,7 +38,7 @@ func NewProcessListMgr(height uint64, otherPLSize int, plSizeHint uint) *Process
 func (plMgr *ProcessListMgr) AddToProcessList(plItem *ProcessListItem) error {
 
 	// If the item belongs to my process list
-	if plItem.ack == nil {
+	if plItem.Ack == nil {
 		plMgr.AddToMyProcessList(plItem)
 	} else {
 		plMgr.AddToOtherProcessList(plItem)
@@ -65,24 +65,24 @@ func (plMgr *ProcessListMgr) AddToOrphanProcessList(plItem *ProcessListItem) err
 // Each of the federated servers has one MyProcessList
 func (plMgr *ProcessListMgr) AddToMyProcessList(plItem *ProcessListItem) error {
 
-	if wire.CmdTx == plItem.msg.Command() {
-		_, ok := plItem.msg.(*wire.MsgTx)
+	if wire.CmdTx == plItem.Msg.Command() {
+		_, ok := plItem.Msg.(*wire.MsgTx)
 		if ok {
 			// Come up with the right process list index for the new item
 			index := uint32(len(plMgr.MyProcessList.plItems))
 			if index > 0 {
 				lastPlItem := plMgr.MyProcessList.plItems[index-1]
-				if lastPlItem.ack == nil {
+				if lastPlItem.Ack == nil {
 					return errors.New("Invalid process list.")
 				}
-				if index != lastPlItem.ack.Index+1 {
+				if index != lastPlItem.Ack.Index+1 {
 					return errors.New("Invalid process list index.")
 				}
 			}
-			msgAck := wire.NewMsgAcknowledgement(plMgr.NextDBlockHeight, index, plItem.msgHash, wire.ACK_FACTOID_TX)
+			msgAck := wire.NewMsgAcknowledgement(plMgr.NextDBlockHeight, index, plItem.MsgHash, wire.ACK_FACTOID_TX)
 			//msgAck.Affirmation = plItem.msgHash.Bytes
 
-			plItem.ack = msgAck
+			plItem.Ack = msgAck
 
 			//Add the item into my process list
 			plMgr.MyProcessList.plItems[index] = plItem
@@ -100,7 +100,7 @@ func (plMgr *ProcessListMgr) AddToMyProcessList(plItem *ProcessListItem) error {
 func (plMgr *ProcessListMgr) InitProcessListFromOrphanMap() error {
 
 	for key, plItem := range plMgr.OrphanPLMap {
-		if plMgr.NextDBlockHeight == plItem.ack.Height {
+		if plMgr.NextDBlockHeight == plItem.Ack.Height {
 			plMgr.MyProcessList.AddToProcessList(plItem)
 			delete(plMgr.OrphanPLMap, key)
 		}
@@ -116,13 +116,13 @@ func (plMgr *ProcessListMgr) AddProcessListItem(msg wire.FtmInternalMsg, hash *w
 	ack := wire.NewMsgAcknowledgement(plMgr.NextDBlockHeight, uint32(plMgr.MyProcessList.nextIndex), hash, msgType)
 	plMgr.MyProcessList.nextIndex++
 	plMgr.Unlock()
-	
+
 	plItem := &ProcessListItem{
-		ack:	ack,
-		msg:	msg,
-		msgHash:hash,
-		}
+		Ack:     ack,
+		Msg:     msg,
+		MsgHash: hash,
+	}
 	plMgr.AddToProcessList(plItem)
-		
+
 	return nil
 }
