@@ -15,6 +15,15 @@ type ftmMemPool struct {
 	lastUpdated time.Time // last time pool was updated
 }
 
+// Add a factom message to the orphan pool
+func (mp *ftmMemPool) init_ftmMemPool() error {
+
+	mp.pool = make (map[wire.ShaHash]wire.Message)
+	mp.orphans = make (map[wire.ShaHash]wire.Message)
+
+	return nil
+}
+
 // Add a factom message to the  Mem pool
 func (mp *ftmMemPool) addMsg(msg wire.Message, hash *wire.ShaHash) error {
 

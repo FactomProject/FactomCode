@@ -169,11 +169,22 @@ func initEChainFromDB(chain *notaryapi.EChain) {
 }
 
 func init_processor() {
+	
+
+	
+	// init mem pools
+	fMemPool = new(ftmMemPool)
+	fMemPool.init_ftmMemPool()
 
 	// init Directory Block Chain
 	initDChain()
 	fmt.Println("Loaded", len(dchain.Blocks)-1, "Directory blocks for chain: "+dchain.ChainID.String())
 
+
+	// init process list manager
+	initProcessListMgr()	
+	
+	
 	// init Entry Credit Chain
 	initCChain()
 	fmt.Println("Loaded", len(cchain.Blocks)-1, "Entry Credit blocks for chain: "+cchain.ChainID.String())
