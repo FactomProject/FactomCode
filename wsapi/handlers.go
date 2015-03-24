@@ -204,12 +204,14 @@ func handleDBlocksByRange(ctx *web.Context, fromHeightStr string,
 	}
 
 	// Send back JSON response
-	err = factomapi.SafeMarshal(buf, dBlocks)
-	if err != nil {
-		httpcode = 400
-		buf.WriteString("Bad request")
-		log.Error(err)
-		return
+	for _, block := range dBlocks {
+		err = factomapi.SafeMarshal(buf, block)
+		if err != nil {
+			httpcode = 400
+			buf.WriteString("Bad request")
+			log.Error(err)
+			return
+		}
 	}
 }
 
