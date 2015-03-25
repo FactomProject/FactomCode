@@ -2,7 +2,6 @@ package consensus
 
 import (
 	"github.com/FactomProject/btcd/wire"
-	//"fmt"
 )
 
 // Process list contains a list of valid confirmation messages
@@ -47,7 +46,8 @@ func (pl *ProcessList) AddToProcessList(pli *ProcessListItem) error {
 	}
 
 	pl.plItems[pli.Ack.Index] = pli
-
+	
+	
 	return nil
 }
 

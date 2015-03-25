@@ -275,7 +275,7 @@ func Start_Processor(ldb database.Db, inMsgQ chan wire.FtmInternalMsg, outMsgQ c
 	outMsgQueue = outMsgQ
 
 	init_processor()
-
+/* for testing??
 	if nodeMode == SERVER_NODE {
 		err := initRPCClient()
 		if err != nil {
@@ -286,6 +286,8 @@ func Start_Processor(ldb database.Db, inMsgQ chan wire.FtmInternalMsg, outMsgQ c
 			log.Fatalf("cannot init wallet: %s", err)
 		}
 	}
+	
+	*/
 	util.Trace("before range inMsgQ")
 	// Process msg from the incoming queue one by one
 	for msg := range inMsgQ {
@@ -404,23 +406,15 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		}
 
 	case wire.CmdInt_FactoidObj:
-		return errors.New("TX type unsupported:" + fmt.Sprintf("%+v", msg) + "MUST BE REDONE !!!!!!!!!!!!!!!") // FIXME
-		/*
-			wireMsgTx, ok := msg.(*wire.MsgTx)
-			if ok {
-				txm := new(factoid.TxMsg)
-				err := txm.UnmarshalBinary(wireMsgTx.Data)
-				if err != nil {
-					return err
-				}
-				err = processFactoidTx(factoid.NewTx(txm))
-				if err != nil {
-					return err
-				}
-			} else {
-				return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
+		factoidObj, ok := msg.(*wire.MsgInt_FactoidObj)
+		if ok {
+			err := processFactoidTx(factoidObj)
+			if err != nil {
+				return err
 			}
-		*/
+		} else {
+			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
+		}
 	case wire.CmdInt_EOM:
 		msgEom, ok := msg.(*wire.MsgInt_EOM)
 		if !ok {
@@ -430,7 +424,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 			// Process from Orphan pool before the end of process list
 			processFromOrphanPool()
 			
-			plMgr.AddProcessListItem(msgEom, nil, wire.END_MINUTE_10)
+			plMgr.AddMyProcessListItem(msgEom, nil, wire.END_MINUTE_10)
 
 			err := buildBlocks()
 			if err != nil {
@@ -442,6 +436,21 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 	default:
 		return errors.New("Message type unsupported:" + fmt.Sprintf("%+v", msg))
 	}
+	return nil
+}
+
+// Process a factoid obj message and put it in the process list
+func processFactoidTx(msg *wire.MsgInt_FactoidObj) error {
+
+	// Add to MyPL if Server Node
+	if nodeMode == SERVER_NODE {
+		err := plMgr.AddMyProcessListItem(msg, msg.TxSha, wire.ACK_FACTOID_TX)
+		if err != nil {
+			return err
+		}
+
+	}
+
 	return nil
 }
 
@@ -480,7 +489,7 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 
 	// Add to MyPL if Server Node
 	if nodeMode == SERVER_NODE {
-		err := plMgr.AddProcessListItem(msg, shaHash, wire.ACK_REVEAL_ENTRY)
+		err := plMgr.AddMyProcessListItem(msg, shaHash, wire.ACK_REVEAL_ENTRY)
 		if err != nil {
 			return err
 		}
@@ -508,7 +517,7 @@ func processCommitEntry(msg *wire.MsgCommitEntry) error {
 
 	// Add to MyPL if Server Node
 	if nodeMode == SERVER_NODE {
-		err := plMgr.AddProcessListItem(msg, &shaHash, wire.ACK_COMMIT_ENTRY)
+		err := plMgr.AddMyProcessListItem(msg, &shaHash, wire.ACK_COMMIT_ENTRY)
 		if err != nil {
 			return err
 		}
@@ -548,7 +557,7 @@ func processCommitChain(msg *wire.MsgCommitChain) error {
 
 	// Add to MyPL if Server Node
 	if nodeMode == SERVER_NODE {
-		err := plMgr.AddProcessListItem(msg, &shaHash, wire.ACK_COMMIT_CHAIN)
+		err := plMgr.AddMyProcessListItem(msg, &shaHash, wire.ACK_COMMIT_CHAIN)
 		if err != nil {
 			return err
 		}
@@ -606,7 +615,7 @@ func processRevealChain(msg *wire.MsgRevealChain) error {
 
 	// Add to MyPL if Server Node
 	if nodeMode == SERVER_NODE {
-		err := plMgr.AddProcessListItem(msg, &shaHash, wire.ACK_REVEAL_CHAIN)
+		err := plMgr.AddMyProcessListItem(msg, &shaHash, wire.ACK_REVEAL_CHAIN)
 		if err != nil {
 			return err
 		}
@@ -696,12 +705,22 @@ func buildCommitChain(msg *wire.MsgCommitChain) error {
 	return err
 }
 
-func buildBuyEntryCredit(pubKey *notaryapi.Hash, credits int32, factoidTxHash *notaryapi.Hash) error {
-
-	cbEntry := notaryapi.NewBuyCBEntry(pubKey, factoidTxHash, credits)
-	err := cchain.Blocks[len(cchain.Blocks)-1].AddCBEntry(cbEntry)
-
-	return err
+func buildFactoidObj(msg *wire.MsgInt_FactoidObj) error {
+	factoidTxHash := new(notaryapi.Hash)
+	factoidTxHash.SetBytes(msg.TxSha.Bytes())
+	
+	for k, v := range msg.EntryCredits {
+		pubKey := new(notaryapi.Hash)
+		pubKey.SetBytes(k.Bytes())		
+		credits := int32(creditsPerFactoid * v / 100000000)
+		cbEntry := notaryapi.NewBuyCBEntry(pubKey, factoidTxHash, credits)
+		err := cchain.Blocks[len(cchain.Blocks)-1].AddCBEntry(cbEntry)
+		if err != nil {
+			return errors.New(fmt.Sprintf(`Error while adding the First Entry to Block: %s`, err.Error()))
+		}		
+	}
+	
+	return nil
 }
 
 func buildRevealChain(msg *wire.MsgRevealChain) error {
@@ -765,9 +784,12 @@ func buildBlocks() error {
 	// Directory Block chain
 	dbBlock := newDirectoryBlock(dchain)
 	saveDChain(dchain)
+	
+	// re-initialize the process lit manager
+	initProcessListMgr()
 
 	// Only Servers can write the anchor to Bitcoin network
-	if nodeMode == SERVER_NODE && dbBlock != nil {
+	if nodeMode == SERVER_NODE && dbBlock != nil && false{ //?? for testing
 		dbInfo := notaryapi.NewDBInfoFromDBlock(dbBlock)
 		saveDBMerkleRoottoBTC(dbInfo)
 	}
@@ -777,8 +799,8 @@ func buildBlocks() error {
 
 // build blocks from a process lists
 func buildFromProcessList(pl *consensus.ProcessList) error {
-	plItems := pl.GetPLItems()
-	for _, pli := range plItems {
+	pl.GetPLItems()
+	for _, pli := range pl.GetPLItems() {
 		if pli.Ack.Type == wire.ACK_COMMIT_CHAIN {
 			buildCommitChain(pli.Msg.(*wire.MsgCommitChain))
 		} else if pli.Ack.Type == wire.ACK_COMMIT_ENTRY {
@@ -788,7 +810,9 @@ func buildFromProcessList(pl *consensus.ProcessList) error {
 		} else if pli.Ack.Type == wire.ACK_REVEAL_ENTRY {
 			buildRevealEntry(pli.Msg.(*wire.MsgRevealEntry))
 		} else if pli.Ack.Type == wire.ACK_FACTOID_TX {
-			//buildCommitChain(pli.Msg.(*wire.MsgCommitEntry))??
+			buildFactoidObj(pli.Msg.(*wire.MsgInt_FactoidObj))
+			//Send the notification to Factoid component
+			outMsgQueue <- pli.Msg.(*wire.MsgInt_FactoidObj)
 		}
 	}
 
