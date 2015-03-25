@@ -1198,6 +1198,11 @@ func initCChain() {
 
 	// create a backup copy before processing entries
 	copyCreditMap(eCreditMap, eCreditMapBackup)
+	
+	//??
+	printCChain()
+	printCreditMap()
+	printPaidEntryMap()
 
 }
 

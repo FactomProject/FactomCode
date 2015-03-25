@@ -21,9 +21,9 @@ var (
 var server = web.NewServer()
 
 // Start runs the wsapi server which 
-func Start(db database.Db, outMsgQ chan<- wire.Message) {
+func Start(db database.Db, inMsgQ chan<- wire.FtmInternalMsg) {
 	factomapi.SetDB(db)
-	factomapi.SetOutMsgQueue(outMsgQ)
+	factomapi.SetInMsgQueue(inMsgQ)
 
 	wsLog.Debug("Setting handlers")
 	server.Post(`/v1/buycredit/?`, handleBuyCredit)
