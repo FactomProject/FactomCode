@@ -28,7 +28,7 @@ var (
 	serverAddr      = "localhost:8083"
 	db              database.Db
 	creditsPerChain uint32              = 10
-	OutMsgQueue     chan<- wire.Message //outgoing message queue for factom application messages
+	inMsgQueue     chan<- wire.FtmInternalMsg //outgoing message queue for factom application messages
 )
 
 // This method will be replaced with a Factoid transaction once we have the factoid implementation in place
@@ -184,8 +184,8 @@ func SetDB(database database.Db) error {
 
 	return nil
 }
-func SetOutMsgQueue(outMsgQ chan<- wire.Message) error {
-	OutMsgQueue = outMsgQ
+func SetInMsgQueue(inMsgQ chan<- wire.FtmInternalMsg) error {
+	inMsgQueue = inMsgQ
 
 	return nil
 }
@@ -333,7 +333,7 @@ func CommitChain(c *notaryapi.EChain) error {
 	msgCommitChain.Sig = (*sig.Sig)[:]
 	msgCommitChain.Timestamp = timestamp
 
-	OutMsgQueue <- msgCommitChain
+	inMsgQueue <- msgCommitChain
 
 	return nil
 }
@@ -347,7 +347,7 @@ func RevealChain(c *notaryapi.EChain) error {
 	msgRevealChain := wire.NewMsgRevealChain()
 	msgRevealChain.Chain = c
 
-	OutMsgQueue <- msgRevealChain
+	inMsgQueue <- msgRevealChain
 
 	return nil
 }
@@ -418,7 +418,7 @@ func CommitEntry(e *notaryapi.Entry) error {
 	msgCommitEntry.Timestamp = timestamp
 
 	util.Trace()
-	OutMsgQueue <- msgCommitEntry
+	inMsgQueue <- msgCommitEntry
 	util.Trace()
 
 	return nil
@@ -433,7 +433,7 @@ func RevealEntry(e *notaryapi.Entry) error {
 	msgRevealEntry := wire.NewMsgRevealEntry()
 	msgRevealEntry.Entry = e
 
-	OutMsgQueue <- msgRevealEntry
+	inMsgQueue <- msgRevealEntry
 
 	return nil
 }
@@ -565,7 +565,7 @@ func Submit(f FactomWriter) (err error) {
 
 func SubmitFactoidTx(m wire.Message) error {
 
-	OutMsgQueue <- m
+	inMsgQueue <- m
 
 	return nil
 }

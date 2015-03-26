@@ -8,13 +8,22 @@ import (
 func TestPlist(t *testing.T) {
 
 	plMgr := NewProcessListMgr(0, 1, 1)
-
-	ackmsg := wire.NewMsgAcknowledgement(0, 12, nil)
+	t.Log("len:", len(plMgr.OtherProcessLists[0].plItems))	
+	t.Log("len:", len(plMgr.MyProcessList.plItems))
+	ackmsg := wire.NewMsgAcknowledgement(0, 12, nil, wire.ACK_COMMIT_CHAIN)
 
 	plItem := new(ProcessListItem)
-	plItem.ack = ackmsg
-	err := plMgr.AddToProcessList(plItem)
+	plItem.Ack = ackmsg
+	err := plMgr.AddToOtherProcessList(plItem)
+	
 
+	msg := new (wire.MsgInt_FactoidObj)
+	err = plMgr.AddMyProcessListItem(msg, nil, wire.ACK_FACTOID_TX)	
+	msg2 := new (wire.MsgInt_FactoidObj)
+	err = plMgr.AddMyProcessListItem(msg2, nil, wire.ACK_FACTOID_TX)		
+	t.Log("len:", len(plMgr.OtherProcessLists[0].plItems))	
+	t.Log("len:", len(plMgr.MyProcessList.plItems))
+	plMgr.MyProcessList.GetPLItems()
 	if err != nil {
 		t.Errorf("Error:", err)
 	}

@@ -29,16 +29,18 @@ var (
 	shutdownChannel = make(chan struct{})
 	ldbpath         = "/tmp/ldb9"
 	db              database.Db                    // database
-	InMsgQueue      = make(chan wire.Message, 100) //incoming message queue for factom application messages
-	OutMsgQueue     = make(chan wire.Message, 100) //outgoing message queue for factom application messages
-	inRpcQueue      = make(chan wire.Message, 100) //incoming message queue for factom application messages
+	InMsgQueue      = make(chan wire.FtmInternalMsg, 100) //incoming message queue for factom application messages
+	OutMsgQueue     = make(chan wire.FtmInternalMsg, 100) //outgoing message queue for factom application messages
+//	inRpcQueue      = make(chan wire.Message, 100) //incoming message queue for factom application messages
 	federatedid     string
 )
 
 // trying out some flags to optionally disable old BTC functionality ... WIP
 var FactomOverride struct {
 	//	TxIgnoreMissingParents bool
-	temp1 bool
+	temp1                     bool
+	TxOrphansInsteadOfMempool bool // allow orphans for block creation
+	BlockDisableChecks        bool
 }
 
 // winServiceMain is only invoked on Windows.  It detects when btcd is running
@@ -95,7 +97,8 @@ func Factomd_init() {
 	go restapi.Start_Processor(db, InMsgQueue, OutMsgQueue)
 
 	// Start the wsapi server module in a separate go-routine
-	wsapi.Start(db, inRpcQueue)
+	//wsapi.Start(db, inRpcQueue)
+	wsapi.Start(db, InMsgQueue)
 
 	defer wsapi.Stop()
 }

@@ -35,7 +35,7 @@ func TestBuyCredit(t *testing.T) {
 	}
 }
 */
-
+/*
 func TestBuyCreditWallet(t *testing.T) {
 	fmt.Println("\nTestBuyCreditWallet===========================================================================")
 	// Post the request to FactomClient web server	---------------------------------------
@@ -56,14 +56,14 @@ func TestBuyCreditWallet(t *testing.T) {
 	}
 
 }
-
+*/
 //need to call commit first because we added payment logic on server
 func TestAddChain(t *testing.T) {
 	fmt.Println("\nTestAddChain===========================================================================")
 	chain := new(notaryapi.EChain)
 	bName := make([][]byte, 0, 5)
 	bName = append(bName, []byte("myCompany"))
-	bName = append(bName, []byte("bookkeeping3"))
+	bName = append(bName, []byte("bookkeeping4"))
 
 	chain.Name = bName
 	chain.GenerateIDFromName()
@@ -123,7 +123,7 @@ func TestAddEntry(t *testing.T) {
 	chain := new(notaryapi.EChain)
 	bName := make([][]byte, 0, 5)
 	bName = append(bName, []byte("myCompany"))
-	bName = append(bName, []byte("bookkeeping3"))
+	bName = append(bName, []byte("bookkeeping4"))
 
 	chain.Name = bName
 	chain.GenerateIDFromName()
@@ -172,6 +172,60 @@ func TestAddEntry(t *testing.T) {
 	}
 }
 
+func TestAddEntry2(t *testing.T) {
+	fmt.Println("\nTestAddEntry===========================================================================")
+
+	chain := new(notaryapi.EChain)
+	bName := make([][]byte, 0, 5)
+	bName = append(bName, []byte("myCompany"))
+	bName = append(bName, []byte("bookkeeping4"))
+
+	chain.Name = bName
+	chain.GenerateIDFromName()
+
+	entry := new(notaryapi.Entry)
+	entry.ChainID = *chain.ChainID
+	entry.ExtIDs = make([][]byte, 0, 5)
+	entry.ExtIDs = append(entry.ExtIDs, []byte("1001"))
+	entry.ExtIDs = append(entry.ExtIDs, []byte("570b9e3fb2f5ae823685eb4422d4fd83f3f0d9e7ce07d988bd17e665394668c6"))
+	entry.ExtIDs = append(entry.ExtIDs, []byte("mvRJqMTMfrY3KtH2A4qdPfq3Q6L4Kw9Ck4"))
+	entry.Data = []byte("Entry data: asl;djfasldkfjasldfjlksouiewopurw2\"")
+
+	buf := new(bytes.Buffer)
+	err := SafeMarshal(buf, entry)
+
+	fmt.Println("entry:%v", string(buf.Bytes()))
+	jsonstr := string(buf.Bytes())
+
+	//jsonstr := "{\"ChainID\":\"2FrgD2+vPP3yz5zLVaE5Tc2ViVv9fwZeR3/adzITjJc=\",\"ExtIDs\":[\"MTAwMQ==\",\"NTcwYjllM2ZiMmY1YWU4MjM2ODVlYjQ0MjJkNGZkODNmM2YwZDllN2NlMDdkOTg4YmQxN2U2NjUzOTQ2NjhjNg==\",\"bXZSSnFNVE1mclkzS3RIMkE0cWRQZnEzUTZMNEt3OUNrNA==\"],\"Data\":\"RW50cnkgZGF0YTogYXNsO2RqZmFzbGRrZmphc2xkZmpsa3NvdWlld29wdXJ3Ig==\"}"
+	//fmt.Println(jsonstr)
+
+	// Post the entry JSON to FactomClient web server	---------------------------------------
+	data := url.Values{}
+	data.Set("entry", jsonstr)
+	data.Set("format", "json")
+	data.Set("password", "opensesame")
+
+	_, err = http.PostForm("http://localhost:8088/v1/submitentry", data)
+	if err != nil {
+		t.Errorf("Error:%v", err)
+	} else {
+		fmt.Println("Entry successfully submitted to factomclient.")
+	}
+	// JSON ws test done ----------------------------------------------------------------------------
+
+	entry2 := new(notaryapi.Entry)
+	reader := gocoding.ReadBytes([]byte(jsonstr))
+	err = SafeUnmarshal(reader, entry2)
+
+	//	fmt.Println("chainid:%v", base64.URLEncoding.EncodeToString(entry2.ChainID.Bytes))
+	fmt.Println("ExtIDs0:%v", string(entry2.ExtIDs[0]))
+	fmt.Println("entrydata:%v", string(entry2.Data))
+
+	if err != nil {
+		t.Errorf("Error:%v", err)
+	}
+}
 /*
 func TestBuyCredit(t *testing.T) {
 	fmt.Println("\nTestBuyCredit===========================================================================")
