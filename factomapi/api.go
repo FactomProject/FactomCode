@@ -127,6 +127,15 @@ func GetEntryBlokByMRStr(addr string) (*notaryapi.EBlock, error) {
 	return db.FetchEBlockByMR(hash)
 }
 
+func GetBlokHeight() (int, error) {
+	b := make([]notaryapi.DBlock, 0)
+	b, err := db.FetchAllDBlocks()
+	if err != nil {
+		return 0, err
+	}
+	return len(b), nil
+}
+
 func GetEntryByHashStr(addr string) (*notaryapi.Entry, error) {
 	hash := new(notaryapi.Hash)
 	a, err := hex.DecodeString(addr)
@@ -158,6 +167,12 @@ func GetEntryByHashStr(addr string) (*notaryapi.Entry, error) {
 //
 //	return entry, err
 //}
+
+func SetInMsgQueue(inMsgQ chan<- factomwire.Message) error {
+	outMsgQueue = inMsgQ
+
+	return nil
+}
 
 // to be removed------------------------------
 func SetServerAddr(addr string) error {
