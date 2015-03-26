@@ -61,6 +61,8 @@ const (
 	CmdCommitEntry = "commitentry"
 	CmdRevealEntry = "revealentry"
 
+	CmdGetCredit = "getcredit"
+
 	// using these commands we query & find the best chain & latest height for the Directory (all other chain heights are then known)
 	CmdGetDirBlocks = "getdirblocks"
 
