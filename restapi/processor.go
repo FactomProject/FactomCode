@@ -68,8 +68,8 @@ var (
 	inMsgQueue  chan wire.FtmInternalMsg //incoming message queue for factom application messages
 	outMsgQueue chan wire.FtmInternalMsg //outgoing message queue for factom application messages
 
-	//	intInMsgQueue  <-chan wire.FtmInternalMsg //incoming message queue for factom internal messages (from Factoid module to Factomd module)
-	//	intOutMsgQueue chan<- wire.FtmInternalMsg //outgoing message queue for factom internal messages	(from Factomd module to Factoid module)
+	inCtlMsgQueue chan wire.FtmInternalMsg //incoming message queue for factom control messages 
+	outCtlMsgQueue chan wire.FtmInternalMsg //outgoing message queue for factom control messages
 
 	fMemPool *ftmMemPool
 	plMgr    *consensus.ProcessListMgr
@@ -222,7 +222,7 @@ func init_processor() {
 				EOM_Type: wire.END_MINUTE_10,
 			}
 
-			inMsgQueue <- eom10
+			inCtlMsgQueue <- eom10
 
 			/*
 				// Entry Chains
@@ -268,12 +268,15 @@ func init_processor() {
 
 }
 
-func Start_Processor(ldb database.Db, inMsgQ chan wire.FtmInternalMsg, outMsgQ chan wire.FtmInternalMsg) {
+func Start_Processor(ldb database.Db, inMsgQ chan wire.FtmInternalMsg, outMsgQ chan wire.FtmInternalMsg, inCtlMsgQ chan wire.FtmInternalMsg, outCtlMsgQ chan wire.FtmInternalMsg) {
 	db = ldb
 
 	inMsgQueue = inMsgQ
 	outMsgQueue = outMsgQ
-
+	
+	inCtlMsgQueue = inCtlMsgQ
+	outCtlMsgQueue = outCtlMsgQ
+	
 	init_processor()
 /* for testing??
 	if nodeMode == SERVER_NODE {
@@ -290,12 +293,23 @@ func Start_Processor(ldb database.Db, inMsgQ chan wire.FtmInternalMsg, outMsgQ c
 	*/
 	util.Trace("before range inMsgQ")
 	// Process msg from the incoming queue one by one
-	for msg := range inMsgQ {
-		fmt.Printf("in range inMsgQ, msg:%+v\n", msg)
-		err := serveMsgRequest(msg)
-		if err != nil {
-			log.Println(err)
+	for {
+		select {
+		case msg := <-inMsgQ: 
+			//fmt.Printf("in inMsgQ, msg:%+v\n", msg)
+			err := serveMsgRequest(msg)
+			if err != nil {
+				log.Println(err)
+			}
+	
+		case ctlMsg := <- inCtlMsgQueue:
+			//fmt.Printf("in ctlMsg, msg:%+v\n", ctlMsg)	
+			err := serveMsgRequest(ctlMsg)
+			if err != nil {
+				log.Println(err)
+			}
 		}
+			
 	}
 
 	util.Trace()
