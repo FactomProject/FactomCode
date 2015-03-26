@@ -36,7 +36,7 @@ func BuyEntryCredit(version uint16, ecPubKey *notaryapi.Hash, from *notaryapi.Ha
 
 	// XXX TODO FIXME: gotta be linked to Factoid -- there is no buy or get credit P2P message
 	/*
-		msgGetCredit := factomwire.NewMsgGetCredit()
+		msgGetCredit := factomwire.NewCmdGetCredit()
 		msgGetCredit.ECPubKey = ecPubKey
 		msgGetCredit.FactoidBase = value
 

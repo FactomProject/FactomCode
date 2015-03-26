@@ -34,6 +34,7 @@ func Start(db database.Db, inMsgQ chan<- factomwire.Message) {
 	server.Post(`/v1/submitentry/?`, handleSubmitEntry)
 
 	server.Get(`/v1/dblockheight/?`, handleBlockHeight)
+	server.Get(`/v1/blockheight/?`, handleBlockHeight)
 	server.Get(`/v1/buycredit/?`, handleBuyCredit)
 	server.Get(`/v1/creditbalance/?`, handleCreditBalance)
 	server.Get(`/v1/dblock/([^/]+)(?)`, handleDBlockByHash)
