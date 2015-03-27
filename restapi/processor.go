@@ -68,7 +68,7 @@ var (
 	inMsgQueue  chan wire.FtmInternalMsg //incoming message queue for factom application messages
 	outMsgQueue chan wire.FtmInternalMsg //outgoing message queue for factom application messages
 
-	inCtlMsgQueue chan wire.FtmInternalMsg //incoming message queue for factom control messages 
+	inCtlMsgQueue  chan wire.FtmInternalMsg //incoming message queue for factom control messages
 	outCtlMsgQueue chan wire.FtmInternalMsg //outgoing message queue for factom control messages
 
 	fMemPool *ftmMemPool
@@ -169,9 +169,7 @@ func initEChainFromDB(chain *notaryapi.EChain) {
 }
 
 func init_processor() {
-	
 
-	
 	// init mem pools
 	fMemPool = new(ftmMemPool)
 	fMemPool.init_ftmMemPool()
@@ -180,11 +178,9 @@ func init_processor() {
 	initDChain()
 	fmt.Println("Loaded", len(dchain.Blocks)-1, "Directory blocks for chain: "+dchain.ChainID.String())
 
-
 	// init process list manager
-	initProcessListMgr()	
-	
-	
+	initProcessListMgr()
+
 	// init Entry Credit Chain
 	initCChain()
 	fmt.Println("Loaded", len(cchain.Blocks)-1, "Entry Credit blocks for chain: "+cchain.ChainID.String())
@@ -213,7 +209,7 @@ func init_processor() {
 
 	// write 10 FBlock in a batch to BTC every 10 minutes
 	tickers[1] = time.NewTicker(time.Second * time.Duration(sendToBTCinSeconds))
-
+/*
 	go func() {
 		for _ = range tickers[0].C {
 			fmt.Println("in tickers[0]: newEntryBlock & newFactomBlock")
@@ -262,10 +258,10 @@ func init_processor() {
 					saveDBMerkleRoottoBTC(dbInfo)
 				}
 
-			*/
+			
 		}
 	}()
-
+*/
 }
 
 func Start_Processor(ldb database.Db, inMsgQ chan wire.FtmInternalMsg, outMsgQ chan wire.FtmInternalMsg, inCtlMsgQ chan wire.FtmInternalMsg, outCtlMsgQ chan wire.FtmInternalMsg) {
@@ -273,12 +269,12 @@ func Start_Processor(ldb database.Db, inMsgQ chan wire.FtmInternalMsg, outMsgQ c
 
 	inMsgQueue = inMsgQ
 	outMsgQueue = outMsgQ
-	
+
 	inCtlMsgQueue = inCtlMsgQ
 	outCtlMsgQueue = outCtlMsgQ
-	
+
 	init_processor()
-/* for testing??
+	/* for testing??
 	if nodeMode == SERVER_NODE {
 		err := initRPCClient()
 		if err != nil {
@@ -289,27 +285,37 @@ func Start_Processor(ldb database.Db, inMsgQ chan wire.FtmInternalMsg, outMsgQ c
 			log.Fatalf("cannot init wallet: %s", err)
 		}
 	}
-	
+
 	*/
+	
+	// Initialize timer for the open dblock before processing messages
+	if nodeMode == SERVER_NODE { 
+		timer := &BlockTimer{
+			nextDBlockHeight : dchain.NextBlockID,
+			inCtlMsgQueue : inCtlMsgQueue,
+		}
+		go timer.StartBlockTimer()
+	}
+		
 	util.Trace("before range inMsgQ")
 	// Process msg from the incoming queue one by one
 	for {
 		select {
-		case msg := <-inMsgQ: 
+		case msg := <-inMsgQ:
 			//fmt.Printf("in inMsgQ, msg:%+v\n", msg)
 			err := serveMsgRequest(msg)
 			if err != nil {
 				log.Println(err)
 			}
-	
-		case ctlMsg := <- inCtlMsgQueue:
-			//fmt.Printf("in ctlMsg, msg:%+v\n", ctlMsg)	
+
+		case ctlMsg := <-inCtlMsgQueue:
+			//fmt.Printf("in ctlMsg, msg:%+v\n", ctlMsg)
 			err := serveMsgRequest(ctlMsg)
 			if err != nil {
 				log.Println(err)
 			}
 		}
-			
+
 	}
 
 	util.Trace()
@@ -433,18 +439,20 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		msgEom, ok := msg.(*wire.MsgInt_EOM)
 		if !ok {
 			return errors.New("Error in build blocks:" + fmt.Sprintf("%+v", msg))
+		} else {
+			fmt.Println ("wire.CmdInt_EOM:%+v", msg)
 		}
 		if msgEom.EOM_Type == wire.END_MINUTE_10 {
 			// Process from Orphan pool before the end of process list
 			processFromOrphanPool()
-			
+
 			plMgr.AddMyProcessListItem(msgEom, nil, wire.END_MINUTE_10)
 
 			err := buildBlocks()
 			if err != nil {
 				return err
 			}
-		} else if msgEom.EOM_Type >= wire.END_MINUTE_1 &&  msgEom.EOM_Type < wire.END_MINUTE_10{
+		} else if msgEom.EOM_Type >= wire.END_MINUTE_1 && msgEom.EOM_Type < wire.END_MINUTE_10 {
 			//??
 		}
 	default:
@@ -645,18 +653,18 @@ func processFromOrphanPool() error {
 		case wire.CmdCommitChain:
 			msgCommitChain, _ := msg.(*wire.MsgCommitChain)
 			err := processCommitChain(msgCommitChain)
-			if err != nil {	
+			if err != nil {
 				return err
-			} else{
+			} else {
 				delete(fMemPool.orphans, k)
 			}
-	
+
 		case wire.CmdRevealChain:
 			msgRevealChain, _ := msg.(*wire.MsgRevealChain)
 			err := processRevealChain(msgRevealChain)
 			if err != nil {
 				return err
-			} else{
+			} else {
 				delete(fMemPool.orphans, k)
 			}
 
@@ -665,7 +673,7 @@ func processFromOrphanPool() error {
 			err := processCommitEntry(msgCommitEntry)
 			if err != nil {
 				return err
-			} else{
+			} else {
 				delete(fMemPool.orphans, k)
 			}
 
@@ -674,7 +682,7 @@ func processFromOrphanPool() error {
 			err := processRevealEntry(msgRevealEntry)
 			if err != nil {
 				return err
-			} else{
+			} else {
 				delete(fMemPool.orphans, k)
 			}
 		}
@@ -722,18 +730,18 @@ func buildCommitChain(msg *wire.MsgCommitChain) error {
 func buildFactoidObj(msg *wire.MsgInt_FactoidObj) error {
 	factoidTxHash := new(notaryapi.Hash)
 	factoidTxHash.SetBytes(msg.TxSha.Bytes())
-	
+
 	for k, v := range msg.EntryCredits {
 		pubKey := new(notaryapi.Hash)
-		pubKey.SetBytes(k.Bytes())		
+		pubKey.SetBytes(k.Bytes())
 		credits := int32(creditsPerFactoid * v / 100000000)
 		cbEntry := notaryapi.NewBuyCBEntry(pubKey, factoidTxHash, credits)
 		err := cchain.Blocks[len(cchain.Blocks)-1].AddCBEntry(cbEntry)
 		if err != nil {
 			return errors.New(fmt.Sprintf(`Error while adding the First Entry to Block: %s`, err.Error()))
-		}		
+		}
 	}
-	
+
 	return nil
 }
 
@@ -787,25 +795,34 @@ func buildBlocks() error {
 	util.Trace("NOT IMPLEMENTED: Factoid Chain init was here !!!!!!!!!!!")
 
 	/*
-	// Factoid Chain
-	fBlock := newFBlock(fchain)
-	if fBlock != nil {
-		dchain.AddFBlockToDBEntry(factoid.NewDBEntryFromFBlock(fBlock))
-	}
-	saveFChain(fchain)
+		// Factoid Chain
+		fBlock := newFBlock(fchain)
+		if fBlock != nil {
+			dchain.AddFBlockToDBEntry(factoid.NewDBEntryFromFBlock(fBlock))
+		}
+		saveFChain(fchain)
 	*/
 
 	// Directory Block chain
 	dbBlock := newDirectoryBlock(dchain)
 	saveDChain(dchain)
-	
+
 	// re-initialize the process lit manager
 	initProcessListMgr()
 
+	// Initialize timer for the new dblock
+	if nodeMode == SERVER_NODE { 
+		timer := &BlockTimer{
+			nextDBlockHeight : dchain.NextBlockID,
+			inCtlMsgQueue : inCtlMsgQueue,
+		}
+		go timer.StartBlockTimer()
+	}
+
 	// Only Servers can write the anchor to Bitcoin network
-	if nodeMode == SERVER_NODE && dbBlock != nil && false{ //?? for testing
+	if nodeMode == SERVER_NODE && dbBlock != nil && false { //?? for testing
 		dbInfo := notaryapi.NewDBInfoFromDBlock(dbBlock)
-		saveDBMerkleRoottoBTC(dbInfo)
+		saveDBMerkleRoottoBTC(dbInfo) //goroutine??
 	}
 
 	return nil
@@ -832,8 +849,6 @@ func buildFromProcessList(pl *consensus.ProcessList) error {
 
 	return nil
 }
-
-
 
 func newEntryBlock(chain *notaryapi.EChain) *notaryapi.EBlock {
 
@@ -1212,7 +1227,7 @@ func initCChain() {
 
 	// create a backup copy before processing entries
 	copyCreditMap(eCreditMap, eCreditMapBackup)
-	
+
 	//??
 	printCChain()
 	printCreditMap()

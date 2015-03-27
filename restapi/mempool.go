@@ -18,8 +18,8 @@ type ftmMemPool struct {
 // Add a factom message to the orphan pool
 func (mp *ftmMemPool) init_ftmMemPool() error {
 
-	mp.pool = make (map[wire.ShaHash]wire.Message)
-	mp.orphans = make (map[wire.ShaHash]wire.Message)
+	mp.pool = make(map[wire.ShaHash]wire.Message)
+	mp.orphans = make(map[wire.ShaHash]wire.Message)
 
 	return nil
 }
