@@ -2,7 +2,7 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-package factomd
+package factoid
 
 // Various validation checks, for Factoid TXs & Blocks.
 
@@ -17,7 +17,19 @@ func FactoidTx_VersionCheck(version uint8) bool {
 }
 
 // in reality: 5 bytes
-func FactoidTx_LocktimeCheck(locktime uint64) bool {
+func FactoidTx_LocktimeCheck(locktime int64) bool {
 	util.Trace()
 	return (0 == locktime)
+}
+
+// 1-byte RCD version
+func FactoidTx_RCDVersionCheck(version uint8) bool {
+	util.Trace()
+	return (0 == version)
+}
+
+// 1-byte RCD type
+func FactoidTx_RCDTypeCheck(rcdtype uint8) bool {
+	util.Trace()
+	return (0 == rcdtype)
 }
