@@ -31,6 +31,8 @@ var (
 	db              database.Db                    // database
 	InMsgQueue      = make(chan wire.FtmInternalMsg, 100) //incoming message queue for factom application messages
 	OutMsgQueue     = make(chan wire.FtmInternalMsg, 100) //outgoing message queue for factom application messages
+	InCtlMsgQueue      = make(chan wire.FtmInternalMsg, 100) //incoming message queue for factom application messages
+	OutCtlMsgQueue     = make(chan wire.FtmInternalMsg, 100) //outgoing message queue for factom application messages	
 //	inRpcQueue      = make(chan wire.Message, 100) //incoming message queue for factom application messages
 	federatedid     string
 )
@@ -94,7 +96,7 @@ func Factomd_init() {
 	initDB()
 
 	// Start the processor module
-	go restapi.Start_Processor(db, InMsgQueue, OutMsgQueue)
+	go restapi.Start_Processor(db, InMsgQueue, OutMsgQueue, InCtlMsgQueue, OutCtlMsgQueue)
 
 	// Start the wsapi server module in a separate go-routine
 	//wsapi.Start(db, inRpcQueue)

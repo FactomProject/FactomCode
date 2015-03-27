@@ -63,7 +63,7 @@ func TestAddChain(t *testing.T) {
 	chain := new(notaryapi.EChain)
 	bName := make([][]byte, 0, 5)
 	bName = append(bName, []byte("myCompany"))
-	bName = append(bName, []byte("bookkeeping4"))
+	bName = append(bName, []byte("bookkeeping5"))
 
 	chain.Name = bName
 	chain.GenerateIDFromName()
@@ -123,7 +123,7 @@ func TestAddEntry(t *testing.T) {
 	chain := new(notaryapi.EChain)
 	bName := make([][]byte, 0, 5)
 	bName = append(bName, []byte("myCompany"))
-	bName = append(bName, []byte("bookkeeping4"))
+	bName = append(bName, []byte("bookkeeping5"))
 
 	chain.Name = bName
 	chain.GenerateIDFromName()
