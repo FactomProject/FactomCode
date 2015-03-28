@@ -10,7 +10,7 @@ package restapi
 import (
 	"bytes"
 	"encoding/binary"
-	"encoding/hex"
+	//	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/FactomProject/FactomCode/notaryapi"
+	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd/chaincfg"
 	"github.com/FactomProject/btcd/txscript"
 	"github.com/FactomProject/btcd/wire"
@@ -222,35 +223,40 @@ func createRawTransaction(b balance, hash []byte) (*wire.MsgTx, error) {
 
 func addTxIn(msgtx *wire.MsgTx, b balance) error {
 
-	output := b.unspentResult
-	//	fmt.Printf("unspentResult: %#v\n", output)
-	prevTxHash, err := wire.NewShaHashFromStr(output.TxId)
-	if err != nil {
-		return fmt.Errorf("cannot get sha hash from str: %s", err)
-	}
+	util.Trace("NOT IMPLEMENTED !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+	return errors.New("NOT IMPLEMENTED -- revisit !!!")
+	/*
 
-	outPoint := wire.NewOutPoint(prevTxHash, output.Vout)
-	msgtx.AddTxIn(wire.NewTxIn(outPoint, nil))
+			output := b.unspentResult
+			//	fmt.Printf("unspentResult: %#v\n", output)
+			prevTxHash, err := wire.NewShaHashFromStr(output.TxId)
+			if err != nil {
+				return fmt.Errorf("cannot get sha hash from str: %s", err)
+			}
 
-	// OnRedeemingTx
-	err = dclient.NotifySpent([]*wire.OutPoint{outPoint})
-	if err != nil {
-		fmt.Println("NotifySpent err: ", err.Error())
-	}
+			outPoint := wire.NewOutPoint(prevTxHash, output.Vout)
+			msgtx.AddTxIn(wire.NewTxIn(outPoint, nil))
 
-	subscript, err := hex.DecodeString(output.ScriptPubKey)
-	if err != nil {
-		return fmt.Errorf("cannot decode scriptPubKey: %s", err)
-	}
+			// OnRedeemingTx
+			err = dclient.NotifySpent([]*wire.OutPoint{outPoint})
+			if err != nil {
+				fmt.Println("NotifySpent err: ", err.Error())
+			}
 
-	sigScript, err := txscript.SignatureScript(msgtx, 0, subscript,
-		txscript.SigHashAll, b.wif.PrivKey, true) //.ToECDSA(), true)
-	if err != nil {
-		return fmt.Errorf("cannot create scriptSig: %s", err)
-	}
-	msgtx.TxIn[0].SignatureScript = sigScript
+			subscript, err := hex.DecodeString(output.ScriptPubKey)
+			if err != nil {
+				return fmt.Errorf("cannot decode scriptPubKey: %s", err)
+			}
 
-	return nil
+			sigScript, err := txscript.SignatureScript(msgtx, 0, subscript,
+				txscript.SigHashAll, b.wif.PrivKey, true) //.ToECDSA(), true)
+			if err != nil {
+				return fmt.Errorf("cannot create scriptSig: %s", err)
+			}
+			msgtx.TxIn[0].SignatureScript = sigScript
+
+		return nil
+	*/
 }
 
 func addTxOuts(msgtx *wire.MsgTx, b balance, hash []byte) error {
@@ -316,28 +322,32 @@ func selectInputs(eligible []btcjson.ListUnspentResult, minconf int) (selected [
 }
 
 func validateMsgTx(msgtx *wire.MsgTx, inputs []btcjson.ListUnspentResult) error {
-	flags := txscript.ScriptCanonicalSignatures | txscript.ScriptStrictMultiSig
-	bip16 := time.Now().After(txscript.Bip16Activation)
-	if bip16 {
-		flags |= txscript.ScriptBip16
-	}
-	for i, txin := range msgtx.TxIn {
+	util.Trace("NOT IMPLEMENTED !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+	return errors.New("NOT IMPLEMENTED -- revisit 2 !!!")
+	/*
+		flags := txscript.ScriptCanonicalSignatures | txscript.ScriptStrictMultiSig
+		bip16 := time.Now().After(txscript.Bip16Activation)
+		if bip16 {
+			flags |= txscript.ScriptBip16
+		}
+		for i, txin := range msgtx.TxIn {
 
-		subscript, err := hex.DecodeString(inputs[i].ScriptPubKey)
-		if err != nil {
-			return fmt.Errorf("cannot decode scriptPubKey: %s", err)
-		}
+			subscript, err := hex.DecodeString(inputs[i].ScriptPubKey)
+			if err != nil {
+				return fmt.Errorf("cannot decode scriptPubKey: %s", err)
+			}
 
-		engine, err := txscript.NewScript(
-			txin.SignatureScript, subscript, i, msgtx, flags)
-		if err != nil {
-			return fmt.Errorf("cannot create script engine: %s", err)
+			engine, err := txscript.NewScript(
+				txin.SignatureScript, subscript, i, msgtx, flags)
+			if err != nil {
+				return fmt.Errorf("cannot create script engine: %s", err)
+			}
+			if err = engine.Execute(); err != nil {
+				return fmt.Errorf("cannot validate transaction: %s", err)
+			}
 		}
-		if err = engine.Execute(); err != nil {
-			return fmt.Errorf("cannot validate transaction: %s", err)
-		}
-	}
-	return nil
+		return nil
+	*/
 }
 
 func sendRawTransaction(msgtx *wire.MsgTx) (*wire.ShaHash, error) {
