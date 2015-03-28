@@ -19,9 +19,10 @@ type BlockTimer struct {
 // Send End-Of-Minute messages to processor for the current open directory block
 func (bt *BlockTimer) StartBlockTimer() {
 	//wait till the end of minute
-	t := time.Now()
+	//the first minute section might be bigger than others. To be improved.
+/*	t := time.Now()
 	time.Sleep(time.Duration((60 - t.Second()) * 1000000000))
-
+*/
 	roundTime := time.Now().Round(time.Minute)
 	minutesPassed := roundTime.Minute() - (roundTime.Minute()/10)*10
 

@@ -252,6 +252,19 @@ func (b *EBlock) AddEBEntry(e *Entry) (err error) {
 	return
 }
 
+func (b *EBlock) AddEndOfMinuteMarker(eomType byte) (err error) {
+	bytes:= make([]byte, 32)
+	bytes[31] = eomType
+	
+	h, _ := NewShaHash(bytes)
+
+	ebEntry := NewEBEntry(h, &b.Chain.ChainID.Bytes)
+
+	b.EBEntries = append(b.EBEntries, ebEntry)
+
+	return
+}
+
 func (b *EBlock) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
 

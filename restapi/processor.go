@@ -436,24 +436,26 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
 		}
 	case wire.CmdInt_EOM:
-		msgEom, ok := msg.(*wire.MsgInt_EOM)
-		if !ok {
-			return errors.New("Error in build blocks:" + fmt.Sprintf("%+v", msg))
-		} else {
-			fmt.Println ("wire.CmdInt_EOM:%+v", msg)
-		}
-		if msgEom.EOM_Type == wire.END_MINUTE_10 {
-			// Process from Orphan pool before the end of process list
-			processFromOrphanPool()
-
-			plMgr.AddMyProcessListItem(msgEom, nil, wire.END_MINUTE_10)
-
-			err := buildBlocks()
-			if err != nil {
-				return err
+		if nodeMode == SERVER_NODE {
+			msgEom, ok := msg.(*wire.MsgInt_EOM)
+			if !ok {
+				return errors.New("Error in build blocks:" + fmt.Sprintf("%+v", msg))
+			} else {
+				fmt.Println ("wire.CmdInt_EOM:%+v", msg)
 			}
-		} else if msgEom.EOM_Type >= wire.END_MINUTE_1 && msgEom.EOM_Type < wire.END_MINUTE_10 {
-			//??
+			if msgEom.EOM_Type == wire.END_MINUTE_10 {
+				// Process from Orphan pool before the end of process list
+				processFromOrphanPool()
+	
+				plMgr.AddMyProcessListItem(msgEom, nil, wire.END_MINUTE_10)
+	
+				err := buildBlocks()
+				if err != nil {
+					return err
+				}
+			} else if msgEom.EOM_Type >= wire.END_MINUTE_1 && msgEom.EOM_Type < wire.END_MINUTE_10 {
+				plMgr.AddMyProcessListItem(msgEom, nil, msgEom.EOM_Type)
+			}
 		}
 	default:
 		return errors.New("Message type unsupported:" + fmt.Sprintf("%+v", msg))
@@ -488,7 +490,7 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 	chain := chainIDMap[msg.Entry.ChainID.String()]
 	if chain == nil {
 		fMemPool.addOrphanMsg(msg, shaHash)
-		procLog.Debug("This chain is not supported:" + msg.Entry.ChainID.String())
+		return errors.New("This chain is not supported:" + msg.Entry.ChainID.String())
 	}
 
 	// Calculate the required credits
@@ -501,7 +503,7 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 	prepayment, ok := prePaidEntryMap[key]
 	if !ok || prepayment < credits {
 		fMemPool.addOrphanMsg(msg, shaHash)
-		procLog.Debug("Credit needs to paid first before an entry is revealed:" + entryHash.String())
+		return errors.New("Credit needs to paid first before an entry is revealed:" + entryHash.String())
 	}
 
 	delete(prePaidEntryMap, key) // Only revealed once for multiple prepayments??
@@ -530,7 +532,7 @@ func processCommitEntry(msg *wire.MsgCommitEntry) error {
 	creditBalance, _ := eCreditMap[msg.ECPubKey.String()]
 	if creditBalance < int32(msg.Credits) {
 		fMemPool.addOrphanMsg(msg, &shaHash)
-		procLog.Debug("Not enough credit for public key:" + msg.ECPubKey.String() + " Balance:" + fmt.Sprint(creditBalance))
+		return errors.New("Not enough credit for public key:" + msg.ECPubKey.String() + " Balance:" + fmt.Sprint(creditBalance))
 	}
 	eCreditMap[msg.ECPubKey.String()] = creditBalance - int32(msg.Credits)
 	// Update the prePaidEntryMapin memory
@@ -689,7 +691,7 @@ func processFromOrphanPool() error {
 	}
 	return nil
 }
-func buildRevealEntry(msg *wire.MsgRevealEntry) error {
+func buildRevealEntry(msg *wire.MsgRevealEntry) {
 
 	chain := chainIDMap[msg.Entry.ChainID.String()]
 
@@ -701,33 +703,36 @@ func buildRevealEntry(msg *wire.MsgRevealEntry) error {
 	err := chain.Blocks[len(chain.Blocks)-1].AddEBEntry(msg.Entry)
 
 	if err != nil {
-		return errors.New("Error while adding Entity to Block:" + err.Error())
+		panic ("Error while adding Entity to Block:" + err.Error())
 	}
 
-	return nil
 }
 
-func buildCommitEntry(msg *wire.MsgCommitEntry) error {
+func buildCommitEntry(msg *wire.MsgCommitEntry) {
 
 	// Create PayEntryCBEntry
 	cbEntry := notaryapi.NewPayEntryCBEntry(msg.ECPubKey, msg.EntryHash, int32(0-msg.Credits), int64(msg.Timestamp))
 
 	err := cchain.Blocks[len(cchain.Blocks)-1].AddCBEntry(cbEntry)
 
-	return err
+	if err != nil {
+		panic ("Error while building Block:" + err.Error())
+	}
 }
 
-func buildCommitChain(msg *wire.MsgCommitChain) error {
+func buildCommitChain(msg *wire.MsgCommitChain) {
 
 	// Create PayChainCBEntry
 	cbEntry := notaryapi.NewPayChainCBEntry(msg.ECPubKey, msg.EntryHash, int32(0-msg.Credits), msg.ChainID, msg.EntryChainIDHash)
 
 	err := cchain.Blocks[len(cchain.Blocks)-1].AddCBEntry(cbEntry)
 
-	return err
+	if err != nil {
+		panic ("Error while building Block:" + err.Error())
+	}
 }
 
-func buildFactoidObj(msg *wire.MsgInt_FactoidObj) error {
+func buildFactoidObj(msg *wire.MsgInt_FactoidObj) {
 	factoidTxHash := new(notaryapi.Hash)
 	factoidTxHash.SetBytes(msg.TxSha.Bytes())
 
@@ -738,14 +743,12 @@ func buildFactoidObj(msg *wire.MsgInt_FactoidObj) error {
 		cbEntry := notaryapi.NewBuyCBEntry(pubKey, factoidTxHash, credits)
 		err := cchain.Blocks[len(cchain.Blocks)-1].AddCBEntry(cbEntry)
 		if err != nil {
-			return errors.New(fmt.Sprintf(`Error while adding the First Entry to Block: %s`, err.Error()))
+			panic (fmt.Sprintf(`Error while adding the First Entry to Block: %s`, err.Error()))
 		}
 	}
-
-	return nil
 }
 
-func buildRevealChain(msg *wire.MsgRevealChain) error {
+func buildRevealChain(msg *wire.MsgRevealChain) {
 
 	newChain := msg.Chain
 	// Store the new chain in db
@@ -762,13 +765,24 @@ func buildRevealChain(msg *wire.MsgRevealChain) error {
 
 	err := newChain.Blocks[len(newChain.Blocks)-1].AddEBEntry(newChain.FirstEntry)
 
-	if err != nil {
-		return errors.New(fmt.Sprintf(`Error while adding the First Entry to Block: %s`, err.Error()))
+	if err != nil { 
+		panic (fmt.Sprintf(`Error while adding the First Entry to Block: %s`, err.Error()))
 	}
-
-	return nil
 }
 
+// Put End-Of-Minute marker in the entry chains
+func buildEndOfMinute(pl *consensus.ProcessList, pli *consensus.ProcessListItem) {
+	items := pl.GetPLItems()
+	for i := pli.Ack.Index; i>= 0; i-- {	
+		if wire.END_MINUTE_1 <= items[i].Ack.Type && items[i].Ack.Type <= wire.END_MINUTE_10{
+			break
+		} else if items[i].Ack.Type == wire.ACK_REVEAL_ENTRY {
+			chain := chainIDMap[items[i].Ack.ChainID.String()]
+		
+			chain.Blocks[len(chain.Blocks)-1].AddEndOfMinuteMarker(pli.Ack.Type)		
+		}
+	}
+}
 // build blocks from all process lists
 func buildBlocks() error {
 
@@ -830,7 +844,6 @@ func buildBlocks() error {
 
 // build blocks from a process lists
 func buildFromProcessList(pl *consensus.ProcessList) error {
-	pl.GetPLItems()
 	for _, pli := range pl.GetPLItems() {
 		if pli.Ack.Type == wire.ACK_COMMIT_CHAIN {
 			buildCommitChain(pli.Msg.(*wire.MsgCommitChain))
@@ -844,6 +857,8 @@ func buildFromProcessList(pl *consensus.ProcessList) error {
 			buildFactoidObj(pli.Msg.(*wire.MsgInt_FactoidObj))
 			//Send the notification to Factoid component
 			outMsgQueue <- pli.Msg.(*wire.MsgInt_FactoidObj)
+		} else if wire.END_MINUTE_1 <= pli.Ack.Type && pli.Ack.Type <=wire.END_MINUTE_10 {
+			buildEndOfMinute(pl, pli)
 		}
 	}
 
