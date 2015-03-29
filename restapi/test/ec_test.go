@@ -1,6 +1,6 @@
 package restapi
 
-/*
+
 import (
 	"testing"
 	"github.com/FactomProject/FactomCode/notaryapi"
@@ -172,4 +172,4 @@ func initDB() {
 	}
 	log.Println("Database started from: " + ldbpath)
 
-}*/
+}
