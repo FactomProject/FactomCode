@@ -16,7 +16,6 @@ import (
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/factomapi"
 	"github.com/FactomProject/FactomCode/notaryapi"
-	"github.com/FactomProject/FactomCode/old/oldcoin"
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/btcrpcclient"
@@ -47,7 +46,6 @@ var (
 	db          database.Db       // database
 	dchain      *notaryapi.DChain //Directory Block Chain
 	cchain      *notaryapi.CChain //Entry Credit Chain
-	fchain      *oldcoin.FChain   //Factoid Chain
 
 	creditsPerChain   int32  = 10
 	creditsPerFactoid uint64 = 1000
@@ -185,10 +183,6 @@ func init_processor() {
 	initCChain()
 	fmt.Println("Loaded", len(cchain.Blocks)-1, "Entry Credit blocks for chain: "+cchain.ChainID.String())
 
-	// init Factoind Chain
-	initFChain()
-	fmt.Println("Loaded", len(fchain.Blocks)-1, "Factoid blocks for chain: "+fchain.ChainID.String())
-
 	// init Entry Chains
 	initEChains()
 	for _, chain := range chainIDMap {
@@ -209,59 +203,59 @@ func init_processor() {
 
 	// write 10 FBlock in a batch to BTC every 10 minutes
 	tickers[1] = time.NewTicker(time.Second * time.Duration(sendToBTCinSeconds))
-/*
-	go func() {
-		for _ = range tickers[0].C {
-			fmt.Println("in tickers[0]: newEntryBlock & newFactomBlock")
+	/*
+		go func() {
+			for _ = range tickers[0].C {
+				fmt.Println("in tickers[0]: newEntryBlock & newFactomBlock")
 
-			eom10 := &wire.MsgInt_EOM{
-				EOM_Type: wire.END_MINUTE_10,
-			}
-
-			inCtlMsgQueue <- eom10
-
-			/*
-				// Entry Chains
-				for _, chain := range chainIDMap {
-					eblock := newEntryBlock(chain)
-					if eblock != nil {
-						dchain.AddDBEntry(eblock)
-					}
-					save(chain)
+				eom10 := &wire.MsgInt_EOM{
+					EOM_Type: wire.END_MINUTE_10,
 				}
 
-				// Entry Credit Chain
-				cBlock := newEntryCreditBlock(cchain)
-				if cBlock != nil {
-					dchain.AddCBlockToDBEntry(cBlock)
-				}
-				saveCChain(cchain)
-
-				util.Trace("NOT IMPLEMENTED: Factoid Chain init was here !!!!!!!!!!!")
+				inCtlMsgQueue <- eom10
 
 				/*
-					// Factoid Chain
-					fBlock := newFBlock(fchain)
-					if fBlock != nil {
-						dchain.AddFBlockToDBEntry(factoid.NewDBEntryFromFBlock(fBlock))
+					// Entry Chains
+					for _, chain := range chainIDMap {
+						eblock := newEntryBlock(chain)
+						if eblock != nil {
+							dchain.AddDBEntry(eblock)
+						}
+						save(chain)
 					}
-					saveFChain(fchain)
-				*\
 
-				// Directory Block chain
-				dbBlock := newDirectoryBlock(dchain)
-				saveDChain(dchain)
+					// Entry Credit Chain
+					cBlock := newEntryCreditBlock(cchain)
+					if cBlock != nil {
+						dchain.AddCBlockToDBEntry(cBlock)
+					}
+					saveCChain(cchain)
 
-				// Only Servers can write the anchor to Bitcoin network
-				if nodeMode == SERVER_NODE && dbBlock != nil {
-					dbInfo := notaryapi.NewDBInfoFromDBlock(dbBlock)
-					saveDBMerkleRoottoBTC(dbInfo)
-				}
+					util.Trace("NOT IMPLEMENTED: Factoid Chain init was here !!!!!!!!!!!")
 
-			
-		}
-	}()
-*/
+					/*
+						// Factoid Chain
+						fBlock := newFBlock(fchain)
+						if fBlock != nil {
+							dchain.AddFBlockToDBEntry(factoid.NewDBEntryFromFBlock(fBlock))
+						}
+						saveFChain(fchain)
+					*\
+
+					// Directory Block chain
+					dbBlock := newDirectoryBlock(dchain)
+					saveDChain(dchain)
+
+					// Only Servers can write the anchor to Bitcoin network
+					if nodeMode == SERVER_NODE && dbBlock != nil {
+						dbInfo := notaryapi.NewDBInfoFromDBlock(dbBlock)
+						saveDBMerkleRoottoBTC(dbInfo)
+					}
+
+
+			}
+		}()
+	*/
 }
 
 func Start_Processor(ldb database.Db, inMsgQ chan wire.FtmInternalMsg, outMsgQ chan wire.FtmInternalMsg, inCtlMsgQ chan wire.FtmInternalMsg, outCtlMsgQ chan wire.FtmInternalMsg) {
@@ -287,16 +281,16 @@ func Start_Processor(ldb database.Db, inMsgQ chan wire.FtmInternalMsg, outMsgQ c
 	}
 
 	*/
-	
+
 	// Initialize timer for the open dblock before processing messages
-	if nodeMode == SERVER_NODE { 
+	if nodeMode == SERVER_NODE {
 		timer := &BlockTimer{
-			nextDBlockHeight : dchain.NextBlockID,
-			inCtlMsgQueue : inCtlMsgQueue,
+			nextDBlockHeight: dchain.NextBlockID,
+			inCtlMsgQueue:    inCtlMsgQueue,
 		}
 		go timer.StartBlockTimer()
 	}
-		
+
 	util.Trace("before range inMsgQ")
 	// Process msg from the incoming queue one by one
 	for {
@@ -441,14 +435,14 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 			if !ok {
 				return errors.New("Error in build blocks:" + fmt.Sprintf("%+v", msg))
 			} else {
-				fmt.Println ("wire.CmdInt_EOM:%+v", msg)
+				fmt.Println("wire.CmdInt_EOM:%+v", msg)
 			}
 			if msgEom.EOM_Type == wire.END_MINUTE_10 {
 				// Process from Orphan pool before the end of process list
 				processFromOrphanPool()
-	
+
 				plMgr.AddMyProcessListItem(msgEom, nil, wire.END_MINUTE_10)
-	
+
 				err := buildBlocks()
 				if err != nil {
 					return err
@@ -703,7 +697,7 @@ func buildRevealEntry(msg *wire.MsgRevealEntry) {
 	err := chain.Blocks[len(chain.Blocks)-1].AddEBEntry(msg.Entry)
 
 	if err != nil {
-		panic ("Error while adding Entity to Block:" + err.Error())
+		panic("Error while adding Entity to Block:" + err.Error())
 	}
 
 }
@@ -716,7 +710,7 @@ func buildCommitEntry(msg *wire.MsgCommitEntry) {
 	err := cchain.Blocks[len(cchain.Blocks)-1].AddCBEntry(cbEntry)
 
 	if err != nil {
-		panic ("Error while building Block:" + err.Error())
+		panic("Error while building Block:" + err.Error())
 	}
 }
 
@@ -728,7 +722,7 @@ func buildCommitChain(msg *wire.MsgCommitChain) {
 	err := cchain.Blocks[len(cchain.Blocks)-1].AddCBEntry(cbEntry)
 
 	if err != nil {
-		panic ("Error while building Block:" + err.Error())
+		panic("Error while building Block:" + err.Error())
 	}
 }
 
@@ -743,7 +737,7 @@ func buildFactoidObj(msg *wire.MsgInt_FactoidObj) {
 		cbEntry := notaryapi.NewBuyCBEntry(pubKey, factoidTxHash, credits)
 		err := cchain.Blocks[len(cchain.Blocks)-1].AddCBEntry(cbEntry)
 		if err != nil {
-			panic (fmt.Sprintf(`Error while adding the First Entry to Block: %s`, err.Error()))
+			panic(fmt.Sprintf(`Error while adding the First Entry to Block: %s`, err.Error()))
 		}
 	}
 }
@@ -765,24 +759,25 @@ func buildRevealChain(msg *wire.MsgRevealChain) {
 
 	err := newChain.Blocks[len(newChain.Blocks)-1].AddEBEntry(newChain.FirstEntry)
 
-	if err != nil { 
-		panic (fmt.Sprintf(`Error while adding the First Entry to Block: %s`, err.Error()))
+	if err != nil {
+		panic(fmt.Sprintf(`Error while adding the First Entry to Block: %s`, err.Error()))
 	}
 }
 
 // Put End-Of-Minute marker in the entry chains
 func buildEndOfMinute(pl *consensus.ProcessList, pli *consensus.ProcessListItem) {
 	items := pl.GetPLItems()
-	for i := pli.Ack.Index; i>= 0; i-- {	
-		if wire.END_MINUTE_1 <= items[i].Ack.Type && items[i].Ack.Type <= wire.END_MINUTE_10{
+	for i := pli.Ack.Index; i >= 0; i-- {
+		if wire.END_MINUTE_1 <= items[i].Ack.Type && items[i].Ack.Type <= wire.END_MINUTE_10 {
 			break
 		} else if items[i].Ack.Type == wire.ACK_REVEAL_ENTRY {
 			chain := chainIDMap[items[i].Ack.ChainID.String()]
-		
-			chain.Blocks[len(chain.Blocks)-1].AddEndOfMinuteMarker(pli.Ack.Type)		
+
+			chain.Blocks[len(chain.Blocks)-1].AddEndOfMinuteMarker(pli.Ack.Type)
 		}
 	}
 }
+
 // build blocks from all process lists
 func buildBlocks() error {
 
@@ -825,10 +820,10 @@ func buildBlocks() error {
 	initProcessListMgr()
 
 	// Initialize timer for the new dblock
-	if nodeMode == SERVER_NODE { 
+	if nodeMode == SERVER_NODE {
 		timer := &BlockTimer{
-			nextDBlockHeight : dchain.NextBlockID,
-			inCtlMsgQueue : inCtlMsgQueue,
+			nextDBlockHeight: dchain.NextBlockID,
+			inCtlMsgQueue:    inCtlMsgQueue,
 		}
 		go timer.StartBlockTimer()
 	}
@@ -857,7 +852,7 @@ func buildFromProcessList(pl *consensus.ProcessList) error {
 			buildFactoidObj(pli.Msg.(*wire.MsgInt_FactoidObj))
 			//Send the notification to Factoid component
 			outMsgQueue <- pli.Msg.(*wire.MsgInt_FactoidObj)
-		} else if wire.END_MINUTE_1 <= pli.Ack.Type && pli.Ack.Type <=wire.END_MINUTE_10 {
+		} else if wire.END_MINUTE_1 <= pli.Ack.Type && pli.Ack.Type <= wire.END_MINUTE_10 {
 			buildEndOfMinute(pl, pli)
 		}
 	}
@@ -932,38 +927,6 @@ func newEntryCreditBlock(chain *notaryapi.CChain) *notaryapi.CBlock {
 	log.Println("EntryCreditBlock: block" + strconv.FormatUint(block.Header.BlockID, 10) + " created for chain: " + chain.ChainID.String())
 
 	return block
-}
-
-func newFBlock(chain *oldcoin.FChain) *oldcoin.FBlock {
-
-	// acquire the last block
-	//	block := chain.Blocks[len(chain.Blocks)-1]
-
-	//	if len(block.Transactions) < 1 {
-	//log.Println("No Directory block created for chain ... because no new entry is found.")
-
-	util.Trace("NOT IMPLEMENETED !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-	return nil
-	//	}
-
-	/*
-		// Create the block and add a new block for new coming entries
-		chain.BlockMutex.Lock()
-		block.Header.TxCount = uint32(len(block.Transactions))
-		blkhash, _ := notaryapi.CreateHash(block)
-		block.IsSealed = true
-		chain.NextBlockID++
-		newblock, _ := factoid.CreateFBlock(chain, block, 10)
-		chain.Blocks = append(chain.Blocks, newblock)
-		chain.BlockMutex.Unlock()
-		block.FBHash = blkhash
-
-		//Store the block in db
-		db.ProcessFBlockBatch(block)
-		log.Println("Factoid block" + strconv.FormatUint(block.Header.Height, 10) + " created for chain: " + chain.ChainID.String())
-
-		return block
-	*/
 }
 
 func newDirectoryBlock(chain *notaryapi.DChain) *notaryapi.DBlock {
@@ -1082,48 +1045,6 @@ func saveCChain(chain *notaryapi.CChain) {
 			panic(err)
 		}
 	}
-}
-
-func saveFChain(chain *oldcoin.FChain) {
-	util.Trace("NOT IMPLEMENTED !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-	/*
-		if len(chain.Blocks) == 0 {
-			//log.Println("no blocks to save for chain: " + string (*chain.ChainID))
-			return
-		}
-
-		bcp := make([]*factoid.FBlock, len(chain.Blocks))
-
-		chain.BlockMutex.Lock()
-		copy(bcp, chain.Blocks)
-		chain.BlockMutex.Unlock()
-
-		for i, block := range bcp {
-			//the open block is not saved
-			if block.IsSealed == false {
-				continue
-			}
-
-			data, err := block.MarshalBinary()
-			if err != nil {
-				panic(err)
-			}
-
-			strChainID := chain.ChainID.String()
-			if fileNotExists(dataStorePath + strChainID) {
-				err := os.MkdirAll(dataStorePath+strChainID, 0777)
-				if err == nil {
-					log.Println("Created directory " + dataStorePath + strChainID)
-				} else {
-					log.Println(err)
-				}
-			}
-			err = ioutil.WriteFile(fmt.Sprintf(dataStorePath+strChainID+"/store.%09d.block", i), data, 0777)
-			if err != nil {
-				panic(err)
-			}
-		}
-	*/
 }
 
 func initDChain() {
@@ -1248,61 +1169,6 @@ func initCChain() {
 	printCreditMap()
 	printPaidEntryMap()
 
-}
-
-// Initialize factoid chain from db and initialize the mempool??
-func initFChain() {
-
-	//Initialize the Entry Credit Chain ID
-	fchain = new(oldcoin.FChain)
-	barray := []byte{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-		0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}
-	fchain.ChainID = new(notaryapi.Hash)
-	fchain.ChainID.SetBytes(barray)
-
-	util.Trace("NOT IMPLEMENTED: FIXME !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!") // FIXME
-
-	/*
-		// get all dBlocks from db
-		fBlocks, _ := db.FetchAllFBlocks()
-		sort.Sort(factoid.ByFBlockIDAccending(fBlocks))
-
-		fchain.Blocks = make([]*factoid.FBlock, len(fBlocks))
-
-		for i := 0; i < len(fBlocks); i = i + 1 {
-			if fBlocks[i].Header.Height != uint64(i) {
-				panic("Error in initializing fChain:" + fchain.ChainID.String())
-			}
-			fBlocks[i].Chain = fchain
-			fBlocks[i].IsSealed = true
-			fchain.Blocks[i] = &fBlocks[i]
-
-			util.Trace("CODE DISABLED !!!! MUST BE REDONE !!!!") // FIXME
-
-				// Load the block into utxo pool
-				factoid.GlobalUtxo.AddVerifiedTxList(fBlocks[i].Transactions)
-				//fmt.Printf("fchain.Blocks:%+v\n", fchain.Blocks[i])
-		}
-
-		// double check the block ids
-		for i := 0; i < len(fchain.Blocks); i = i + 1 {
-			if uint64(i) != fchain.Blocks[i].Header.Height {
-				panic(errors.New("BlockID does not equal index for chain:" + fchain.ChainID.String() + " block:" + fmt.Sprintf("%v", fchain.Blocks[i].Header.Height)))
-			}
-		}
-
-		//Create an empty block and append to the chain
-		if len(fchain.Blocks) == 0 {
-			fchain.NextBlockID = 0
-			newblock, _ := factoid.CreateFBlock(fchain, nil, 10)
-			fchain.Blocks = append(fchain.Blocks, newblock)
-
-		} else {
-			fchain.NextBlockID = uint64(len(fchain.Blocks))
-			newblock, _ := factoid.CreateFBlock(fchain, fchain.Blocks[len(fchain.Blocks)-1], 10)
-			fchain.Blocks = append(fchain.Blocks, newblock)
-		}
-	*/
 }
 
 func initEChains() {
