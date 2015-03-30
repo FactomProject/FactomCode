@@ -1,3 +1,7 @@
+// Copyright 2015 Factom Foundation
+// Use of this source code is governed by the MIT
+// license that can be found in the LICENSE file.
+
 package wsapi
 
 import (
@@ -16,7 +20,7 @@ var (
 
 // setup subsystem loggers
 var (
-	rpcLog     = factomlog.New(logfile, logLevel, "rpc")
-	serverLog  = factomlog.New(logfile, logLevel, "serv")
-	wsLog  = factomlog.New(logfile, logLevel, "wsapi")
+	rpcLog    = factomlog.New(logfile, logLevel, "rpc")
+	serverLog = factomlog.New(logfile, logLevel, "serv")
+	wsLog     = factomlog.New(logfile, logLevel, "wsapi")
 )

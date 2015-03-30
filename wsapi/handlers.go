@@ -1,3 +1,7 @@
+// Copyright 2015 Factom Foundation
+// Use of this source code is governed by the MIT
+// license that can be found in the LICENSE file.
+
 package wsapi
 
 import (
@@ -33,8 +37,8 @@ func handleBlockHeight(ctx *web.Context) {
 		log.Error(err)
 		return
 	}
-	
-	fmt.Fprint(buf, height)	
+
+	fmt.Fprint(buf, height)
 }
 
 // handleBuyCredit will add entry credites to the specified key. Currently the
