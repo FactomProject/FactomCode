@@ -399,7 +399,7 @@ func serveMsgRequest(msg factomwire.Message) error {
 		} else {
 			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
 		}
-		/*  There is no such command !
+		 // There is no such command !
 		case factomwire.CmdGetCredit:
 			msgGetCredit, ok := msg.(*factomwire.MsgGetCredit)
 			if ok {
@@ -412,7 +412,7 @@ func serveMsgRequest(msg factomwire.Message) error {
 			} else {
 				return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
 			}
-		*/ 
+		 
 
 	default:
 		return errors.New("Message type unsupported:" + fmt.Sprintf("%+v", msg))
