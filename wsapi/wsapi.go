@@ -1,3 +1,7 @@
+// Copyright 2015 Factom Foundation
+// Use of this source code is governed by the MIT
+// license that can be found in the LICENSE file.
+
 package wsapi
 
 import (
@@ -39,7 +43,8 @@ func Start(db database.Db, inMsgQ chan<- factomwire.Message) {
 	server.Get(`/v1/creditbalance/?`, handleCreditBalance)
 	server.Get(`/v1/dblock/([^/]+)(?)`, handleDBlockByHash)
 	server.Get(`/v1/dblocksbyrange/([^/]+)(?:/([^/]+))?`, handleDBlocksByRange)
-	server.Get(`/v1/eblock/([^/]+)(?)`, handleEBlockByHash)
+	server.Get(`/v1/eblock/([^/]+)(?)`, handleEBlockByMR)
+	server.Get(`/v1/eblockbyhash/([^/]+)(?)`, handleEBlockByHash)
 	server.Get(`/v1/eblockbymr/([^/]+)(?)`, handleEBlockByMR)
 	server.Get(`/v1/entry/([^/]+)(?)`, handleEntryByHash)
 //	server.Get(`/v1/factoidtx/?`, handleFactoidTx)
