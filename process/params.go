@@ -14,7 +14,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-package restapi
+package process
 
 import (
 	"github.com/FactomProject/btcd/chaincfg"

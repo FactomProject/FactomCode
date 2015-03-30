@@ -5,7 +5,7 @@
 // factomlog is based on github.com/alexcesaro/log and
 // github.com/alexcesaro/log/golog (MIT License)
 
-package restapi
+package process
 
 import (
 	"bytes"
@@ -15,7 +15,7 @@ import (
 	"github.com/FactomProject/FactomCode/consensus"
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/factomapi"
-	"github.com/FactomProject/FactomCode/notaryapi"
+	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/btcrpcclient"
@@ -44,23 +44,23 @@ var (
 	currentAddr btcutil.Address
 	tickers     [2]*time.Ticker
 	db          database.Db       // database
-	dchain      *notaryapi.DChain //Directory Block Chain
-	cchain      *notaryapi.CChain //Entry Credit Chain
+	dchain      *common.DChain //Directory Block Chain
+	cchain      *common.CChain //Entry Credit Chain
 
 	creditsPerChain   int32  = 10
 	creditsPerFactoid uint64 = 1000
 
 	// To be moved to ftmMemPool??
-	chainIDMap      map[string]*notaryapi.EChain // ChainIDMap with chainID string([32]byte) as key
+	chainIDMap      map[string]*common.EChain // ChainIDMap with chainID string([32]byte) as key
 	eCreditMap      map[string]int32             // eCreditMap with public key string([32]byte) as key, credit balance as value
 	prePaidEntryMap map[string]int32             // Paid but unrevealed entries string(Etnry Hash) as key, Number of payments as value
 
-	chainIDMapBackup      map[string]*notaryapi.EChain //previous block bakcup - ChainIDMap with chainID string([32]byte) as key
+	chainIDMapBackup      map[string]*common.EChain //previous block bakcup - ChainIDMap with chainID string([32]byte) as key
 	eCreditMapBackup      map[string]int32             // backup from previous block - eCreditMap with public key string([32]byte) as key, credit balance as value
 	prePaidEntryMapBackup map[string]int32             // backup from previous block - Paid but unrevealed entries string(Etnry Hash) as key, Number of payments as value
 
 	//Diretory Block meta data map
-	dbInfoMap map[string]*notaryapi.DBInfo // dbInfoMap with dbHash string([32]byte) as key
+	dbInfoMap map[string]*common.DBInfo // dbInfoMap with dbHash string([32]byte) as key
 
 	// to be renamed??
 	inMsgQueue  chan wire.FtmInternalMsg //incoming message queue for factom application messages
@@ -129,12 +129,12 @@ func readError(err error) {
 }
 
 // Initialize the entry chains in memory from db
-func initEChainFromDB(chain *notaryapi.EChain) {
+func initEChainFromDB(chain *common.EChain) {
 
 	eBlocks, _ := db.FetchAllEBlocksByChain(chain.ChainID)
 	sort.Sort(util.ByEBlockIDAccending(*eBlocks))
 
-	chain.Blocks = make([]*notaryapi.EBlock, len(*eBlocks))
+	chain.Blocks = make([]*common.EBlock, len(*eBlocks))
 
 	for i := 0; i < len(*eBlocks); i = i + 1 {
 		if (*eBlocks)[i].Header.BlockID != uint64(i) {
@@ -148,12 +148,12 @@ func initEChainFromDB(chain *notaryapi.EChain) {
 	//Create an empty block and append to the chain
 	if len(chain.Blocks) == 0 {
 		chain.NextBlockID = 0
-		newblock, _ := notaryapi.CreateBlock(chain, nil, 10)
+		newblock, _ := common.CreateBlock(chain, nil, 10)
 
 		chain.Blocks = append(chain.Blocks, newblock)
 	} else {
 		chain.NextBlockID = uint64(len(chain.Blocks))
-		newblock, _ := notaryapi.CreateBlock(chain, chain.Blocks[len(chain.Blocks)-1], 10)
+		newblock, _ := common.CreateBlock(chain, chain.Blocks[len(chain.Blocks)-1], 10)
 		chain.Blocks = append(chain.Blocks, newblock)
 	}
 
@@ -248,7 +248,7 @@ func init_processor() {
 
 					// Only Servers can write the anchor to Bitcoin network
 					if nodeMode == SERVER_NODE && dbBlock != nil {
-						dbInfo := notaryapi.NewDBInfoFromDBlock(dbBlock)
+						dbInfo := common.NewDBInfoFromDBlock(dbBlock)
 						saveDBMerkleRoottoBTC(dbInfo)
 					}
 
@@ -331,13 +331,13 @@ func fileNotExists(name string) bool {
 	return err != nil
 }
 
-func save(chain *notaryapi.EChain) {
+func save(chain *common.EChain) {
 	if len(chain.Blocks) == 0 {
 		log.Println("no blocks to save for chain: " + chain.ChainID.String())
 		return
 	}
 
-	bcp := make([]*notaryapi.EBlock, len(chain.Blocks))
+	bcp := make([]*common.EBlock, len(chain.Blocks))
 
 	chain.BlockMutex.Lock()
 	copy(bcp, chain.Blocks)
@@ -478,7 +478,7 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 
 	// Calculate the hash
 	entryBinary, _ := msg.Entry.MarshalBinary()
-	entryHash := notaryapi.Sha(entryBinary)
+	entryHash := common.Sha(entryBinary)
 	shaHash, _ := wire.NewShaHash(entryHash.Bytes)
 
 	chain := chainIDMap[msg.Entry.ChainID.String()]
@@ -585,7 +585,7 @@ func processCommitChain(msg *wire.MsgCommitChain) error {
 	return nil
 }
 
-func processBuyEntryCredit(pubKey *notaryapi.Hash, credits int32, factoidTxHash *notaryapi.Hash) error {
+func processBuyEntryCredit(pubKey *common.Hash, credits int32, factoidTxHash *common.Hash) error {
 
 	// Update the credit balance in memory
 	balance, _ := eCreditMap[pubKey.String()]
@@ -618,7 +618,7 @@ func processRevealChain(msg *wire.MsgRevealChain) error {
 
 	// Remove the entry for prePaidEntryMap
 	binaryEntry, _ := newChain.FirstEntry.MarshalBinary()
-	firstEntryHash := notaryapi.Sha(binaryEntry)
+	firstEntryHash := common.Sha(binaryEntry)
 	key := getPrePaidChainKey(firstEntryHash, newChain.ChainID)
 	prepayment, ok := prePaidEntryMap[key]
 	if ok && prepayment >= credits {
@@ -691,7 +691,7 @@ func buildRevealEntry(msg *wire.MsgRevealEntry) {
 
 	// store the new entry in db
 	entryBinary, _ := msg.Entry.MarshalBinary()
-	entryHash := notaryapi.Sha(entryBinary)
+	entryHash := common.Sha(entryBinary)
 	db.InsertEntryAndQueue(entryHash, &entryBinary, msg.Entry, &chain.ChainID.Bytes)
 
 	err := chain.Blocks[len(chain.Blocks)-1].AddEBEntry(msg.Entry)
@@ -705,7 +705,7 @@ func buildRevealEntry(msg *wire.MsgRevealEntry) {
 func buildCommitEntry(msg *wire.MsgCommitEntry) {
 
 	// Create PayEntryCBEntry
-	cbEntry := notaryapi.NewPayEntryCBEntry(msg.ECPubKey, msg.EntryHash, int32(0-msg.Credits), int64(msg.Timestamp))
+	cbEntry := common.NewPayEntryCBEntry(msg.ECPubKey, msg.EntryHash, int32(0-msg.Credits), int64(msg.Timestamp))
 
 	err := cchain.Blocks[len(cchain.Blocks)-1].AddCBEntry(cbEntry)
 
@@ -717,7 +717,7 @@ func buildCommitEntry(msg *wire.MsgCommitEntry) {
 func buildCommitChain(msg *wire.MsgCommitChain) {
 
 	// Create PayChainCBEntry
-	cbEntry := notaryapi.NewPayChainCBEntry(msg.ECPubKey, msg.EntryHash, int32(0-msg.Credits), msg.ChainID, msg.EntryChainIDHash)
+	cbEntry := common.NewPayChainCBEntry(msg.ECPubKey, msg.EntryHash, int32(0-msg.Credits), msg.ChainID, msg.EntryChainIDHash)
 
 	err := cchain.Blocks[len(cchain.Blocks)-1].AddCBEntry(cbEntry)
 
@@ -727,14 +727,14 @@ func buildCommitChain(msg *wire.MsgCommitChain) {
 }
 
 func buildFactoidObj(msg *wire.MsgInt_FactoidObj) {
-	factoidTxHash := new(notaryapi.Hash)
+	factoidTxHash := new(common.Hash)
 	factoidTxHash.SetBytes(msg.TxSha.Bytes())
 
 	for k, v := range msg.EntryCredits {
-		pubKey := new(notaryapi.Hash)
+		pubKey := new(common.Hash)
 		pubKey.SetBytes(k.Bytes())
 		credits := int32(creditsPerFactoid * v / 100000000)
-		cbEntry := notaryapi.NewBuyCBEntry(pubKey, factoidTxHash, credits)
+		cbEntry := common.NewBuyCBEntry(pubKey, factoidTxHash, credits)
 		err := cchain.Blocks[len(cchain.Blocks)-1].AddCBEntry(cbEntry)
 		if err != nil {
 			panic(fmt.Sprintf(`Error while adding the First Entry to Block: %s`, err.Error()))
@@ -754,7 +754,7 @@ func buildRevealChain(msg *wire.MsgRevealChain) {
 
 	// store the new entry in db
 	entryBinary, _ := newChain.FirstEntry.MarshalBinary()
-	entryHash := notaryapi.Sha(entryBinary)
+	entryHash := common.Sha(entryBinary)
 	db.InsertEntryAndQueue(entryHash, &entryBinary, newChain.FirstEntry, &newChain.ChainID.Bytes)
 
 	err := newChain.Blocks[len(newChain.Blocks)-1].AddEBEntry(newChain.FirstEntry)
@@ -830,7 +830,7 @@ func buildBlocks() error {
 
 	// Only Servers can write the anchor to Bitcoin network
 	if nodeMode == SERVER_NODE && dbBlock != nil && false { //?? for testing
-		dbInfo := notaryapi.NewDBInfoFromDBlock(dbBlock)
+		dbInfo := common.NewDBInfoFromDBlock(dbBlock)
 		saveDBMerkleRoottoBTC(dbInfo) //goroutine??
 	}
 
@@ -860,36 +860,36 @@ func buildFromProcessList(pl *consensus.ProcessList) error {
 	return nil
 }
 
-func newEntryBlock(chain *notaryapi.EChain) *notaryapi.EBlock {
+func newEntryBlock(chain *common.EChain) *common.EBlock {
 
 	// acquire the last block
 	block := chain.Blocks[len(chain.Blocks)-1]
 
 	if len(block.EBEntries) < 1 {
-		//log.Println("No new entry found. No block created for chain: "  + notaryapi.EncodeChainID(chain.ChainID))
+		//log.Println("No new entry found. No block created for chain: "  + common.EncodeChainID(chain.ChainID))
 		return nil
 	}
 
 	// Create the block and add a new block for new coming entries
 	chain.BlockMutex.Lock()
-	blkhash, _ := notaryapi.CreateHash(block)
+	blkhash, _ := common.CreateHash(block)
 	log.Println("blkhash:%v", blkhash.Bytes)
 	block.IsSealed = true
 	chain.NextBlockID++
-	newblock, _ := notaryapi.CreateBlock(chain, block, 10)
+	newblock, _ := common.CreateBlock(chain, block, 10)
 	chain.Blocks = append(chain.Blocks, newblock)
 	chain.BlockMutex.Unlock()
 	block.EBHash = blkhash
 
 	// Create the Entry Block Merkle Root for FB Entry
-	hashes := make([]*notaryapi.Hash, 0, len(block.EBEntries)+1)
+	hashes := make([]*common.Hash, 0, len(block.EBEntries)+1)
 	for _, entry := range block.EBEntries {
 		data, _ := entry.MarshalBinary()
-		hashes = append(hashes, notaryapi.Sha(data))
+		hashes = append(hashes, common.Sha(data))
 	}
 	binaryEBHeader, _ := block.Header.MarshalBinary()
-	hashes = append(hashes, notaryapi.Sha(binaryEBHeader))
-	merkle := notaryapi.BuildMerkleTreeStore(hashes)
+	hashes = append(hashes, common.Sha(binaryEBHeader))
+	merkle := common.BuildMerkleTreeStore(hashes)
 	block.MerkleRoot = merkle[len(merkle)-1] // MerkleRoot is not marshalized in Entry Block
 	fmt.Println("block.MerkleRoot:%v", block.MerkleRoot.String())
 
@@ -900,24 +900,24 @@ func newEntryBlock(chain *notaryapi.EChain) *notaryapi.EBlock {
 	return block
 }
 
-func newEntryCreditBlock(chain *notaryapi.CChain) *notaryapi.CBlock {
+func newEntryCreditBlock(chain *common.CChain) *common.CBlock {
 
 	// acquire the last block
 	block := chain.Blocks[len(chain.Blocks)-1]
 
 	if len(block.CBEntries) < 1 {
-		//log.Println("No new entry found. No block created for chain: "  + notaryapi.EncodeChainID(chain.ChainID))
+		//log.Println("No new entry found. No block created for chain: "  + common.EncodeChainID(chain.ChainID))
 		return nil
 	}
 
 	// Create the block and add a new block for new coming entries
 	chain.BlockMutex.Lock()
 	block.Header.EntryCount = uint32(len(block.CBEntries))
-	blkhash, _ := notaryapi.CreateHash(block)
+	blkhash, _ := common.CreateHash(block)
 	log.Println("blkhash:%v", blkhash.Bytes)
 	block.IsSealed = true
 	chain.NextBlockID++
-	newblock, _ := notaryapi.CreateCBlock(chain, block, 10)
+	newblock, _ := common.CreateCBlock(chain, block, 10)
 	chain.Blocks = append(chain.Blocks, newblock)
 	chain.BlockMutex.Unlock()
 	block.CBHash = blkhash
@@ -929,7 +929,7 @@ func newEntryCreditBlock(chain *notaryapi.CChain) *notaryapi.CBlock {
 	return block
 }
 
-func newDirectoryBlock(chain *notaryapi.DChain) *notaryapi.DBlock {
+func newDirectoryBlock(chain *common.DChain) *common.DBlock {
 
 	// acquire the last block
 	block := chain.Blocks[len(chain.Blocks)-1]
@@ -947,10 +947,10 @@ func newDirectoryBlock(chain *notaryapi.DChain) *notaryapi.DBlock {
 		block.Header.MerkleRoot = block.CalculateMerkleRoot()
 		fmt.Println("block.Header.MerkleRoot:%v", block.Header.MerkleRoot.String())
 	}
-	blkhash, _ := notaryapi.CreateHash(block)
+	blkhash, _ := common.CreateHash(block)
 	block.IsSealed = true
 	chain.NextBlockID++
-	newblock, _ := notaryapi.CreateDBlock(chain, block, 10)
+	newblock, _ := common.CreateDBlock(chain, block, 10)
 	chain.Blocks = append(chain.Blocks, newblock)
 	chain.BlockMutex.Unlock()
 
@@ -963,19 +963,19 @@ func newDirectoryBlock(chain *notaryapi.DChain) *notaryapi.DBlock {
 	return block
 }
 
-func getEntryCreditBalance(pubKey *notaryapi.Hash) ([]byte, error) {
+func getEntryCreditBalance(pubKey *common.Hash) ([]byte, error) {
 	var buf bytes.Buffer
 	binary.Write(&buf, binary.BigEndian, eCreditMap[pubKey.String()])
 	return buf.Bytes(), nil
 }
 
-func saveDChain(chain *notaryapi.DChain) {
+func saveDChain(chain *common.DChain) {
 	if len(chain.Blocks) == 0 {
 		//log.Println("no blocks to save for chain: " + string (*chain.ChainID))
 		return
 	}
 
-	bcp := make([]*notaryapi.DBlock, len(chain.Blocks))
+	bcp := make([]*common.DBlock, len(chain.Blocks))
 
 	chain.BlockMutex.Lock()
 	copy(bcp, chain.Blocks)
@@ -1008,13 +1008,13 @@ func saveDChain(chain *notaryapi.DChain) {
 	}
 }
 
-func saveCChain(chain *notaryapi.CChain) {
+func saveCChain(chain *common.CChain) {
 	if len(chain.Blocks) == 0 {
 		//log.Println("no blocks to save for chain: " + string (*chain.ChainID))
 		return
 	}
 
-	bcp := make([]*notaryapi.CBlock, len(chain.Blocks))
+	bcp := make([]*common.CBlock, len(chain.Blocks))
 
 	chain.BlockMutex.Lock()
 	copy(bcp, chain.Blocks)
@@ -1048,13 +1048,13 @@ func saveCChain(chain *notaryapi.CChain) {
 }
 
 func initDChain() {
-	dchain = new(notaryapi.DChain)
+	dchain = new(common.DChain)
 
 	//Initialize dbInfoMap
-	dbInfoMap = make(map[string]*notaryapi.DBInfo)
+	dbInfoMap = make(map[string]*common.DBInfo)
 
 	//Initialize the Directory Block Chain ID
-	dchain.ChainID = new(notaryapi.Hash)
+	dchain.ChainID = new(common.Hash)
 	barray := []byte{0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD,
 		0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD}
 	dchain.ChainID.SetBytes(barray)
@@ -1063,7 +1063,7 @@ func initDChain() {
 	dBlocks, _ := db.FetchAllDBlocks()
 	sort.Sort(util.ByDBlockIDAccending(dBlocks))
 
-	dchain.Blocks = make([]*notaryapi.DBlock, len(dBlocks))
+	dchain.Blocks = make([]*common.DBlock, len(dBlocks))
 
 	for i := 0; i < len(dBlocks); i = i + 1 {
 		if dBlocks[i].Header.BlockID != uint64(i) {
@@ -1084,12 +1084,12 @@ func initDChain() {
 	//Create an empty block and append to the chain
 	if len(dchain.Blocks) == 0 {
 		dchain.NextBlockID = 0
-		newblock, _ := notaryapi.CreateDBlock(dchain, nil, 10)
+		newblock, _ := common.CreateDBlock(dchain, nil, 10)
 		dchain.Blocks = append(dchain.Blocks, newblock)
 
 	} else {
 		dchain.NextBlockID = uint64(len(dchain.Blocks))
-		newblock, _ := notaryapi.CreateDBlock(dchain, dchain.Blocks[len(dchain.Blocks)-1], 10)
+		newblock, _ := common.CreateDBlock(dchain, dchain.Blocks[len(dchain.Blocks)-1], 10)
 		dchain.Blocks = append(dchain.Blocks, newblock)
 	}
 
@@ -1109,17 +1109,17 @@ func initCChain() {
 	prePaidEntryMap = make(map[string]int32)
 
 	//Initialize the Entry Credit Chain ID
-	cchain = new(notaryapi.CChain)
+	cchain = new(common.CChain)
 	barray := []byte{0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC,
 		0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC}
-	cchain.ChainID = new(notaryapi.Hash)
+	cchain.ChainID = new(common.Hash)
 	cchain.ChainID.SetBytes(barray)
 
 	// get all dBlocks from db
 	cBlocks, _ := db.FetchAllCBlocks()
 	sort.Sort(util.ByCBlockIDAccending(cBlocks))
 
-	cchain.Blocks = make([]*notaryapi.CBlock, len(cBlocks))
+	cchain.Blocks = make([]*common.CBlock, len(cBlocks))
 
 	for i := 0; i < len(cBlocks); i = i + 1 {
 		if cBlocks[i].Header.BlockID != uint64(i) {
@@ -1143,12 +1143,12 @@ func initCChain() {
 	//Create an empty block and append to the chain
 	if len(cchain.Blocks) == 0 {
 		cchain.NextBlockID = 0
-		newblock, _ := notaryapi.CreateCBlock(cchain, nil, 10)
+		newblock, _ := common.CreateCBlock(cchain, nil, 10)
 		cchain.Blocks = append(cchain.Blocks, newblock)
 
 	} else {
 		cchain.NextBlockID = uint64(len(cchain.Blocks))
-		newblock, _ := notaryapi.CreateCBlock(cchain, cchain.Blocks[len(cchain.Blocks)-1], 10)
+		newblock, _ := common.CreateCBlock(cchain, cchain.Blocks[len(cchain.Blocks)-1], 10)
 		cchain.Blocks = append(cchain.Blocks, newblock)
 	}
 
@@ -1156,7 +1156,7 @@ func initCChain() {
 	/*	binaryTimestamp := make([]byte, 8)
 		binary.BigEndian.PutUint64(binaryTimestamp, uint64(0))
 		if cchain.Blocks[cchain.NextBlockID].IsSealed == true {
-			panic ("dchain.Blocks[dchain.NextBlockID].IsSealed for chain:" + notaryapi.EncodeBinary(dchain.ChainID))
+			panic ("dchain.Blocks[dchain.NextBlockID].IsSealed for chain:" + common.EncodeBinary(dchain.ChainID))
 		}
 		dchain.Blocks[dchain.NextBlockID].DBEntries, _ = db.FetchDBEntriesFromQueue(&binaryTimestamp)
 	*/
@@ -1173,7 +1173,7 @@ func initCChain() {
 
 func initEChains() {
 
-	chainIDMap = make(map[string]*notaryapi.EChain)
+	chainIDMap = make(map[string]*common.EChain)
 
 	chains, err := db.FetchAllChainsByName(nil)
 
@@ -1188,7 +1188,7 @@ func initEChains() {
 
 }
 
-func initializeECreditMap(block *notaryapi.CBlock) {
+func initializeECreditMap(block *common.CBlock) {
 	for _, cbEntry := range block.CBEntries {
 		credits, _ := eCreditMap[cbEntry.PublicKey().String()]
 		eCreditMap[cbEntry.PublicKey().String()] = credits + cbEntry.Credits()
@@ -1199,7 +1199,7 @@ func initProcessListMgr() {
 
 }
 
-func getPrePaidChainKey(entryHash *notaryapi.Hash, chainIDHash *notaryapi.Hash) string {
+func getPrePaidChainKey(entryHash *common.Hash, chainIDHash *common.Hash) string {
 	return chainIDHash.String() + entryHash.String()
 }
 

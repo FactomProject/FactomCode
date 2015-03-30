@@ -1,4 +1,4 @@
-package notaryapi
+package common
 
 import (
 	"encoding/hex"

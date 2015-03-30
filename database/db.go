@@ -1,7 +1,7 @@
 package database
 
 import (
-	"github.com/FactomProject/FactomCode/notaryapi"
+	"github.com/FactomProject/FactomCode/common"
 )
 
 // AllShas is a special value that can be used as the final sha when requesting
@@ -22,76 +22,76 @@ type Db interface {
 	Sync() (err error)
 
 	// InsertEntry inserts an entry and put it on a process queue
-	InsertEntryAndQueue(entrySha *notaryapi.Hash, binaryEntry *[]byte, entry *notaryapi.Entry, chainID *[]byte) (err error)
+	InsertEntryAndQueue(entrySha *common.Hash, binaryEntry *[]byte, entry *common.Entry, chainID *[]byte) (err error)
 
 	// FetchEntry gets an entry by hash from the database.
-	FetchEntryByHash(entrySha *notaryapi.Hash) (entry *notaryapi.Entry, err error)
+	FetchEntryByHash(entrySha *common.Hash) (entry *common.Entry, err error)
 
 	// FetchEBEntriesFromQueue gets all of the ebentries that have not been processed
-	FetchEBEntriesFromQueue(chainID *[]byte, startTime *[]byte) (ebentries []*notaryapi.EBEntry, err error)
+	FetchEBEntriesFromQueue(chainID *[]byte, startTime *[]byte) (ebentries []*common.EBEntry, err error)
 
 	// ProcessEBlockBatche inserts the EBlock and update all it's ebentries in DB
-	ProcessEBlockBatch(eblock *notaryapi.EBlock) error
+	ProcessEBlockBatch(eblock *common.EBlock) error
 
 	// FetchDBEntriesFromQueue gets all of the dbentries that have not been processed
-	FetchDBEntriesFromQueue(startTime *[]byte) (dbentries []*notaryapi.DBEntry, err error)
+	FetchDBEntriesFromQueue(startTime *[]byte) (dbentries []*common.DBEntry, err error)
 
 	// InsertChain inserts the newly created chain into db
-	InsertChain(chain *notaryapi.EChain) (err error)
+	InsertChain(chain *common.EChain) (err error)
 
 	// FetchEBInfoByHash gets a chain by chainID
-	FetchChainByHash(chainID *notaryapi.Hash) (chain *notaryapi.EChain, err error)
+	FetchChainByHash(chainID *common.Hash) (chain *common.EChain, err error)
 
 	// FetchChainByName gets a chain by chain name
-	FetchChainByName(chainName [][]byte) (chain *notaryapi.EChain, err error)
+	FetchChainByName(chainName [][]byte) (chain *common.EChain, err error)
 
 	// FetchAllChainByName gets all of the chains under the path - name
-	FetchAllChainsByName(chainName [][]byte) (chains *[]notaryapi.EChain, err error)
+	FetchAllChainsByName(chainName [][]byte) (chains *[]common.EChain, err error)
 
 	// FetchEntryInfoBranchByHash gets an EntryInfo obj
-	FetchEntryInfoByHash(entryHash *notaryapi.Hash) (entryInfo *notaryapi.EntryInfo, err error)
+	FetchEntryInfoByHash(entryHash *common.Hash) (entryInfo *common.EntryInfo, err error)
 
 	// FetchEntryInfoBranchByHash gets an EntryInfoBranch obj
-	FetchEntryInfoBranchByHash(entryHash *notaryapi.Hash) (entryInfoBranch *notaryapi.EntryInfoBranch, err error)
+	FetchEntryInfoBranchByHash(entryHash *common.Hash) (entryInfoBranch *common.EntryInfoBranch, err error)
 
 	// FetchEntryBlock gets an entry by hash from the database.
-	FetchEBlockByHash(eBlockHash *notaryapi.Hash) (eBlock *notaryapi.EBlock, err error)
+	FetchEBlockByHash(eBlockHash *common.Hash) (eBlock *common.EBlock, err error)
 
 	// FetchEBlockByMR gets an entry block by merkle root from the database.
-	FetchEBlockByMR(eBMR *notaryapi.Hash) (eBlock *notaryapi.EBlock, err error)
+	FetchEBlockByMR(eBMR *common.Hash) (eBlock *common.EBlock, err error)
 
 	// FetchEBHashByMR gets an entry by hash from the database.
-	FetchEBHashByMR(eBMR *notaryapi.Hash) (eBlockHash *notaryapi.Hash, err error)
+	FetchEBHashByMR(eBMR *common.Hash) (eBlockHash *common.Hash, err error)
 
 	// FetchEBInfoByHash gets an EBInfo obj
-	FetchEBInfoByHash(ebHash *notaryapi.Hash) (ebInfo *notaryapi.EBInfo, err error)
+	FetchEBInfoByHash(ebHash *common.Hash) (ebInfo *common.EBInfo, err error)
 
 	// FetchAllEBlocksByChain gets all of the blocks by chain id
-	FetchAllEBlocksByChain(chainID *notaryapi.Hash) (eBlocks *[]notaryapi.EBlock, err error)
+	FetchAllEBlocksByChain(chainID *common.Hash) (eBlocks *[]common.EBlock, err error)
 
 	// FetchAllEBInfosByChain gets all of the entry block infos by chain id
-	FetchAllEBInfosByChain(chainID *notaryapi.Hash) (eBInfos *[]notaryapi.EBInfo, err error)
+	FetchAllEBInfosByChain(chainID *common.Hash) (eBInfos *[]common.EBInfo, err error)
 
 	// FetchDBlock gets an entry by hash from the database.
-	FetchDBlockByHash(dBlockHash *notaryapi.Hash) (dBlock *notaryapi.DBlock, err error)
+	FetchDBlockByHash(dBlockHash *common.Hash) (dBlock *common.DBlock, err error)
 
 	// FetchDBBatchByHash gets an FBBatch obj
-	FetchDBInfoByHash(dbHash *notaryapi.Hash) (dbInfo *notaryapi.DBInfo, err error)
+	FetchDBInfoByHash(dbHash *common.Hash) (dbInfo *common.DBInfo, err error)
 
 	// Insert the Directory Block meta data into db
-	InsertDBInfo(dbInfo notaryapi.DBInfo) (err error)
+	InsertDBInfo(dbInfo common.DBInfo) (err error)
 
 	// ProcessDBlockBatche inserts the EBlock and update all it's ebentries in DB
-	ProcessDBlockBatch(block *notaryapi.DBlock) error
+	ProcessDBlockBatch(block *common.DBlock) error
 
 	// FetchAllCBlocks gets all of the entry credit blocks
-	FetchAllCBlocks() (cBlocks []notaryapi.CBlock, err error)
+	FetchAllCBlocks() (cBlocks []common.CBlock, err error)
 
 	// FetchAllFBInfo gets all of the fbInfo
-	FetchAllDBlocks() (fBlocks []notaryapi.DBlock, err error)
+	FetchAllDBlocks() (fBlocks []common.DBlock, err error)
 
 	// ProcessCBlockBatche inserts the CBlock and update all it's cbentries in DB
-	ProcessCBlockBatch(block *notaryapi.CBlock) (err error)
+	ProcessCBlockBatch(block *common.CBlock) (err error)
 
 	// Initialize External ID map for explorer search
 	InitializeExternalIDMap() (extIDMap map[string]bool, err error)
@@ -101,7 +101,7 @@ type Db interface {
 		ProcessFBlockBatch(block *factoid.FBlock) error
 
 		// FetchFBInfoByHash gets an FBInfo obj
-		//FetchFBInfoByHash(fbHash *notaryapi.Hash) (fbInfo *notaryapi.FBInfo, err error)
+		//FetchFBInfoByHash(fbHash *common.Hash) (fbInfo *common.FBInfo, err error)
 
 		// FetchAllFBlocks gets all of the factoid blocks
 		FetchAllFBlocks() (fBlocks []factoid.FBlock, err error)

@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/FactomProject/FactomCode/notaryapi"
+	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/gocoding"
 	"net/http"
 	"net/url"
@@ -21,7 +21,7 @@ func TestBuyCredit(t *testing.T) {
 	data := url.Values{}
 	barray := (make([]byte, 32))
 	barray[0] = 2
-	pubKey := new (notaryapi.Hash)
+	pubKey := new (common.Hash)
 	pubKey.SetBytes(barray)
 	data.Set("to", hex.EncodeToString(pubKey.Bytes))
 	data.Set("value", "1.123456789")
@@ -42,7 +42,7 @@ func TestBuyCreditWallet(t *testing.T) {
 	data := url.Values{}
 	barray := (make([]byte, 32))
 	barray[0] = 2
-	pubKey := new(notaryapi.Hash)
+	pubKey := new(common.Hash)
 	pubKey.SetBytes(barray)
 	data.Set("to", "wallet")
 	data.Set("value", "11.123456789")
@@ -60,7 +60,7 @@ func TestBuyCreditWallet(t *testing.T) {
 //need to call commit first because we added payment logic on server
 func TestAddChain(t *testing.T) {
 	fmt.Println("\nTestAddChain===========================================================================")
-	chain := new(notaryapi.EChain)
+	chain := new(common.EChain)
 	bName := make([][]byte, 0, 5)
 	bName = append(bName, []byte("myCompany"))
 	bName = append(bName, []byte("bookkeeping5"))
@@ -68,7 +68,7 @@ func TestAddChain(t *testing.T) {
 	chain.Name = bName
 	chain.GenerateIDFromName()
 
-	entry := new(notaryapi.Entry)
+	entry := new(common.Entry)
 	entry.ChainID = *chain.ChainID
 	entry.ExtIDs = make([][]byte, 0, 5)
 	entry.ExtIDs = append(entry.ExtIDs, []byte("1001"))
@@ -103,7 +103,7 @@ func TestAddChain(t *testing.T) {
 
 	// JSON ws test done ----------------------------------------------------------------------------
 
-	chain3 := new(notaryapi.EChain)
+	chain3 := new(common.EChain)
 	reader := gocoding.ReadBytes([]byte(jsonstr))
 	err = SafeUnmarshal(reader, chain3)
 
@@ -120,7 +120,7 @@ func TestAddChain(t *testing.T) {
 func TestAddEntry(t *testing.T) {
 	fmt.Println("\nTestAddEntry===========================================================================")
 
-	chain := new(notaryapi.EChain)
+	chain := new(common.EChain)
 	bName := make([][]byte, 0, 5)
 	bName = append(bName, []byte("myCompany"))
 	bName = append(bName, []byte("bookkeeping5"))
@@ -128,7 +128,7 @@ func TestAddEntry(t *testing.T) {
 	chain.Name = bName
 	chain.GenerateIDFromName()
 
-	entry := new(notaryapi.Entry)
+	entry := new(common.Entry)
 	entry.ChainID = *chain.ChainID
 	entry.ExtIDs = make([][]byte, 0, 5)
 	entry.ExtIDs = append(entry.ExtIDs, []byte("1001"))
@@ -159,7 +159,7 @@ func TestAddEntry(t *testing.T) {
 	}
 	// JSON ws test done ----------------------------------------------------------------------------
 
-	entry2 := new(notaryapi.Entry)
+	entry2 := new(common.Entry)
 	reader := gocoding.ReadBytes([]byte(jsonstr))
 	err = SafeUnmarshal(reader, entry2)
 
@@ -175,7 +175,7 @@ func TestAddEntry(t *testing.T) {
 func TestAddEntry2(t *testing.T) {
 	fmt.Println("\nTestAddEntry===========================================================================")
 
-	chain := new(notaryapi.EChain)
+	chain := new(common.EChain)
 	bName := make([][]byte, 0, 5)
 	bName = append(bName, []byte("myCompany"))
 	bName = append(bName, []byte("bookkeeping4"))
@@ -183,7 +183,7 @@ func TestAddEntry2(t *testing.T) {
 	chain.Name = bName
 	chain.GenerateIDFromName()
 
-	entry := new(notaryapi.Entry)
+	entry := new(common.Entry)
 	entry.ChainID = *chain.ChainID
 	entry.ExtIDs = make([][]byte, 0, 5)
 	entry.ExtIDs = append(entry.ExtIDs, []byte("1001"))
@@ -214,7 +214,7 @@ func TestAddEntry2(t *testing.T) {
 	}
 	// JSON ws test done ----------------------------------------------------------------------------
 
-	entry2 := new(notaryapi.Entry)
+	entry2 := new(common.Entry)
 	reader := gocoding.ReadBytes([]byte(jsonstr))
 	err = SafeUnmarshal(reader, entry2)
 
@@ -233,7 +233,7 @@ func TestBuyCredit(t *testing.T) {
 	data := url.Values{}
 	barray := (make([]byte, 32))
 	barray[0] = 2
-	pubKey := new (notaryapi.Hash)
+	pubKey := new (common.Hash)
 	pubKey.SetBytes(barray)
 	data.Set("to", base64.URLEncoding.EncodeToString(pubKey.Bytes))
 	data.Set("value", "1.123456789")
@@ -255,7 +255,7 @@ func TestGetCreditBalance(t *testing.T) {
 	data := url.Values{}
 	barray := (make([]byte, 32))
 	barray[0] = 2
-	pubKey := new (notaryapi.Hash)
+	pubKey := new (common.Hash)
 	pubKey.SetBytes(barray)
 	data.Set("pubkey", base64.URLEncoding.EncodeToString(pubKey.Bytes))
 	data.Set("password", "opensesame")
@@ -278,7 +278,7 @@ func TestGetCreditWalletBalance(t *testing.T) {
 	data := url.Values{}
 	barray := (make([]byte, 32))
 	barray[0] = 2
-	pubKey := new (notaryapi.Hash)
+	pubKey := new (common.Hash)
 	pubKey.SetBytes(barray)
 	data.Set("pubkey", "wallet")
 	data.Set("password", "opensesame")

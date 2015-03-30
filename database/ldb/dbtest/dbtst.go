@@ -4,7 +4,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/FactomProject/FactomCode/notaryapi"
+	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/goleveldb/leveldb"
 	"github.com/FactomProject/goleveldb/leveldb/opt"
 	"github.com/FactomProject/goleveldb/leveldb/util"
@@ -38,7 +38,7 @@ func main() {
 
 	for iter.Next() {
 		key := iter.Key()
-		fmt.Println("key:%v", notaryapi.EncodeBinary(&key))
+		fmt.Println("key:%v", common.EncodeBinary(&key))
 		fmt.Println("  value:%v", iter.Value())
 		t := new(tst)
 

@@ -5,7 +5,7 @@ import (
 	"os"
 	//"fmt"
 	"code.google.com/p/gcfg"
-	"github.com/FactomProject/FactomCode/notaryapi"
+	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/util"
 )
 
@@ -59,22 +59,22 @@ func loadConfigurations() {
 
 }
 
-func SignData(data []byte) notaryapi.Signature {
+func SignData(data []byte) common.Signature {
 	return keyManager.keyPair.Sign(data)
 }
 
 //impliment Signer
-func Sign(d []byte) notaryapi.Signature { return SignData(d) }
+func Sign(d []byte) common.Signature { return SignData(d) }
 
-func ClientPublicKey() notaryapi.PublicKey {
+func ClientPublicKey() common.PublicKey {
 	return keyManager.keyPair.Pub
 }
 
-func MarshalSign(msg notaryapi.BinaryMarshallable) notaryapi.Signature {
+func MarshalSign(msg common.BinaryMarshallable) common.Signature {
 	return keyManager.keyPair.MarshalSign(msg)
 }
 
-func DetachMarshalSign(msg notaryapi.BinaryMarshallable) *notaryapi.DetachedSignature {
+func DetachMarshalSign(msg common.BinaryMarshallable) *common.DetachedSignature {
 	sig := MarshalSign(msg)
 	return sig.DetachSig()
 }

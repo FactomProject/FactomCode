@@ -2,7 +2,7 @@ package ldb
 
 import (
 	"github.com/FactomProject/FactomCode/database"
-	"github.com/FactomProject/FactomCode/notaryapi"	
+	"github.com/FactomProject/FactomCode/common"	
 	"log"
 	"testing"
 )
@@ -13,7 +13,7 @@ func TestSimpleOperations(t *testing.T) {
 
 	initDB()
 
-	chain := new(notaryapi.EChain)
+	chain := new(common.EChain)
 	bName := make([][]byte, 0, 5)
 	bName = append(bName, []byte("myCompany"))
 	bName = append(bName, []byte("bookkeeping3"))
@@ -21,7 +21,7 @@ func TestSimpleOperations(t *testing.T) {
 	chain.Name = bName
 	chain.GenerateIDFromName()
 
-	entry := new(notaryapi.Entry)
+	entry := new(common.Entry)
 	entry.ChainID = *chain.ChainID
 	entry.ExtIDs = make([][]byte, 0, 5)
 	entry.ExtIDs = append(entry.ExtIDs, []byte("1001"))
@@ -30,7 +30,7 @@ func TestSimpleOperations(t *testing.T) {
 	entry.Data = []byte("Entry data: asl;djfasldkfjasldfjlksouiewopurw\"")
 	
 	entryBinary, _ := entry.MarshalBinary()
-	entryHash := notaryapi.Sha(entryBinary)
+	entryHash := common.Sha(entryBinary)
 	err := db.InsertEntryAndQueue(entryHash, &entryBinary, entry, &chain.ChainID.Bytes)	
 	
 	entry1, _ := db.FetchEntryByHash(entryHash)

@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
-	"github.com/FactomProject/FactomCode/notaryapi"
+	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/goleveldb/leveldb"
 	"github.com/FactomProject/goleveldb/leveldb/util"
 	"log"
@@ -12,7 +12,7 @@ import (
 )
 
 // FetchDBEntriesFromQueue gets all of the dbentries that have not been processed
-func (db *LevelDb) FetchDBEntriesFromQueue(startTime *[]byte) (dbentries []*notaryapi.DBEntry, err error) {
+func (db *LevelDb) FetchDBEntriesFromQueue(startTime *[]byte) (dbentries []*common.DBEntry, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -24,7 +24,7 @@ func (db *LevelDb) FetchDBEntriesFromQueue(startTime *[]byte) (dbentries []*nota
 	binary.BigEndian.PutUint64(binaryTimestamp, uint64(time.Now().Unix()))
 	tokey = append(tokey, binaryTimestamp...) // Timestamp  (8 bytes)
 
-	fbEntrySlice := make([]*notaryapi.DBEntry, 0, 10)
+	fbEntrySlice := make([]*common.DBEntry, 0, 10)
 
 	iter := db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
 
@@ -32,11 +32,11 @@ func (db *LevelDb) FetchDBEntriesFromQueue(startTime *[]byte) (dbentries []*nota
 		if bytes.Equal(iter.Value(), []byte{byte(STATUS_IN_QUEUE)}) {
 			key := make([]byte, len(iter.Key()))
 			copy(key, iter.Key())
-			dbEntry := new(notaryapi.DBEntry)
+			dbEntry := new(common.DBEntry)
 
 			dbEntry.SetTimeStamp(key[1:9]) // Timestamp (8 bytes)
 			cid := key[9:41]
-			dbEntry.ChainID = new(notaryapi.Hash)
+			dbEntry.ChainID = new(common.Hash)
 			dbEntry.ChainID.Bytes = cid // Chain id (32 bytes)
 			dbEntry.SetHash(key[41:73]) // Entry Hash (32 bytes)
 
@@ -50,7 +50,7 @@ func (db *LevelDb) FetchDBEntriesFromQueue(startTime *[]byte) (dbentries []*nota
 }
 
 // ProcessDBlockBatche inserts the DBlock and update all it's dbentries in DB
-func (db *LevelDb) ProcessDBlockBatch(dblock *notaryapi.DBlock) error {
+func (db *LevelDb) ProcessDBlockBatch(dblock *common.DBlock) error {
 
 	if dblock != nil {
 		if db.lbatch == nil {
@@ -82,7 +82,7 @@ func (db *LevelDb) ProcessDBlockBatch(dblock *notaryapi.DBlock) error {
 
 		// Update DBEntry process queue for each dbEntry in dblock
 		for i := 0; i < len(dblock.DBEntries); i++ {
-			var dbEntry notaryapi.DBEntry = *dblock.DBEntries[i]
+			var dbEntry common.DBEntry = *dblock.DBEntries[i]
 			var fbEntryKey []byte = []byte{byte(TBL_EB_QUEUE)}               // Table Name (1 bytes)
 			fbEntryKey = append(fbEntryKey, dbEntry.GetBinaryTimeStamp()...) // Timestamp (8 bytes)
 			fbEntryKey = append(fbEntryKey, dbEntry.ChainID.Bytes...)        // Chain id (32 bytes)
@@ -91,7 +91,7 @@ func (db *LevelDb) ProcessDBlockBatch(dblock *notaryapi.DBlock) error {
 
 			if isLookupDB {
 				// Create an EBInfo and insert it into db
-				var ebInfo = new(notaryapi.EBInfo)
+				var ebInfo = new(common.EBInfo)
 				ebInfo.EBHash = dbEntry.Hash()
 				ebInfo.MerkleRoot = dbEntry.MerkleRoot
 				ebInfo.DBHash = dblock.DBHash
@@ -115,7 +115,7 @@ func (db *LevelDb) ProcessDBlockBatch(dblock *notaryapi.DBlock) error {
 }
 
 // Insert the Directory Block meta data into db
-func (db *LevelDb) InsertDBInfo(dbInfo notaryapi.DBInfo) (err error) {
+func (db *LevelDb) InsertDBInfo(dbInfo common.DBInfo) (err error) {
 	if dbInfo.BTCBlockHash == nil || dbInfo.BTCTxHash == nil {
 		return
 	}
@@ -143,7 +143,7 @@ func (db *LevelDb) InsertDBInfo(dbInfo notaryapi.DBInfo) (err error) {
 }
 
 // FetchDBInfoByHash gets an DBInfo obj
-func (db *LevelDb) FetchDBInfoByHash(dbHash *notaryapi.Hash) (dbInfo *notaryapi.DBInfo, err error) {
+func (db *LevelDb) FetchDBInfoByHash(dbHash *common.Hash) (dbInfo *common.DBInfo, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -152,7 +152,7 @@ func (db *LevelDb) FetchDBInfoByHash(dbHash *notaryapi.Hash) (dbInfo *notaryapi.
 	data, err := db.lDb.Get(key, db.ro)
 
 	if data != nil {
-		dbInfo = new(notaryapi.DBInfo)
+		dbInfo = new(common.DBInfo)
 		dbInfo.UnmarshalBinary(data)
 	}
 
@@ -160,7 +160,7 @@ func (db *LevelDb) FetchDBInfoByHash(dbHash *notaryapi.Hash) (dbInfo *notaryapi.
 }
 
 // FetchDBlock gets an entry by hash from the database.
-func (db *LevelDb) FetchDBlockByHash(dBlockHash *notaryapi.Hash) (dBlock *notaryapi.DBlock, err error) {
+func (db *LevelDb) FetchDBlockByHash(dBlockHash *common.Hash) (dBlock *common.DBlock, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -171,7 +171,7 @@ func (db *LevelDb) FetchDBlockByHash(dBlockHash *notaryapi.Hash) (dBlock *notary
 	if data == nil {
 		return nil, errors.New("DBlock not found for Hash: " + dBlockHash.String())
 	} else {
-		dBlock = new(notaryapi.DBlock)
+		dBlock = new(common.DBlock)
 		dBlock.UnmarshalBinary(data)
 	}
 
@@ -185,21 +185,21 @@ func (db *LevelDb) FetchDBlockByHash(dBlockHash *notaryapi.Hash) (dBlock *notary
 }
 
 // FetchAllDBInfo gets all of the fbInfo
-func (db *LevelDb) FetchAllDBlocks() (dBlocks []notaryapi.DBlock, err error) {
+func (db *LevelDb) FetchAllDBlocks() (dBlocks []common.DBlock, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
 	var fromkey []byte = []byte{byte(TBL_DB)}   // Table Name (1 bytes)						// Timestamp  (8 bytes)
 	var tokey []byte = []byte{byte(TBL_DB + 1)} // Table Name (1 bytes)
 
-	dBlockSlice := make([]notaryapi.DBlock, 0, 10)
+	dBlockSlice := make([]common.DBlock, 0, 10)
 
 	iter := db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
 
 	for iter.Next() {
-		var dBlock notaryapi.DBlock
+		var dBlock common.DBlock
 		dBlock.UnmarshalBinary(iter.Value())
-		dBlock.DBHash = notaryapi.Sha(iter.Value()) //to be optimized??
+		dBlock.DBHash = common.Sha(iter.Value()) //to be optimized??
 
 		dBlockSlice = append(dBlockSlice, dBlock)
 

@@ -2,14 +2,14 @@ package ldb
 
 import (
 	"errors"
-	"github.com/FactomProject/FactomCode/notaryapi"
+	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/goleveldb/leveldb"
 	"github.com/FactomProject/goleveldb/leveldb/util"
 	"log"
 )
 
 // ProcessCBlockBatche inserts the CBlock and update all it's cbentries in DB
-func (db *LevelDb) ProcessCBlockBatch(block *notaryapi.CBlock) error {
+func (db *LevelDb) ProcessCBlockBatch(block *common.CBlock) error {
 
 	if block != nil {
 		if db.lbatch == nil {
@@ -43,7 +43,7 @@ func (db *LevelDb) ProcessCBlockBatch(block *notaryapi.CBlock) error {
 }
 
 // FetchCntryBlock gets a block by hash from the database.
-func (db *LevelDb) FetchCBlockByHash(cBlockHash *notaryapi.Hash) (cBlock *notaryapi.CBlock, err error) {
+func (db *LevelDb) FetchCBlockByHash(cBlockHash *common.Hash) (cBlock *common.CBlock, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -52,28 +52,28 @@ func (db *LevelDb) FetchCBlockByHash(cBlockHash *notaryapi.Hash) (cBlock *notary
 	data, err := db.lDb.Get(key, db.ro)
 
 	if data != nil {
-		cBlock = new(notaryapi.CBlock)
+		cBlock = new(common.CBlock)
 		cBlock.UnmarshalBinary(data)
 	}
 	return cBlock, nil
 }
 
 // FetchAllCBlocks gets all of the entry credit blocks
-func (db *LevelDb) FetchAllCBlocks() (cBlocks []notaryapi.CBlock, err error) {
+func (db *LevelDb) FetchAllCBlocks() (cBlocks []common.CBlock, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
 	var fromkey []byte = []byte{byte(TBL_CB)}   // Table Name (1 bytes)						// Timestamp  (8 bytes)
 	var tokey []byte = []byte{byte(TBL_CB + 1)} // Table Name (1 bytes)
 
-	cBlockSlice := make([]notaryapi.CBlock, 0, 10)
+	cBlockSlice := make([]common.CBlock, 0, 10)
 
 	iter := db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
 
 	for iter.Next() {
-		var cBlock notaryapi.CBlock
+		var cBlock common.CBlock
 		cBlock.UnmarshalBinary(iter.Value())
-		cBlock.CBHash = notaryapi.Sha(iter.Value()) //to be optimized??
+		cBlock.CBHash = common.Sha(iter.Value()) //to be optimized??
 
 		cBlockSlice = append(cBlockSlice, cBlock)
 

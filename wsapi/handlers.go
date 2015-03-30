@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/FactomProject/FactomCode/factomapi"
-	"github.com/FactomProject/FactomCode/notaryapi"
+	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/wallet"
 	"github.com/FactomProject/gocoding"
 	"github.com/hoisie/web"
@@ -60,7 +60,7 @@ func handleBuyCredit(ctx *web.Context) {
 		}
 	}()
 
-	ecPubKey := new(notaryapi.Hash)
+	ecPubKey := new(common.Hash)
 	if ctx.Params["to"] == "wallet" {
 		ecPubKey.Bytes = (*wallet.ClientPublicKey().Key)[:]
 	} else {
@@ -98,7 +98,7 @@ func handleCreditBalance(ctx *web.Context) {
 		ctx.Write(buf.Bytes())
 	}()
 
-	ecPubKey := new(notaryapi.Hash)
+	ecPubKey := new(common.Hash)
 	if ctx.Params["pubkey"] == "wallet" {
 		ecPubKey.Bytes = (*wallet.ClientPublicKey().Key)[:]
 	} else {
@@ -117,7 +117,7 @@ func handleCreditBalance(ctx *web.Context) {
 		log.Error(err)
 	}
 
-	ecBalance := new(notaryapi.ECBalance)
+	ecBalance := new(common.ECBalance)
 	ecBalance.Credits = balance
 	ecBalance.PublicKey = ecPubKey
 
@@ -353,7 +353,7 @@ func handleSubmitChain(ctx *web.Context) {
 	switch ctx.Params["format"] {
 	case "json":
 		reader := gocoding.ReadBytes([]byte(ctx.Params["chain"]))
-		c := new(notaryapi.EChain)
+		c := new(common.EChain)
 		factomapi.SafeUnmarshal(reader, c)
 
 		c.GenerateIDFromName()
@@ -397,7 +397,7 @@ func handleSubmitEntry(ctx *web.Context) {
 
 	switch ctx.Params["format"] {
 	case "json":
-		entry := new(notaryapi.Entry)
+		entry := new(common.Entry)
 		reader := gocoding.ReadBytes([]byte(ctx.Params["entry"]))
 		err := factomapi.SafeUnmarshal(reader, entry)
 		if err != nil {

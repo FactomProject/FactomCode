@@ -1,4 +1,4 @@
-package restapi
+package process
 
 import (
 	"fmt"
@@ -11,7 +11,7 @@ import (
 
 		"github.com/FactomProject/btcutil"
 		"github.com/FactomProject/btcd/wire"
-		"github.com/FactomProject/FactomCode/notaryapi"
+		"github.com/FactomProject/FactomCode/common"
 	*/)
 
 func TestPrependBlockHeight(t *testing.T) {
@@ -198,7 +198,7 @@ func TestUnconfirmedSpent(t *testing.T) {
 
 func TestRepeatedSpending(t *testing.T) {
 	for i:=0; i<100; i++ {
-		hash, err := writeToBTC(notaryapi.Sha([]byte{byte(i)}))
+		hash, err := writeToBTC(common.Sha([]byte{byte(i)}))
 		if err != nil {
 			t.Fatal(err)
 		}

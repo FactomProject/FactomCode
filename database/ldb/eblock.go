@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
-	"github.com/FactomProject/FactomCode/notaryapi"
+	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/goleveldb/leveldb"
 	"log"
 	"time"
@@ -13,7 +13,7 @@ import (
 )
 
 // FetchEBEntriesFromQueue gets all of the ebentries that have not been processed
-func (db *LevelDb) FetchEBEntriesFromQueue(chainID *[]byte, startTime *[]byte) (ebentries []*notaryapi.EBEntry, err error) {
+func (db *LevelDb) FetchEBEntriesFromQueue(chainID *[]byte, startTime *[]byte) (ebentries []*common.EBEntry, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -28,7 +28,7 @@ func (db *LevelDb) FetchEBEntriesFromQueue(chainID *[]byte, startTime *[]byte) (
 	binary.BigEndian.PutUint64(binaryTimestamp, uint64(time.Now().Unix()))
 	tokey = append(tokey, binaryTimestamp...) // Timestamp (8 bytes)
 
-	ebEntrySlice := make([]*notaryapi.EBEntry, 0, 10)
+	ebEntrySlice := make([]*common.EBEntry, 0, 10)
 
 	iter := db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
 
@@ -36,7 +36,7 @@ func (db *LevelDb) FetchEBEntriesFromQueue(chainID *[]byte, startTime *[]byte) (
 		if bytes.Equal(iter.Value(), []byte{byte(STATUS_IN_QUEUE)}) {
 			key := make([]byte, len(iter.Key()))
 			copy(key, iter.Key())
-			ebEntry := new(notaryapi.EBEntry)
+			ebEntry := new(common.EBEntry)
 
 			ebEntry.SetTimeStamp(key[33:41])
 			ebEntry.SetHash(key[41:73])
@@ -51,7 +51,7 @@ func (db *LevelDb) FetchEBEntriesFromQueue(chainID *[]byte, startTime *[]byte) (
 }
 
 // ProcessEBlockBatche inserts the EBlock and update all it's ebentries in DB
-func (db *LevelDb) ProcessEBlockBatch(eblock *notaryapi.EBlock) error {
+func (db *LevelDb) ProcessEBlockBatch(eblock *common.EBlock) error {
 
 	if eblock != nil {
 		if db.lbatch == nil {
@@ -99,7 +99,7 @@ func (db *LevelDb) ProcessEBlockBatch(eblock *notaryapi.EBlock) error {
 
 		// Update entry process queue for each entry in eblock
 		for i := 0; i < len(eblock.EBEntries); i++ {
-			var ebEntry notaryapi.EBEntry = *eblock.EBEntries[i]
+			var ebEntry common.EBEntry = *eblock.EBEntries[i]
 			var ebEntryKey []byte = []byte{byte(TBL_ENTRY_QUEUE)}            // Table Name (1 bytes)
 			ebEntryKey = append(ebEntryKey, eblock.Chain.ChainID.Bytes...)   // Chain id (32 bytes)
 			ebEntryKey = append(ebEntryKey, ebEntry.GetBinaryTimeStamp()...) // Timestamp (8 bytes)
@@ -108,7 +108,7 @@ func (db *LevelDb) ProcessEBlockBatch(eblock *notaryapi.EBlock) error {
 
 			if isLookupDB {
 				// Create an EntryInfo and insert it into db
-				var entryInfo = new(notaryapi.EntryInfo)
+				var entryInfo = new(common.EntryInfo)
 				entryInfo.EntryHash = ebEntry.Hash()
 				entryInfo.EBHash = eblock.EBHash
 				entryInfo.EBBlockNum = eblock.Header.BlockID
@@ -131,7 +131,7 @@ func (db *LevelDb) ProcessEBlockBatch(eblock *notaryapi.EBlock) error {
 }
 
 // FetchEBInfoByHash gets an EBInfo obj
-func (db *LevelDb) FetchEBInfoByHash(ebHash *notaryapi.Hash) (ebInfo *notaryapi.EBInfo, err error) {
+func (db *LevelDb) FetchEBInfoByHash(ebHash *common.Hash) (ebInfo *common.EBInfo, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -140,7 +140,7 @@ func (db *LevelDb) FetchEBInfoByHash(ebHash *notaryapi.Hash) (ebInfo *notaryapi.
 	data, err := db.lDb.Get(key, db.ro)
 
 	if data != nil {
-		ebInfo = new(notaryapi.EBInfo)
+		ebInfo = new(common.EBInfo)
 		ebInfo.UnmarshalBinary(data)
 	}
 
@@ -148,7 +148,7 @@ func (db *LevelDb) FetchEBInfoByHash(ebHash *notaryapi.Hash) (ebInfo *notaryapi.
 }
 
 // FetchEBlockByMR gets an entry block by merkle root from the database.
-func (db *LevelDb) FetchEBlockByMR(eBMR *notaryapi.Hash) (eBlock *notaryapi.EBlock, err error) {
+func (db *LevelDb) FetchEBlockByMR(eBMR *common.Hash) (eBlock *common.EBlock, err error) {
 	eBlockHash, _ := db.FetchEBHashByMR(eBMR)
 
 	if eBlockHash != nil {
@@ -159,7 +159,7 @@ func (db *LevelDb) FetchEBlockByMR(eBMR *notaryapi.Hash) (eBlock *notaryapi.EBlo
 }
 
 // FetchEntryBlock gets an entry by hash from the database.
-func (db *LevelDb) FetchEBlockByHash(eBlockHash *notaryapi.Hash) (eBlock *notaryapi.EBlock, err error) {
+func (db *LevelDb) FetchEBlockByHash(eBlockHash *common.Hash) (eBlock *common.EBlock, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -168,14 +168,14 @@ func (db *LevelDb) FetchEBlockByHash(eBlockHash *notaryapi.Hash) (eBlock *notary
 	data, err := db.lDb.Get(key, db.ro)
 
 	if data != nil {
-		eBlock = new(notaryapi.EBlock)
+		eBlock = new(common.EBlock)
 		eBlock.UnmarshalBinary(data)
 	}
 	return eBlock, nil
 }
 
 // FetchEBHashByMR gets an entry by hash from the database.
-func (db *LevelDb) FetchEBHashByMR(eBMR *notaryapi.Hash) (eBlockHash *notaryapi.Hash, err error) {
+func (db *LevelDb) FetchEBHashByMR(eBMR *common.Hash) (eBlockHash *common.Hash, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -185,7 +185,7 @@ func (db *LevelDb) FetchEBHashByMR(eBMR *notaryapi.Hash) (eBlockHash *notaryapi.
 
 	if data != nil {
 		log.Println("data:%v", data)
-		eBlockHash = new(notaryapi.Hash)
+		eBlockHash = new(common.Hash)
 		eBlockHash.UnmarshalBinary(data)
 		log.Println("eBlockHash:%v", eBlockHash.Bytes)
 	}
@@ -193,7 +193,7 @@ func (db *LevelDb) FetchEBHashByMR(eBMR *notaryapi.Hash) (eBlockHash *notaryapi.
 }
 
 // InsertChain inserts the newly created chain into db
-func (db *LevelDb) InsertChain(chain *notaryapi.EChain) (err error) {
+func (db *LevelDb) InsertChain(chain *common.EChain) (err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -210,7 +210,7 @@ func (db *LevelDb) InsertChain(chain *notaryapi.EChain) (err error) {
 	db.lbatch.Put(chainByHashKey, binaryChain)
 
 	var chainByNameKey []byte = []byte{byte(TBL_CHAIN_NAME)}
-	chainByNameKey = append(chainByNameKey, []byte(notaryapi.EncodeChainNameToString(chain.Name))...)
+	chainByNameKey = append(chainByNameKey, []byte(common.EncodeChainNameToString(chain.Name))...)
 
 	// Cross reference to chain id
 	db.lbatch.Put(chainByNameKey, chain.ChainID.Bytes)
@@ -225,7 +225,7 @@ func (db *LevelDb) InsertChain(chain *notaryapi.EChain) (err error) {
 }
 
 // FetchChainByHash gets a chain by chainID
-func (db *LevelDb) FetchChainByHash(chainID *notaryapi.Hash) (chain *notaryapi.EChain, err error) {
+func (db *LevelDb) FetchChainByHash(chainID *common.Hash) (chain *common.EChain, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -234,25 +234,25 @@ func (db *LevelDb) FetchChainByHash(chainID *notaryapi.Hash) (chain *notaryapi.E
 	data, err := db.lDb.Get(key, db.ro)
 
 	if data != nil {
-		chain = new(notaryapi.EChain)
+		chain = new(common.EChain)
 		chain.UnmarshalBinary(data)
 	}
 	return chain, nil
 }
 
 // FetchChainIDByName gets a chainID by chain name
-func (db *LevelDb) FetchChainIDByName(chainName [][]byte) (chainID *notaryapi.Hash, err error) {
+func (db *LevelDb) FetchChainIDByName(chainName [][]byte) (chainID *common.Hash, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
-	name := notaryapi.EncodeChainNameToString(chainName)
+	name := common.EncodeChainNameToString(chainName)
 
 	var key []byte = []byte{byte(TBL_CHAIN_NAME)}
 	key = append(key, []byte(name)...)
 	data, err := db.lDb.Get(key, db.ro)
 
 	if data != nil {
-		chainID = new(notaryapi.Hash)
+		chainID = new(common.Hash)
 		chainID.Bytes = make([]byte, len(data))
 		copy(chainID.Bytes, data)
 	}
@@ -260,7 +260,7 @@ func (db *LevelDb) FetchChainIDByName(chainName [][]byte) (chainID *notaryapi.Ha
 }
 
 // FetchChainByName gets a chain by chain name
-func (db *LevelDb) FetchChainByName(chainName [][]byte) (chain *notaryapi.EChain, err error) {
+func (db *LevelDb) FetchChainByName(chainName [][]byte) (chain *common.EChain, err error) {
 
 	chainID, _ := db.FetchChainIDByName(chainName)
 
@@ -272,9 +272,9 @@ func (db *LevelDb) FetchChainByName(chainName [][]byte) (chain *notaryapi.EChain
 }
 
 // FetchAllChainByName gets all of the chains under the path - name
-func (db *LevelDb) FetchAllChainsByName(chainName [][]byte) (chains *[]notaryapi.EChain, err error) {
+func (db *LevelDb) FetchAllChainsByName(chainName [][]byte) (chains *[]common.EChain, err error) {
 
-	chainSlice := make([]notaryapi.EChain, 0, 10)
+	chainSlice := make([]common.EChain, 0, 10)
 
 	chainIDSlice, _ := db.FetchAllChainIDsByName(chainName)
 
@@ -289,22 +289,22 @@ func (db *LevelDb) FetchAllChainsByName(chainName [][]byte) (chains *[]notaryapi
 }
 
 // FetchAllChainIDsByName gets all of the chainIDs under the path - name
-func (db *LevelDb) FetchAllChainIDsByName(chainName [][]byte) (chainIDs *[]notaryapi.Hash, err error) {
+func (db *LevelDb) FetchAllChainIDsByName(chainName [][]byte) (chainIDs *[]common.Hash, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
-	name := notaryapi.EncodeChainNameToString(chainName)
+	name := common.EncodeChainNameToString(chainName)
 
 	var fromkey []byte = []byte{byte(TBL_CHAIN_NAME)} // Table Name (1 bytes)
 	fromkey = append(fromkey, []byte(name)...)        // Chain Type (32 bytes)
 	var tokey []byte = addOneToByteArray(fromkey)
 
-	chainIDSlice := make([]notaryapi.Hash, 0, 10)
+	chainIDSlice := make([]common.Hash, 0, 10)
 
 	iter := db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
 
 	for iter.Next() {
-		chainID := new(notaryapi.Hash)
+		chainID := new(common.Hash)
 		chainID.Bytes = make([]byte, len(iter.Value()))
 		copy(chainID.Bytes, iter.Value())
 		chainIDSlice = append(chainIDSlice, *chainID)
@@ -316,7 +316,7 @@ func (db *LevelDb) FetchAllChainIDsByName(chainName [][]byte) (chainIDs *[]notar
 }
 
 // FetchAllEBlocksByChain gets all of the blocks by chain id
-func (db *LevelDb) FetchAllEBlocksByChain(chainID *notaryapi.Hash) (eBlocks *[]notaryapi.EBlock, err error) {
+func (db *LevelDb) FetchAllEBlocksByChain(chainID *common.Hash) (eBlocks *[]common.EBlock, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -324,12 +324,12 @@ func (db *LevelDb) FetchAllEBlocksByChain(chainID *notaryapi.Hash) (eBlocks *[]n
 	fromkey = append(fromkey, []byte(chainID.Bytes)...) // Chain Type (32 bytes)
 	var tokey []byte = addOneToByteArray(fromkey)
 
-	eBlockSlice := make([]notaryapi.EBlock, 0, 10)
+	eBlockSlice := make([]common.EBlock, 0, 10)
 
 	iter := db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
 
 	for iter.Next() {
-		eBlockHash := new(notaryapi.Hash)
+		eBlockHash := new(common.Hash)
 		eBlockHash.UnmarshalBinary(iter.Value())
 
 		var key []byte = []byte{byte(TBL_EB)}
@@ -337,7 +337,7 @@ func (db *LevelDb) FetchAllEBlocksByChain(chainID *notaryapi.Hash) (eBlocks *[]n
 		data, _ := db.lDb.Get(key, db.ro)
 
 		if data != nil {
-			eBlock := new(notaryapi.EBlock)
+			eBlock := new(common.EBlock)
 			eBlock.UnmarshalBinary(data)
 			eBlock.EBHash = eBlockHash
 			eBlockSlice = append(eBlockSlice, *eBlock)
@@ -350,7 +350,7 @@ func (db *LevelDb) FetchAllEBlocksByChain(chainID *notaryapi.Hash) (eBlocks *[]n
 }
 
 // FetchAllEBInfosByChain gets all of the entry block infos by chain id
-func (db *LevelDb) FetchAllEBInfosByChain(chainID *notaryapi.Hash) (eBInfos *[]notaryapi.EBInfo, err error) {
+func (db *LevelDb) FetchAllEBInfosByChain(chainID *common.Hash) (eBInfos *[]common.EBInfo, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -358,12 +358,12 @@ func (db *LevelDb) FetchAllEBInfosByChain(chainID *notaryapi.Hash) (eBInfos *[]n
 	fromkey = append(fromkey, []byte(chainID.Bytes)...) // Chain Type (32 bytes)
 	var tokey []byte = addOneToByteArray(fromkey)
 
-	eBInfoSlice := make([]notaryapi.EBInfo, 0, 10)
+	eBInfoSlice := make([]common.EBInfo, 0, 10)
 
 	iter := db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
 
 	for iter.Next() {
-		eBlockHash := new(notaryapi.Hash)
+		eBlockHash := new(common.Hash)
 		eBlockHash.Bytes = make([]byte, len(iter.Value()))
 		copy(eBlockHash.Bytes, iter.Value())
 
@@ -372,7 +372,7 @@ func (db *LevelDb) FetchAllEBInfosByChain(chainID *notaryapi.Hash) (eBInfos *[]n
 		data, _ := db.lDb.Get(key, db.ro)
 
 		if data != nil {
-			eBInfo := new(notaryapi.EBInfo)
+			eBInfo := new(common.EBInfo)
 			eBInfo.UnmarshalBinary(data)
 			eBInfoSlice = append(eBInfoSlice, *eBInfo)
 		}

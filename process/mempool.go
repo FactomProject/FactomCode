@@ -1,4 +1,4 @@
-package restapi
+package process
 
 import (
 	"github.com/FactomProject/btcd/wire"

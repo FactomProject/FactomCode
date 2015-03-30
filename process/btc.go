@@ -5,7 +5,7 @@
 // factomlog is based on github.com/alexcesaro/log and
 // github.com/alexcesaro/log/golog (MIT License)
 
-package restapi
+package process
 
 import (
 	"bytes"
@@ -18,7 +18,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/FactomProject/FactomCode/notaryapi"
+	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd/chaincfg"
 	"github.com/FactomProject/btcd/txscript"
@@ -45,7 +45,7 @@ type balance struct {
 
 // failedMerkles stores to-be-written-to-btc FactomBlock Hash
 // after it failed for maxTrials attempt
-var failedMerkles []*notaryapi.Hash
+var failedMerkles []*common.Hash
 
 // maxTrials is the max attempts to writeToBTC
 const maxTrials = 3
@@ -114,7 +114,7 @@ func unlockWallet(timeoutSecs int64) error {
 
 func initWallet() error {
 	fee, _ = btcutil.NewAmount(btcTransFee)
-	failedMerkles = make([]*notaryapi.Hash, 0, 100)
+	failedMerkles = make([]*common.Hash, 0, 100)
 
 	err := unlockWallet(int64(1))
 	if err != nil {
@@ -512,7 +512,7 @@ func shutdown() {
 	dclient.WaitForShutdown()
 }
 
-func saveDBMerkleRoottoBTC(dbInfo *notaryapi.DBInfo) {
+func saveDBMerkleRoottoBTC(dbInfo *common.DBInfo) {
 
 	txHash, err := writeToBTC(dbInfo.DBMerkleRoot.Bytes)
 	if err != nil {
@@ -529,8 +529,8 @@ func saveDBMerkleRoottoBTC(dbInfo *notaryapi.DBInfo) {
 
 }
 
-func toHash(txHash *wire.ShaHash) *notaryapi.Hash {
-	h := new(notaryapi.Hash)
+func toHash(txHash *wire.ShaHash) *common.Hash {
+	h := new(common.Hash)
 	h.SetBytes(txHash.Bytes())
 	return h
 }

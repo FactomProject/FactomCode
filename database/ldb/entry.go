@@ -3,7 +3,7 @@ package ldb
 import (
 	"encoding/binary"
 
-	"github.com/FactomProject/FactomCode/notaryapi"
+	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/goleveldb/leveldb"
 	"github.com/FactomProject/goleveldb/leveldb/util"
 	"log"
@@ -12,7 +12,7 @@ import (
 )
 
 // InsertEntry inserts an entry and put it in queue
-func (db *LevelDb) InsertEntryAndQueue(entrySha *notaryapi.Hash, binaryEntry *[]byte, entry *notaryapi.Entry, chainID *[]byte) (err error) {
+func (db *LevelDb) InsertEntryAndQueue(entrySha *common.Hash, binaryEntry *[]byte, entry *common.Entry, chainID *[]byte) (err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -47,7 +47,7 @@ func (db *LevelDb) InsertEntryAndQueue(entrySha *notaryapi.Hash, binaryEntry *[]
 }
 
 // FetchEntry gets an entry by hash from the database.
-func (db *LevelDb) FetchEntryByHash(entrySha *notaryapi.Hash) (entry *notaryapi.Entry, err error) {
+func (db *LevelDb) FetchEntryByHash(entrySha *common.Hash) (entry *common.Entry, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -56,15 +56,15 @@ func (db *LevelDb) FetchEntryByHash(entrySha *notaryapi.Hash) (entry *notaryapi.
 	data, err := db.lDb.Get(key, db.ro)
 
 	if data != nil {
-		entry = new(notaryapi.Entry)
+		entry = new(common.Entry)
 		entry.UnmarshalBinary(data)
 	}
 	return entry, nil
 }
 
 // FetchEntryInfoBranchByHash gets an EntryInfoBranch obj
-func (db *LevelDb) FetchEntryInfoBranchByHash(entryHash *notaryapi.Hash) (entryInfoBranch *notaryapi.EntryInfoBranch, err error) {
-	entryInfoBranch = new(notaryapi.EntryInfoBranch)
+func (db *LevelDb) FetchEntryInfoBranchByHash(entryHash *common.Hash) (entryInfoBranch *common.EntryInfoBranch, err error) {
+	entryInfoBranch = new(common.EntryInfoBranch)
 	entryInfoBranch.EntryHash = entryHash
 	entryInfoBranch.EntryInfo, _ = db.FetchEntryInfoByHash(entryHash)
 
@@ -80,7 +80,7 @@ func (db *LevelDb) FetchEntryInfoBranchByHash(entryHash *notaryapi.Hash) (entryI
 }
 
 // FetchEntryInfoBranchByHash gets an EntryInfo obj
-func (db *LevelDb) FetchEntryInfoByHash(entryHash *notaryapi.Hash) (entryInfo *notaryapi.EntryInfo, err error) {
+func (db *LevelDb) FetchEntryInfoByHash(entryHash *common.Hash) (entryInfo *common.EntryInfo, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -89,7 +89,7 @@ func (db *LevelDb) FetchEntryInfoByHash(entryHash *notaryapi.Hash) (entryInfo *n
 	data, err := db.lDb.Get(key, db.ro)
 
 	if data != nil {
-		entryInfo = new(notaryapi.EntryInfo)
+		entryInfo = new(common.EntryInfo)
 		entryInfo.UnmarshalBinary(data)
 	}
 	return entryInfo, nil
@@ -107,7 +107,7 @@ func (db *LevelDb) InitializeExternalIDMap() (extIDMap map[string]bool, err erro
 	iter := db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
 
 	for iter.Next() {
-		entry := new(notaryapi.Entry)
+		entry := new(common.Entry)
 		entry.UnmarshalBinary(iter.Value())
 		if entry.ExtIDs != nil {
 			for i := 0; i < len(entry.ExtIDs); i++ {

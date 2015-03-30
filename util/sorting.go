@@ -1,12 +1,12 @@
 package util
 
 import (
-	"github.com/FactomProject/FactomCode/notaryapi"
+	"github.com/FactomProject/FactomCode/common"
 )
 
 //------------------------------------------------
 // DBlock array sorting implementation - accending
-type ByDBlockIDAccending []notaryapi.DBlock
+type ByDBlockIDAccending []common.DBlock
 
 func (f ByDBlockIDAccending) Len() int {
 	return len(f)
@@ -20,7 +20,7 @@ func (f ByDBlockIDAccending) Swap(i, j int) {
 
 //------------------------------------------------
 // CBlock array sorting implementation - accending
-type ByCBlockIDAccending []notaryapi.CBlock
+type ByCBlockIDAccending []common.CBlock
 
 func (f ByCBlockIDAccending) Len() int {
 	return len(f)
@@ -34,7 +34,7 @@ func (f ByCBlockIDAccending) Swap(i, j int) {
 
 //------------------------------------------------
 // EBlock array sorting implementation - accending
-type ByEBlockIDAccending []notaryapi.EBlock
+type ByEBlockIDAccending []common.EBlock
 
 func (f ByEBlockIDAccending) Len() int {
 	return len(f)

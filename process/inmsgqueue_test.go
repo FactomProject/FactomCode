@@ -1,9 +1,9 @@
-package restapi
+package process
 
 import (
 	"fmt"
 	"github.com/FactomProject/FactomCode/database/ldb"
-	"github.com/FactomProject/FactomCode/notaryapi"
+	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/btcd/wire"
 	"log"
 	"testing"
@@ -19,7 +19,7 @@ func TestBuyCredit(t *testing.T) {
 
 	hexkey := "ed14447c656241bf7727fce2e2a48108374bec6e71358f0a280608b292c7f3bc"
 	binkey, _ := hex.DecodeString(hexkey)
-	pubKey := new(notaryapi.Hash)
+	pubKey := new(common.Hash)
 	pubKey.SetBytes(binkey)
 
 	//Write msg
@@ -36,7 +36,7 @@ func TestBuyCredit(t *testing.T) {
 /*
 func TestAddChain(t *testing.T) {
 
-	chain := new (notaryapi.EChain)
+	chain := new (common.EChain)
 	bName := make ([][]byte, 0, 5)
 	bName = append(bName, []byte("myCompany"))
 	bName = append(bName, []byte("bookkeeping2"))
@@ -44,7 +44,7 @@ func TestAddChain(t *testing.T) {
 	chain.Name = bName
 	chain.GenerateIDFromName()
 
-	entry := new (notaryapi.Entry)
+	entry := new (common.Entry)
 	entry.ChainID = *chain.ChainID
 	entry.ExtIDs = make ([][]byte, 0, 5)
 	entry.ExtIDs = append(entry.ExtIDs, []byte("1001"))
@@ -55,9 +55,9 @@ func TestAddChain(t *testing.T) {
 	chain.FirstEntry = entry
 
 	binaryEntry, _ := entry.MarshalBinary()
-	entryHash := notaryapi.Sha(binaryEntry)
+	entryHash := common.Sha(binaryEntry)
 
-	entryChainIDHash := notaryapi.Sha(append(chain.ChainID.Bytes, entryHash.Bytes ...))
+	entryChainIDHash := common.Sha(append(chain.ChainID.Bytes, entryHash.Bytes ...))
 
 	// Calculate the required credits
 	binaryChain, _ := chain.MarshalBinary()
@@ -65,7 +65,7 @@ func TestAddChain(t *testing.T) {
 
 	barray := (make([]byte, 32))
 	barray[0] = 2
-	pubKey := new (notaryapi.Hash)
+	pubKey := new (common.Hash)
 	pubKey.SetBytes(barray)
 	printCreditMap()
 	printPaidEntryMap()
@@ -89,7 +89,7 @@ func TestAddChain(t *testing.T) {
 }
 
 func TestAddEntry(t *testing.T) {
-	chain := new (notaryapi.EChain)
+	chain := new (common.EChain)
 	bName := make ([][]byte, 0, 5)
 	bName = append(bName, []byte("myCompany"))
 	bName = append(bName, []byte("bookkeeping2"))
@@ -101,12 +101,12 @@ func TestAddEntry(t *testing.T) {
 
 	barray := (make([]byte, 32))
 	barray[0] = 2
-	pubKey := new (notaryapi.Hash)
+	pubKey := new (common.Hash)
 	pubKey.SetBytes(barray)
 
 	for i:=1; i<400000; i++{
 
-		entry := new (notaryapi.Entry)
+		entry := new (common.Entry)
 		entry.ExtIDs = make ([][]byte, 0, 5)
 		entry.ExtIDs = append(entry.ExtIDs, []byte(string(i)))
 		entry.ExtIDs = append(entry.ExtIDs, []byte("570b9e3fb2f5ae823685eb4422d4fd83f3f0d9e7ce07d988bd17e665394668c6"))
@@ -115,7 +115,7 @@ func TestAddEntry(t *testing.T) {
 		entry.ChainID = *chain.ChainID
 
 		binaryEntry, _ := entry.MarshalBinary()
-		entryHash := notaryapi.Sha(binaryEntry)
+		entryHash := common.Sha(binaryEntry)
 		timestamp := int64(i)
 		// Calculate the required credits
 		credits := int32(binary.Size(binaryEntry)/1000 + 1)

@@ -9,7 +9,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/FactomProject/FactomCode/database"
-	"github.com/FactomProject/FactomCode/notaryapi"
+	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/FactomCode/wallet"
 	"github.com/FactomProject/btcd/wire"
@@ -32,7 +32,7 @@ var (
 )
 
 // This method will be replaced with a Factoid transaction once we have the factoid implementation in place
-func BuyEntryCredit(version uint16, ecPubKey *notaryapi.Hash, from *notaryapi.Hash, value uint64, fee uint64, sig *notaryapi.Signature) error {
+func BuyEntryCredit(version uint16, ecPubKey *common.Hash, from *common.Hash, value uint64, fee uint64, sig *common.Signature) error {
 
 	fmt.Println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 	fmt.Println("!!! NOT IMPLEMENTED !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
@@ -67,7 +67,7 @@ func BuyEntryCredit(version uint16, ecPubKey *notaryapi.Hash, from *notaryapi.Ha
 //	outMsgQueue <- msg
 //}
 
-func GetEntryCreditBalance(ecPubKey *notaryapi.Hash) (credits int32, err error) {
+func GetEntryCreditBalance(ecPubKey *common.Hash) (credits int32, err error) {
 	data := url.Values{}
 	data.Set("format", "binary")
 	data.Set("datatype", "getbalance")
@@ -84,7 +84,7 @@ func GetEntryCreditBalance(ecPubKey *notaryapi.Hash) (credits int32, err error) 
 	return credits, err
 }
 
-func GetDirectoryBloks(fromBlockHeight uint64, toBlockHeight uint64) (dBlocks []notaryapi.DBlock, err error) {
+func GetDirectoryBloks(fromBlockHeight uint64, toBlockHeight uint64) (dBlocks []common.DBlock, err error) {
 	//needs to be improved ??
 	dBlocks, _ = db.FetchAllDBlocks()
 	sort.Sort(byBlockID(dBlocks))
@@ -98,8 +98,8 @@ func GetDirectoryBloks(fromBlockHeight uint64, toBlockHeight uint64) (dBlocks []
 	return dBlocks[fromBlockHeight : toBlockHeight+1], nil
 }
 
-func GetDirectoryBlokByHashStr(addr string) (*notaryapi.DBlock, error) {
-	hash := new(notaryapi.Hash)
+func GetDirectoryBlokByHashStr(addr string) (*common.DBlock, error) {
+	hash := new(common.Hash)
 	a, err := hex.DecodeString(addr)
 	if err != nil {
 		return nil, err
@@ -109,8 +109,8 @@ func GetDirectoryBlokByHashStr(addr string) (*notaryapi.DBlock, error) {
 	return db.FetchDBlockByHash(hash)
 }
 
-func GetEntryBlokByHashStr(addr string) (*notaryapi.EBlock, error) {
-	hash := new(notaryapi.Hash)
+func GetEntryBlokByHashStr(addr string) (*common.EBlock, error) {
+	hash := new(common.Hash)
 	a, err := hex.DecodeString(addr)
 	if err != nil {
 		return nil, err
@@ -120,8 +120,8 @@ func GetEntryBlokByHashStr(addr string) (*notaryapi.EBlock, error) {
 	return db.FetchEBlockByHash(hash)
 }
 
-func GetEntryBlokByMRStr(addr string) (*notaryapi.EBlock, error) {
-	hash := new(notaryapi.Hash)
+func GetEntryBlokByMRStr(addr string) (*common.EBlock, error) {
+	hash := new(common.Hash)
 	a, err := hex.DecodeString(addr)
 	if err != nil {
 		return nil, err
@@ -132,7 +132,7 @@ func GetEntryBlokByMRStr(addr string) (*notaryapi.EBlock, error) {
 }
 
 func GetBlokHeight() (int, error) {
-	b := make([]notaryapi.DBlock, 0)
+	b := make([]common.DBlock, 0)
 	b, err := db.FetchAllDBlocks()
 	if err != nil {
 		return 0, err
@@ -140,8 +140,8 @@ func GetBlokHeight() (int, error) {
 	return len(b), nil
 }
 
-func GetEntryByHashStr(addr string) (*notaryapi.Entry, error) {
-	hash := new(notaryapi.Hash)
+func GetEntryByHashStr(addr string) (*common.Entry, error) {
+	hash := new(common.Hash)
 	a, err := hex.DecodeString(addr)
 	if err != nil {
 		return nil, err
@@ -151,21 +151,21 @@ func GetEntryByHashStr(addr string) (*notaryapi.Entry, error) {
 	return db.FetchEntryByHash(hash)
 }
 
-//func GetDirectoryBlokByHash(dBlockHash *notaryapi.Hash) (dBlock *notaryapi.DBlock, err error) {
+//func GetDirectoryBlokByHash(dBlockHash *common.Hash) (dBlock *common.DBlock, err error) {
 //
 //	dBlock, err = db.FetchDBlockByHash(dBlockHash)
 //
 //	return dBlock, err
 //}
 
-//func GetEntryBlokByHash(eBlockHash *notaryapi.Hash) (eBlock *notaryapi.EBlock, err error) {
+//func GetEntryBlokByHash(eBlockHash *common.Hash) (eBlock *common.EBlock, err error) {
 //
 //	eBlock, err = db.FetchEBlockByHash(eBlockHash)
 //
 //	return eBlock, err
 //}
 
-//func GetEntryByHash(entrySha *notaryapi.Hash) (entry *notaryapi.Entry, err error) {
+//func GetEntryByHash(entrySha *common.Hash) (entry *common.Entry, err error) {
 //
 //	entry, err = db.FetchEntryByHash(entrySha)
 //
@@ -193,7 +193,7 @@ func SetInMsgQueue(inMsgQ chan<- wire.FtmInternalMsg) error {
 //-=-----------------------------------------
 
 // array sorting implementation
-type byBlockID []notaryapi.DBlock
+type byBlockID []common.DBlock
 
 func (f byBlockID) Len() int {
 	return len(f)
@@ -206,7 +206,7 @@ func (f byBlockID) Swap(i, j int) {
 }
 
 // array sorting implementation
-type byEBlockID []notaryapi.EBlock
+type byEBlockID []common.EBlock
 
 func (f byEBlockID) Len() int {
 	return len(f)
@@ -300,7 +300,7 @@ func RevealEntry(e *Entry) error {
 */
 // CommitChain sends a message to the factom network containing a series of
 // hashes to be used to verify the later RevealChain.
-func CommitChain(c *notaryapi.EChain) error {
+func CommitChain(c *common.EChain) error {
 	util.Trace()
 	var buf bytes.Buffer
 
@@ -309,9 +309,9 @@ func CommitChain(c *notaryapi.EChain) error {
 	credits := uint32(binary.Size(bChain)/1000+1) + creditsPerChain
 
 	binaryEntry, _ := c.FirstEntry.MarshalBinary()
-	entryHash := notaryapi.Sha(binaryEntry)
+	entryHash := common.Sha(binaryEntry)
 
-	entryChainIDHash := notaryapi.Sha(append(c.ChainID.Bytes, entryHash.Bytes...))
+	entryChainIDHash := common.Sha(append(c.ChainID.Bytes, entryHash.Bytes...))
 
 	// Create a msg signature (timestamp + chainid + entry hash + entryChainIDHash + credits)
 	timestamp := uint64(time.Now().Unix())
@@ -326,7 +326,7 @@ func CommitChain(c *notaryapi.EChain) error {
 	msgCommitChain := wire.NewMsgCommitChain()
 	msgCommitChain.ChainID = c.ChainID
 	msgCommitChain.Credits = credits
-	msgCommitChain.ECPubKey = new(notaryapi.Hash)
+	msgCommitChain.ECPubKey = new(common.Hash)
 	msgCommitChain.ECPubKey.Bytes = (*sig.Pub.Key)[:]
 	msgCommitChain.EntryChainIDHash = entryChainIDHash
 	msgCommitChain.EntryHash = entryHash
@@ -341,7 +341,7 @@ func CommitChain(c *notaryapi.EChain) error {
 // RevealChain sends a message to the factom network containing the binary
 // encoded first entry for a chain to be used by the server to add a new factom
 // chain. It will be rejected if a CommitChain was not done.
-func RevealChain(c *notaryapi.EChain) error {
+func RevealChain(c *common.EChain) error {
 
 	//Construct a msg and add it to the msg queue
 	msgRevealChain := wire.NewMsgRevealChain()
@@ -392,12 +392,12 @@ func NewChain(name []string, eids []string, data []byte) (c *Chain, err error) {
 
 // CommitEntry sends a message to the factom network containing a hash of the
 // entry to be used to verify the later RevealEntry.
-func CommitEntry(e *notaryapi.Entry) error {
+func CommitEntry(e *common.Entry) error {
 	util.Trace()
 	var buf bytes.Buffer
 
 	bEntry, _ := e.MarshalBinary()
-	entryHash := notaryapi.Sha(bEntry)
+	entryHash := common.Sha(bEntry)
 	// Calculate the required credits
 	credits := uint32(binary.Size(bEntry)/1000 + 1)
 
@@ -411,7 +411,7 @@ func CommitEntry(e *notaryapi.Entry) error {
 	//Construct a msg and add it to the msg queue
 	msgCommitEntry := wire.NewMsgCommitEntry()
 	msgCommitEntry.Credits = credits
-	msgCommitEntry.ECPubKey = new(notaryapi.Hash)
+	msgCommitEntry.ECPubKey = new(common.Hash)
 	msgCommitEntry.ECPubKey.Bytes = (*sig.Pub.Key)[:]
 	msgCommitEntry.EntryHash = entryHash
 	msgCommitEntry.Sig = (*sig.Sig)[:]
@@ -427,7 +427,7 @@ func CommitEntry(e *notaryapi.Entry) error {
 // RevealEntry sends a message to the factom network containing the binary
 // encoded entry for the server to add it to the factom blockchain. The entry
 // will be rejected if a CommitEntry was not done.
-func RevealEntry(e *notaryapi.Entry) error {
+func RevealEntry(e *common.Entry) error {
 
 	//Construct a msg and add it to the msg queue
 	msgRevealEntry := wire.NewMsgRevealEntry()
