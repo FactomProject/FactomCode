@@ -10,22 +10,22 @@ import (
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/factomapi"
 	"github.com/FactomProject/FactomCode/factomwire"
-//	"github.com/FactomProject/btcd/wire"
+	//	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/hoisie/web"
 )
 
 var (
-	cfg               = util.ReadConfig().Wsapi
-	portNumber        = cfg.PortNumber
-	applicationName   = cfg.ApplicationName
-	dataStorePath     = "/tmp/store/seed/csv"
-	refreshInSeconds  = cfg.RefreshInSeconds
+	cfg              = util.ReadConfig().Wsapi
+	portNumber       = cfg.PortNumber
+	applicationName  = cfg.ApplicationName
+	dataStorePath    = "/tmp/store/seed/csv"
+	refreshInSeconds = cfg.RefreshInSeconds
 )
 
 var server = web.NewServer()
 
-// Start runs the wsapi server which 
+// Start runs the wsapi server which
 func Start(db database.Db, inMsgQ chan<- factomwire.Message) {
 	factomapi.SetDB(db)
 	factomapi.SetInMsgQueue(inMsgQ)
@@ -33,7 +33,7 @@ func Start(db database.Db, inMsgQ chan<- factomwire.Message) {
 	wsLog.Debug("Setting handlers")
 	server.Post(`/v1/buycredit/?`, handleBuyCredit)
 	server.Post(`/v1/creditbalance/?`, handleCreditBalance)
-//	server.Post(`/v1/factoidtx/?`, handleFactoidTx)
+	//	server.Post(`/v1/factoidtx/?`, handleFactoidTx)
 	server.Post(`/v1/submitchain/?`, handleSubmitChain)
 	server.Post(`/v1/submitentry/?`, handleSubmitEntry)
 
@@ -47,7 +47,7 @@ func Start(db database.Db, inMsgQ chan<- factomwire.Message) {
 	server.Get(`/v1/eblockbyhash/([^/]+)(?)`, handleEBlockByHash)
 	server.Get(`/v1/eblockbymr/([^/]+)(?)`, handleEBlockByMR)
 	server.Get(`/v1/entry/([^/]+)(?)`, handleEntryByHash)
-//	server.Get(`/v1/factoidtx/?`, handleFactoidTx)
+	//	server.Get(`/v1/factoidtx/?`, handleFactoidTx)
 
 	wsLog.Info("Starting server")
 	go server.Run("localhost:" + strconv.Itoa(portNumber))

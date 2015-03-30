@@ -37,8 +37,8 @@ func handleBlockHeight(ctx *web.Context) {
 		log.Error(err)
 		return
 	}
-	
-	fmt.Fprint(buf, height)	
+
+	fmt.Fprint(buf, height)
 }
 
 // handleBuyCredit will add entry credites to the specified key. Currently the

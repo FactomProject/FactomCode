@@ -20,7 +20,7 @@ var (
 
 // setup subsystem loggers
 var (
-	rpcLog     = factomlog.New(logfile, logLevel, "rpc")
-	serverLog  = factomlog.New(logfile, logLevel, "serv")
-	wsLog  = factomlog.New(logfile, logLevel, "wsapi")
+	rpcLog    = factomlog.New(logfile, logLevel, "rpc")
+	serverLog = factomlog.New(logfile, logLevel, "serv")
+	wsLog     = factomlog.New(logfile, logLevel, "wsapi")
 )
