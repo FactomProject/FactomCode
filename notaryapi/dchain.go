@@ -408,10 +408,10 @@ func (b *DBlock) UnmarshalBinary(data []byte) (err error) {
 	return nil
 }
 
-func (b *DBlock) EncodableFields() map[string]reflect.Value {
+func (d *DBlock) EncodableFields() map[string]reflect.Value {
 	fields := map[string]reflect.Value{
-		`Header`:    reflect.ValueOf(b.Header),
-		`DBEntries`: reflect.ValueOf(b.DBEntries),
+		`Header`:    reflect.ValueOf(d.Header),
+		`DBEntries`: reflect.ValueOf(d.DBEntries),
 	}
 	return fields
 }
