@@ -63,6 +63,16 @@ type DBlockHeader struct {
 	EntryCount    uint32
 }
 
+func (h *DBlockHeader) EncodableFields() map[string]reflect.Value {
+	fields := map[string]reflect.Value{
+		`BlockID`: reflect.ValueOf(h.BlockID),
+		`EntryCount`: reflect.ValueOf(h.EntryCount),
+		`MerkleRoot`: reflect.ValueOf(h.MerkleRoot),
+		`PrevBlockHash`:    reflect.ValueOf(h.PrevBlockHash),
+		`TimeStamp`: reflect.ValueOf(h.TimeStamp),
+	}
+	return fields
+}
 
 type DBEntry struct {
 	timeStamp  int64
