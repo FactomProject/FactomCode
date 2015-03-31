@@ -50,7 +50,6 @@ func (e *EBlock) EncodableFields() map[string]reflect.Value {
 	return fields
 }
 
-
 type EBInfo struct {
 	EBHash     *Hash
 	MerkleRoot *Hash
