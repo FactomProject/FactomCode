@@ -20,6 +20,7 @@ import (
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcrpcclient"
 	"github.com/FactomProject/btcutil"
+	"github.com/FactomProject/factomexplorer"	
 	"io/ioutil"
 	"log"
 	"os"
@@ -734,7 +735,7 @@ func newDirectoryBlock(chain *notaryapi.DChain) *notaryapi.DBlock {
 	db.ProcessDBlockBatch(block)
 
 	log.Println("DirectoryBlock: block" + strconv.FormatUint(block.Header.BlockID, 10) + " created for directory block chain: " + chain.ChainID.String())
-
+	factomexplorer.ExtIDMap, _ = db.InitializeExternalIDMap()
 	return block
 }
 
