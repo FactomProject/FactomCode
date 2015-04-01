@@ -25,11 +25,11 @@ const (
 // the "table" prefix
 const (
 	TBL_ENTRY uint8 = iota
-	TBL_ENTRY_QUEUE
+//	TBL_ENTRY_QUEUE
 	TBL_ENTRY_INFO
 
 	TBL_EB       //3
-	TBL_EB_QUEUE //4
+//	TBL_EB_QUEUE //4
 	TBL_EB_INFO  //5
 	TBL_EB_CHAIN_NUM
 	TBL_EB_MR

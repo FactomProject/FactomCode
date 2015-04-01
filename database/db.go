@@ -21,20 +21,20 @@ type Db interface {
 	// outstanding transactions are in flight.
 	Sync() (err error)
 
-	// InsertEntry inserts an entry and put it on a process queue
-	InsertEntryAndQueue(entrySha *common.Hash, binaryEntry *[]byte, entry *common.Entry, chainID *[]byte) (err error)
+	// InsertEntry inserts an entry
+	InsertEntry(entrySha *common.Hash, binaryEntry *[]byte, entry *common.Entry, chainID *[]byte) (err error)
 
 	// FetchEntry gets an entry by hash from the database.
 	FetchEntryByHash(entrySha *common.Hash) (entry *common.Entry, err error)
 
 	// FetchEBEntriesFromQueue gets all of the ebentries that have not been processed
-	FetchEBEntriesFromQueue(chainID *[]byte, startTime *[]byte) (ebentries []*common.EBEntry, err error)
+	//FetchEBEntriesFromQueue(chainID *[]byte, startTime *[]byte) (ebentries []*common.EBEntry, err error)
 
 	// ProcessEBlockBatche inserts the EBlock and update all it's ebentries in DB
 	ProcessEBlockBatch(eblock *common.EBlock) error
 
 	// FetchDBEntriesFromQueue gets all of the dbentries that have not been processed
-	FetchDBEntriesFromQueue(startTime *[]byte) (dbentries []*common.DBEntry, err error)
+	//FetchDBEntriesFromQueue(startTime *[]byte) (dbentries []*common.DBEntry, err error)
 
 	// InsertChain inserts the newly created chain into db
 	InsertChain(chain *common.EChain) (err error)

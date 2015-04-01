@@ -8,11 +8,10 @@ import (
 	"github.com/FactomProject/goleveldb/leveldb"
 	"github.com/FactomProject/goleveldb/leveldb/util"
 	"log"
-	"time"
 )
 
 // FetchDBEntriesFromQueue gets all of the dbentries that have not been processed
-func (db *LevelDb) FetchDBEntriesFromQueue(startTime *[]byte) (dbentries []*common.DBEntry, err error) {
+/*func (db *LevelDb) FetchDBEntriesFromQueue(startTime *[]byte) (dbentries []*common.DBEntry, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -48,7 +47,7 @@ func (db *LevelDb) FetchDBEntriesFromQueue(startTime *[]byte) (dbentries []*comm
 
 	return fbEntrySlice, nil
 }
-
+*/
 // ProcessDBlockBatche inserts the DBlock and update all it's dbentries in DB
 func (db *LevelDb) ProcessDBlockBatch(dblock *common.DBlock) error {
 
@@ -83,11 +82,6 @@ func (db *LevelDb) ProcessDBlockBatch(dblock *common.DBlock) error {
 		// Update DBEntry process queue for each dbEntry in dblock
 		for i := 0; i < len(dblock.DBEntries); i++ {
 			var dbEntry common.DBEntry = *dblock.DBEntries[i]
-			var fbEntryKey []byte = []byte{byte(TBL_EB_QUEUE)}               // Table Name (1 bytes)
-			fbEntryKey = append(fbEntryKey, dbEntry.GetBinaryTimeStamp()...) // Timestamp (8 bytes)
-			fbEntryKey = append(fbEntryKey, dbEntry.ChainID.Bytes...)        // Chain id (32 bytes)
-			fbEntryKey = append(fbEntryKey, dbEntry.Hash().Bytes...)         // Entry Hash (32 bytes)
-			db.lbatch.Put(fbEntryKey, []byte{byte(STATUS_PROCESSED)})
 
 			if isLookupDB {
 				// Create an EBInfo and insert it into db

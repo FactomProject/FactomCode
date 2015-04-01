@@ -3,6 +3,7 @@ package util
 import (
 	"os"
 	"code.google.com/p/gcfg"
+	"log"
 )
 
 type FactomdConfig struct {
@@ -104,6 +105,7 @@ func ReadConfig() *FactomdConfig {
 	filename := os.Getenv("HOME")+"/.factom/factomd.conf"
 	err := gcfg.ReadFileInto(cfg, filename)
 	if err != nil {
+		log.Println("Server starting with default settings...")		
 		gcfg.ReadStringInto(cfg, defaultConfig)
 	}
 	return cfg
