@@ -2,7 +2,7 @@
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
-package factomd
+package main
 
 import (
 	"fmt"
@@ -16,6 +16,7 @@ import (
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/FactomCode/wsapi"
 	"github.com/FactomProject/btcd/wire"
+	"github.com/FactomProject/btcd"	
 	"log"
 	"os"
 	"runtime"
@@ -29,31 +30,31 @@ var (
 	shutdownChannel = make(chan struct{})
 	ldbpath         = "/tmp/ldb9"
 	db              database.Db                    // database
-	InMsgQueue      = make(chan wire.FtmInternalMsg, 100) //incoming message queue for factom application messages
-	OutMsgQueue     = make(chan wire.FtmInternalMsg, 100) //outgoing message queue for factom application messages
-	InCtlMsgQueue      = make(chan wire.FtmInternalMsg, 100) //incoming message queue for factom application messages
-	OutCtlMsgQueue     = make(chan wire.FtmInternalMsg, 100) //outgoing message queue for factom application messages	
+	inMsgQueue      = make(chan wire.FtmInternalMsg, 100) //incoming message queue for factom application messages
+	outMsgQueue     = make(chan wire.FtmInternalMsg, 100) //outgoing message queue for factom application messages
+	inCtlMsgQueue      = make(chan wire.FtmInternalMsg, 100) //incoming message queue for factom application messages
+	outCtlMsgQueue     = make(chan wire.FtmInternalMsg, 100) //outgoing message queue for factom application messages	
 //	inRpcQueue      = make(chan wire.Message, 100) //incoming message queue for factom application messages
 	federatedid     string
 )
 
-// trying out some flags to optionally disable old BTC functionality ... WIP
-var FactomOverride struct {
-	//	TxIgnoreMissingParents bool
-	temp1                     bool
-	TxOrphansInsteadOfMempool bool // allow orphans for block creation
-	BlockDisableChecks        bool
-}
+
 
 // winServiceMain is only invoked on Windows.  It detects when btcd is running
 // as a service and reacts accordingly.
 var winServiceMain func() (bool, error)
 
-func Factomd_main() {
+func main() {
 
 	util.Trace()
 	// Use all processor cores.
 	runtime.GOMAXPROCS(runtime.NumCPU())
+	
+	btcd.FactomSetupOverrides()
+	//	go btcd.test_timer() // block-writing tests timer
+
+	util.Trace()
+	btcd.Start_btcd(inMsgQueue, outMsgQueue, inCtlMsgQueue, outCtlMsgQueue)	
 
 	// Up some limits.
 	//	if err := limits.SetLimits(); err != nil {
@@ -85,7 +86,7 @@ func Factomd_main() {
 
 }
 
-func Factomd_init() {
+func init() {
 
 	util.Trace()
 
@@ -96,11 +97,10 @@ func Factomd_init() {
 	initDB()
 
 	// Start the processor module
-	go process.Start_Processor(db, InMsgQueue, OutMsgQueue, InCtlMsgQueue, OutCtlMsgQueue)
+	go process.Start_Processor(db, inMsgQueue, outMsgQueue, inCtlMsgQueue, outCtlMsgQueue)
 
 	// Start the wsapi server module in a separate go-routine
-	//wsapi.Start(db, inRpcQueue)
-	wsapi.Start(db, InMsgQueue)
+	wsapi.Start(db, inMsgQueue)
 
 	defer wsapi.Stop()
 }
@@ -151,3 +151,4 @@ func initDB() {
 	log.Println("Database started from: " + ldbpath)
 
 }
+
