@@ -80,11 +80,6 @@ BtcTransFee				= 0.0001
 CertHomePathBtcd		= "btcd"
 RpcBtcdHost 			= "localhost:18334"
 
-[rpc]
-ApplicationName			= "Factom/factomclient"
-PortNumber				= 8088 
-RefreshInSeconds		= 60
-
 [wsapi]
 ApplicationName			= "Factom/wsapi"
 PortNumber				= 8088 

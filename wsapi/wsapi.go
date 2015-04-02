@@ -14,8 +14,8 @@ var (
 	cfg               = util.ReadConfig().Wsapi
 	portNumber        = cfg.PortNumber
 	applicationName   = cfg.ApplicationName
-	dataStorePath     = "/tmp/store/seed/csv"
-	refreshInSeconds  = cfg.RefreshInSeconds
+	//dataStorePath     = "/tmp/store/seed/csv"
+	//refreshInSeconds  = cfg.RefreshInSeconds
 )
 
 var server = web.NewServer()

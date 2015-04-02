@@ -459,7 +459,17 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 
 // Process a factoid obj message and put it in the process list
 func processFactoidTx(msg *wire.MsgInt_FactoidObj) error {
-
+	
+	// Update the credit balance in memory for each EC output
+	for k, v := range msg.EntryCredits {
+		pubKey := new(common.Hash)
+		pubKey.SetBytes(k.Bytes())
+		credits := int32(creditsPerFactoid * v / 100000000)
+		// Update the credit balance in memory
+		balance, _ := eCreditMap[pubKey.String()]
+		eCreditMap[pubKey.String()] = balance + credits
+	}	
+	
 	// Add to MyPL if Server Node
 	if nodeMode == SERVER_NODE {
 		err := plMgr.AddMyProcessListItem(msg, msg.TxSha, wire.ACK_FACTOID_TX)
