@@ -3,6 +3,7 @@ package util
 import (
 	"os"
 	"code.google.com/p/gcfg"
+	"log"
 )
 
 type FactomdConfig struct {
@@ -79,11 +80,6 @@ BtcTransFee				= 0.0001
 CertHomePathBtcd		= "btcd"
 RpcBtcdHost 			= "localhost:18334"
 
-[rpc]
-ApplicationName			= "Factom/factomclient"
-PortNumber				= 8088 
-RefreshInSeconds		= 60
-
 [wsapi]
 ApplicationName			= "Factom/wsapi"
 PortNumber				= 8088 
@@ -104,6 +100,7 @@ func ReadConfig() *FactomdConfig {
 	filename := os.Getenv("HOME")+"/.factom/factomd.conf"
 	err := gcfg.ReadFileInto(cfg, filename)
 	if err != nil {
+		log.Println("Server starting with default settings...")		
 		gcfg.ReadStringInto(cfg, defaultConfig)
 	}
 	return cfg

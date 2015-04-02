@@ -12,10 +12,10 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/consensus"
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/factomapi"
-	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/btcrpcclient"
@@ -43,7 +43,7 @@ var (
 
 	currentAddr btcutil.Address
 	tickers     [2]*time.Ticker
-	db          database.Db       // database
+	db          database.Db    // database
 	dchain      *common.DChain //Directory Block Chain
 	cchain      *common.CChain //Entry Credit Chain
 
@@ -52,12 +52,12 @@ var (
 
 	// To be moved to ftmMemPool??
 	chainIDMap      map[string]*common.EChain // ChainIDMap with chainID string([32]byte) as key
-	eCreditMap      map[string]int32             // eCreditMap with public key string([32]byte) as key, credit balance as value
-	prePaidEntryMap map[string]int32             // Paid but unrevealed entries string(Etnry Hash) as key, Number of payments as value
+	eCreditMap      map[string]int32          // eCreditMap with public key string([32]byte) as key, credit balance as value
+	prePaidEntryMap map[string]int32          // Paid but unrevealed entries string(Etnry Hash) as key, Number of payments as value
 
 	chainIDMapBackup      map[string]*common.EChain //previous block bakcup - ChainIDMap with chainID string([32]byte) as key
-	eCreditMapBackup      map[string]int32             // backup from previous block - eCreditMap with public key string([32]byte) as key, credit balance as value
-	prePaidEntryMapBackup map[string]int32             // backup from previous block - Paid but unrevealed entries string(Etnry Hash) as key, Number of payments as value
+	eCreditMapBackup      map[string]int32          // backup from previous block - eCreditMap with public key string([32]byte) as key, credit balance as value
+	prePaidEntryMapBackup map[string]int32          // backup from previous block - Paid but unrevealed entries string(Etnry Hash) as key, Number of payments as value
 
 	//Diretory Block meta data map
 	dbInfoMap map[string]*common.DBInfo // dbInfoMap with dbHash string([32]byte) as key
@@ -163,7 +163,7 @@ func initEChainFromDB(chain *common.EChain) {
 	if chain.Blocks[chain.NextBlockID].IsSealed == true {
 		panic("chain.Blocks[chain.NextBlockID].IsSealed for chain:" + chain.ChainID.String())
 	}
-	chain.Blocks[chain.NextBlockID].EBEntries, _ = db.FetchEBEntriesFromQueue(&chain.ChainID.Bytes, &binaryTimestamp)
+	//chain.Blocks[chain.NextBlockID].EBEntries, _ = db.FetchEBEntriesFromQueue(&chain.ChainID.Bytes, &binaryTimestamp)
 }
 
 func init_processor() {
@@ -459,7 +459,17 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 
 // Process a factoid obj message and put it in the process list
 func processFactoidTx(msg *wire.MsgInt_FactoidObj) error {
-
+	
+	// Update the credit balance in memory for each EC output
+	for k, v := range msg.EntryCredits {
+		pubKey := new(common.Hash)
+		pubKey.SetBytes(k.Bytes())
+		credits := int32(creditsPerFactoid * v / 100000000)
+		// Update the credit balance in memory
+		balance, _ := eCreditMap[pubKey.String()]
+		eCreditMap[pubKey.String()] = balance + credits
+	}	
+	
 	// Add to MyPL if Server Node
 	if nodeMode == SERVER_NODE {
 		err := plMgr.AddMyProcessListItem(msg, msg.TxSha, wire.ACK_FACTOID_TX)
@@ -692,7 +702,7 @@ func buildRevealEntry(msg *wire.MsgRevealEntry) {
 	// store the new entry in db
 	entryBinary, _ := msg.Entry.MarshalBinary()
 	entryHash := common.Sha(entryBinary)
-	db.InsertEntryAndQueue(entryHash, &entryBinary, msg.Entry, &chain.ChainID.Bytes)
+	db.InsertEntry(entryHash, &entryBinary, msg.Entry, &chain.ChainID.Bytes)
 
 	err := chain.Blocks[len(chain.Blocks)-1].AddEBEntry(msg.Entry)
 
@@ -755,7 +765,7 @@ func buildRevealChain(msg *wire.MsgRevealChain) {
 	// store the new entry in db
 	entryBinary, _ := newChain.FirstEntry.MarshalBinary()
 	entryHash := common.Sha(entryBinary)
-	db.InsertEntryAndQueue(entryHash, &entryBinary, newChain.FirstEntry, &newChain.ChainID.Bytes)
+	db.InsertEntry(entryHash, &entryBinary, newChain.FirstEntry, &newChain.ChainID.Bytes)
 
 	err := newChain.Blocks[len(newChain.Blocks)-1].AddEBEntry(newChain.FirstEntry)
 
@@ -1099,7 +1109,7 @@ func initDChain() {
 	if dchain.Blocks[dchain.NextBlockID].IsSealed == true {
 		panic("dchain.Blocks[dchain.NextBlockID].IsSealed for chain:" + dchain.ChainID.String())
 	}
-	dchain.Blocks[dchain.NextBlockID].DBEntries, _ = db.FetchDBEntriesFromQueue(&binaryTimestamp)
+	//dchain.Blocks[dchain.NextBlockID].DBEntries, _ = db.FetchDBEntriesFromQueue(&binaryTimestamp)
 
 }
 

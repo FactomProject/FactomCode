@@ -5,10 +5,10 @@
 package main
 
 import (
-	"fmt"
-	"github.com/FactomProject/FactomCode/wallet"
+//	"fmt"
+//	"github.com/FactomProject/FactomCode/wallet"
 )
 
 func main() {
-	fmt.Println("Address: ", wallet.FactoidAddress())
+	//fmt.Println("Address: ", wallet.FactoidAddress())
 }

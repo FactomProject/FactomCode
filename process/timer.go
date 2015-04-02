@@ -20,9 +20,9 @@ type BlockTimer struct {
 func (bt *BlockTimer) StartBlockTimer() {
 	//wait till the end of minute
 	//the first minute section might be bigger than others. To be improved.
-/*	t := time.Now()
-	time.Sleep(time.Duration((60 - t.Second()) * 1000000000))
-*/
+	/*	t := time.Now()
+		time.Sleep(time.Duration((60 - t.Second()) * 1000000000))
+	*/
 	roundTime := time.Now().Round(time.Minute)
 	minutesPassed := roundTime.Minute() - (roundTime.Minute()/10)*10
 
@@ -44,7 +44,7 @@ func (bt *BlockTimer) StartBlockTimer() {
 
 		//send the end-of-minute message to processor
 		bt.inCtlMsgQueue <- eomMsg
-		
+
 		minutesPassed++
 	}
 

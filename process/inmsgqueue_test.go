@@ -2,8 +2,8 @@ package process
 
 import (
 	"fmt"
-	"github.com/FactomProject/FactomCode/database/ldb"
 	"github.com/FactomProject/FactomCode/common"
+	"github.com/FactomProject/FactomCode/database/ldb"
 	"github.com/FactomProject/btcd/wire"
 	"log"
 	"testing"

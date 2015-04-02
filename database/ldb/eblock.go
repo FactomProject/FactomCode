@@ -1,19 +1,17 @@
 package ldb
 
 import (
-	"bytes"
 	"encoding/binary"
 	"errors"
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/goleveldb/leveldb"
 	"log"
-	"time"
 
 	"github.com/FactomProject/goleveldb/leveldb/util"
 )
 
 // FetchEBEntriesFromQueue gets all of the ebentries that have not been processed
-func (db *LevelDb) FetchEBEntriesFromQueue(chainID *[]byte, startTime *[]byte) (ebentries []*common.EBEntry, err error) {
+/*func (db *LevelDb) FetchEBEntriesFromQueue(chainID *[]byte, startTime *[]byte) (ebentries []*common.EBEntry, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -49,7 +47,7 @@ func (db *LevelDb) FetchEBEntriesFromQueue(chainID *[]byte, startTime *[]byte) (
 
 	return ebEntrySlice, nil
 }
-
+*/
 // ProcessEBlockBatche inserts the EBlock and update all it's ebentries in DB
 func (db *LevelDb) ProcessEBlockBatch(eblock *common.EBlock) error {
 
@@ -88,23 +86,9 @@ func (db *LevelDb) ProcessEBlockBatch(eblock *common.EBlock) error {
 		key = append(key, bytes...)
 		db.lbatch.Put(key, binaryEBHash)
 
-		// Insert the binary Entry Block process queue in order to create a FBEntry
-		var qkey []byte = []byte{byte(TBL_EB_QUEUE)} // Table Name (1 bytes)
-		binaryTimestamp := make([]byte, 8)
-		binary.BigEndian.PutUint64(binaryTimestamp, uint64(eblock.Header.TimeStamp))
-		qkey = append(qkey, binaryTimestamp...)            // Timestamp (8 bytes)
-		qkey = append(qkey, eblock.Chain.ChainID.Bytes...) // Chain id (32 bytes)
-		qkey = append(qkey, eblock.EBHash.Bytes...)        // EBEntry Hash (32 bytes)
-		db.lbatch.Put(qkey, []byte{byte(STATUS_IN_QUEUE)})
-
 		// Update entry process queue for each entry in eblock
 		for i := 0; i < len(eblock.EBEntries); i++ {
 			var ebEntry common.EBEntry = *eblock.EBEntries[i]
-			var ebEntryKey []byte = []byte{byte(TBL_ENTRY_QUEUE)}            // Table Name (1 bytes)
-			ebEntryKey = append(ebEntryKey, eblock.Chain.ChainID.Bytes...)   // Chain id (32 bytes)
-			ebEntryKey = append(ebEntryKey, ebEntry.GetBinaryTimeStamp()...) // Timestamp (8 bytes)
-			ebEntryKey = append(ebEntryKey, ebEntry.Hash().Bytes...)         // Entry Hash (32 bytes)
-			db.lbatch.Put(ebEntryKey, []byte{byte(STATUS_PROCESSED)})
 
 			if isLookupDB {
 				// Create an EntryInfo and insert it into db
