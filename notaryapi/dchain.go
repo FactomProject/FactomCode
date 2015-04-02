@@ -422,6 +422,7 @@ func (d *DBlock) EncodableFields() map[string]reflect.Value {
 	fields := map[string]reflect.Value{
 		`Header`:    reflect.ValueOf(d.Header),
 		`DBEntries`: reflect.ValueOf(d.DBEntries),
+		`DBHash`:    reflect.ValueOf(d.DBHash),
 	}
 	return fields
 }

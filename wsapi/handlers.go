@@ -151,6 +151,8 @@ func handleDBlockByHash(ctx *web.Context, hashStr string) {
 	}()
 
 	dBlock, err := factomapi.GetDirectoryBlokByHashStr(hashStr)
+	//testing
+	fmt.Println(dBlock)
 	if err != nil {
 		httpcode = 400
 		buf.WriteString("Bad Request")
