@@ -1,5 +1,5 @@
-// Copyright (c) 2013-2014 Conformal Systems LLC.
-// Use of this source code is governed by an ISC
+// Copyright 2015 Factom Foundation
+// Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
 package main
@@ -37,6 +37,9 @@ var (
 var winServiceMain func() (bool, error)
 
 func main() {
+	fmt.Println("//////////////////////// Copyright 2015 Factom Foundation")
+	fmt.Println("//////////////////////// Use of this source code is governed by the MIT")
+	fmt.Println("//////////////////////// license that can be found in the LICENSE file.")
 
 	util.Trace()
 	// Use all processor cores.
@@ -88,10 +91,9 @@ func factomdMain() error {
 
 	// Start the wsapi server module in a separate go-routine
 	go wsapi.Start(db, inMsgQueue)
-	
+
 	// Start the factoid (btcd) component and P2P component
 	btcd.Start_btcd(inMsgQueue, outMsgQueue, inCtlMsgQueue, outCtlMsgQueue)
-
 
 	return nil
 }
