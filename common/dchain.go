@@ -365,7 +365,11 @@ func (b *DBlock) CalculateMerkleRoot() *Hash {
 		data, _ := entry.MarshalBinary()
 		hashes[i] = Sha(data)
 	}
-
+	
+	if len(hashes)==0{
+		hashes = append(hashes, Sha(nil))
+	}
+	
 	merkle := BuildMerkleTreeStore(hashes)
 	return merkle[len(merkle)-1]
 }

@@ -23,6 +23,24 @@ func (bt *BlockTimer) StartBlockTimer() {
 	/*	t := time.Now()
 		time.Sleep(time.Duration((60 - t.Second()) * 1000000000))
 	*/
+	
+	if directoryBlockInSeconds < 600 {
+		sleeptime := directoryBlockInSeconds / 10
+		
+		for i:=0; i<10; i++{
+			eomMsg := &wire.MsgInt_EOM{
+			EOM_Type:         wire.END_MINUTE_1 + byte(i),
+			NextDBlockHeight: bt.nextDBlockHeight,
+			}
+
+			//send the end-of-minute message to processor
+			bt.inCtlMsgQueue <- eomMsg	
+			time.Sleep(time.Duration(sleeptime * 1000000000))		
+		}
+		return
+	}
+	
+	
 	roundTime := time.Now().Round(time.Minute)
 	minutesPassed := roundTime.Minute() - (roundTime.Minute()/10)*10
 

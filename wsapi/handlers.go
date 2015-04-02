@@ -406,18 +406,27 @@ func handleSubmitEntry(ctx *web.Context) {
 			log.Error(err)
 		}
 
+		if err := factomapi.RevealEntry(entry); err != nil {
+			fmt.Fprintln(ctx,
+				"there was a problem with submitting the entry:", err.Error())
+			log.Error(err)
+		}
+		time.Sleep(1 * time.Second)
+				
 		if err := factomapi.CommitEntry(entry); err != nil {
 			fmt.Fprintln(ctx,
 				"there was a problem with submitting the entry:", err.Error())
 			log.Error(err)
 		}
-
+/*
 		time.Sleep(1 * time.Second)
 		if err := factomapi.RevealEntry(entry); err != nil {
 			fmt.Fprintln(ctx,
 				"there was a problem with submitting the entry:", err.Error())
 			log.Error(err)
 		}
+		
+		*/
 		fmt.Fprintln(ctx, "Entry Submitted")
 	default:
 		ctx.WriteHeader(403)

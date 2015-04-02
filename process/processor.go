@@ -944,11 +944,12 @@ func newDirectoryBlock(chain *common.DChain) *common.DBlock {
 	// acquire the last block
 	block := chain.Blocks[len(chain.Blocks)-1]
 
+/*
 	if len(block.DBEntries) < 1 {
 		//log.Println("No Directory block created for chain ... because no new entry is found.")
 		return nil
 	}
-
+*/
 	// Create the block add a new block for new coming entries
 	chain.BlockMutex.Lock()
 	block.Header.EntryCount = uint32(len(block.DBEntries))
