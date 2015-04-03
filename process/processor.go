@@ -715,7 +715,7 @@ func buildRevealEntry(msg *wire.MsgRevealEntry) {
 func buildCommitEntry(msg *wire.MsgCommitEntry) {
 
 	// Create PayEntryCBEntry
-	cbEntry := common.NewPayEntryCBEntry(msg.ECPubKey, msg.EntryHash, int32(0-msg.Credits), int64(msg.Timestamp))
+	cbEntry := common.NewPayEntryCBEntry(msg.ECPubKey, msg.EntryHash, int32(0-msg.Credits), int64(msg.Timestamp), msg.Sig)
 
 	err := cchain.Blocks[len(cchain.Blocks)-1].AddCBEntry(cbEntry)
 
@@ -727,7 +727,7 @@ func buildCommitEntry(msg *wire.MsgCommitEntry) {
 func buildCommitChain(msg *wire.MsgCommitChain) {
 
 	// Create PayChainCBEntry
-	cbEntry := common.NewPayChainCBEntry(msg.ECPubKey, msg.EntryHash, int32(0-msg.Credits), msg.ChainID, msg.EntryChainIDHash)
+	cbEntry := common.NewPayChainCBEntry(msg.ECPubKey, msg.EntryHash, int32(0-msg.Credits), msg.ChainID, msg.EntryChainIDHash, msg.Sig)
 
 	err := cchain.Blocks[len(cchain.Blocks)-1].AddCBEntry(cbEntry)
 
