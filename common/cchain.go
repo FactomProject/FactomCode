@@ -22,9 +22,9 @@ type CBlock struct {
 	//Marshalized
 	Header    *CBlockHeader
 	CBEntries []CBEntry //Interface
+	
 	//Not Marshalized
 	CBHash   *Hash
-	Salt     *Hash
 	Chain    *CChain
 	IsSealed bool
 }
@@ -55,7 +55,6 @@ func CreateCBlock(chain *CChain, prev *CBlock, cap uint) (b *CBlock, err error) 
 	b.Header = NewCBlockHeader(chain.NextBlockID, prevHash, NewHash())
 	b.Chain = chain
 	b.CBEntries = make([]CBEntry, 0, cap)
-	b.Salt = NewHash()
 	b.IsSealed = false
 
 	return b, err

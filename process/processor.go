@@ -1076,8 +1076,8 @@ func initDChain() {
 
 	dchain.Blocks = make([]*common.DBlock, len(dBlocks))
 
-	for i := 0; i < len(dBlocks); i = i + 1 {
-		if dBlocks[i].Header.BlockID != uint64(i) {
+	for i := 0; i < len(dBlocks); i = i + 1 {	
+		if dBlocks[i].Header.BlockID != uint64(i) {			
 			panic("Error in initializing dChain:" + dchain.ChainID.String())
 		}
 		dBlocks[i].Chain = dchain
@@ -1110,7 +1110,6 @@ func initDChain() {
 	if dchain.Blocks[dchain.NextBlockID].IsSealed == true {
 		panic("dchain.Blocks[dchain.NextBlockID].IsSealed for chain:" + dchain.ChainID.String())
 	}
-	//dchain.Blocks[dchain.NextBlockID].DBEntries, _ = db.FetchDBEntriesFromQueue(&binaryTimestamp)
 
 }
 

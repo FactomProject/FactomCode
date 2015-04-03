@@ -37,7 +37,6 @@ type EBlock struct {
 	//Not Marshalized
 	EBHash     *Hash
 	MerkleRoot *Hash
-	Salt       *Hash
 	Chain      *EChain
 	IsSealed   bool
 }
@@ -226,8 +225,6 @@ func CreateBlock(chain *EChain, prev *EBlock, capacity uint) (b *EBlock, err err
 
 	b.EBEntries = make([]*EBEntry, 0, capacity)
 
-	b.Salt = NewHash()
-
 	b.IsSealed = false
 
 	return b, err
@@ -239,15 +236,9 @@ func (b *EBlock) AddEBEntry(e *Entry) (err error) {
 		return
 	}
 
-	s, err := CreateHash(b.Salt, h)
-	if err != nil {
-		return
-	}
-
 	ebEntry := NewEBEntry(h, &b.Chain.ChainID.Bytes)
 
 	b.EBEntries = append(b.EBEntries, ebEntry)
-	b.Salt = s
 
 	return
 }

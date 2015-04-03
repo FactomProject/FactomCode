@@ -23,7 +23,6 @@ type DBlock struct {
 	//Marshalized
 	Header    *DBlockHeader
 	DBEntries []*DBEntry
-	Salt      *Hash
 
 	//Not Marshalized
 	Chain    *DChain
@@ -281,7 +280,6 @@ func CreateDBlock(chain *DChain, prev *DBlock, cap uint) (b *DBlock, err error) 
 		uint32(0))
 	b.Chain = chain
 	b.DBEntries = make([]*DBEntry, 0, cap)
-	b.Salt = NewHash()
 	b.IsSealed = false
 
 	return b, err
@@ -350,12 +348,6 @@ func (b *DBlock) MarshalBinary() (data []byte, err error) {
 		buf.Write(data)
 	}
 
-	data, err = b.Salt.MarshalBinary()
-	if err != nil {
-		return
-	}
-	buf.Write(data)
-
 	return buf.Bytes(), err
 }
 
@@ -379,7 +371,6 @@ func (b *DBlock) MarshalledSize() uint64 {
 
 	size += b.Header.MarshalledSize()
 	size += 4 // len(Entries) uint32
-	size += b.Salt.MarshalledSize()
 
 	for _, dbEntry := range b.DBEntries {
 		size += dbEntry.MarshalledSize()
@@ -404,10 +395,6 @@ func (b *DBlock) UnmarshalBinary(data []byte) (err error) {
 		}
 		data = data[b.DBEntries[i].MarshalledSize():]
 	}
-
-	b.Salt = new(Hash)
-	b.Salt.UnmarshalBinary(data)
-	data = data[b.Salt.MarshalledSize():]
 
  	return nil
 }
