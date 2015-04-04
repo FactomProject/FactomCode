@@ -19,7 +19,7 @@ func FactoidTx_VersionCheck(version uint8) bool {
 
 // in reality: 5 bytes
 func FactoidTx_LocktimeCheck(locktime int64) bool {
-	util.Trace()
+	util.Trace(fmt.Sprintf("locktime being checked: 0x%X", locktime))
 	return (0 == locktime)
 }
 
