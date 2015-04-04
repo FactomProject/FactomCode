@@ -715,7 +715,7 @@ func buildRevealEntry(msg *wire.MsgRevealEntry) {
 func buildCommitEntry(msg *wire.MsgCommitEntry) {
 
 	// Create PayEntryCBEntry
-	cbEntry := common.NewPayEntryCBEntry(msg.ECPubKey, msg.EntryHash, int32(0-msg.Credits), int64(msg.Timestamp))
+	cbEntry := common.NewPayEntryCBEntry(msg.ECPubKey, msg.EntryHash, int32(0-msg.Credits), int64(msg.Timestamp), msg.Sig)
 
 	err := cchain.Blocks[len(cchain.Blocks)-1].AddCBEntry(cbEntry)
 
@@ -727,7 +727,7 @@ func buildCommitEntry(msg *wire.MsgCommitEntry) {
 func buildCommitChain(msg *wire.MsgCommitChain) {
 
 	// Create PayChainCBEntry
-	cbEntry := common.NewPayChainCBEntry(msg.ECPubKey, msg.EntryHash, int32(0-msg.Credits), msg.ChainID, msg.EntryChainIDHash)
+	cbEntry := common.NewPayChainCBEntry(msg.ECPubKey, msg.EntryHash, int32(0-msg.Credits), msg.ChainID, msg.EntryChainIDHash, msg.Sig)
 
 	err := cchain.Blocks[len(cchain.Blocks)-1].AddCBEntry(cbEntry)
 
@@ -944,11 +944,12 @@ func newDirectoryBlock(chain *common.DChain) *common.DBlock {
 	// acquire the last block
 	block := chain.Blocks[len(chain.Blocks)-1]
 
+/*
 	if len(block.DBEntries) < 1 {
 		//log.Println("No Directory block created for chain ... because no new entry is found.")
 		return nil
 	}
-
+*/
 	// Create the block add a new block for new coming entries
 	chain.BlockMutex.Lock()
 	block.Header.EntryCount = uint32(len(block.DBEntries))
@@ -1075,8 +1076,8 @@ func initDChain() {
 
 	dchain.Blocks = make([]*common.DBlock, len(dBlocks))
 
-	for i := 0; i < len(dBlocks); i = i + 1 {
-		if dBlocks[i].Header.BlockID != uint64(i) {
+	for i := 0; i < len(dBlocks); i = i + 1 {	
+		if dBlocks[i].Header.BlockID != uint64(i) {			
 			panic("Error in initializing dChain:" + dchain.ChainID.String())
 		}
 		dBlocks[i].Chain = dchain
@@ -1109,7 +1110,6 @@ func initDChain() {
 	if dchain.Blocks[dchain.NextBlockID].IsSealed == true {
 		panic("dchain.Blocks[dchain.NextBlockID].IsSealed for chain:" + dchain.ChainID.String())
 	}
-	//dchain.Blocks[dchain.NextBlockID].DBEntries, _ = db.FetchDBEntriesFromQueue(&binaryTimestamp)
 
 }
 

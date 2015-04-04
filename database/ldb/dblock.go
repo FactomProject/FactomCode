@@ -58,10 +58,10 @@ func (db *LevelDb) ProcessDBlockBatch(dblock *common.DBlock) error {
 
 		defer db.lbatch.Reset()
 
-		if len(dblock.DBEntries) < 1 {
+/*		if len(dblock.DBEntries) < 1 {
 			return errors.New("Empty dblock!")
 		}
-
+*/
 		binaryDblock, err := dblock.MarshalBinary()
 		if err != nil {
 			return err
