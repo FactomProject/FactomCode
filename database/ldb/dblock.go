@@ -173,6 +173,7 @@ func (db *LevelDb) FetchDBlockByHash(dBlockHash *notaryapi.Hash) (dBlock *notary
 	} else {
 		dBlock = new(notaryapi.DBlock)
 		dBlock.UnmarshalBinary(data)
+		dBlock.DBHash = dBlockHash
 	}
 
 	log.Println("dBlock.Header.MerkleRoot:%v", dBlock.Header.MerkleRoot.String())
