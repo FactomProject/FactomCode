@@ -11,9 +11,9 @@ import (
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/util"
-	"github.com/FactomProject/FactomCode/wallet"
-	"github.com/FactomProject/FactomCode/process"	
+	"github.com/FactomProject/FactomCode/wallet"	
 	"github.com/FactomProject/btcd/wire"
+	"github.com/FactomProject/btcd"	
 	"sort"
 	//"github.com/FactomProject/FactomCode/database/ldb"
 	"bytes"
@@ -67,7 +67,7 @@ func BuyEntryCredit(version uint16, ecPubKey *common.Hash, from *common.Hash, va
 
 func GetEntryCreditBalance(ecPubKey *common.Hash) (credits int32, err error) {
 
-	return process.GetEntryCreditBalance(ecPubKey)
+	return  btcd.GetEntryCreditBalance(ecPubKey)
 }
 
 func GetDirectoryBloks(fromBlockHeight uint64, toBlockHeight uint64) (dBlocks []common.DBlock, err error) {

@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/database/ldb"
-	"github.com/FactomProject/FactomCode/process"
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/FactomCode/wsapi"
 	"github.com/FactomProject/btcd"
@@ -87,7 +86,7 @@ func init() {
 func factomdMain() error {
 
 	// Start the processor module
-	go process.Start_Processor(db, inMsgQueue, outMsgQueue, inCtlMsgQueue, outCtlMsgQueue)
+	go btcd.Start_Processor(db, inMsgQueue, outMsgQueue, inCtlMsgQueue, outCtlMsgQueue)
 
 	// Start the wsapi server module in a separate go-routine
 	go wsapi.Start(db, inMsgQueue)
@@ -105,7 +104,7 @@ func loadConfigurations() {
 
 	ldbpath = cfg.App.LdbPath
 	federatedid = cfg.App.FederatedId
-	process.LoadConfigurations(cfg)
+	btcd.LoadConfigurations(cfg)
 
 	fmt.Println("CHECK cfg= ", cfg)
 }
