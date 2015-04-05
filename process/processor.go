@@ -8,14 +8,12 @@
 package process
 
 import (
-	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/consensus"
 	"github.com/FactomProject/FactomCode/database"
-	"github.com/FactomProject/FactomCode/factomapi"
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/btcrpcclient"
@@ -23,10 +21,8 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"reflect"
 	"sort"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -974,10 +970,9 @@ func newDirectoryBlock(chain *common.DChain) *common.DBlock {
 	return block
 }
 
-func getEntryCreditBalance(pubKey *common.Hash) ([]byte, error) {
-	var buf bytes.Buffer
-	binary.Write(&buf, binary.BigEndian, eCreditMap[pubKey.String()])
-	return buf.Bytes(), nil
+func GetEntryCreditBalance(pubKey *common.Hash) (int32, error) {
+
+	return eCreditMap[pubKey.String()], nil
 }
 
 func saveDChain(chain *common.DChain) {
@@ -1175,7 +1170,7 @@ func initCChain() {
 	copyCreditMap(eCreditMap, eCreditMapBackup)
 
 	//??
-	printCChain()
+	//printCChain()
 	printCreditMap()
 	printPaidEntryMap()
 
@@ -1246,7 +1241,7 @@ func printPaidEntryMap() {
 		fmt.Println("Key:", key, "Value", prePaidEntryMap[key])
 	}
 }
-
+/*
 func printCChain() {
 
 	fmt.Println("cchain:", cchain.ChainID.String())
@@ -1301,3 +1296,4 @@ func printCChain() {
 	}
 
 }
+*/

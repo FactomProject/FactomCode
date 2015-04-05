@@ -10,7 +10,7 @@ import (
 	"net/url"
 	"testing"
 	//	"encoding/base64"
-	//	"io/ioutil"
+		"io/ioutil"
 	//"os"
 )
 
@@ -271,7 +271,7 @@ func TestGetCreditBalance(t *testing.T) {
 		fmt.Println("Get Credit Balance request successfully submitted to factomclient.")
 	}
 }
-
+*/
 func TestGetCreditWalletBalance(t *testing.T) {
 	fmt.Println("\nTestGetCreditWalletBalance===========================================================================")
 	// Post the request to FactomClient web server	---------------------------------------
@@ -295,7 +295,7 @@ func TestGetCreditWalletBalance(t *testing.T) {
 	}
 }
 
-
+/*
 func TestGetDBlocksByRange(t *testing.T) {
 	fmt.Println("\nTestGetDBlocksByRange===========================================================================")
 
