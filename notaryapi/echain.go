@@ -458,9 +458,10 @@ func (b *EChain) UnmarshalBinary(data []byte) (err error) {
 // For Json marshaling
 func (b *EChain) EncodableFields() map[string]reflect.Value {
 	fields := map[string]reflect.Value{
+		`Blocks`:     reflect.ValueOf(b.Blocks),
 		`ChainID`:    reflect.ValueOf(b.ChainID),
-		`Name`:       reflect.ValueOf(b.Name),
 		`FirstEntry`: reflect.ValueOf(b.FirstEntry),
+		`Name`:       reflect.ValueOf(b.Name),
 	}
 	return fields
 }

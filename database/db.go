@@ -42,7 +42,7 @@ type Db interface {
 	// InsertChain inserts the newly created chain into db
 	InsertChain(chain *notaryapi.EChain) (err error)
 
-	// FetchEBInfoByHash gets a chain by chainID
+	// FetchChainByHash gets a chain by chainID
 	FetchChainByHash(chainID *notaryapi.Hash) (chain *notaryapi.EChain, err error)
 
 	// FetchChainByName gets a chain by chain name

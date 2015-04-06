@@ -89,6 +89,37 @@ func handleBuyCredit(ctx *web.Context) {
 	}
 }
 
+// handleChainByHash will take a ChainID and return the ... TODO
+func handleChainByHash(ctx *web.Context, hash string) {
+	log := serverLog
+	log.Debug("handleChainByHash")
+	var httpcode int = 200
+	buf := new(bytes.Buffer)
+
+	defer func() {
+		ctx.WriteHeader(httpcode)
+		ctx.Write(buf.Bytes())
+	}()
+
+	chain, err := factomapi.GetChainByHashStr(hash)
+	log.Debug(chain)
+	if err != nil {
+		httpcode = 400
+		buf.WriteString("Bad Request")
+		log.Error(err)
+		return
+	}
+
+	// Send back JSON response
+	err = factomapi.SafeMarshal(buf, chain)
+	if err != nil {
+		httpcode = 400
+		buf.WriteString("Bad request ")
+		log.Error(err)
+		return
+	}
+}
+
 // handleCreditBalance will return the current entry credit balance of the
 // spesified pubKey
 func handleCreditBalance(ctx *web.Context) {

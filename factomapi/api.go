@@ -73,6 +73,17 @@ func GetEntryCreditBalance(ecPubKey *notaryapi.Hash) (credits int32, err error) 
 	return credits, err
 }
 
+func GetChainByHashStr(id string) (*notaryapi.EChain, error) {
+	hash := new(notaryapi.Hash)
+	a, err := hex.DecodeString(id)
+	if err != nil {
+		return nil, err
+	}
+	hash.Bytes = a
+
+	return db.FetchChainByHash(hash)
+}
+
 func GetDirectoryBloks(fromBlockHeight uint64, toBlockHeight uint64) (dBlocks []notaryapi.DBlock, err error) {
 	//needs to be improved ??
 	dBlocks, _ = db.FetchAllDBlocks()
