@@ -89,7 +89,7 @@ func handleBuyCredit(ctx *web.Context) {
 	}
 }
 
-// handleChainByHash will take a ChainID and return the ... TODO
+// handleChainByHash will take a ChainID and return the associated Chain
 func handleChainByHash(ctx *web.Context, hash string) {
 	log := serverLog
 	log.Debug("handleChainByHash")
@@ -112,6 +112,44 @@ func handleChainByHash(ctx *web.Context, hash string) {
 
 	// Send back JSON response
 	err = factomapi.SafeMarshal(buf, chain)
+	if err != nil {
+		httpcode = 400
+		buf.WriteString("Bad request ")
+		log.Error(err)
+		return
+	}
+}
+
+// handleChains will return all chains from the backend database
+func handleChains(ctx *web.Context) {
+	log := serverLog
+	log.Debug("handleChains")
+	var httpcode int = 200
+	buf := new(bytes.Buffer)
+
+	defer func() {
+		ctx.WriteHeader(httpcode)
+		ctx.Write(buf.Bytes())
+	}()
+
+	chains, err := factomapi.GetAllChains()
+	log.Debugf("Got %d chains", len(chains))
+	if err != nil {
+		httpcode = 400
+		buf.WriteString("Bad Request")
+		log.Error(err)
+		return
+	}
+
+	// Send back JSON response
+	for _, v := range chains {
+		err = factomapi.SafeMarshal(buf, v)
+		if err != nil {
+			log.Error(err)
+			break
+		}
+	}
+	
 	if err != nil {
 		httpcode = 400
 		buf.WriteString("Bad request ")

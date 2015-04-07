@@ -84,6 +84,10 @@ func GetChainByHashStr(id string) (*notaryapi.EChain, error) {
 	return db.FetchChainByHash(hash)
 }
 
+func GetAllChains() ([]notaryapi.EChain, error) {
+	return db.FetchAllChains()
+}
+
 func GetDirectoryBloks(fromBlockHeight uint64, toBlockHeight uint64) (dBlocks []notaryapi.DBlock, err error) {
 	//needs to be improved ??
 	dBlocks, _ = db.FetchAllDBlocks()
