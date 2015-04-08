@@ -37,6 +37,10 @@ type FactomdConfig struct {
 		ApplicationName  string
 		RefreshInSeconds int
 	}
+	Explorer struct {
+		PortNumber	int
+		StaticDir	string
+	}
 	Log struct {
 		LogPath  string
 		LogLevel string
@@ -89,6 +93,10 @@ ApplicationName			= "Factom/wsapi"
 PortNumber				= 8088 
 RefreshInSeconds		= 60
 
+[explorer]
+PortNumber				= 8087
+StaticDir				= "./"
+
 ; ------------------------------------------------------------------------------
 ; LogLevel - debug,info,notice,warning,error,critical,alert,emergency,none
 ; ------------------------------------------------------------------------------
@@ -97,7 +105,7 @@ LogLevel 				= warning
 LogPath					= /tmp/factomd.log
 `
 
-// GetConfig reads the default factomd.conf file and returns a FactomConfig
+// ReadConfig reads the default factomd.conf file and returns a FactomConfig
 // object corresponding to the state of the file.
 func ReadConfig() *FactomdConfig {
 	cfg := new(FactomdConfig)
