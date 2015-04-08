@@ -95,7 +95,7 @@ RefreshInSeconds		= 60
 
 [explorer]
 PortNumber				= 8087
-StaticDir				= "./"
+StaticDir				= ""
 
 ; ------------------------------------------------------------------------------
 ; LogLevel - debug,info,notice,warning,error,critical,alert,emergency,none
