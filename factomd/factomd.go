@@ -17,7 +17,6 @@ import (
 	"github.com/FactomProject/FactomCode/factomwire"
 	"github.com/FactomProject/FactomCode/restapi"
 	"github.com/FactomProject/FactomCode/util"
-	"github.com/FactomProject/factomexplorer"	
 	"log"
 	"os"
 	"runtime"
@@ -221,8 +220,6 @@ func init() {
 	// Start the processor module
 	go restapi.Start_Processor(db, inMsgQueue, outMsgQueue)
 	
-	go factomexplorer.Start(db)
-
 	// Start the RPC server module in a separate go-routine
 	wsapi.Start(db, inRpcQueue)
 
