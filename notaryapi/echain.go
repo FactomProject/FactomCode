@@ -29,6 +29,16 @@ type EChain struct {
 	NextBlockID  uint64
 }
 
+// For Json marshaling
+func (b *EChain) EncodableFields() map[string]reflect.Value {
+	fields := map[string]reflect.Value{
+		`ChainID`:    reflect.ValueOf(b.ChainID),
+		`FirstEntry`: reflect.ValueOf(b.FirstEntry),
+		`Name`:       reflect.ValueOf(b.Name),
+	}
+	return fields
+}
+
 type EBlock struct {
 	//Marshalized
 	Header    *EBlockHeader
@@ -453,17 +463,6 @@ func (b *EChain) UnmarshalBinary(data []byte) (err error) {
 		b.FirstEntry.UnmarshalBinary(data)
 	}
 	return nil
-}
-
-// For Json marshaling
-func (b *EChain) EncodableFields() map[string]reflect.Value {
-	fields := map[string]reflect.Value{
-		`Blocks`:     reflect.ValueOf(b.Blocks),
-		`ChainID`:    reflect.ValueOf(b.ChainID),
-		`FirstEntry`: reflect.ValueOf(b.FirstEntry),
-		`Name`:       reflect.ValueOf(b.Name),
-	}
-	return fields
 }
 
 // To generate a chain id (hash) from a binary array name

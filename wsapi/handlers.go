@@ -102,7 +102,7 @@ func handleChainByHash(ctx *web.Context, hash string) {
 	}()
 
 	chain, err := factomapi.GetChainByHashStr(hash)
-	log.Debug(chain)
+	log.Debugf("%#v", chain)
 	if err != nil {
 		httpcode = 400
 		buf.WriteString("Bad Request")
