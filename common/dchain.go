@@ -64,7 +64,6 @@ type DBlockHeader struct {
 
 
 type DBEntry struct {
-	timeStamp  int64
 	MerkleRoot *Hash // Different MR in EBlockHeader
 	ChainID    *Hash
 
@@ -75,7 +74,6 @@ type DBEntry struct {
 
 func NewDBEntry(eb *EBlock) *DBEntry {
 	e := &DBEntry{}
-	e.StampTime()
 	e.hash = eb.EBHash
 
 	e.ChainID = eb.Chain.ChainID
@@ -86,7 +84,6 @@ func NewDBEntry(eb *EBlock) *DBEntry {
 
 func NewDBEntryFromCBlock(cb *CBlock) *DBEntry {
 	e := &DBEntry{}
-	e.StampTime()
 	e.hash = cb.CBHash
 
 	e.ChainID = cb.Chain.ChainID
@@ -111,28 +108,6 @@ func (e *DBEntry) SetHash(binaryHash []byte) {
 	h := new(Hash)
 	h.Bytes = binaryHash
 	e.hash = h
-}
-
-func (e *DBEntry) TimeStamp() int64 {
-	return e.timeStamp
-}
-
-func (e *DBEntry) GetBinaryTimeStamp() []byte {
-	b := make([]byte, 8)
-	binary.BigEndian.PutUint64(b, uint64(e.timeStamp))
-	return b
-}
-
-func (e *DBEntry) SetTimeStamp(binaryTime []byte) {
-	e.timeStamp = int64(binary.BigEndian.Uint64(binaryTime))
-}
-
-func (e *DBEntry) RealTime() time.Time {
-	return time.Unix(e.timeStamp, 0)
-}
-
-func (e *DBEntry) StampTime() {
-	e.timeStamp = time.Now().Unix()
 }
 
 func (e *DBEntry) EncodableFields() map[string]reflect.Value {
@@ -290,9 +265,6 @@ func (dchain *DChain) AddDBEntry(eb *EBlock) (err error) {
 	dBlock := dchain.Blocks[len(dchain.Blocks)-1]
 
 	dbEntry := NewDBEntry(eb)
-	b := make([]byte, 8)
-	binary.BigEndian.PutUint64(b, uint64(eb.Header.TimeStamp))
-	dbEntry.SetTimeStamp(b)
 
 	dchain.BlockMutex.Lock()
 	dBlock.DBEntries = append(dBlock.DBEntries, dbEntry)
@@ -306,9 +278,6 @@ func (dchain *DChain) AddCBlockToDBEntry(cb *CBlock) (err error) {
 	dBlock := dchain.Blocks[len(dchain.Blocks)-1]
 
 	dbEntry := NewDBEntryFromCBlock(cb)
-	b := make([]byte, 8)
-	binary.BigEndian.PutUint64(b, uint64(cb.Header.TimeStamp))
-	dbEntry.SetTimeStamp(b)
 
 	dchain.BlockMutex.Lock()
 	dBlock.DBEntries = append(dBlock.DBEntries, dbEntry)

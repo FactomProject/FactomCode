@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"sync"
-	"time"
 )
 
 type CChain struct {
@@ -52,7 +51,10 @@ func CreateCBlock(chain *CChain, prev *CBlock, cap uint) (b *CBlock, err error) 
 		prevHash, err = CreateHash(prev)
 	}
 
-	b.Header = NewCBlockHeader(chain.NextBlockID, prevHash, NewHash())
+	b.Header = new (CBlockHeader)
+	b.Header.PrevBlockHash = prevHash
+	b.Header.BlockID = chain.NextBlockID
+
 	b.Chain = chain
 	b.CBEntries = make([]CBEntry, 0, cap)
 	b.IsSealed = false
@@ -217,12 +219,12 @@ func (b *CChain) UnmarshalBinary(data []byte) (err error) {
 	return nil
 }
 
-//-----------------------
+//Entry Credit Block Header
 type CBlockHeader struct {
-	BlockID       uint64
-	PrevBlockHash *Hash
-	TimeStamp     int64
-	EntryCount    uint32
+	BlockID       		uint64
+	PrevBlockHash 		*Hash
+	EntryCount    		uint32
+	CreditsPerFactoid 	uint32 
 }
 
 func (b *CBlockHeader) MarshalBinary() (data []byte, err error) {
@@ -235,9 +237,8 @@ func (b *CBlockHeader) MarshalBinary() (data []byte, err error) {
 	}
 
 	buf.Write(data)
-	binary.Write(&buf, binary.BigEndian, b.TimeStamp)
 	binary.Write(&buf, binary.BigEndian, b.EntryCount)
-
+	binary.Write(&buf, binary.BigEndian, b.CreditsPerFactoid)
 	return buf.Bytes(), err
 }
 
@@ -246,9 +247,9 @@ func (b *CBlockHeader) MarshalledSize() uint64 {
 
 	size += 8
 	size += b.PrevBlockHash.MarshalledSize()
-	size += 8
 	size += 4
-
+	size += 4
+	
 	return size
 }
 
@@ -259,20 +260,11 @@ func (b *CBlockHeader) UnmarshalBinary(data []byte) (err error) {
 	b.PrevBlockHash.UnmarshalBinary(data)
 	data = data[b.PrevBlockHash.MarshalledSize():]
 
-	timeStamp, data := binary.BigEndian.Uint64(data[:8]), data[8:]
-	b.TimeStamp = int64(timeStamp)
-
-	b.EntryCount = binary.BigEndian.Uint32(data[:4])
-
+	b.EntryCount, data =  binary.BigEndian.Uint32(data[:4]), data[4:]
+	
+	b.CreditsPerFactoid = binary.BigEndian.Uint32(data[:4])
+	
 	return nil
-}
-
-func NewCBlockHeader(blockId uint64, prevHash *Hash, merkle *Hash) *CBlockHeader {
-	return &CBlockHeader{
-		PrevBlockHash: prevHash,
-		TimeStamp:     time.Now().Unix(),
-		BlockID:       blockId,
-	}
 }
 
 //---------------------------------------------------------------
