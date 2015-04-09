@@ -378,6 +378,41 @@ func handleEntryByHash(ctx *web.Context, hashStr string) {
 	}
 }
 
+// handleEntriesByExtID will get a series of entries and return them as a
+// stream of json objects.
+func handleEntriesByExtID(ctx *web.Context, eid string) {
+	log := serverLog
+	log.Debug("handleEntriesByExtID")
+
+	var httpcode int = 200
+	buf := new(bytes.Buffer)
+
+	defer func() {
+		ctx.WriteHeader(httpcode)
+		ctx.Write(buf.Bytes())
+	}()
+
+
+	entries, err := factomapi.GetEntriesByExtID(eid)
+	if err != nil {
+		httpcode = 400
+		buf.WriteString("Bad request")
+		log.Error(err)
+		return
+	}
+
+	// Send back JSON response
+	for _, entry := range entries {
+		err = factomapi.SafeMarshal(buf, &entry)
+		if err != nil {
+			httpcode = 400
+			buf.WriteString("Bad request")
+			log.Error(err)
+			return
+		}
+	}
+}
+
 //func handleFactoidTx(ctx *web.Context) {
 //	log := serverLog
 //	log.Debug("handleFactoidTx")

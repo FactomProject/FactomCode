@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/url"
 	"sort"
+	"strings"
 	//"github.com/FactomProject/FactomCode/database/ldb"
 	"bytes"
 	"encoding/binary"
@@ -142,6 +143,25 @@ func GetBlokHeight() (int, error) {
 		return 0, err
 	}
 	return len(b), nil
+}
+
+func GetEntriesByExtID(eid string) (entries []notaryapi.Entry, err error) {
+	extIDMap, err := db.InitializeExternalIDMap()
+	if err != nil {
+		return nil, err
+	}
+	for key, _ := range extIDMap {
+		if strings.Contains(key[32:], eid) {
+			hash := new(notaryapi.Hash)
+			hash.Bytes = []byte(key[:32])
+			entry, err := db.FetchEntryByHash(hash)
+			if err != nil {
+				return entries, err
+			}
+			entries = append(entries, *entry)
+		}
+	}
+	return entries, err
 }
 
 func GetEntryByHashStr(addr string) (*notaryapi.Entry, error) {

@@ -49,6 +49,7 @@ func Start(db database.Db, inMsgQ chan<- factomwire.Message) {
 	server.Get(`/v1/eblockbyhash/([^/]+)(?)`, handleEBlockByHash)
 	server.Get(`/v1/eblockbymr/([^/]+)(?)`, handleEBlockByMR)
 	server.Get(`/v1/entry/([^/]+)(?)`, handleEntryByHash)
+	server.Get(`/v1/entrybyeid/([^/]+)(?)`, handleEntriesByExtID)
 	//	server.Get(`/v1/factoidtx/?`, handleFactoidTx)
 
 	wsLog.Info("Starting server")
