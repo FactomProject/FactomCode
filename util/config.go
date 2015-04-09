@@ -1,3 +1,7 @@
+// Copyright 2015 Factom Foundation
+// Use of this source code is governed by the MIT
+// license that can be found in the LICENSE file.
+
 package util
 
 import (
@@ -36,10 +40,6 @@ type FactomdConfig struct {
 		PortNumber       int
 		ApplicationName  string
 		RefreshInSeconds int
-	}
-	Explorer struct {
-		PortNumber	int
-		StaticDir	string
 	}
 	Log struct {
 		LogPath  string
@@ -92,10 +92,6 @@ RefreshInSeconds		= 60
 ApplicationName			= "Factom/wsapi"
 PortNumber				= 8088 
 RefreshInSeconds		= 60
-
-[explorer]
-PortNumber				= 8087
-StaticDir				= ""
 
 ; ------------------------------------------------------------------------------
 ; LogLevel - debug,info,notice,warning,error,critical,alert,emergency,none
