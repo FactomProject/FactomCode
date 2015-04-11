@@ -58,6 +58,7 @@ type DBlockHeader struct {
 	MerkleRoot    *Hash
 	Version       int32
 	TimeStamp     int64
+	StartTime	  uint64
 	BatchFlag     byte // 1: start of the batch
 	EntryCount    uint32
 }

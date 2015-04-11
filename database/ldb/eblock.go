@@ -82,7 +82,7 @@ func (db *LevelDb) ProcessEBlockBatch(eblock *common.EBlock) error {
 		key = []byte{byte(TBL_EB_CHAIN_NUM)}
 		key = append(key, eblock.Chain.ChainID.Bytes...)
 		bytes := make([]byte, 8)
-		binary.BigEndian.PutUint64(bytes, eblock.Header.BlockID)
+		binary.BigEndian.PutUint64(bytes, eblock.Header.EBHeight)
 		key = append(key, bytes...)
 		db.lbatch.Put(key, binaryEBHash)
 
@@ -93,9 +93,9 @@ func (db *LevelDb) ProcessEBlockBatch(eblock *common.EBlock) error {
 			if isLookupDB {
 				// Create an EntryInfo and insert it into db
 				var entryInfo = new(common.EntryInfo)
-				entryInfo.EntryHash = ebEntry.Hash()
+				entryInfo.EntryHash = ebEntry.EntryHash
 				entryInfo.EBHash = eblock.EBHash
-				entryInfo.EBBlockNum = eblock.Header.BlockID
+				entryInfo.EBBlockNum = eblock.Header.EBHeight
 				var entryInfoKey []byte = []byte{byte(TBL_ENTRY_INFO)}
 				entryInfoKey = append(entryInfoKey, entryInfo.EntryHash.Bytes...)
 				binaryEntryInfo, _ := entryInfo.MarshalBinary()

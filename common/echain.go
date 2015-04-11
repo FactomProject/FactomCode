@@ -8,7 +8,7 @@ import (
 	"reflect"
 	"strings"
 	"sync"
-	"time"
+//	"time"
 )
 
 const (
@@ -50,66 +50,33 @@ type EBInfo struct {
 }
 
 type EBlockHeader struct {
-	BlockID       uint64
-	PrevBlockHash *Hash
-	TimeStamp     int64
+	Version 	  byte
+	NetworkID	  uint32
+	ChainID		  *Hash
+	BodyMR		  *Hash
+	PrevKeyMR	  *Hash
+	PrevHash      *Hash	
+	EBHeight       uint64
+	DBHeight       uint64
+	StartTime      uint64
+	EntryCount	   uint32	
 }
 
 type EBEntry struct {
-	timeStamp int64
-	hash      *Hash
-	ChainID   *[]byte // not marshalllized
-	status    int8    //for future use??
+	EntryHash      *Hash
+	
+	//ChainID   *[]byte // not marshalllized
 }
 
-func NewEBEntry(h *Hash, id *[]byte) *EBEntry {
-	e := &EBEntry{}
-	e.StampTime()
-	e.hash = h
-	e.ChainID = id
-	return e
-}
-
-func (e *EBEntry) Hash() *Hash {
-	return e.hash
-}
-
-func (e *EBEntry) SetHash(binaryHash []byte) {
-	h := new(Hash)
-	h.Bytes = binaryHash
-	e.hash = h
-}
-
-func (e *EBEntry) TimeStamp() int64 {
-	return e.timeStamp
-}
-
-func (e *EBEntry) GetBinaryTimeStamp() []byte {
-	b := make([]byte, 8)
-	binary.BigEndian.PutUint64(b, uint64(e.timeStamp))
-	return b
-}
-
-func (e *EBEntry) SetTimeStamp(binaryTime []byte) {
-	e.timeStamp = int64(binary.BigEndian.Uint64(binaryTime))
-}
-
-func (e *EBEntry) SetIntTimeStamp(ts int64) {
-	e.timeStamp = ts
-}
-
-func (e *EBEntry) RealTime() time.Time {
-	return time.Unix(e.timeStamp, 0)
-}
-
-func (e *EBEntry) StampTime() {
-	e.timeStamp = time.Now().Unix()
+func NewEBEntry(h *Hash) *EBEntry {
+	return &EBEntry{
+		EntryHash: h,}
 }
 
 func (e *EBEntry) EncodableFields() map[string]reflect.Value {
 	fields := map[string]reflect.Value{
 //		`TimeStamp`: reflect.ValueOf(e.TimeStamp()),
-		`Hash`:      reflect.ValueOf(e.Hash()),
+		`EntryHash`:      reflect.ValueOf(e.EntryHash),
 	}
 	return fields
 }
@@ -119,7 +86,7 @@ func (e *EBEntry) MarshalBinary() ([]byte, error) {
 
 //	binary.Write(&buf, binary.BigEndian, e.TimeStamp())
 
-	data, err := e.Hash().MarshalBinary()
+	data, err := e.EntryHash.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
@@ -132,17 +99,16 @@ func (e *EBEntry) MarshalBinary() ([]byte, error) {
 func (e *EBEntry) MarshalledSize() uint64 {
 	var size uint64 = 0
 
-//	size += 8 // TimeStamp() int64
-	size += e.Hash().MarshalledSize()
-
+	size += e.EntryHash.MarshalledSize()
+				
 	return size
 }
 
 func (e *EBEntry) UnmarshalBinary(data []byte) (err error) {
 //	timeStamp, data := binary.BigEndian.Uint64(data[:8]), data[8:]
 //	e.timeStamp = int64(timeStamp)
-	e.hash = new(Hash)
-	e.hash.UnmarshalBinary(data)
+	e.EntryHash = new(Hash)
+	e.EntryHash.UnmarshalBinary(data)
 	return nil
 }
 
@@ -154,54 +120,93 @@ func (e *EBEntry) ShaHash() *Hash {
 func (b *EBlockHeader) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
 
-	binary.Write(&buf, binary.BigEndian, b.BlockID)
-
-	data, err = b.PrevBlockHash.MarshalBinary()
+	buf.Write([]byte{b.Version})
+	binary.Write(&buf, binary.BigEndian, b.NetworkID)	
+	data, err = b.ChainID.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
+	buf.Write(data)	
 
-	buf.Write(data)
-	binary.Write(&buf, binary.BigEndian, b.TimeStamp)
+	data, err = b.BodyMR.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	buf.Write(data)	
 
+	data, err = b.PrevKeyMR.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	buf.Write(data)	
+	
+	data, err = b.PrevHash.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	buf.Write(data)		
+	
+	binary.Write(&buf, binary.BigEndian, b.EBHeight)
+
+	binary.Write(&buf, binary.BigEndian, b.DBHeight)
+	
+	binary.Write(&buf, binary.BigEndian, b.StartTime)	
+
+	binary.Write(&buf, binary.BigEndian, b.EntryCount)
+	
 	return buf.Bytes(), err
 }
 
 func (b *EBlockHeader) MarshalledSize() uint64 {
 	var size uint64 = 0
 
-	size += 8
-	size += b.PrevBlockHash.MarshalledSize()
-	size += 8
+	size += 1	
+	size += 4
+	size += b.ChainID.MarshalledSize()
+	size += b.BodyMR.MarshalledSize()
+	size += b.PrevKeyMR.MarshalledSize()
+	size += b.PrevHash.MarshalledSize()
+	size += 8	
+	size += 8	
+	size += 8	
+	size += 4	
 
 	return size
 }
 
 func (b *EBlockHeader) UnmarshalBinary(data []byte) (err error) {
-	b.BlockID, data = binary.BigEndian.Uint64(data[0:8]), data[8:]
+	
+	b.Version, data = data[0], data[1:]
+	
+	b.NetworkID, data = binary.BigEndian.Uint32(data[0:4]), data[4:]
 
-	b.PrevBlockHash = new(Hash)
-	b.PrevBlockHash.UnmarshalBinary(data)
+	b.ChainID = new(Hash)
+	b.ChainID.UnmarshalBinary(data)
+	data = data[b.ChainID.MarshalledSize():]
 
-	data = data[b.PrevBlockHash.MarshalledSize():]
+	b.BodyMR = new(Hash)
+	b.BodyMR.UnmarshalBinary(data)
+	data = data[b.BodyMR.MarshalledSize():]
 
-	timeStamp, data := binary.BigEndian.Uint64(data[:8]), data[8:]
-	b.TimeStamp = int64(timeStamp)
+	b.PrevKeyMR = new(Hash)
+	b.PrevKeyMR.UnmarshalBinary(data)
+	data = data[b.PrevKeyMR.MarshalledSize():]
 
+	b.PrevHash = new(Hash)
+	b.PrevHash.UnmarshalBinary(data)
+	data = data[b.PrevHash.MarshalledSize():]
+
+	b.EBHeight, data = binary.BigEndian.Uint64(data[0:8]), data[8:]
+	
+	b.DBHeight, data = binary.BigEndian.Uint64(data[0:8]), data[8:]	
+
+	b.StartTime, data = binary.BigEndian.Uint64(data[0:8]), data[8:]	
+	
+	b.EntryCount, data = binary.BigEndian.Uint32(data[0:4]), data[4:]	
+			
 	return nil
 }
 
-func NewEBlockHeader(blockId uint64, prevHash *Hash, merkle *Hash) *EBlockHeader {
-	return &EBlockHeader{
-		PrevBlockHash: prevHash,
-		TimeStamp:     time.Now().Unix(),
-		BlockID:       blockId,
-	}
-}
-
-func (e *EBlockHeader) RealTime() time.Time {
-	return time.Unix(e.TimeStamp, 0)
-}
 
 func CreateBlock(chain *EChain, prev *EBlock, capacity uint) (b *EBlock, err error) {
 	if prev == nil && chain.NextBlockID != 0 {
@@ -212,14 +217,21 @@ func CreateBlock(chain *EChain, prev *EBlock, capacity uint) (b *EBlock, err err
 
 	b = new(EBlock)
 
-	var prevHash *Hash
+	b.Header = new (EBlockHeader)
+	b.Header.Version = VERSION_0
+	b.Header.ChainID = chain.ChainID
+	b.Header.EBHeight = chain.NextBlockID
 	if prev == nil {
-		prevHash = NewHash()
+		b.Header.PrevHash = NewHash()
+		b.Header.PrevKeyMR = NewHash()		
 	} else {
-		prevHash, err = CreateHash(prev)
+		b.Header.PrevHash = prev.EBHash
+		if prev.MerkleRoot == nil {
+			prev.BuildMerkleRoot()
+		}
+		b.Header.PrevKeyMR = prev.MerkleRoot		
 	}
 
-	b.Header = NewEBlockHeader(chain.NextBlockID, prevHash, NewHash())
 
 	b.Chain = chain
 
@@ -236,7 +248,7 @@ func (b *EBlock) AddEBEntry(e *Entry) (err error) {
 		return
 	}
 
-	ebEntry := NewEBEntry(h, &b.Chain.ChainID.Bytes)
+	ebEntry := NewEBEntry(h)
 
 	b.EBEntries = append(b.EBEntries, ebEntry)
 
@@ -249,9 +261,28 @@ func (b *EBlock) AddEndOfMinuteMarker(eomType byte) (err error) {
 	
 	h, _ := NewShaHash(bytes)
 
-	ebEntry := NewEBEntry(h, &b.Chain.ChainID.Bytes)
+	ebEntry := NewEBEntry(h)
 
 	b.EBEntries = append(b.EBEntries, ebEntry)
+
+	return
+}
+
+func (block *EBlock) BuildMerkleRoot() (err error) {
+	// Create the Entry Block Boday Merkle Root from EB Entries
+	hashes := make([]*Hash, 0, len(block.EBEntries))
+	for _, entry := range block.EBEntries {
+		hashes = append(hashes, entry.EntryHash)
+	}
+	merkle := BuildMerkleTreeStore(hashes)	
+		
+	// Create the Entry Block Key Merkle Root from the hash of Header and the Body Merkle Root	
+	hashes = make([]*Hash, 0, 2)	
+	binaryEBHeader, _ := block.Header.MarshalBinary()
+	hashes = append(hashes, Sha(binaryEBHeader))
+	hashes = append(hashes, block.Header.BodyMR)	
+	merkle = BuildMerkleTreeStore(hashes)
+	block.MerkleRoot = merkle[len(merkle)-1] // MerkleRoot is not marshalized in Entry Block
 
 	return
 }

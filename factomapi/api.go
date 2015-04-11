@@ -198,7 +198,7 @@ func (f byEBlockID) Len() int {
 	return len(f)
 }
 func (f byEBlockID) Less(i, j int) bool {
-	return f[i].Header.BlockID > f[j].Header.BlockID
+	return f[i].Header.EBHeight > f[j].Header.EBHeight
 }
 func (f byEBlockID) Swap(i, j int) {
 	f[i], f[j] = f[j], f[i]
