@@ -114,6 +114,17 @@ func GetDirectoryBlokByHashStr(addr string) (*notaryapi.DBlock, error) {
 	return db.FetchDBlockByHash(hash)
 }
 
+func GetDBInfoByHashStr(addr string) (*notaryapi.DBInfo, error) {
+	hash := new(notaryapi.Hash)
+	a, err := hex.DecodeString(addr)
+	if err != nil {
+		return nil, err
+	}
+	hash.Bytes = a
+
+	return db.FetchDBInfoByHash(hash)
+}
+
 func GetEntryBlokByHashStr(addr string) (*notaryapi.EBlock, error) {
 	hash := new(notaryapi.Hash)
 	a, err := hex.DecodeString(addr)

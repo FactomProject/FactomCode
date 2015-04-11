@@ -238,6 +238,38 @@ func handleDBlockByHash(ctx *web.Context, hashStr string) {
 	}
 }
 
+// handleDBInfoByHash will take a Directory Block Hash and return the directory
+// block information in json format.
+func handleDBInfoByHash(ctx *web.Context, hashStr string) {
+	log := serverLog
+	log.Debug("handleDBInfoByHash")
+	var httpcode int = 200
+	buf := new(bytes.Buffer)
+
+	defer func() {
+		ctx.WriteHeader(httpcode)
+		ctx.Write(buf.Bytes())
+	}()
+
+	dBInfo, err := factomapi.GetDBInfoByHashStr(hashStr)
+	log.Debug(dBInfo)
+	if err != nil {
+		httpcode = 400
+		buf.WriteString("Bad Request")
+		log.Error(err)
+		return
+	}
+
+	// Send back JSON response
+	err = factomapi.SafeMarshal(buf, dBInfo)
+	if err != nil {
+		httpcode = 400
+		buf.WriteString("Bad request ")
+		log.Error(err)
+		return
+	}
+}
+
 // handleDBlockByRange will get a block height range and return the information
 // for all of the directory blocks within the range in json format.
 func handleDBlocksByRange(ctx *web.Context, fromHeightStr string,
