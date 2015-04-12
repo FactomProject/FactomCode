@@ -42,7 +42,7 @@ func (db *LevelDb) ProcessCBlockBatch(block *common.CBlock) error {
 	return nil
 }
 
-// FetchCntryBlock gets a block by hash from the database.
+// FetchCBlockByHash gets an Entry Credit block by hash from the database.
 func (db *LevelDb) FetchCBlockByHash(cBlockHash *common.Hash) (cBlock *common.CBlock, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()

@@ -93,6 +93,9 @@ type Db interface {
 	// ProcessCBlockBatche inserts the CBlock and update all it's cbentries in DB
 	ProcessCBlockBatch(block *common.CBlock) (err error)
 
+	// FetchCBlockByHash gets an Entry Credit block by hash from the database.
+	FetchCBlockByHash(cBlockHash *common.Hash) (cBlock *common.CBlock, err error)
+
 	// Initialize External ID map for explorer search
 	InitializeExternalIDMap() (extIDMap map[string]bool, err error)
 
