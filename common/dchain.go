@@ -14,9 +14,10 @@ const DBlockVersion = 1
 type DChain struct {
 	ChainID      *Hash
 	Blocks       []*DBlock
-	CurrentBlock *DBlock
 	BlockMutex   sync.Mutex
+	NextBlock 	*DBlock
 	NextBlockID  uint64
+	IsValidated bool		
 }
 
 type DBlock struct {
@@ -28,6 +29,7 @@ type DBlock struct {
 	Chain    *DChain
 	IsSealed bool
 	DBHash   *Hash
+	IsValidated bool	
 }
 
 type DBInfo struct {
@@ -262,38 +264,55 @@ func CreateDBlock(chain *DChain, prev *DBlock, cap uint) (b *DBlock, err error) 
 }
 
 // Add DBEntry from an Entry Block
-func (dchain *DChain) AddDBEntry(eb *EBlock) (err error) {
-	dBlock := dchain.Blocks[len(dchain.Blocks)-1]
+func (c *DChain) AddDBEntry(eb *EBlock) (err error) {
 
 	dbEntry := NewDBEntry(eb)
 
-	dchain.BlockMutex.Lock()
-	dBlock.DBEntries = append(dBlock.DBEntries, dbEntry)
-	dchain.BlockMutex.Unlock()
+	c.BlockMutex.Lock()
+	c.NextBlock.DBEntries = append(c.NextBlock.DBEntries, dbEntry)
+	c.BlockMutex.Unlock()
 
 	return nil
 }
 
 // Add DBEntry from an Entry Credit Block
-func (dchain *DChain) AddCBlockToDBEntry(cb *CBlock) (err error) {
-	dBlock := dchain.Blocks[len(dchain.Blocks)-1]
+func (c *DChain) AddCBlockToDBEntry(cb *CBlock) (err error) {
 
 	dbEntry := NewDBEntryFromCBlock(cb)
 
-	dchain.BlockMutex.Lock()
-	dBlock.DBEntries = append(dBlock.DBEntries, dbEntry)
-	dchain.BlockMutex.Unlock()
+	c.BlockMutex.Lock()
+	c.NextBlock.DBEntries = append(c.NextBlock.DBEntries, dbEntry)
+	c.BlockMutex.Unlock()
 
 	return nil
 }
 
 // Add DBEntry from a Factoid Block
-func (dchain *DChain) AddFBlockToDBEntry(dbEntry *DBEntry) (err error) {
-	dBlock := dchain.Blocks[len(dchain.Blocks)-1]
+func (c *DChain) AddFBlockToDBEntry(dbEntry *DBEntry) (err error) {
 
-	dchain.BlockMutex.Lock()
-	dBlock.DBEntries = append(dBlock.DBEntries, dbEntry)
-	dchain.BlockMutex.Unlock()
+	c.BlockMutex.Lock()
+	c.NextBlock.DBEntries = append(c.NextBlock.DBEntries, dbEntry)
+	c.BlockMutex.Unlock()
+ 
+	return nil
+}
+
+// Add DBlock to the chain in memory
+func (c *DChain) AddDBlockToDChain(b *DBlock) (err error) {
+
+	// Increase the slice capacity if needed
+	if b.Header.BlockID >= uint64(cap(c.Blocks)) {
+		temp := make([]*DBlock, len(c.Blocks), b.Header.BlockID*2)
+		copy(temp, c.Blocks)
+		c.Blocks = temp
+	}
+
+	// Increase the slice length if needed
+	if b.Header.BlockID >= uint64(len(c.Blocks)) {
+		c.Blocks = c.Blocks[0 : b.Header.BlockID+1]
+	}
+
+	c.Blocks[b.Header.BlockID] = b
  
 	return nil
 }
