@@ -29,7 +29,7 @@ type DBlock struct {
 	Chain    *DChain
 	IsSealed bool
 	DBHash   *Hash
-	IsValidated bool	
+	IsSavedInDB bool	
 }
 
 type DBInfo struct {
