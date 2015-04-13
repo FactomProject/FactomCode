@@ -166,6 +166,17 @@ func (e *DBEntry) ShaHash() *Hash {
 	return Sha(byteArray)
 }
 
+func (b *DBlockHeader) EncodableFields() map[string]reflect.Value {
+	fields := map[string]reflect.Value{
+		`BlockID`: reflect.ValueOf(b.BlockID),
+		`EntryCount`: reflect.ValueOf(b.EntryCount),
+		`MerkleRoot`: reflect.ValueOf(b.MerkleRoot),
+		`PrevBlockHash`:    reflect.ValueOf(b.PrevBlockHash),
+		`TimeStamp`: reflect.ValueOf(b.TimeStamp),
+	}
+	return fields
+}
+
 func (b *DBlockHeader) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
 
@@ -392,6 +403,7 @@ func (b *DBlock) EncodableFields() map[string]reflect.Value {
 	fields := map[string]reflect.Value{
 		`Header`:    reflect.ValueOf(b.Header),
 		`DBEntries`: reflect.ValueOf(b.DBEntries),
+		`DBHash`:    reflect.ValueOf(b.DBHash),
 	}
 	return fields
 }

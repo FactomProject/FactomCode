@@ -287,6 +287,14 @@ func (block *EBlock) BuildMerkleRoot() (err error) {
 	return
 }
 
+func (e *EBlock) EncodableFields() map[string]reflect.Value {
+	fields := map[string]reflect.Value{
+		`Header`:    reflect.ValueOf(e.Header),
+		`EBEntries`: reflect.ValueOf(e.EBEntries),
+	}
+	return fields
+}
+
 func (b *EBlock) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
 
