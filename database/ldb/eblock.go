@@ -255,6 +255,28 @@ func (db *LevelDb) FetchChainByName(chainName [][]byte) (chain *common.EChain, e
 
 }
 
+// FetchAllChains get all of the cahins
+func (db *LevelDb) FetchAllChains() (chains []common.EChain, err error) {
+	db.dbLock.Lock()
+	defer db.dbLock.Unlock()
+
+	var fromkey []byte = []byte{byte(TBL_CHAIN_HASH)}   // Table Name (1 bytes)
+	var tokey []byte = []byte{byte(TBL_CHAIN_HASH + 1)} // Table Name (1 bytes)
+
+	chainSlice := make([]common.EChain, 0, 10)
+
+	iter := db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
+	for iter.Next() {
+		var chain common.EChain
+		chain.UnmarshalBinary(iter.Value())
+		chainSlice = append(chainSlice, chain)
+	}
+	iter.Release()
+	err = iter.Error()
+
+	return chainSlice, err
+}
+
 // FetchAllChainByName gets all of the chains under the path - name
 func (db *LevelDb) FetchAllChainsByName(chainName [][]byte) (chains *[]common.EChain, err error) {
 

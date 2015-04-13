@@ -1,3 +1,7 @@
+// Copyright 2015 Factom Foundation
+// Use of this source code is governed by the MIT
+// license that can be found in the LICENSE file.
+
 package wsapi
 
 import (
@@ -33,8 +37,8 @@ func handleBlockHeight(ctx *web.Context) {
 		log.Error(err)
 		return
 	}
-	
-	fmt.Fprint(buf, height)	
+
+	fmt.Fprint(buf, height)
 }
 
 // handleBuyCredit will add entry credites to the specified key. Currently the
@@ -82,6 +86,75 @@ func handleBuyCredit(ctx *web.Context) {
 		return
 	} else {
 		fmt.Fprintln(ctx, "MsgGetCredit Submitted")
+	}
+}
+
+// handleChainByHash will take a ChainID and return the associated Chain
+func handleChainByHash(ctx *web.Context, hash string) {
+	log := serverLog
+	log.Debug("handleChainByHash")
+	var httpcode int = 200
+	buf := new(bytes.Buffer)
+
+	defer func() {
+		ctx.WriteHeader(httpcode)
+		ctx.Write(buf.Bytes())
+	}()
+
+	chain, err := factomapi.GetChainByHashStr(hash)
+	log.Debugf("%#v", chain)
+	if err != nil {
+		httpcode = 400
+		buf.WriteString("Bad Request")
+		log.Error(err)
+		return
+	}
+
+	// Send back JSON response
+	err = factomapi.SafeMarshal(buf, chain)
+	if err != nil {
+		httpcode = 400
+		buf.WriteString("Bad request ")
+		log.Error(err)
+		return
+	}
+}
+
+// handleChains will return all chains from the backend database
+func handleChains(ctx *web.Context) {
+	log := serverLog
+	log.Debug("handleChains")
+	var httpcode int = 200
+	buf := new(bytes.Buffer)
+
+	defer func() {
+		ctx.WriteHeader(httpcode)
+		ctx.Write(buf.Bytes())
+	}()
+
+	chains, err := factomapi.GetAllChains()
+	log.Debugf("Got %d chains", len(chains))
+	if err != nil {
+		httpcode = 400
+		buf.WriteString("Bad Request")
+		log.Error(err)
+		return
+	}
+
+	// Send back JSON response
+	for _, v := range chains {
+		err = factomapi.SafeMarshal(buf, v)
+		if err != nil {
+			log.Error(err)
+			break
+		}
+	}
+	
+	if err != nil {
+		httpcode = 400
+		buf.WriteString("Bad request ")
+		log.Error(err)
+		return
 	}
 }
 
@@ -147,6 +220,7 @@ func handleDBlockByHash(ctx *web.Context, hashStr string) {
 	}()
 
 	dBlock, err := factomapi.GetDirectoryBlokByHashStr(hashStr)
+	log.Debug(dBlock)
 	if err != nil {
 		httpcode = 400
 		buf.WriteString("Bad Request")
@@ -156,6 +230,38 @@ func handleDBlockByHash(ctx *web.Context, hashStr string) {
 
 	// Send back JSON response
 	err = factomapi.SafeMarshal(buf, dBlock)
+	if err != nil {
+		httpcode = 400
+		buf.WriteString("Bad request ")
+		log.Error(err)
+		return
+	}
+}
+
+// handleDBInfoByHash will take a Directory Block Hash and return the directory
+// block information in json format.
+func handleDBInfoByHash(ctx *web.Context, hashStr string) {
+	log := serverLog
+	log.Debug("handleDBInfoByHash")
+	var httpcode int = 200
+	buf := new(bytes.Buffer)
+
+	defer func() {
+		ctx.WriteHeader(httpcode)
+		ctx.Write(buf.Bytes())
+	}()
+
+	dBInfo, err := factomapi.GetDBInfoByHashStr(hashStr)
+	log.Debug(dBInfo)
+	if err != nil {
+		httpcode = 400
+		buf.WriteString("Bad Request")
+		log.Error(err)
+		return
+	}
+
+	// Send back JSON response
+	err = factomapi.SafeMarshal(buf, dBInfo)
 	if err != nil {
 		httpcode = 400
 		buf.WriteString("Bad request ")
@@ -205,7 +311,7 @@ func handleDBlocksByRange(ctx *web.Context, fromHeightStr string,
 
 	// Send back JSON response
 	for _, block := range dBlocks {
-		err = factomapi.SafeMarshal(buf, block)
+		err = factomapi.SafeMarshal(buf, &block)
 		if err != nil {
 			httpcode = 400
 			buf.WriteString("Bad request")
@@ -301,6 +407,41 @@ func handleEntryByHash(ctx *web.Context, hashStr string) {
 		buf.WriteString("Bad request")
 		log.Error(err)
 		return
+	}
+}
+
+// handleEntriesByExtID will get a series of entries and return them as a
+// stream of json objects.
+func handleEntriesByExtID(ctx *web.Context, eid string) {
+	log := serverLog
+	log.Debug("handleEntriesByExtID")
+
+	var httpcode int = 200
+	buf := new(bytes.Buffer)
+
+	defer func() {
+		ctx.WriteHeader(httpcode)
+		ctx.Write(buf.Bytes())
+	}()
+
+
+	entries, err := factomapi.GetEntriesByExtID(eid)
+	if err != nil {
+		httpcode = 400
+		buf.WriteString("Bad request")
+		log.Error(err)
+		return
+	}
+
+	// Send back JSON response
+	for _, entry := range entries {
+		err = factomapi.SafeMarshal(buf, &entry)
+		if err != nil {
+			httpcode = 400
+			buf.WriteString("Bad request")
+			log.Error(err)
+			return
+		}
 	}
 }
 
@@ -406,27 +547,18 @@ func handleSubmitEntry(ctx *web.Context) {
 			log.Error(err)
 		}
 
-		if err := factomapi.RevealEntry(entry); err != nil {
-			fmt.Fprintln(ctx,
-				"there was a problem with submitting the entry:", err.Error())
-			log.Error(err)
-		}
-		time.Sleep(1 * time.Second)
-				
 		if err := factomapi.CommitEntry(entry); err != nil {
 			fmt.Fprintln(ctx,
 				"there was a problem with submitting the entry:", err.Error())
 			log.Error(err)
 		}
-/*
+
 		time.Sleep(1 * time.Second)
 		if err := factomapi.RevealEntry(entry); err != nil {
 			fmt.Fprintln(ctx,
 				"there was a problem with submitting the entry:", err.Error())
 			log.Error(err)
 		}
-		
-		*/
 		fmt.Fprintln(ctx, "Entry Submitted")
 	default:
 		ctx.WriteHeader(403)

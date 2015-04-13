@@ -5,20 +5,20 @@
 package factomapi
 
 import (
-	//"encoding/base64"
-	"encoding/hex"
-	"fmt"
-	"github.com/FactomProject/FactomCode/database"
-	"github.com/FactomProject/FactomCode/common"
-	"github.com/FactomProject/FactomCode/util"
-	"github.com/FactomProject/FactomCode/wallet"	
-	"github.com/FactomProject/btcd/wire"
-	"github.com/FactomProject/btcd"	
-	"sort"
-	//"github.com/FactomProject/FactomCode/database/ldb"
 	"bytes"
 	"encoding/binary"
+	"encoding/hex"
+	"fmt"
+	"sort"
+	"strings"
 	"time"
+
+	"github.com/FactomProject/FactomCode/common"
+	"github.com/FactomProject/FactomCode/database"
+	"github.com/FactomProject/FactomCode/util"
+	"github.com/FactomProject/FactomCode/wallet"
+	"github.com/FactomProject/btcd"
+	"github.com/FactomProject/btcd/wire"
 )
 
 //to be improved
@@ -70,6 +70,21 @@ func GetEntryCreditBalance(ecPubKey *common.Hash) (credits int32, err error) {
 	return  btcd.GetEntryCreditBalance(ecPubKey)
 }
 
+func GetChainByHashStr(id string) (*common.EChain, error) {
+	hash := new(common.Hash)
+	a, err := hex.DecodeString(id)
+	if err != nil {
+		return nil, err
+	}
+	hash.Bytes = a
+
+	return db.FetchChainByHash(hash)
+}
+
+func GetAllChains() ([]common.EChain, error) {
+	return db.FetchAllChains()
+}
+
 func GetDirectoryBloks(fromBlockHeight uint64, toBlockHeight uint64) (dBlocks []common.DBlock, err error) {
 	//needs to be improved ??
 	dBlocks, _ = db.FetchAllDBlocks()
@@ -93,6 +108,17 @@ func GetDirectoryBlokByHashStr(addr string) (*common.DBlock, error) {
 	hash.Bytes = a
 
 	return db.FetchDBlockByHash(hash)
+}
+
+func GetDBInfoByHashStr(addr string) (*common.DBInfo, error) {
+	hash := new(common.Hash)
+	a, err := hex.DecodeString(addr)
+	if err != nil {
+		return nil, err
+	}
+	hash.Bytes = a
+
+	return db.FetchDBInfoByHash(hash)
 }
 
 func GetEntryBlokByHashStr(addr string) (*common.EBlock, error) {
@@ -124,6 +150,25 @@ func GetBlokHeight() (int, error) {
 		return 0, err
 	}
 	return len(b), nil
+}
+
+func GetEntriesByExtID(eid string) (entries []common.Entry, err error) {
+	extIDMap, err := db.InitializeExternalIDMap()
+	if err != nil {
+		return nil, err
+	}
+	for key, _ := range extIDMap {
+		if strings.Contains(key[32:], eid) {
+			hash := new(common.Hash)
+			hash.Bytes = []byte(key[:32])
+			entry, err := db.FetchEntryByHash(hash)
+			if err != nil {
+				return entries, err
+			}
+			entries = append(entries, *entry)
+		}
+	}
+	return entries, err
 }
 
 func GetEntryByHashStr(addr string) (*common.Entry, error) {

@@ -45,6 +45,9 @@ type Db interface {
 	// FetchChainByName gets a chain by chain name
 	FetchChainByName(chainName [][]byte) (chain *common.EChain, err error)
 
+	//FetchAllChains gets all of the chains
+	FetchAllChains() (chains []common.EChain, err error)
+
 	// FetchAllChainByName gets all of the chains under the path - name
 	FetchAllChainsByName(chainName [][]byte) (chains *[]common.EChain, err error)
 
