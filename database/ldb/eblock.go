@@ -88,7 +88,7 @@ func (db *LevelDb) ProcessEBlockBatch(eblock *common.EBlock) error {
 
 		// Insert the entry block number cross reference
 		key = []byte{byte(TBL_EB_CHAIN_NUM)}
-		key = append(key, eblock.Chain.ChainID.Bytes...)
+		key = append(key, eblock.Header.ChainID.Bytes...)
 		bytes := make([]byte, 8)
 		binary.BigEndian.PutUint64(bytes, eblock.Header.EBHeight)
 		key = append(key, bytes...)
