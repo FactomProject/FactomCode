@@ -67,7 +67,7 @@ func (db *LevelDb) ProcessDBlockBatch(dblock *common.DBlock) error {
 			return err
 		}
 		
-		if dblock.DBHash == nil {
+		if dblock.DBHash == nil || dblock.DBHash.Bytes == nil {
 			dblock.DBHash = common.Sha(binaryDblock)
 		}
 
@@ -84,7 +84,7 @@ func (db *LevelDb) ProcessDBlockBatch(dblock *common.DBlock) error {
 		db.lbatch.Put(dbNumkey, dblock.DBHash.Bytes)
 
 		// Update DBEntry process queue for each dbEntry in dblock
-		for i := 0; i < len(dblock.DBEntries); i++ {
+/*		for i := 0; i < len(dblock.DBEntries); i++ {
 			var dbEntry common.DBEntry = *dblock.DBEntries[i]
 
 			if isLookupDB {
@@ -101,7 +101,7 @@ func (db *LevelDb) ProcessDBlockBatch(dblock *common.DBlock) error {
 				db.lbatch.Put(ebInfoKey, binaryEbInfo)
 			}
 		}
-
+*/
 		err = db.lDb.Write(db.lbatch, db.wo)
 		if err != nil {
 			log.Println("batch failed %v\n", err)
