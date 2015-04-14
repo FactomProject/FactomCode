@@ -66,7 +66,15 @@ func (db *LevelDb) ProcessEBlockBatch(eblock *common.EBlock) error {
 		if err != nil {
 			return err
 		}
+		
+		if eblock.EBHash == nil {
+			eblock.EBHash = common.Sha(binaryEblock)
+		}
 
+		if eblock.MerkleRoot == nil {
+			eblock.BuildMerkleRoot()
+		}
+		
 		// Insert the binary entry block
 		var key []byte = []byte{byte(TBL_EB)}
 		key = append(key, eblock.EBHash.Bytes...)

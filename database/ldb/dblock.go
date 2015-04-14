@@ -66,6 +66,10 @@ func (db *LevelDb) ProcessDBlockBatch(dblock *common.DBlock) error {
 		if err != nil {
 			return err
 		}
+		
+		if dblock.DBHash == nil {
+			dblock.DBHash = common.Sha(binaryDblock)
+		}
 
 		// Insert the binary directory block
 		var key []byte = []byte{byte(TBL_DB)}
