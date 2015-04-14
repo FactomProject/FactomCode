@@ -340,19 +340,20 @@ func (b *DBlock) MarshalBinary() (data []byte, err error) {
 	return buf.Bytes(), err
 }
 
-func (b *DBlock) CalculateMerkleRoot() *Hash {
+func (b *DBlock) CalculateMerkleRoot() (mr *Hash, err error) {
 	hashes := make([]*Hash, len(b.DBEntries))
 	for i, entry := range b.DBEntries {
 		data, _ := entry.MarshalBinary()
 		hashes[i] = Sha(data)
 	}
+	// Verify bodyMR here?? 
 	
 	if len(hashes)==0{
 		hashes = append(hashes, Sha(nil))
 	}
 	
 	merkle := BuildMerkleTreeStore(hashes)
-	return merkle[len(merkle)-1]
+	return merkle[len(merkle)-1], nil
 }
 
 func (b *DBlock) MarshalledSize() uint64 {
