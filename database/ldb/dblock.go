@@ -67,7 +67,7 @@ func (db *LevelDb) ProcessDBlockBatch(dblock *common.DBlock) error {
 			return err
 		}
 		
-		if dblock.DBHash == nil || dblock.DBHash.Bytes == nil {
+		if dblock.DBHash == nil {
 			dblock.DBHash = common.Sha(binaryDblock)
 		}
 

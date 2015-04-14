@@ -27,6 +27,10 @@ func (db *LevelDb) ProcessCBlockBatch(block *common.CBlock) error {
 			return err
 		}
 
+		if block.CBHash == nil {
+			block.CBHash = common.Sha(binaryBlock)
+		}
+
 		// Insert the binary factom block
 		var key []byte = []byte{byte(TBL_CB)}
 		key = append(key, block.CBHash.Bytes...)
