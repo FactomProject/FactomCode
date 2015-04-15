@@ -6,7 +6,7 @@ import (
 	"errors"
 	"reflect"
 	"sync"
-	"time"
+//	"time"
 )
 
 const DBlockVersion = 1
@@ -59,7 +59,7 @@ type DBlockHeader struct {
 	PrevBlockHash *Hash
 	MerkleRoot    *Hash
 	Version       int32
-	TimeStamp     int64
+//	TimeStamp     int64
 	StartTime	  uint64
 	BatchFlag     byte // 1: start of the batch
 	EntryCount    uint32
@@ -172,7 +172,7 @@ func (b *DBlockHeader) EncodableFields() map[string]reflect.Value {
 		`EntryCount`: reflect.ValueOf(b.EntryCount),
 		`MerkleRoot`: reflect.ValueOf(b.MerkleRoot),
 		`PrevBlockHash`:    reflect.ValueOf(b.PrevBlockHash),
-		`TimeStamp`: reflect.ValueOf(b.TimeStamp),
+//		`TimeStamp`: reflect.ValueOf(b.TimeStamp),
 	}
 	return fields
 }
@@ -195,7 +195,7 @@ func (b *DBlockHeader) MarshalBinary() (data []byte, err error) {
 	buf.Write(data)
 
 	binary.Write(&buf, binary.BigEndian, b.Version)
-	binary.Write(&buf, binary.BigEndian, b.TimeStamp)
+//	binary.Write(&buf, binary.BigEndian, b.TimeStamp)
 	binary.Write(&buf, binary.BigEndian, b.EntryCount)
 
 	return buf.Bytes(), err
@@ -207,7 +207,7 @@ func (b *DBlockHeader) MarshalledSize() uint64 {
 	size += b.PrevBlockHash.MarshalledSize()
 	size += b.MerkleRoot.MarshalledSize()
 	size += 4
-	size += 8
+//	size += 8
 	size += 4
 
 	return size
@@ -225,11 +225,11 @@ func (b *DBlockHeader) UnmarshalBinary(data []byte) (err error) {
 	data = data[b.MerkleRoot.MarshalledSize():]
 
 	version, data := binary.BigEndian.Uint32(data[0:4]), data[4:]
-	timeStamp, data := binary.BigEndian.Uint64(data[:8]), data[8:]
+//	timeStamp, data := binary.BigEndian.Uint64(data[:8]), data[8:]
 	b.EntryCount, data = binary.BigEndian.Uint32(data[0:4]), data[4:]
 
 	b.Version = int32(version)
-	b.TimeStamp = int64(timeStamp)
+//	b.TimeStamp = int64(timeStamp)
 
 	return nil
 }
@@ -239,16 +239,16 @@ func NewDBlockHeader(blockId uint64, prevHash *Hash, version int32,
 	return &DBlockHeader{
 		Version:       version,
 		PrevBlockHash: prevHash,
-		TimeStamp:     time.Now().Unix(),
+//		TimeStamp:     time.Now().Unix(),
 		EntryCount:    count,
 		BlockID:       blockId,
 	}
 }
-
+/*
 func (b *DBlockHeader) RealTime() time.Time {
 	return time.Unix(b.TimeStamp, 0)
 }
-
+*/
 func CreateDBlock(chain *DChain, prev *DBlock, cap uint) (b *DBlock, err error) {
 	if prev == nil && chain.NextBlockID != 0 {
 		return nil, errors.New("Previous block cannot be nil")
