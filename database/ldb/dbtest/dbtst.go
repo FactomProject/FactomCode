@@ -19,7 +19,7 @@ type tst struct {
 
 const dbpath = "/tmp/ldb9"
 
-func main() {
+func main() { 
 
 	ro := &opt.ReadOptions{}
 	//wo := &opt.WriteOptions{}
