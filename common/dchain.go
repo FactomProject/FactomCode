@@ -6,18 +6,18 @@ import (
 	"errors"
 	"reflect"
 	"sync"
-//	"time"
+	//	"time"
 )
 
 const DBlockVersion = 1
 
 type DChain struct {
-	ChainID      *Hash
-	Blocks       []*DBlock
-	BlockMutex   sync.Mutex
-	NextBlock 	*DBlock
-	NextBlockID  uint64
-	IsValidated bool		
+	ChainID     *Hash
+	Blocks      []*DBlock
+	BlockMutex  sync.Mutex
+	NextBlock   *DBlock
+	NextBlockID uint64
+	IsValidated bool
 }
 
 type DBlock struct {
@@ -26,17 +26,17 @@ type DBlock struct {
 	DBEntries []*DBEntry
 
 	//Not Marshalized
-	Chain    *DChain
-	IsSealed bool
-	DBHash   *Hash
-	IsSavedInDB bool	
+	Chain       *DChain
+	IsSealed    bool
+	DBHash      *Hash
+	IsSavedInDB bool
 }
 
 type DBInfo struct {
 
 	// Serial hash for the directory block
 	DBHash *Hash
-	
+
 	// BTCTxHash is the Tx hash returned from rpcclient.SendRawTransaction
 	BTCTxHash *Hash // use string or *btcwire.ShaHash ???
 
@@ -48,10 +48,10 @@ type DBInfo struct {
 
 	//BTCBlockHash is the hash of the block where this TX is stored in BTC
 	BTCBlockHash *Hash // use string or *btcwire.ShaHash ???
-	
+
 	// DBMerkleRoot is the merkle root of the Directory Block
 	// and is written into BTC as OP_RETURN data
-	DBMerkleRoot *Hash	
+	DBMerkleRoot *Hash
 }
 
 type DBlockHeader struct {
@@ -59,12 +59,11 @@ type DBlockHeader struct {
 	PrevBlockHash *Hash
 	MerkleRoot    *Hash
 	Version       int32
-//	TimeStamp     int64
-	StartTime	  uint64
-	BatchFlag     byte // 1: start of the batch
-	EntryCount    uint32
+	//	TimeStamp     int64
+	StartTime  uint64
+	BatchFlag  byte // 1: start of the batch
+	EntryCount uint32
 }
-
 
 type DBEntry struct {
 	MerkleRoot *Hash // Different MR in EBlockHeader
@@ -168,11 +167,11 @@ func (e *DBEntry) ShaHash() *Hash {
 
 func (b *DBlockHeader) EncodableFields() map[string]reflect.Value {
 	fields := map[string]reflect.Value{
-		`BlockID`: reflect.ValueOf(b.BlockID),
-		`EntryCount`: reflect.ValueOf(b.EntryCount),
-		`MerkleRoot`: reflect.ValueOf(b.MerkleRoot),
-		`PrevBlockHash`:    reflect.ValueOf(b.PrevBlockHash),
-//		`TimeStamp`: reflect.ValueOf(b.TimeStamp),
+		`BlockID`:       reflect.ValueOf(b.BlockID),
+		`EntryCount`:    reflect.ValueOf(b.EntryCount),
+		`MerkleRoot`:    reflect.ValueOf(b.MerkleRoot),
+		`PrevBlockHash`: reflect.ValueOf(b.PrevBlockHash),
+		//		`TimeStamp`: reflect.ValueOf(b.TimeStamp),
 	}
 	return fields
 }
@@ -195,7 +194,7 @@ func (b *DBlockHeader) MarshalBinary() (data []byte, err error) {
 	buf.Write(data)
 
 	binary.Write(&buf, binary.BigEndian, b.Version)
-//	binary.Write(&buf, binary.BigEndian, b.TimeStamp)
+	//	binary.Write(&buf, binary.BigEndian, b.TimeStamp)
 	binary.Write(&buf, binary.BigEndian, b.EntryCount)
 
 	return buf.Bytes(), err
@@ -207,7 +206,7 @@ func (b *DBlockHeader) MarshalledSize() uint64 {
 	size += b.PrevBlockHash.MarshalledSize()
 	size += b.MerkleRoot.MarshalledSize()
 	size += 4
-//	size += 8
+	//	size += 8
 	size += 4
 
 	return size
@@ -225,11 +224,11 @@ func (b *DBlockHeader) UnmarshalBinary(data []byte) (err error) {
 	data = data[b.MerkleRoot.MarshalledSize():]
 
 	version, data := binary.BigEndian.Uint32(data[0:4]), data[4:]
-//	timeStamp, data := binary.BigEndian.Uint64(data[:8]), data[8:]
+	//	timeStamp, data := binary.BigEndian.Uint64(data[:8]), data[8:]
 	b.EntryCount, data = binary.BigEndian.Uint32(data[0:4]), data[4:]
 
 	b.Version = int32(version)
-//	b.TimeStamp = int64(timeStamp)
+	//	b.TimeStamp = int64(timeStamp)
 
 	return nil
 }
@@ -239,11 +238,12 @@ func NewDBlockHeader(blockId uint64, prevHash *Hash, version int32,
 	return &DBlockHeader{
 		Version:       version,
 		PrevBlockHash: prevHash,
-//		TimeStamp:     time.Now().Unix(),
-		EntryCount:    count,
-		BlockID:       blockId,
+		//		TimeStamp:     time.Now().Unix(),
+		EntryCount: count,
+		BlockID:    blockId,
 	}
 }
+
 /*
 func (b *DBlockHeader) RealTime() time.Time {
 	return time.Unix(b.TimeStamp, 0)
@@ -304,7 +304,7 @@ func (c *DChain) AddFBlockToDBEntry(dbEntry *DBEntry) (err error) {
 	c.BlockMutex.Lock()
 	c.NextBlock.DBEntries = append(c.NextBlock.DBEntries, dbEntry)
 	c.BlockMutex.Unlock()
- 
+
 	return nil
 }
 
@@ -324,7 +324,7 @@ func (c *DChain) AddDBlockToDChain(b *DBlock) (err error) {
 	}
 
 	c.Blocks[b.Header.BlockID] = b
- 
+
 	return nil
 }
 
@@ -357,12 +357,12 @@ func (b *DBlock) CalculateMerkleRoot() (mr *Hash, err error) {
 		data, _ := entry.MarshalBinary()
 		hashes[i] = Sha(data)
 	}
-	// Verify bodyMR here?? 
-	
-	if len(hashes)==0{
+	// Verify bodyMR here??
+
+	if len(hashes) == 0 {
 		hashes = append(hashes, Sha(nil))
 	}
-	
+
 	merkle := BuildMerkleTreeStore(hashes)
 	return merkle[len(merkle)-1], nil
 }
@@ -397,7 +397,7 @@ func (b *DBlock) UnmarshalBinary(data []byte) (err error) {
 		data = data[b.DBEntries[i].MarshalledSize():]
 	}
 
- 	return nil
+	return nil
 }
 
 func (b *DBlock) EncodableFields() map[string]reflect.Value {
@@ -444,12 +444,12 @@ func (b *DBInfo) MarshalBinary() (data []byte, err error) {
 
 func (b *DBInfo) MarshalledSize() uint64 {
 	var size uint64 = 0
-	size += 33                            //DBHash
-	size += 33                            //BTCTxHash
-	size += 4                             //BTCTxOffset
-	size += 4                             //BTCBlockHeight
-	size += 33                            //BTCBlockHash
-	size += 33                            //DBMerkleRoot
+	size += 33 //DBHash
+	size += 33 //BTCTxHash
+	size += 4  //BTCTxOffset
+	size += 4  //BTCBlockHeight
+	size += 33 //BTCBlockHash
+	size += 33 //DBMerkleRoot
 
 	return size
 }

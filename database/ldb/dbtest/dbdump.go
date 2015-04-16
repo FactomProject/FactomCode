@@ -12,6 +12,7 @@ import (
 	//"encoding/binary"
 
 	//	"github.com/FactomProject/btcd/wire"
+	"github.com/davecgh/go-spew/spew"
 )
 
 type tst struct {
@@ -43,8 +44,19 @@ func main() {
 
 	for iter.Next() {
 		key := iter.Key()
-		fmt.Println("key:%v", common.EncodeBinary(&key))
-		fmt.Println("  value:%v", iter.Value())
+
+		fmt.Printf("key: %v\n", common.EncodeBinary(&key))
+		//		fmt.Println("  value:%v", iter.Value())
+
+		buf := iter.Value()
+		var buf2 []byte
+
+		buf2 = buf
+
+		fmt.Printf("value: ")
+		//		fmt.Println(spew.Sdump(iter.Value()))
+		spew.Dump(buf2)
+
 		t := new(tst)
 
 		//t.key = binary.BigEndian.Uint32(key[:4])
