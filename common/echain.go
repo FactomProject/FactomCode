@@ -23,10 +23,10 @@ type EChain struct {
 	FirstEntry *Entry
 
 	//Not Marshalized
-	Blocks       []*EBlock
-	CurrentBlock *EBlock
-	BlockMutex   sync.Mutex
+	//Blocks       []*EBlock
+	NextBlock *EBlock
 	NextBlockID  uint64
+	BlockMutex   sync.Mutex	
 }
 
 type EBlock struct {
