@@ -11,10 +11,10 @@ import (
 type CChain struct {
 	ChainID      *Hash
 	Name         [][]byte
-	Blocks       []*CBlock
-	CurrentBlock *CBlock
-	BlockMutex   sync.Mutex
+	//Blocks       []*CBlock
+	NextBlock *CBlock
 	NextBlockID  uint64
+	BlockMutex   sync.Mutex	
 }
 
 type CBlock struct {
