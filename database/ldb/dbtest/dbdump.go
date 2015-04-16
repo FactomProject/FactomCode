@@ -10,6 +10,8 @@ import (
 	"github.com/FactomProject/goleveldb/leveldb/util"
 	//"bytes"
 	//"encoding/binary"
+
+	//	"github.com/FactomProject/btcd/wire"
 )
 
 type tst struct {
