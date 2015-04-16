@@ -166,6 +166,26 @@ func (db *LevelDb) FetchEBlockByHash(eBlockHash *common.Hash) (eBlock *common.EB
 	return eBlock, nil
 }
 
+// FetchEBlockByHeight gets an entry block by height from the database.
+func (db *LevelDb) FetchEBlockByHeight(chainID * common.Hash, eBlockHeight uint64) (eBlock *common.EBlock, err error) {
+	db.dbLock.Lock()
+	defer db.dbLock.Unlock()
+
+	var key []byte = []byte{byte(TBL_EB_CHAIN_NUM)}
+	key = append(key, chainID.Bytes...)
+	bytes := make([]byte, 8)
+	binary.BigEndian.PutUint64(bytes, eBlockHeight)
+	key = append(key, bytes...)	
+	data, err := db.lDb.Get(key, db.ro)
+
+	if data != nil {
+		eBlock = new(common.EBlock)
+		eBlock.UnmarshalBinary(data)
+	}
+	return eBlock, nil
+}
+
+
 // FetchEBHashByMR gets an entry by hash from the database.
 func (db *LevelDb) FetchEBHashByMR(eBMR *common.Hash) (eBlockHash *common.Hash, err error) {
 	db.dbLock.Lock()

@@ -182,6 +182,27 @@ func (db *LevelDb) FetchDBlockByHash(dBlockHash *common.Hash) (dBlock *common.DB
 	return dBlock, nil
 }
 
+// FetchDBlockByHeight gets an directory block by height from the database.
+func (db *LevelDb) FetchDBlockByHeight(dBlockHeight uint64) (dBlock *common.DBlock, err error) {
+	db.dbLock.Lock()
+	defer db.dbLock.Unlock()
+
+	var key []byte = []byte{byte(TBL_DB_NUM)}
+	var buf bytes.Buffer
+	binary.Write(&buf, binary.BigEndian, dBlockHeight)
+	key = append(key, buf.Bytes()...)
+	data, err := db.lDb.Get(key, db.ro)
+
+	if data == nil {
+		return nil, errors.New("DBlock not found for height: " + string(dBlockHeight))
+	} else {
+		dBlock = new(common.DBlock)
+		dBlock.UnmarshalBinary(data)
+	}
+
+	return dBlock, nil
+}
+
 // FetchAllDBInfo gets all of the fbInfo
 func (db *LevelDb) FetchAllDBlocks() (dBlocks []common.DBlock, err error) {
 	db.dbLock.Lock()

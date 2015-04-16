@@ -63,6 +63,9 @@ type Db interface {
 	// FetchEBlockByMR gets an entry block by merkle root from the database.
 	FetchEBlockByMR(eBMR *common.Hash) (eBlock *common.EBlock, err error)
 
+	// FetchEBlockByHeight gets an entry block by height from the database.
+	FetchEBlockByHeight(chainID * common.Hash, eBlockHeight uint64) (eBlock *common.EBlock, err error)
+
 	// FetchEBHashByMR gets an entry by hash from the database.
 	FetchEBHashByMR(eBMR *common.Hash) (eBlockHash *common.Hash, err error)
 
@@ -92,7 +95,10 @@ type Db interface {
 
 	// FetchAllFBInfo gets all of the fbInfo
 	FetchAllDBlocks() (fBlocks []common.DBlock, err error)
-
+	
+	// FetchDBlockByHeight gets an directory block by height from the database.
+	FetchDBlockByHeight(dBlockHeight uint64) (dBlock *common.DBlock, err error) 
+	
 	// ProcessCBlockBatche inserts the CBlock and update all it's cbentries in DB
 	ProcessCBlockBatch(block *common.CBlock) (err error)
 
