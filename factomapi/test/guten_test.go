@@ -140,7 +140,7 @@ func TestAddEntry(t *testing.T) {
 		e.ChainID = *chain.ChainID
 	
 		buf := new(bytes.Buffer)
-		err := SafeMarshal(buf, entry)
+		err := SafeMarshal(buf, e)
 	
 		jsonstr := string(buf.Bytes())
 	
