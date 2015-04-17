@@ -2,12 +2,14 @@ package factomapi
 
 import (
 	"bytes"
+	"bufio"
 	"encoding/hex"
 	"fmt"
 	"github.com/FactomProject/FactomCode/notaryapi"
 	"github.com/FactomProject/gocoding"
 	"net/http"
 	"net/url"
+	"os"
 	"testing"
 	//	"encoding/base64"
 	//	"io/ioutil"
@@ -19,6 +21,39 @@ var (
 	_, _ = hex.DecodeString("abcd")
 	_ gocoding.Marshaller
 )
+
+func UnmarshalJSON(b []byte) (*notaryapi.Entry, error) {
+	type entry struct {
+		ChainID string
+		ExtIDs  []string
+		Data    string
+	}
+	
+	var je entry
+	e := new(notaryapi.Entry)
+	
+	err := json.Unmarshal(b, &je)
+	if err != nil {
+		return nil, err
+	}
+	
+	bytes, err := hex.DecodeString(je.ChainID)
+	if err != nil {
+		return nil, err
+	}
+	e.ChainID.Bytes = bytes
+	
+	for _, v := range je.ExtIDs {
+		e.ExtIDs = append(e.ExtIDs, []byte(v))
+	}
+	bytes, err = hex.DecodeString(je.Data)
+	if err != nil {
+		return nil, err
+	}
+	e.Data = bytes
+	
+	return e, nil
+}
 
 func TestBuyCreditWallet(t *testing.T) {
 	fmt.Println("\nTestBuyCreditWallet===========================================================================")
