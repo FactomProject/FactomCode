@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"bufio"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"github.com/FactomProject/FactomCode/notaryapi"
 	"github.com/FactomProject/gocoding"
