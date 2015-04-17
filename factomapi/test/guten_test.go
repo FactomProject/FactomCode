@@ -137,7 +137,7 @@ func TestAddEntry(t *testing.T) {
 		if err != nil {
 			t.Errorf("Error: %v", err)
 		}
-		entry.ChainID = *chain.ChainID
+		e.ChainID = *chain.ChainID
 	
 		buf := new(bytes.Buffer)
 		err := SafeMarshal(buf, entry)
