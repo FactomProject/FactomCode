@@ -275,7 +275,7 @@ func CreateDBlock(chain *DChain, prev *DBlock, cap uint) (b *DBlock, err error) 
 }
 
 // Add DBEntry from an Entry Block
-func (c *DChain) AddDBEntry(eb *EBlock) (err error) {
+func (c *DChain) AddEBlockToDBEntry(eb *EBlock) (err error) {
 
 	dbEntry := NewDBEntry(eb)
 
@@ -290,6 +290,22 @@ func (c *DChain) AddDBEntry(eb *EBlock) (err error) {
 func (c *DChain) AddCBlockToDBEntry(cb *CBlock) (err error) {
 
 	dbEntry := NewDBEntryFromCBlock(cb)
+/*
+	if len(c.NextBlock.DBEntries) < 1 {
+		panic ("DBEntries not initialized properly for block: " + string(c.NextBlockID))
+	}
+*/
+	c.BlockMutex.Lock()
+	// Cblock is always at the first entry
+	//c.NextBlock.DBEntries[0] = dbEntry
+	c.NextBlock.DBEntries = append(c.NextBlock.DBEntries, dbEntry)	
+	c.BlockMutex.Unlock()
+
+	return nil
+}
+
+// Add DBEntry 
+func (c *DChain) AddDBEntry(dbEntry *DBEntry) (err error) {
 
 	c.BlockMutex.Lock()
 	c.NextBlock.DBEntries = append(c.NextBlock.DBEntries, dbEntry)
@@ -299,10 +315,14 @@ func (c *DChain) AddCBlockToDBEntry(cb *CBlock) (err error) {
 }
 
 // Add DBEntry from a Factoid Block
-func (c *DChain) AddFBlockToDBEntry(dbEntry *DBEntry) (err error) {
+func (c *DChain) AddFBlockMRToDBEntry(dbEntry *DBEntry) (err error) {
 
+	if len(c.NextBlock.DBEntries) < 2 {
+		panic ("DBEntries not initialized properly for block: " + string(c.NextBlockID))
+	}
 	c.BlockMutex.Lock()
-	c.NextBlock.DBEntries = append(c.NextBlock.DBEntries, dbEntry)
+	// Factoid entry is alwasy at the same position
+	c.NextBlock.DBEntries[1] = dbEntry
 	c.BlockMutex.Unlock()
 
 	return nil
