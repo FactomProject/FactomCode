@@ -290,15 +290,13 @@ func (c *DChain) AddEBlockToDBEntry(eb *EBlock) (err error) {
 func (c *DChain) AddCBlockToDBEntry(cb *CBlock) (err error) {
 
 	dbEntry := NewDBEntryFromCBlock(cb)
-/*
-	if len(c.NextBlock.DBEntries) < 1 {
-		panic ("DBEntries not initialized properly for block: " + string(c.NextBlockID))
-	}
-*/
+
 	c.BlockMutex.Lock()
 	// Cblock is always at the first entry
-	//c.NextBlock.DBEntries[0] = dbEntry
-	c.NextBlock.DBEntries = append(c.NextBlock.DBEntries, dbEntry)	
+	if len(c.NextBlock.DBEntries) > 0 {
+		c.NextBlock.DBEntries[0] = dbEntry
+	}else {
+		c.NextBlock.DBEntries = append(c.NextBlock.DBEntries, dbEntry)}	
 	c.BlockMutex.Unlock()
 
 	return nil
