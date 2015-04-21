@@ -13,7 +13,7 @@ type CChain struct {
 	Name         [][]byte
 	//Blocks       []*CBlock
 	NextBlock *CBlock
-	NextBlockID  uint64
+	NextBlockID  uint32
 	BlockMutex   sync.Mutex	
 }
 
@@ -24,6 +24,7 @@ type CBlock struct {
 	
 	//Not Marshalized
 	CBHash   *Hash
+	MerkleRoot *Hash	
 	Chain    *CChain
 	IsSealed bool
 }
@@ -44,22 +45,65 @@ func CreateCBlock(chain *CChain, prev *CBlock, cap uint) (b *CBlock, err error) 
 
 	b = new(CBlock)
 
-	var prevHash *Hash
+	b.Header = new (CBlockHeader)
+	b.Header.ChainID = chain.ChainID
+	
 	if prev == nil {
-		prevHash = NewHash()
+		b.Header.PrevKeyMR = NewHash()
+		b.Header.PrevHash = NewHash()	
+		b.Header.BodyHash = NewHash()	
 	} else {
-		prevHash, err = CreateHash(prev)
+		if prev.MerkleRoot == nil {
+			prev.BuildMerkleRoot()
+		}
+		b.Header.PrevKeyMR = prev.MerkleRoot	
+			
+		if prev.CBHash == nil {
+			prev.BuildCBHash()
+		}
+		b.Header.PrevHash = prev.CBHash		
 	}
 
-	b.Header = new (CBlockHeader)
-	b.Header.PrevBlockHash = prevHash
-	b.Header.BlockID = chain.NextBlockID
-
+	b.Header.DBHeight = chain.NextBlockID
+	b.Header.SegmentsMR = NewHash()
+	b.Header.BalanceMR = NewHash()
 	b.Chain = chain
 	b.CBEntries = make([]CBEntry, 0, cap)
 	b.IsSealed = false
 
 	return b, err
+}
+
+func (block *CBlock) BuildMerkleRoot() (err error) {
+	
+	// Create the Entry Block Key Merkle Root from the hash of Header and the Body Merkle Root	
+	hashes := make([]*Hash, 0, 2)	
+	binaryEBHeader, _ := block.Header.MarshalBinary()
+	hashes = append(hashes, Sha(binaryEBHeader))
+	hashes = append(hashes, block.Header.BodyHash)	
+	merkle := BuildMerkleTreeStore(hashes)
+	block.MerkleRoot = merkle[len(merkle)-1] // MerkleRoot is not marshalized in Entry Block
+
+	return
+}
+
+func (block *CBlock) BuildCBHash() (err error) {
+	
+	binaryEB, _ := block.MarshalBinary()
+	block.CBHash = Sha(binaryEB) 
+
+	return
+}
+
+func (block *CBlock) BuildCBBodyHash() (bodyHash *Hash, err error) {
+	var buf bytes.Buffer
+	for i := 0; i < len(block.CBEntries); i++ {
+		data, _ := block.CBEntries[i].MarshalBinary()
+		buf.Write(data)
+	}		
+	bodyHash = Sha(buf.Bytes()) 
+
+	return bodyHash, nil
 }
 
 func (b *CBlock) AddCBEntry(e CBEntry) (err error) {
@@ -221,49 +265,113 @@ func (b *CChain) UnmarshalBinary(data []byte) (err error) {
 
 //Entry Credit Block Header
 type CBlockHeader struct {
-	BlockID       		uint64
-	PrevBlockHash 		*Hash
-	EntryCount    		uint32
-	CreditsPerFactoid 	uint32 
+	ChainID		  *Hash	
+//	BlockID       		uint64
+//	PrevBlockHash 		*Hash
+//	EntryCount    		uint32
+//	CreditsPerFactoid 	uint32 
+	BodyHash	  *Hash
+	PrevKeyMR	  *Hash
+	PrevHash      *Hash	
+	DBHeight       uint32
+	SegmentsMR	  *Hash	
+	BalanceMR	  *Hash		
+
+	BodySize	   uint64	
 }
 
 func (b *CBlockHeader) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
-
-	binary.Write(&buf, binary.BigEndian, b.BlockID)
-	data, err = b.PrevBlockHash.MarshalBinary()
+	
+	data, err = b.ChainID.MarshalBinary()
 	if err != nil {
-		return
+		return nil, err
 	}
+	buf.Write(data)	
 
-	buf.Write(data)
-	binary.Write(&buf, binary.BigEndian, b.EntryCount)
-	binary.Write(&buf, binary.BigEndian, b.CreditsPerFactoid)
+	data, err = b.BodyHash.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	buf.Write(data)	
+
+	data, err = b.PrevKeyMR.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	buf.Write(data)	
+	
+	data, err = b.PrevHash.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	buf.Write(data)		
+
+	binary.Write(&buf, binary.BigEndian, b.DBHeight)
+	
+	data, err = b.SegmentsMR.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	buf.Write(data)		
+	
+	data, err = b.BalanceMR.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	buf.Write(data)		
+
+	binary.Write(&buf, binary.BigEndian, b.BodySize)	
+	
+	
 	return buf.Bytes(), err
 }
 
 func (b *CBlockHeader) MarshalledSize() uint64 {
 	var size uint64 = 0
 
-	size += 8
-	size += b.PrevBlockHash.MarshalledSize()
-	size += 4
-	size += 4
+	size += b.ChainID.MarshalledSize()
+	size += b.BodyHash.MarshalledSize()
+	size += b.PrevKeyMR.MarshalledSize()
+	size += b.PrevHash.MarshalledSize()
+	size += 4 // DB Height
+	size += b.SegmentsMR.MarshalledSize()
+	size += b.BalanceMR.MarshalledSize()	
+	size += 8 // Body Size
 	
 	return size
 }
 
 func (b *CBlockHeader) UnmarshalBinary(data []byte) (err error) {
-	b.BlockID, data = binary.BigEndian.Uint64(data[0:8]), data[8:]
-
-	b.PrevBlockHash = new(Hash)
-	b.PrevBlockHash.UnmarshalBinary(data)
-	data = data[b.PrevBlockHash.MarshalledSize():]
-
-	b.EntryCount, data =  binary.BigEndian.Uint32(data[:4]), data[4:]
 	
-	b.CreditsPerFactoid = binary.BigEndian.Uint32(data[:4])
+	b.ChainID = new(Hash)
+	b.ChainID.UnmarshalBinary(data)
+	data = data[b.ChainID.MarshalledSize():]
+
+	b.BodyHash = new(Hash)
+	b.BodyHash.UnmarshalBinary(data)
+	data = data[b.BodyHash.MarshalledSize():]
+
+	b.PrevKeyMR = new(Hash)
+	b.PrevKeyMR.UnmarshalBinary(data)
+	data = data[b.PrevKeyMR.MarshalledSize():]
+
+	b.PrevHash = new(Hash)
+	b.PrevHash.UnmarshalBinary(data)
+	data = data[b.PrevHash.MarshalledSize():]
 	
+	b.DBHeight, data = binary.BigEndian.Uint32(data[0:4]), data[4:]	
+
+	b.SegmentsMR = new(Hash)
+	b.SegmentsMR.UnmarshalBinary(data)
+	data = data[b.SegmentsMR.MarshalledSize():]
+
+	b.BalanceMR = new(Hash)
+	b.BalanceMR.UnmarshalBinary(data)
+	data = data[b.BalanceMR.MarshalledSize():]
+
+	b.BodySize, data = binary.BigEndian.Uint64(data[0:8]), data[8:]		
+		
 	return nil
 }
 
@@ -271,9 +379,11 @@ func (b *CBlockHeader) UnmarshalBinary(data []byte) (err error) {
 // Three types of entries (transactions) for Entry Credit Block
 //---------------------------------------------------------------
 const (
-	TYPE_BUY uint8 = iota
-	TYPE_PAY_ENTRY
+ 	TYPE_SERVER_INDEX uint8 = iota
+	TYPE_MINUTE_NUMBER 
 	TYPE_PAY_CHAIN
+	TYPE_PAY_ENTRY	
+	TYPE_BUY	
 )
 
 type CBEntry interface {
