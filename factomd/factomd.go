@@ -27,7 +27,7 @@ var (
 	outMsgQueue     = make(chan wire.FtmInternalMsg, 100) //outgoing message queue for factom application messages
 	inCtlMsgQueue   = make(chan wire.FtmInternalMsg, 100) //incoming message queue for factom application messages
 	outCtlMsgQueue  = make(chan wire.FtmInternalMsg, 100) //outgoing message queue for factom application messages
-	doneFBlockQueue  = make(chan wire.FtmInternalMsg) 	//incoming message queue for factoid component to send MR	
+	doneFBlockQueue = make(chan wire.FtmInternalMsg)      //incoming message queue for factoid component to send MR
 	//	inRpcQueue      = make(chan wire.Message, 100) //incoming message queue for factom application messages
 	federatedid string
 )
