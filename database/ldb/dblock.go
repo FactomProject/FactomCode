@@ -130,7 +130,10 @@ func (db *LevelDb) InsertDBInfo(dbInfo notaryapi.DBInfo) (err error) {
 
 	var key []byte = []byte{byte(TBL_DB_INFO)} // Table Name (1 bytes)
 	key = append(key, dbInfo.DBHash.Bytes...)
-	binaryDBInfo, _ := dbInfo.MarshalBinary()
+	binaryDBInfo, err := dbInfo.MarshalBinary()
+	if err != nil {
+		log.Println(err)
+	}
 	db.lbatch.Put(key, binaryDBInfo)
 
 	err = db.lDb.Write(db.lbatch, db.wo)
