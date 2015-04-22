@@ -19,7 +19,7 @@ type tst struct {
 
 const dbpath = "/tmp/ldb9"
 
-func main() {
+func main() { 
 
 	ro := &opt.ReadOptions{}
 	//wo := &opt.WriteOptions{}
@@ -40,8 +40,8 @@ func main() {
 
 	for iter.Next() {
 		key := iter.Key()
-		fmt.Println("key:%v", common.EncodeBinary(&key))
-		fmt.Println("  value:%v", iter.Value())
+		fmt.Printf("key:%v", common.EncodeBinary(&key))
+		fmt.Printf("  value:%v\n", iter.Value())
 		t := new(tst)
 
 		//t.key = binary.BigEndian.Uint32(key[:4])

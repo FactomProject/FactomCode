@@ -27,6 +27,7 @@ var (
 	outMsgQueue     = make(chan wire.FtmInternalMsg, 100) //outgoing message queue for factom application messages
 	inCtlMsgQueue   = make(chan wire.FtmInternalMsg, 100) //incoming message queue for factom application messages
 	outCtlMsgQueue  = make(chan wire.FtmInternalMsg, 100) //outgoing message queue for factom application messages
+	doneFBlockQueue = make(chan wire.FtmInternalMsg)      //incoming message queue for factoid component to send MR
 	//	inRpcQueue      = make(chan wire.Message, 100) //incoming message queue for factom application messages
 	federatedid string
 )
@@ -86,13 +87,13 @@ func init() {
 func factomdMain() error {
 
 	// Start the processor module
-	go btcd.Start_Processor(db, inMsgQueue, outMsgQueue, inCtlMsgQueue, outCtlMsgQueue)
+	go btcd.Start_Processor(db, inMsgQueue, outMsgQueue, inCtlMsgQueue, outCtlMsgQueue, doneFBlockQueue)
 
 	// Start the wsapi server module in a separate go-routine
 	go wsapi.Start(db, inMsgQueue)
 
 	// Start the factoid (btcd) component and P2P component
-	btcd.Start_btcd(inMsgQueue, outMsgQueue, inCtlMsgQueue, outCtlMsgQueue)
+	btcd.Start_btcd(inMsgQueue, outMsgQueue, inCtlMsgQueue, outCtlMsgQueue, doneFBlockQueue)
 
 	return nil
 }

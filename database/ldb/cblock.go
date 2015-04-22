@@ -1,7 +1,7 @@
 package ldb
 
 import (
-	"errors"
+//	"errors"
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/goleveldb/leveldb"
 	"github.com/FactomProject/goleveldb/leveldb/util"
@@ -17,10 +17,6 @@ func (db *LevelDb) ProcessCBlockBatch(block *common.CBlock) error {
 		}
 
 		defer db.lbatch.Reset()
-
-		if len(block.CBEntries) < 1 {
-			return errors.New("Empty dblock!")
-		}
 
 		binaryBlock, err := block.MarshalBinary()
 		if err != nil {
