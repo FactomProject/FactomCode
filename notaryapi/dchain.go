@@ -40,7 +40,7 @@ type DBInfo struct {
 	BTCTxHash *Hash // use string or *btcwire.ShaHash ???
 
 	// BTCTxOffset is the index of the TX in this BTC block
-	BTCTxOffset int
+	BTCTxOffset int32
 
 	// BTCBlockHeight is the height of the block where this TX is stored in BTC
 	BTCBlockHeight int32
@@ -475,12 +475,13 @@ func (b *DBInfo) MarshalledSize() uint64 {
 func (b *DBInfo) UnmarshalBinary(data []byte) (err error) {
 	b.DBHash = new(Hash)
 	b.DBHash.UnmarshalBinary(data[:33])
+	data = data[33:]
 
 	b.BTCTxHash = new(Hash)
 	b.BTCTxHash.UnmarshalBinary(data[:33])
 	data = data[33:]
 
-	b.BTCTxOffset = int(binary.BigEndian.Uint32(data[:4]))
+	b.BTCTxOffset = int32(binary.BigEndian.Uint32(data[:4]))
 	data = data[4:]
 
 	b.BTCBlockHeight = int32(binary.BigEndian.Uint32(data[:4]))
@@ -488,6 +489,7 @@ func (b *DBInfo) UnmarshalBinary(data []byte) (err error) {
 
 	b.BTCBlockHash = new(Hash)
 	b.BTCBlockHash.UnmarshalBinary(data[:33])
+	data = data[33:]
 
 	b.DBMerkleRoot = new(Hash)
 	b.DBMerkleRoot.UnmarshalBinary(data[:33])
