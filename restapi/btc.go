@@ -522,9 +522,8 @@ func saveDBMerkleRoottoBTC(dbInfo *notaryapi.DBInfo) {
 
 func toHash(txHash *wire.ShaHash) *notaryapi.Hash {
 	h := new(notaryapi.Hash)
-	fmt.Println(txHash)
-	h.SetBytes(txHash.Bytes())
-	fmt.Println(h)
+	p, _ := hex.DecodeString(txHash.String())
+	h.SetBytes(p)
 	return h
 }
 
