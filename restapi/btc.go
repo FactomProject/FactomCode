@@ -428,7 +428,7 @@ func saveDirBlockInfo(transaction *btcutil.Tx, details *btcws.BlockDetails) {
 			txHash, _ := wire.NewShaHashFromStr(details.Hash)
 			dbInfo.BTCBlockHash = toHash(txHash)
 
-			// Update db with DBBatch
+			// Update db with DBInfo
 			db.InsertDBInfo(*dbInfo)
 			
 			//delete dbInfo from dbInfoMap
