@@ -1,3 +1,7 @@
+// Copyright 2015 Factom Foundation
+// Use of this source code is governed by the MIT
+// license that can be found in the LICENSE file.
+
 package common
 
 import (
@@ -25,7 +29,7 @@ type EChain struct {
 	//Not Marshalized
 	//Blocks       []*EBlock
 	NextBlock *EBlock
-	NextBlockID  uint64
+	NextBlockHeight  uint32
 	BlockMutex   sync.Mutex	
 }
 
@@ -56,16 +60,14 @@ type EBlockHeader struct {
 	BodyMR		  *Hash
 	PrevKeyMR	  *Hash
 	PrevHash      *Hash	
-	EBHeight       uint64
-	DBHeight       uint64
+	EBHeight       uint32
+	DBHeight       uint32
 	StartTime      uint64
 	EntryCount	   uint32	
 }
 
 type EBEntry struct {
 	EntryHash      *Hash
-	
-	//ChainID   *[]byte // not marshalllized
 }
 
 func NewEBEntry(h *Hash) *EBEntry {
@@ -75,7 +77,6 @@ func NewEBEntry(h *Hash) *EBEntry {
 
 func (e *EBEntry) EncodableFields() map[string]reflect.Value {
 	fields := map[string]reflect.Value{
-//		`TimeStamp`: reflect.ValueOf(e.TimeStamp()),
 		`EntryHash`:      reflect.ValueOf(e.EntryHash),
 	}
 	return fields
@@ -83,8 +84,6 @@ func (e *EBEntry) EncodableFields() map[string]reflect.Value {
 
 func (e *EBEntry) MarshalBinary() ([]byte, error) {
 	var buf bytes.Buffer
-
-//	binary.Write(&buf, binary.BigEndian, e.TimeStamp())
 
 	data, err := e.EntryHash.MarshalBinary()
 	if err != nil {
@@ -105,8 +104,6 @@ func (e *EBEntry) MarshalledSize() uint64 {
 }
 
 func (e *EBEntry) UnmarshalBinary(data []byte) (err error) {
-//	timeStamp, data := binary.BigEndian.Uint64(data[:8]), data[8:]
-//	e.timeStamp = int64(timeStamp)
 	e.EntryHash = new(Hash)
 	e.EntryHash.UnmarshalBinary(data)
 	return nil
@@ -166,8 +163,8 @@ func (b *EBlockHeader) MarshalledSize() uint64 {
 	size += b.BodyMR.MarshalledSize()
 	size += b.PrevKeyMR.MarshalledSize()
 	size += b.PrevHash.MarshalledSize()
-	size += 8	
-	size += 8	
+	size += 4	
+	size += 4	
 	size += 8	
 	size += 4	
 
@@ -196,9 +193,9 @@ func (b *EBlockHeader) UnmarshalBinary(data []byte) (err error) {
 	b.PrevHash.UnmarshalBinary(data)
 	data = data[b.PrevHash.MarshalledSize():]
 
-	b.EBHeight, data = binary.BigEndian.Uint64(data[0:8]), data[8:]
+	b.EBHeight, data = binary.BigEndian.Uint32(data[0:4]), data[4:]
 	
-	b.DBHeight, data = binary.BigEndian.Uint64(data[0:8]), data[8:]	
+	b.DBHeight, data = binary.BigEndian.Uint32(data[0:4]), data[4:]	
 
 	b.StartTime, data = binary.BigEndian.Uint64(data[0:8]), data[8:]	
 	
@@ -209,9 +206,9 @@ func (b *EBlockHeader) UnmarshalBinary(data []byte) (err error) {
 
 
 func CreateBlock(chain *EChain, prev *EBlock, capacity uint) (b *EBlock, err error) {
-	if prev == nil && chain.NextBlockID != 0 {
+	if prev == nil && chain.NextBlockHeight != 0 {
 		return nil, errors.New("Previous block cannot be nil")
-	} else if prev != nil && chain.NextBlockID == 0 {
+	} else if prev != nil && chain.NextBlockHeight == 0 {
 		return nil, errors.New("Origin block cannot have a parent block")
 	}
 
@@ -220,7 +217,7 @@ func CreateBlock(chain *EChain, prev *EBlock, capacity uint) (b *EBlock, err err
 	b.Header = new (EBlockHeader)
 	b.Header.Version = VERSION_0
 	b.Header.ChainID = chain.ChainID
-	b.Header.EBHeight = chain.NextBlockID
+	b.Header.EBHeight = chain.NextBlockHeight
 	if prev == nil {
 		b.Header.PrevHash = NewHash()
 		b.Header.PrevKeyMR = NewHash()		
