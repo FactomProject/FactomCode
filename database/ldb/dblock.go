@@ -75,7 +75,7 @@ func (db *LevelDb) ProcessDBlockBatch(dblock *common.DBlock) error {
 		// Insert block height cross reference
 		var dbNumkey []byte = []byte{byte(TBL_DB_NUM)}
 		var buf bytes.Buffer
-		binary.Write(&buf, binary.BigEndian, dblock.Header.BlockID)
+		binary.Write(&buf, binary.BigEndian, dblock.Header.BlockHeight)
 		dbNumkey = append(dbNumkey, buf.Bytes()...)
 		db.lbatch.Put(dbNumkey, dblock.DBHash.Bytes)
 
@@ -169,7 +169,7 @@ func (db *LevelDb) FetchDBlockByHash(dBlockHash *common.Hash) (dBlock *common.DB
 		dBlock.UnmarshalBinary(data)
 	}
 
-	log.Println("dBlock.Header.MerkleRoot:%v", dBlock.Header.MerkleRoot.String())
+	log.Println("dBlock.Header.MerkleRoot:%v", dBlock.Header.BodyMR.String())
 
 	for _, entry := range dBlock.DBEntries {
 		log.Println("entry.MerkleRoot:%v", entry.MerkleRoot.String())

@@ -1,3 +1,7 @@
+// Copyright 2015 Factom Foundation
+// Use of this source code is governed by the MIT
+// license that can be found in the LICENSE file.
+
 package common
 
 import (
@@ -6,18 +10,17 @@ import (
 	"errors"
 	"reflect"
 	"sync"
-	//	"time"
 )
 
-const DBlockVersion = 1
+const DBlockVersion = 0
 
 type DChain struct {
-	ChainID     *Hash
-	Blocks      []*DBlock
-	BlockMutex  sync.Mutex
-	NextBlock   *DBlock
-	NextBlockID uint64
-	IsValidated bool
+	ChainID     		*Hash
+	Blocks      		[]*DBlock
+	BlockMutex  		sync.Mutex
+	NextBlock   		*DBlock
+	NextBlockHeight 	uint32
+	IsValidated 		bool
 }
 
 type DBlock struct {
@@ -29,6 +32,7 @@ type DBlock struct {
 	Chain       *DChain
 	IsSealed    bool
 	DBHash      *Hash
+	KeyMR	  	*Hash	
 	IsSavedInDB bool
 }
 
@@ -55,13 +59,15 @@ type DBInfo struct {
 }
 
 type DBlockHeader struct {
-	BlockID       uint64
-	PrevBlockHash *Hash
-	MerkleRoot    *Hash
-	Version       int32
-	//	TimeStamp     int64
-	StartTime  uint64
-	BatchFlag  byte // 1: start of the batch
+	Version 	  byte
+	NetworkID	  uint32	
+	BodyMR		  *Hash
+	PrevKeyMR	  *Hash	
+	PrevBlockHash *Hash	
+	BlockHeight   uint32
+
+	StartTime  uint64 //??
+	
 	EntryCount uint32
 }
 
@@ -97,7 +103,7 @@ func NewDBEntryFromCBlock(cb *CBlock) *DBEntry {
 func NewDBInfoFromDBlock(b *DBlock) *DBInfo {
 	e := &DBInfo{}
 	e.DBHash = b.DBHash
-	e.DBMerkleRoot = b.Header.MerkleRoot //?? double check
+	e.DBMerkleRoot = b.Header.BodyMR //?? double check
 
 	return e
 }
@@ -167,11 +173,10 @@ func (e *DBEntry) ShaHash() *Hash {
 
 func (b *DBlockHeader) EncodableFields() map[string]reflect.Value {
 	fields := map[string]reflect.Value{
-		`BlockID`:       reflect.ValueOf(b.BlockID),
+		`BlockHeight`:       reflect.ValueOf(b.BlockHeight),
 		`EntryCount`:    reflect.ValueOf(b.EntryCount),
-		`MerkleRoot`:    reflect.ValueOf(b.MerkleRoot),
+		`BodyMR`:    reflect.ValueOf(b.BodyMR),
 		`PrevBlockHash`: reflect.ValueOf(b.PrevBlockHash),
-		//		`TimeStamp`: reflect.ValueOf(b.TimeStamp),
 	}
 	return fields
 }
@@ -179,7 +184,20 @@ func (b *DBlockHeader) EncodableFields() map[string]reflect.Value {
 func (b *DBlockHeader) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
 
-	binary.Write(&buf, binary.BigEndian, b.BlockID)
+	buf.Write([]byte{b.Version})
+	binary.Write(&buf, binary.BigEndian, b.NetworkID)	
+
+	data, err = b.BodyMR.MarshalBinary()
+	if err != nil {
+		return
+	}
+	buf.Write(data)
+
+	data, err = b.PrevKeyMR.MarshalBinary()
+	if err != nil {
+		return
+	}
+	buf.Write(data)
 
 	data, err = b.PrevBlockHash.MarshalBinary()
 	if err != nil {
@@ -187,14 +205,10 @@ func (b *DBlockHeader) MarshalBinary() (data []byte, err error) {
 	}
 	buf.Write(data)
 
-	data, err = b.MerkleRoot.MarshalBinary()
-	if err != nil {
-		return
-	}
-	buf.Write(data)
+	binary.Write(&buf, binary.BigEndian, b.BlockHeight)
+	
+	binary.Write(&buf, binary.BigEndian, b.StartTime)	
 
-	binary.Write(&buf, binary.BigEndian, b.Version)
-	//	binary.Write(&buf, binary.BigEndian, b.TimeStamp)
 	binary.Write(&buf, binary.BigEndian, b.EntryCount)
 
 	return buf.Bytes(), err
@@ -202,71 +216,71 @@ func (b *DBlockHeader) MarshalBinary() (data []byte, err error) {
 
 func (b *DBlockHeader) MarshalledSize() uint64 {
 	var size uint64 = 0
-	size += 8
+	size += 1
+	size += 4	
+	size += b.BodyMR.MarshalledSize()	
+	size += b.PrevKeyMR.MarshalledSize()		
 	size += b.PrevBlockHash.MarshalledSize()
-	size += b.MerkleRoot.MarshalledSize()
-	size += 4
-	//	size += 8
+	size += 4 //db height
+	size += 8 //start time
 	size += 4
 
 	return size
 }
 
 func (b *DBlockHeader) UnmarshalBinary(data []byte) (err error) {
-	b.BlockID, data = binary.BigEndian.Uint64(data[0:8]), data[8:]
+	
+	b.Version, data = data[0], data[1:]
+	
+	b.NetworkID, data = binary.BigEndian.Uint32(data[0:4]), data[4:]
+		
+	b.BodyMR = new(Hash)
+	b.BodyMR.UnmarshalBinary(data)
+	data = data[b.BodyMR.MarshalledSize():]
+
+	b.PrevKeyMR = new(Hash)
+	b.PrevKeyMR.UnmarshalBinary(data)
+	data = data[b.PrevKeyMR.MarshalledSize():]
 
 	b.PrevBlockHash = new(Hash)
 	b.PrevBlockHash.UnmarshalBinary(data)
 	data = data[b.PrevBlockHash.MarshalledSize():]
 
-	b.MerkleRoot = new(Hash)
-	b.MerkleRoot.UnmarshalBinary(data)
-	data = data[b.MerkleRoot.MarshalledSize():]
-
-	version, data := binary.BigEndian.Uint32(data[0:4]), data[4:]
-	//	timeStamp, data := binary.BigEndian.Uint64(data[:8]), data[8:]
+	b.BlockHeight, data = binary.BigEndian.Uint32(data[0:4]), data[4:]
+	
+	b.StartTime, data = binary.BigEndian.Uint64(data[0:8]), data[8:]	
+	
 	b.EntryCount, data = binary.BigEndian.Uint32(data[0:4]), data[4:]
 
-	b.Version = int32(version)
-	//	b.TimeStamp = int64(timeStamp)
 
 	return nil
 }
 
-func NewDBlockHeader(blockId uint64, prevHash *Hash, version int32,
-	count uint32) *DBlockHeader {
-	return &DBlockHeader{
-		Version:       version,
-		PrevBlockHash: prevHash,
-		//		TimeStamp:     time.Now().Unix(),
-		EntryCount: count,
-		BlockID:    blockId,
-	}
-}
-
-/*
-func (b *DBlockHeader) RealTime() time.Time {
-	return time.Unix(b.TimeStamp, 0)
-}
-*/
 func CreateDBlock(chain *DChain, prev *DBlock, cap uint) (b *DBlock, err error) {
-	if prev == nil && chain.NextBlockID != 0 {
+	if prev == nil && chain.NextBlockHeight != 0 {
 		return nil, errors.New("Previous block cannot be nil")
-	} else if prev != nil && chain.NextBlockID == 0 {
+	} else if prev != nil && chain.NextBlockHeight == 0 {
 		return nil, errors.New("Origin block cannot have a parent block")
 	}
 
 	b = new(DBlock)
 
-	var prevHash *Hash
+	b.Header = new (DBlockHeader)
+	b.Header.Version = VERSION_0
+	
+	
 	if prev == nil {
-		prevHash = NewHash()
+		b.Header.PrevBlockHash = NewHash()
+		b.Header.PrevKeyMR = NewHash()
 	} else {
-		prevHash, err = CreateHash(prev)
+		b.Header.PrevBlockHash, err = CreateHash(prev)
+		if prev.KeyMR == nil {
+			prev.BuildKeyMerkleRoot()
+		}
+		b.Header.PrevKeyMR = prev.KeyMR
 	}
-
-	b.Header = NewDBlockHeader(chain.NextBlockID, prevHash, DBlockVersion,
-		uint32(0))
+	
+	b.Header.BlockHeight = chain.NextBlockHeight
 	b.Chain = chain
 	b.DBEntries = make([]*DBEntry, 0, cap)
 	b.IsSealed = false
@@ -316,7 +330,7 @@ func (c *DChain) AddDBEntry(dbEntry *DBEntry) (err error) {
 func (c *DChain) AddFBlockMRToDBEntry(dbEntry *DBEntry) (err error) {
 
 	if len(c.NextBlock.DBEntries) < 2 {
-		panic ("DBEntries not initialized properly for block: " + string(c.NextBlockID))
+		panic ("DBEntries not initialized properly for block: " + string(c.NextBlockHeight))
 	}
 	c.BlockMutex.Lock()
 	// Factoid entry is alwasy at the same position
@@ -330,18 +344,18 @@ func (c *DChain) AddFBlockMRToDBEntry(dbEntry *DBEntry) (err error) {
 func (c *DChain) AddDBlockToDChain(b *DBlock) (err error) {
 
 	// Increase the slice capacity if needed
-	if b.Header.BlockID >= uint64(cap(c.Blocks)) {
-		temp := make([]*DBlock, len(c.Blocks), b.Header.BlockID*2)
+	if b.Header.BlockHeight >= uint32(cap(c.Blocks)) {
+		temp := make([]*DBlock, len(c.Blocks), b.Header.BlockHeight*2)
 		copy(temp, c.Blocks)
 		c.Blocks = temp
 	}
 
 	// Increase the slice length if needed
-	if b.Header.BlockID >= uint64(len(c.Blocks)) {
-		c.Blocks = c.Blocks[0 : b.Header.BlockID+1]
+	if b.Header.BlockHeight >= uint32(len(c.Blocks)) {
+		c.Blocks = c.Blocks[0 : b.Header.BlockHeight+1]
 	}
 
-	c.Blocks[b.Header.BlockID] = b
+	c.Blocks[b.Header.BlockHeight] = b
 
 	return nil
 }
@@ -369,7 +383,7 @@ func (b *DBlock) MarshalBinary() (data []byte, err error) {
 	return buf.Bytes(), err
 }
 
-func (b *DBlock) CalculateMerkleRoot() (mr *Hash, err error) {
+func (b *DBlock) BuildBodyMR() (mr *Hash, err error) {
 	hashes := make([]*Hash, len(b.DBEntries))
 	for i, entry := range b.DBEntries {
 		data, _ := entry.MarshalBinary()
@@ -380,9 +394,22 @@ func (b *DBlock) CalculateMerkleRoot() (mr *Hash, err error) {
 	if len(hashes) == 0 {
 		hashes = append(hashes, Sha(nil))
 	}
-
+ 
 	merkle := BuildMerkleTreeStore(hashes)
 	return merkle[len(merkle)-1], nil
+}
+
+func (b *DBlock) BuildKeyMerkleRoot() (err error) {
+		
+	// Create the Entry Block Key Merkle Root from the hash of Header and the Body Merkle Root	
+	hashes := make([]*Hash, 0, 2)	
+	binaryEBHeader, _ := b.Header.MarshalBinary()
+	hashes = append(hashes, Sha(binaryEBHeader))
+	hashes = append(hashes, b.Header.BodyMR)	
+	merkle := BuildMerkleTreeStore(hashes)
+	b.KeyMR = merkle[len(merkle)-1] // MerkleRoot is not marshalized in Dir Block
+
+	return
 }
 
 func (b *DBlock) MarshalledSize() uint64 {

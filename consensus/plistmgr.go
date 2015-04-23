@@ -12,7 +12,7 @@ type ProcessListMgr struct {
 	MyProcessList     *ProcessList
 	OtherProcessLists []*ProcessList
 
-	NextDBlockHeight uint64
+	NextDBlockHeight uint32
 
 	// Orphan process list map to hold our of order confirmation messages
 	// key: MsgAcknowledgement.MsgHash.String()
@@ -20,7 +20,7 @@ type ProcessListMgr struct {
 }
 
 // create a new process list
-func NewProcessListMgr(height uint64, otherPLSize int, plSizeHint uint) *ProcessListMgr {
+func NewProcessListMgr(height uint32, otherPLSize int, plSizeHint uint) *ProcessListMgr {
 
 	plMgr := new(ProcessListMgr)
 	plMgr.MyProcessList = NewProcessList(plSizeHint)
@@ -94,7 +94,7 @@ func (plMgr *ProcessListMgr) AddToOrphanProcessList(plItem *ProcessListItem) err
 func (plMgr *ProcessListMgr) InitProcessListFromOrphanMap() error {
 
 	for key, plItem := range plMgr.OrphanPLMap {
-		if plMgr.NextDBlockHeight == plItem.Ack.Height {
+		if uint64(plMgr.NextDBlockHeight) == plItem.Ack.Height {//??
 			plMgr.MyProcessList.AddToProcessList(plItem)
 			delete(plMgr.OrphanPLMap, key)
 		}
@@ -107,7 +107,7 @@ func (plMgr *ProcessListMgr) InitProcessListFromOrphanMap() error {
 // Create a new process list item and add it to the MyProcessList
 func (plMgr *ProcessListMgr) AddMyProcessListItem(msg wire.FtmInternalMsg, hash *wire.ShaHash, msgType byte) error {
 
-	ack := wire.NewMsgAcknowledgement(plMgr.NextDBlockHeight, uint32(plMgr.MyProcessList.nextIndex), hash, msgType)
+	ack := wire.NewMsgAcknowledgement(uint64(plMgr.NextDBlockHeight), uint32(plMgr.MyProcessList.nextIndex), hash, msgType) //??
 	plMgr.MyProcessList.nextIndex++
 
 	plItem := &ProcessListItem{
