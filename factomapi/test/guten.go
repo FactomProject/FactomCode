@@ -1,4 +1,4 @@
-package factomapi
+package main
 
 import (
 	"bytes"
@@ -12,6 +12,7 @@ import (
 	"os"
 
 	"github.com/FactomProject/FactomCode/notaryapi"
+	"github.com/FactomProject/FactomCode/factomapi"
 	"github.com/FactomProject/gocoding"
 )
 
@@ -91,7 +92,7 @@ func AddChain() {
 	chain.FirstEntry = entry
 
 	buf := new(bytes.Buffer)
-	err := SafeMarshal(buf, chain)
+	err := factomapi.SafeMarshal(buf, chain)
 
 	log.Println("chain:", string(buf.Bytes()))
 	jsonstr := string(buf.Bytes())
@@ -110,7 +111,7 @@ func AddChain() {
 	}
 }
 
-func TestAddEntry() {
+func AddEntry() {
 	chain := new(notaryapi.EChain)
 	bName := make([][]byte, 0, 5)
 	bName = append(bName, []byte("Project Gutenberg"))
@@ -132,7 +133,7 @@ func TestAddEntry() {
 		e.ChainID = *chain.ChainID
 	
 		buf := new(bytes.Buffer)
-		err = SafeMarshal(buf, e)
+		err = factomapi.SafeMarshal(buf, e)
 	
 		jsonstr := string(buf.Bytes())
 	
@@ -149,4 +150,10 @@ func TestAddEntry() {
 			log.Println("Entry successfully submitted to factomclient.")
 		}
 	}
+}
+
+func main() {
+	BuyCreditWallet()
+	AddChain()
+	AddEntry()
 }
