@@ -512,7 +512,8 @@ func saveDBMerkleRoottoBTC(dbInfo *notaryapi.DBInfo) {
 	}
 
 	//convert btc tx hash to factom hash, and update dbInfo
-	dbInfo.BTCTxHash = toHash(txHash)
+	//dbInfo.BTCTxHash.Bytes = toHash(txHash)
+	dbInfo.BTCTxHash.Bytes = txHash.Bytes()
 	//put dbInfo in the map for btc callback
 	dbInfoMap[dbInfo.DBHash.String()] = dbInfo
 
@@ -522,8 +523,7 @@ func saveDBMerkleRoottoBTC(dbInfo *notaryapi.DBInfo) {
 
 func toHash(txHash *wire.ShaHash) *notaryapi.Hash {
 	h := new(notaryapi.Hash)
-	//h.SetBytes(txHash.Bytes())
-	h.Bytes = txHash.Bytes()
+	h.SetBytes(txHash.Bytes())
 	return h
 }
 
