@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"reflect"
 	"sync"
 	//	"time"
@@ -295,14 +296,15 @@ func (c *DChain) AddCBlockToDBEntry(cb *CBlock) (err error) {
 	// Cblock is always at the first entry
 	if len(c.NextBlock.DBEntries) > 0 {
 		c.NextBlock.DBEntries[0] = dbEntry
-	}else {
-		c.NextBlock.DBEntries = append(c.NextBlock.DBEntries, dbEntry)}	
+	} else {
+		c.NextBlock.DBEntries = append(c.NextBlock.DBEntries, dbEntry)
+	}
 	c.BlockMutex.Unlock()
 
 	return nil
 }
 
-// Add DBEntry 
+// Add DBEntry
 func (c *DChain) AddDBEntry(dbEntry *DBEntry) (err error) {
 
 	c.BlockMutex.Lock()
@@ -315,8 +317,10 @@ func (c *DChain) AddDBEntry(dbEntry *DBEntry) (err error) {
 // Add DBEntry from a Factoid Block
 func (c *DChain) AddFBlockMRToDBEntry(dbEntry *DBEntry) (err error) {
 
+	fmt.Println("AddFDBlock >>>>>")
+
 	if len(c.NextBlock.DBEntries) < 2 {
-		panic ("DBEntries not initialized properly for block: " + string(c.NextBlockID))
+		panic("DBEntries not initialized properly for block: " + string(c.NextBlockID))
 	}
 	c.BlockMutex.Lock()
 	// Factoid entry is alwasy at the same position
