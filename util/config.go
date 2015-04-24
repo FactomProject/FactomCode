@@ -1,16 +1,18 @@
 package util
 
 import (
-	"os"
-	"code.google.com/p/gcfg"
 	"log"
+	"os"
+	"os/user"
+
+	"code.google.com/p/gcfg"
 )
 
 type FactomdConfig struct {
 	App struct {
 		PortNumber              int
-		LdbPath                 string
-		DataStorePath           string
+		LdbPath                 string // should be removed, and default to $defaultDataDir/ldb9
+		DataStorePath           string // should be removed, and default to $defaultDataDir/store
 		DirectoryBlockInSeconds int
 		NodeMode                string
 		FederatedId             string
@@ -59,7 +61,7 @@ const defaultConfig = `
 ; App settings
 ; ------------------------------------------------------------------------------
 [app]
-PortNumber				= 8088 
+PortNumber				= 8088
 LdbPath					= "/tmp/ldb9"
 DataStorePath			= "/tmp/store/seed/"
 DirectoryBlockInSeconds	= 60
@@ -82,7 +84,7 @@ RpcBtcdHost 			= "localhost:18334"
 
 [wsapi]
 ApplicationName			= "Factom/wsapi"
-PortNumber				= 8088 
+PortNumber				= 8088
 RefreshInSeconds		= 60
 
 ; ------------------------------------------------------------------------------
@@ -97,11 +99,43 @@ LogPath					= /tmp/factomd.log
 // object corresponding to the state of the file.
 func ReadConfig() *FactomdConfig {
 	cfg := new(FactomdConfig)
-	filename := os.Getenv("HOME")+"/.factom/factomd.conf"
+	filename := getHomeDir() + "/.factom/factomd.conf"
+	log.Println("read factom config file: ", filename)
+
+	// This makes factom config file located at
+	//   POSIX (Linux/BSD): ~/.factom/factom.conf
+	//   Mac OS: $HOME/Library/Application Support/Factom/factom.conf
+	//   Windows: %LOCALAPPDATA%\Factom\factom.conf
+	//   Plan 9: $home/factom/factom.conf
+	//factomHomeDir := btcutil.AppDataDir("factom", false)
+	//defaultConfigFile := filepath.Join(factomHomeDir, "factomd.conf")
+	//
+	// eventually we need to make data dir as following
+	//defaultDataDir   = filepath.Join(factomHomeDir, "data")
+	//LdbPath					 = filepath.Join(defaultDataDir, "ldb9")
+	//DataStorePath		 = filepath.Join(defaultDataDir, "store/seed/")
+
 	err := gcfg.ReadFileInto(cfg, filename)
 	if err != nil {
-		log.Println("Server starting with default settings...")		
+		log.Println("Server starting with default settings...")
 		gcfg.ReadStringInto(cfg, defaultConfig)
 	}
 	return cfg
+}
+
+func getHomeDir() string {
+	// Get the OS specific home directory via the Go standard lib.
+	var homeDir string
+	usr, err := user.Current()
+	if err == nil {
+		homeDir = usr.HomeDir
+	}
+
+	// Fall back to standard HOME environment variable that works
+	// for most POSIX OSes if the directory from the Go standard
+	// lib failed.
+	if err != nil || homeDir == "" {
+		homeDir = os.Getenv("HOME")
+	}
+	return homeDir
 }
