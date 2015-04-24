@@ -392,16 +392,6 @@ func (b *CBlockHeader) UnmarshalBinary(data []byte) (err error) {
 	return nil
 }
 
-//---------------------------------------------------------------
-// Three types of entries (transactions) for Entry Credit Block
-//---------------------------------------------------------------
-const (
- 	TYPE_SERVER_INDEX uint8 = iota
-	TYPE_MINUTE_NUMBER 
-	TYPE_PAY_CHAIN
-	TYPE_PAY_ENTRY	
-	TYPE_BUY	
-)
 
 type CBEntry interface {
 	Type() byte
