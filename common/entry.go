@@ -19,10 +19,9 @@ type Entry struct {
 	ExtIDs      [][]byte
 	Data        []byte
 }
+ 
 
-func (e Entry) MarshalledSize() uint64 {
-    return uint64 ( 8+HASH_LENGTH+2+2+ int(e.PayloadSize))  
-}  
+//
 
 func (e *Entry) MarshalBinary() ([]byte, error) {
 	var buf bytes.Buffer

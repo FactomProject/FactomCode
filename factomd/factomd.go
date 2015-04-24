@@ -53,18 +53,18 @@ func main() {
 	// Call serviceMain on Windows to handle running as a service.  When
 	// the return isService flag is true, exit now since we ran as a
 	// service.  Otherwise, just fall through to normal operation.
-/*
-	if runtime.GOOS == "windows" {
-		isService, err := winServiceMain()
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+	/*
+		if runtime.GOOS == "windows" {
+			isService, err := winServiceMain()
+			if err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
+			if isService {
+				os.Exit(0)
+			}
 		}
-		if isService {
-			os.Exit(0)
-		}
-	}
-*/
+	*/
 	// Work around defer not working after os.Exit()
 	if err := factomdMain(); err != nil {
 		os.Exit(1)
@@ -93,7 +93,7 @@ func factomdMain() error {
 	go wsapi.Start(db, inMsgQueue)
 
 	// Start the factoid (btcd) component and P2P component
-	btcd.Start_btcd(inMsgQueue, outMsgQueue, inCtlMsgQueue, outCtlMsgQueue, doneFBlockQueue)
+	btcd.Start_btcd()
 
 	return nil
 }

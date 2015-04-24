@@ -8,23 +8,23 @@ import (
 )
 
 type CChain struct {
-	ChainID      *Hash
-	Name         [][]byte
+	ChainID *Hash
+	Name    [][]byte
 
-	NextBlock *CBlock
-	NextBlockHeight  uint32
-	BlockMutex   sync.Mutex	
+	NextBlock       *CBlock
+	NextBlockHeight uint32
+	BlockMutex      sync.Mutex
 }
 
 type CBlock struct {
 	//Marshalized
 	Header    *CBlockHeader
 	CBEntries []CBEntry //Interface
-	
+
 	//Not Marshalized
-	CBHash   *Hash
-	MerkleRoot *Hash	
-	Chain    *CChain
+	CBHash     *Hash
+	MerkleRoot *Hash
+	Chain      *CChain
 }
 
 type CBInfo struct {
@@ -43,25 +43,25 @@ func CreateCBlock(chain *CChain, prev *CBlock, cap uint) (b *CBlock, err error) 
 
 	b = new(CBlock)
 
-	b.Header = new (CBlockHeader)
+	b.Header = new(CBlockHeader)
 	b.Header.ChainID = chain.ChainID
-	
+
 	if prev == nil {
 		b.Header.PrevKeyMR = NewHash()
-		b.Header.PrevHash = NewHash()	
-		b.Header.BodyHash = NewHash()	
+		b.Header.PrevHash = NewHash()
+		b.Header.BodyHash = NewHash()
 	} else {
 		if prev.MerkleRoot == nil {
 			prev.BuildMerkleRoot()
 		}
-		b.Header.PrevKeyMR = prev.MerkleRoot	
-			
+		b.Header.PrevKeyMR = prev.MerkleRoot
+
 		if prev.CBHash == nil {
 			prev.BuildCBHash()
 		}
-		b.Header.PrevHash = prev.CBHash		
+		b.Header.PrevHash = prev.CBHash
 	}
- 
+
 	b.Header.DBHeight = chain.NextBlockHeight
 	b.Header.SegmentsMR = NewHash()
 	b.Header.BalanceMR = NewHash()
@@ -72,12 +72,12 @@ func CreateCBlock(chain *CChain, prev *CBlock, cap uint) (b *CBlock, err error) 
 }
 
 func (b *CBlock) BuildMerkleRoot() (err error) {
-	
-	// Create the Entry Block Key Merkle Root from the hash of Header and the Body Merkle Root	
-	hashes := make([]*Hash, 0, 2)	
+
+	// Create the Entry Block Key Merkle Root from the hash of Header and the Body Merkle Root
+	hashes := make([]*Hash, 0, 2)
 	binaryEBHeader, _ := b.Header.MarshalBinary()
 	hashes = append(hashes, Sha(binaryEBHeader))
-	hashes = append(hashes, b.Header.BodyHash)	
+	hashes = append(hashes, b.Header.BodyHash)
 	merkle := BuildMerkleTreeStore(hashes)
 	b.MerkleRoot = merkle[len(merkle)-1] // MerkleRoot is not marshalized in Entry Block
 
@@ -85,9 +85,9 @@ func (b *CBlock) BuildMerkleRoot() (err error) {
 }
 
 func (b *CBlock) BuildCBHash() (err error) {
-	
+
 	binaryEB, _ := b.MarshalBinary()
-	b.CBHash = Sha(binaryEB) 
+	b.CBHash = Sha(binaryEB)
 
 	return
 }
@@ -97,8 +97,8 @@ func (b *CBlock) BuildCBBodyHash() (bodyHash *Hash, err error) {
 	for i := 0; i < len(b.CBEntries); i++ {
 		data, _ := b.CBEntries[i].MarshalBinary()
 		buf.Write(data)
-	}		
-	bodyHash = Sha(buf.Bytes()) 
+	}
+	bodyHash = Sha(buf.Bytes())
 
 	return bodyHash, nil
 }
@@ -112,7 +112,7 @@ func (b *CBlock) AddEndOfMinuteMarker(eomType byte) (err error) {
 
 	eOMEntry := &EndOfMinuteEntry{
 		entryType: TYPE_MINUTE_NUMBER,
-		EOM_Type: eomType,}
+		EOM_Type:  eomType}
 
 	b.AddCBEntry(eOMEntry)
 
@@ -122,8 +122,8 @@ func (b *CBlock) AddEndOfMinuteMarker(eomType byte) (err error) {
 func (b *CBlock) AddServerIndexEntry(serverIndex byte) (err error) {
 
 	cbEntry := &ServerIndexEntry{
-		entryType: TYPE_SERVER_INDEX,
-		ServerIndex: serverIndex,}
+		entryType:   TYPE_SERVER_INDEX,
+		ServerIndex: serverIndex}
 
 	b.AddCBEntry(cbEntry)
 
@@ -174,7 +174,7 @@ func (b *CBlock) UnmarshalBinary(data []byte) (err error) {
 			b.CBEntries[i] = new(ServerIndexEntry)
 		} else if data[0] == TYPE_MINUTE_NUMBER {
 			b.CBEntries[i] = new(EndOfMinuteEntry)
-		} 
+		}
 		err = b.CBEntries[i].UnmarshalBinary(data)
 		if err != nil {
 			return
@@ -281,63 +281,62 @@ func (b *CChain) UnmarshalBinary(data []byte) (err error) {
 
 //Entry Credit Block Header
 type CBlockHeader struct {
-	ChainID		  *Hash	
-	BodyHash	  *Hash
-	PrevKeyMR	  *Hash
-	PrevHash      *Hash	
-	DBHeight       uint32
-	SegmentsMR	  *Hash	
-	BalanceMR	  *Hash		
-	EntryCount	   uint64
-	BodySize	   uint64	
+	ChainID    *Hash
+	BodyHash   *Hash
+	PrevKeyMR  *Hash
+	PrevHash   *Hash
+	DBHeight   uint32
+	SegmentsMR *Hash
+	BalanceMR  *Hash
+	EntryCount uint64
+	BodySize   uint64
 }
 
 func (b *CBlockHeader) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
-	
+
 	data, err = b.ChainID.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
-	buf.Write(data)	
+	buf.Write(data)
 
 	data, err = b.BodyHash.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
-	buf.Write(data)	
+	buf.Write(data)
 
 	data, err = b.PrevKeyMR.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
-	buf.Write(data)	
-	
+	buf.Write(data)
+
 	data, err = b.PrevHash.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
-	buf.Write(data)		
+	buf.Write(data)
 
 	binary.Write(&buf, binary.BigEndian, b.DBHeight)
-	
+
 	data, err = b.SegmentsMR.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
-	buf.Write(data)		
-	
+	buf.Write(data)
+
 	data, err = b.BalanceMR.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
-	buf.Write(data)		
+	buf.Write(data)
 
-	binary.Write(&buf, binary.BigEndian, b.EntryCount)	
-	
-	binary.Write(&buf, binary.BigEndian, b.BodySize)	
-	
-	
+	binary.Write(&buf, binary.BigEndian, b.EntryCount)
+
+	binary.Write(&buf, binary.BigEndian, b.BodySize)
+
 	return buf.Bytes(), err
 }
 
@@ -350,15 +349,15 @@ func (b *CBlockHeader) MarshalledSize() uint64 {
 	size += b.PrevHash.MarshalledSize()
 	size += 4 // DB Height
 	size += b.SegmentsMR.MarshalledSize()
-	size += b.BalanceMR.MarshalledSize()	
-	size += 8 // Entry count	
+	size += b.BalanceMR.MarshalledSize()
+	size += 8 // Entry count
 	size += 8 // Body Size
-	
+
 	return size
 }
 
 func (b *CBlockHeader) UnmarshalBinary(data []byte) (err error) {
-	
+
 	b.ChainID = new(Hash)
 	b.ChainID.UnmarshalBinary(data)
 	data = data[b.ChainID.MarshalledSize():]
@@ -374,8 +373,8 @@ func (b *CBlockHeader) UnmarshalBinary(data []byte) (err error) {
 	b.PrevHash = new(Hash)
 	b.PrevHash.UnmarshalBinary(data)
 	data = data[b.PrevHash.MarshalledSize():]
-	
-	b.DBHeight, data = binary.BigEndian.Uint32(data[0:4]), data[4:]	
+
+	b.DBHeight, data = binary.BigEndian.Uint32(data[0:4]), data[4:]
 
 	b.SegmentsMR = new(Hash)
 	b.SegmentsMR.UnmarshalBinary(data)
@@ -385,13 +384,12 @@ func (b *CBlockHeader) UnmarshalBinary(data []byte) (err error) {
 	b.BalanceMR.UnmarshalBinary(data)
 	data = data[b.BalanceMR.MarshalledSize():]
 
-	b.EntryCount, data = binary.BigEndian.Uint64(data[0:8]), data[8:]	
-	
-	b.BodySize, data = binary.BigEndian.Uint64(data[0:8]), data[8:]		
-		
+	b.EntryCount, data = binary.BigEndian.Uint64(data[0:8]), data[8:]
+
+	b.BodySize, data = binary.BigEndian.Uint64(data[0:8]), data[8:]
+
 	return nil
 }
-
 
 type CBEntry interface {
 	Type() byte
@@ -417,7 +415,7 @@ type PayEntryCBEntry struct {
 	CBEntry   //interface
 	EntryHash *Hash
 	TimeStamp int64
-	Sig       []byte	
+	Sig       []byte
 }
 
 type PayChainCBEntry struct {
@@ -428,22 +426,20 @@ type PayChainCBEntry struct {
 	EntryHash        *Hash
 	ChainIDHash      *Hash
 	EntryChainIDHash *Hash //Hash(EntryHash+ChainIDHash)
-	Sig       		 []byte	
+	Sig              []byte
 }
 
 type ServerIndexEntry struct {
-	CBEntry      	//interface	
-	entryType        byte
-	ServerIndex		 byte
+	CBEntry     //interface
+	entryType   byte
+	ServerIndex byte
 }
 
 type EndOfMinuteEntry struct {
-	CBEntry      	//interface	
-	entryType        byte
-	EOM_Type		 byte
+	CBEntry   //interface
+	entryType byte
+	EOM_Type  byte
 }
-
-
 
 type ECBalance struct {
 	PublicKey *Hash
@@ -578,15 +574,14 @@ func (e *PayEntryCBEntry) MarshalBinary() (data []byte, err error) {
 	}
 	buf.Write(data)
 
-	binary.Write(&buf, binary.BigEndian, e.TimeStamp) 
-	
+	binary.Write(&buf, binary.BigEndian, e.TimeStamp)
+
 	count := len(e.Sig)
 	binary.Write(&buf, binary.BigEndian, uint32(count))
 	_, err = buf.Write(e.Sig)
 	if err != nil {
 		return nil, err
-	}	
-	
+	}
 
 	return buf.Bytes(), nil
 }
@@ -598,8 +593,8 @@ func (e *PayEntryCBEntry) MarshalledSize() uint64 {
 	size += 4                            // Credits (int32)
 	size += e.EntryHash.MarshalledSize() // Entry Hash
 	size += 8                            //	TimeStamp int64
-	size += 4                            // len(e.Sig)	
-	size += uint64(len(e.Sig))			 // sig
+	size += 4                            // len(e.Sig)
+	size += uint64(len(e.Sig))           // sig
 
 	return size
 }
@@ -609,7 +604,7 @@ func (e *PayEntryCBEntry) UnmarshalBinary(data []byte) (err error) {
 
 	e.publicKey = new(Hash)
 	e.publicKey.UnmarshalBinary(data)
-	
+
 	data = data[e.publicKey.MarshalledSize():]
 
 	buf, data := bytes.NewBuffer(data[:4]), data[4:]
@@ -622,10 +617,10 @@ func (e *PayEntryCBEntry) UnmarshalBinary(data []byte) (err error) {
 	buf = bytes.NewBuffer(data[:8])
 	binary.Read(buf, binary.BigEndian, &e.TimeStamp)
 	data = data[8:]
-	
+
 	length := binary.BigEndian.Uint32(data[0:4])
 	data = data[4:]
-	e.Sig = data[:length]	
+	e.Sig = data[:length]
 
 	return nil
 }
@@ -672,14 +667,14 @@ func (e *PayChainCBEntry) MarshalBinary() (data []byte, err error) {
 		return
 	}
 	buf.Write(data)
-	
+
 	count := len(e.Sig)
 	binary.Write(&buf, binary.BigEndian, uint32(count))
-	
+
 	_, err = buf.Write(e.Sig)
 	if err != nil {
 		return nil, err
-	}		
+	}
 
 	return buf.Bytes(), nil
 }
@@ -692,8 +687,8 @@ func (e *PayChainCBEntry) MarshalledSize() uint64 {
 	size += e.EntryHash.MarshalledSize()        // Entry Hash
 	size += e.ChainIDHash.MarshalledSize()      // ChainID Hash
 	size += e.EntryChainIDHash.MarshalledSize() // EntryChainID Hash
-	size += 4                            		// len(e.Sig)	
-	size += uint64(len(e.Sig))			 		// sig	
+	size += 4                                   // len(e.Sig)
+	size += uint64(len(e.Sig))                  // sig
 
 	return size
 }
@@ -719,14 +714,13 @@ func (e *PayChainCBEntry) UnmarshalBinary(data []byte) (err error) {
 	e.EntryChainIDHash = new(Hash)
 	e.EntryChainIDHash.UnmarshalBinary(data)
 	data = data[e.EntryChainIDHash.MarshalledSize():]
-	
+
 	length := binary.BigEndian.Uint32(data[0:4])
 	data = data[4:]
-	e.Sig = data[:length]		
+	e.Sig = data[:length]
 
 	return nil
 }
-
 
 // ServerIndexEntry
 func (e *ServerIndexEntry) Type() byte {
@@ -753,8 +747,8 @@ func (e *ServerIndexEntry) MarshalBinary() (data []byte, err error) {
 
 func (e *ServerIndexEntry) MarshalledSize() uint64 {
 	var size uint64 = 0
-	size += 1                                   // Type (byte)
-	size += 1                                   // ServerIndex (byte)
+	size += 1 // Type (byte)
+	size += 1 // ServerIndex (byte)
 
 	return size
 }
@@ -762,7 +756,7 @@ func (e *ServerIndexEntry) MarshalledSize() uint64 {
 func (e *ServerIndexEntry) UnmarshalBinary(data []byte) (err error) {
 	e.entryType, data = data[0], data[1:]
 	e.ServerIndex, data = data[0], data[1:]
-	
+
 	return nil
 }
 
@@ -791,8 +785,8 @@ func (e *EndOfMinuteEntry) MarshalBinary() (data []byte, err error) {
 
 func (e *EndOfMinuteEntry) MarshalledSize() uint64 {
 	var size uint64 = 0
-	size += 1                                   // Type (byte)
-	size += 1                                   // EOM_Type (byte)
+	size += 1 // Type (byte)
+	size += 1 // EOM_Type (byte)
 
 	return size
 }
@@ -800,6 +794,6 @@ func (e *EndOfMinuteEntry) MarshalledSize() uint64 {
 func (e *EndOfMinuteEntry) UnmarshalBinary(data []byte) (err error) {
 	e.entryType, data = data[0], data[1:]
 	e.EOM_Type, data = data[0], data[1:]
-	
+
 	return nil
 }
