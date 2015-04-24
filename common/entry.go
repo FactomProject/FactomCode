@@ -24,12 +24,12 @@ type EntryInfoBranch struct {
 	EntryHash *Hash
 	EntryInfo *EntryInfo
 	EBInfo    *EBInfo
-	DBInfo   *DBInfo
+	DBInfo    *DBInfo
 }
 
 func (e *Entry) MarshalBinary() ([]byte, error) {
 	var buf bytes.Buffer
-	
+
 	count := len(e.ExtIDs)
 	binary.Write(&buf, binary.BigEndian, uint8(count))
 
@@ -41,7 +41,7 @@ func (e *Entry) MarshalBinary() ([]byte, error) {
 			return nil, err
 		}
 	}
-	
+
 	data, err := e.ChainID.MarshalBinary()
 	if err != nil {
 		return nil, err
