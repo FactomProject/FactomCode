@@ -419,8 +419,7 @@ func saveDirBlockInfo(transaction *btcutil.Tx, details *btcws.BlockDetails) {
 	
 	for _, dbInfo := range dbInfoMap {
 
-		if dbInfo.BTCTxHash != nil &&
-			bytes.Compare(dbInfo.BTCTxHash.Bytes, transaction.Sha().Bytes()) == 0 {
+		if dbInfo.BTCTxHash != nil {
 
 			dbInfo.BTCTxOffset = details.Index
 			dbInfo.BTCBlockHeight = details.Height
