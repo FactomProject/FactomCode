@@ -85,7 +85,7 @@ func GetAllChains() ([]common.EChain, error) {
 	return db.FetchAllChains()
 }
 
-func GetDirectoryBloks(fromBlockHeight uint32, toBlockHeight uint32) (dBlocks []common.DBlock, err error) {
+func GetDirectoryBloks(fromBlockHeight uint32, toBlockHeight uint32) (dBlocks []common.DirectoryBlock, err error) {
 	//needs to be improved ??
 	dBlocks, _ = db.FetchAllDBlocks()
 	sort.Sort(byBlockID(dBlocks))
@@ -99,7 +99,7 @@ func GetDirectoryBloks(fromBlockHeight uint32, toBlockHeight uint32) (dBlocks []
 	return dBlocks[fromBlockHeight : toBlockHeight+1], nil
 }
 
-func GetDirectoryBlokByHashStr(addr string) (*common.DBlock, error) {
+func GetDirectoryBlokByHashStr(addr string) (*common.DirectoryBlock, error) {
 	hash := new(common.Hash)
 	a, err := hex.DecodeString(addr)
 	if err != nil {
@@ -144,7 +144,7 @@ func GetEntryBlokByMRStr(addr string) (*common.EBlock, error) {
 }
 
 func GetBlokHeight() (int, error) {
-	b := make([]common.DBlock, 0)
+	b := make([]common.DirectoryBlock, 0)
 	b, err := db.FetchAllDBlocks()
 	if err != nil {
 		return 0, err
@@ -224,7 +224,7 @@ func SetInMsgQueue(inMsgQ chan<- wire.FtmInternalMsg) error {
 //-=-----------------------------------------
 
 // array sorting implementation
-type byBlockID []common.DBlock
+type byBlockID []common.DirectoryBlock
 
 func (f byBlockID) Len() int {
 	return len(f)

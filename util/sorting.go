@@ -6,7 +6,7 @@ import (
 
 //------------------------------------------------
 // DBlock array sorting implementation - accending
-type ByDBlockIDAccending []common.DBlock
+type ByDBlockIDAccending []common.DirectoryBlock
 
 func (f ByDBlockIDAccending) Len() int {
 	return len(f)

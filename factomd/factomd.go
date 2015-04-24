@@ -93,7 +93,7 @@ func factomdMain() error {
 	go wsapi.Start(db, inMsgQueue)
 
 	// Start the factoid (btcd) component and P2P component
-	btcd.Start_btcd(inMsgQueue, outMsgQueue, inCtlMsgQueue, outCtlMsgQueue, doneFBlockQueue)
+	btcd.Start_btcd()
 
 	return nil
 }

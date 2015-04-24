@@ -94,7 +94,7 @@ func (plMgr *ProcessListMgr) AddToOrphanProcessList(plItem *ProcessListItem) err
 func (plMgr *ProcessListMgr) InitProcessListFromOrphanMap() error {
 
 	for key, plItem := range plMgr.OrphanPLMap {
-		if uint64(plMgr.NextDBlockHeight) == plItem.Ack.Height {//??
+		if plMgr.NextDBlockHeight == plItem.Ack.Height {//??
 			plMgr.MyProcessList.AddToProcessList(plItem)
 			delete(plMgr.OrphanPLMap, key)
 		}
@@ -107,7 +107,7 @@ func (plMgr *ProcessListMgr) InitProcessListFromOrphanMap() error {
 // Create a new process list item and add it to the MyProcessList
 func (plMgr *ProcessListMgr) AddMyProcessListItem(msg wire.FtmInternalMsg, hash *wire.ShaHash, msgType byte) error {
 
-	ack := wire.NewMsgAcknowledgement(uint64(plMgr.NextDBlockHeight), uint32(plMgr.MyProcessList.nextIndex), hash, msgType) //??
+	ack := wire.NewMsgAcknowledgement(plMgr.NextDBlockHeight, uint32(plMgr.MyProcessList.nextIndex), hash, msgType) //??
 	plMgr.MyProcessList.nextIndex++
 
 	plItem := &ProcessListItem{

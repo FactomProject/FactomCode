@@ -79,7 +79,7 @@ type Db interface {
 	FetchAllEBInfosByChain(chainID *common.Hash) (eBInfos *[]common.EBInfo, err error)
 
 	// FetchDBlock gets an entry by hash from the database.
-	FetchDBlockByHash(dBlockHash *common.Hash) (dBlock *common.DBlock, err error)
+	FetchDBlockByHash(dBlockHash *common.Hash) (dBlock *common.DirectoryBlock, err error)
 
 	// FetchDBBatchByHash gets an FBBatch obj
 	FetchDBInfoByHash(dbHash *common.Hash) (dbInfo *common.DBInfo, err error)
@@ -88,16 +88,16 @@ type Db interface {
 	InsertDBInfo(dbInfo common.DBInfo) (err error)
 
 	// ProcessDBlockBatche inserts the EBlock and update all it's ebentries in DB
-	ProcessDBlockBatch(block *common.DBlock) error
+	ProcessDBlockBatch(block *common.DirectoryBlock) error
 
 	// FetchAllCBlocks gets all of the entry credit blocks
 	FetchAllCBlocks() (cBlocks []common.CBlock, err error)
 
 	// FetchAllFBInfo gets all of the fbInfo
-	FetchAllDBlocks() (fBlocks []common.DBlock, err error)
+	FetchAllDBlocks() (fBlocks []common.DirectoryBlock, err error)
 	
 	// FetchDBlockByHeight gets an directory block by height from the database.
-	FetchDBlockByHeight(dBlockHeight uint64) (dBlock *common.DBlock, err error) 
+	FetchDBlockByHeight(dBlockHeight uint64) (dBlock *common.DirectoryBlock, err error) 
 	
 	// ProcessCBlockBatche inserts the CBlock and update all it's cbentries in DB
 	ProcessCBlockBatch(block *common.CBlock) (err error)
