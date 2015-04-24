@@ -14,7 +14,7 @@ const (
     EC_CAP          = 5                  //Number of ECBlocks we start with.
    
     //Limits and Sizes
-    MAX_ENTRY_SIZE  = int(10240)         //Maximum size for Entry External IDs and the Data
+    MAX_ENTRY_SIZE  = uint16(10240)      //Maximum size for Entry External IDs and the Data
     HASH_LENGTH     = int(32)            //Length of a Hash 
 	//Common constants
 	VERSION_0       = byte(0)

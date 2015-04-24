@@ -17,14 +17,14 @@ const DBlockVersion = 0
 
 type DChain struct {
 	ChainID     		*Hash
-	Blocks      		[]*DBlock
+	Blocks      		[]*DirectoryBlock
 	BlockMutex  		sync.Mutex
-	NextBlock   		*DBlock
+	NextBlock   		*DirectoryBlock
 	NextBlockHeight 	uint32
 	IsValidated 		bool
 }
 
-type DBlock struct {
+type DirectoryBlock struct {
 	//Marshalized
 	Header    *DBlockHeader
 	DBEntries []*DBEntry
@@ -101,7 +101,7 @@ func NewDBEntryFromCBlock(cb *CBlock) *DBEntry {
 	return e
 }
 
-func NewDBInfoFromDBlock(b *DBlock) *DBInfo {
+func NewDBInfoFromDBlock(b *DirectoryBlock) *DBInfo {
 	e := &DBInfo{}
 	e.DBHash = b.DBHash
 	e.DBMerkleRoot = b.Header.BodyMR //?? double check
@@ -257,14 +257,14 @@ func (b *DBlockHeader) UnmarshalBinary(data []byte) (err error) {
 	return nil
 }
 
-func CreateDBlock(chain *DChain, prev *DBlock, cap uint) (b *DBlock, err error) {
+func CreateDBlock(chain *DChain, prev *DirectoryBlock, cap uint) (b *DirectoryBlock, err error) {
 	if prev == nil && chain.NextBlockHeight != 0 {
 		return nil, errors.New("Previous block cannot be nil")
 	} else if prev != nil && chain.NextBlockHeight == 0 {
 		return nil, errors.New("Origin block cannot have a parent block")
 	}
 
-	b = new(DBlock)
+	b = new(DirectoryBlock)
 
 	b.Header = new (DBlockHeader)
 	b.Header.Version = VERSION_0
@@ -345,11 +345,11 @@ func (c *DChain) AddFBlockMRToDBEntry(dbEntry *DBEntry) (err error) {
 }
 
 // Add DBlock to the chain in memory
-func (c *DChain) AddDBlockToDChain(b *DBlock) (err error) {
+func (c *DChain) AddDBlockToDChain(b *DirectoryBlock) (err error) {
 
 	// Increase the slice capacity if needed
 	if b.Header.BlockHeight >= uint32(cap(c.Blocks)) {
-		temp := make([]*DBlock, len(c.Blocks), b.Header.BlockHeight*2)
+		temp := make([]*DirectoryBlock, len(c.Blocks), b.Header.BlockHeight*2)
 		copy(temp, c.Blocks)
 		c.Blocks = temp
 	}
@@ -364,7 +364,7 @@ func (c *DChain) AddDBlockToDChain(b *DBlock) (err error) {
 	return nil
 }
 
-func (b *DBlock) MarshalBinary() (data []byte, err error) {
+func (b *DirectoryBlock) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
 
 	data, err = b.Header.MarshalBinary()
@@ -387,7 +387,7 @@ func (b *DBlock) MarshalBinary() (data []byte, err error) {
 	return buf.Bytes(), err
 }
 
-func (b *DBlock) BuildBodyMR() (mr *Hash, err error) {
+func (b *DirectoryBlock) BuildBodyMR() (mr *Hash, err error) {
 	hashes := make([]*Hash, len(b.DBEntries))
 	for i, entry := range b.DBEntries {
 		data, _ := entry.MarshalBinary()
@@ -403,7 +403,7 @@ func (b *DBlock) BuildBodyMR() (mr *Hash, err error) {
 	return merkle[len(merkle)-1], nil
 }
 
-func (b *DBlock) BuildKeyMerkleRoot() (err error) {
+func (b *DirectoryBlock) BuildKeyMerkleRoot() (err error) {
 		
 	// Create the Entry Block Key Merkle Root from the hash of Header and the Body Merkle Root	
 	hashes := make([]*Hash, 0, 2)	
@@ -416,7 +416,7 @@ func (b *DBlock) BuildKeyMerkleRoot() (err error) {
 	return
 }
 
-func (b *DBlock) MarshalledSize() uint64 {
+func (b *DirectoryBlock) MarshalledSize() uint64 {
 	var size uint64 = 0
 
 	size += b.Header.MarshalledSize()
@@ -429,7 +429,7 @@ func (b *DBlock) MarshalledSize() uint64 {
 	return 0
 }
 
-func (b *DBlock) UnmarshalBinary(data []byte) (err error) {
+func (b *DirectoryBlock) UnmarshalBinary(data []byte) (err error) {
 	fbh := new(DBlockHeader)
 	fbh.UnmarshalBinary(data)
 	b.Header = fbh
@@ -449,7 +449,7 @@ func (b *DBlock) UnmarshalBinary(data []byte) (err error) {
 	return nil
 }
 
-func (b *DBlock) EncodableFields() map[string]reflect.Value {
+func (b *DirectoryBlock) EncodableFields() map[string]reflect.Value {
 	fields := map[string]reflect.Value{
 		`Header`:    reflect.ValueOf(b.Header),
 		`DBEntries`: reflect.ValueOf(b.DBEntries),

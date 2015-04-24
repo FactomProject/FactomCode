@@ -49,7 +49,7 @@ import (
 }
 */
 // ProcessDBlockBatche inserts the DBlock and update all it's dbentries in DB
-func (db *LevelDb) ProcessDBlockBatch(dblock *common.DBlock) error {
+func (db *LevelDb) ProcessDBlockBatch(dblock *common.DirectoryBlock) error {
 
 	if dblock != nil {
 		if db.lbatch == nil {
@@ -154,7 +154,7 @@ func (db *LevelDb) FetchDBInfoByHash(dbHash *common.Hash) (dbInfo *common.DBInfo
 }
 
 // FetchDBlock gets an entry by hash from the database.
-func (db *LevelDb) FetchDBlockByHash(dBlockHash *common.Hash) (dBlock *common.DBlock, err error) {
+func (db *LevelDb) FetchDBlockByHash(dBlockHash *common.Hash) (dBlock *common.DirectoryBlock, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -165,7 +165,7 @@ func (db *LevelDb) FetchDBlockByHash(dBlockHash *common.Hash) (dBlock *common.DB
 	if data == nil {
 		return nil, errors.New("DBlock not found for Hash: " + dBlockHash.String())
 	} else {
-		dBlock = new(common.DBlock)
+		dBlock = new(common.DirectoryBlock)
 		dBlock.UnmarshalBinary(data)
 	}
 
@@ -179,7 +179,7 @@ func (db *LevelDb) FetchDBlockByHash(dBlockHash *common.Hash) (dBlock *common.DB
 }
 
 // FetchDBlockByHeight gets an directory block by height from the database.
-func (db *LevelDb) FetchDBlockByHeight(dBlockHeight uint64) (dBlock *common.DBlock, err error) {
+func (db *LevelDb) FetchDBlockByHeight(dBlockHeight uint64) (dBlock *common.DirectoryBlock, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -192,7 +192,7 @@ func (db *LevelDb) FetchDBlockByHeight(dBlockHeight uint64) (dBlock *common.DBlo
 	if data == nil {
 		return nil, errors.New("DBlock not found for height: " + string(dBlockHeight))
 	} else {
-		dBlock = new(common.DBlock)
+		dBlock = new(common.DirectoryBlock)
 		dBlock.UnmarshalBinary(data)
 	}
 
@@ -200,19 +200,19 @@ func (db *LevelDb) FetchDBlockByHeight(dBlockHeight uint64) (dBlock *common.DBlo
 }
 
 // FetchAllDBInfo gets all of the fbInfo
-func (db *LevelDb) FetchAllDBlocks() (dBlocks []common.DBlock, err error) {
+func (db *LevelDb) FetchAllDBlocks() (dBlocks []common.DirectoryBlock, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
 	var fromkey []byte = []byte{byte(TBL_DB)}   // Table Name (1 bytes)						// Timestamp  (8 bytes)
 	var tokey []byte = []byte{byte(TBL_DB + 1)} // Table Name (1 bytes)
 
-	dBlockSlice := make([]common.DBlock, 0, 10)
+	dBlockSlice := make([]common.DirectoryBlock, 0, 10)
 
 	iter := db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
 
 	for iter.Next() {
-		var dBlock common.DBlock
+		var dBlock common.DirectoryBlock
 		dBlock.UnmarshalBinary(iter.Value())
 		dBlock.DBHash = common.Sha(iter.Value()) //to be optimized??
 
