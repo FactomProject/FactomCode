@@ -95,10 +95,12 @@ func (db *LevelDb) ProcessEBlockBatch(eblock *common.EBlock) error {
 		db.lbatch.Put(key, binaryEBHash)
 
 		// Update entry process queue for each entry in eblock
+		/**************************************
 		for i := 0; i < len(eblock.EBEntries); i++ {
 			var ebEntry common.EBEntry = *eblock.EBEntries[i]
 
 			if isLookupDB {
+			
 				// Create an EntryInfo and insert it into db
 				var entryInfo = new(common.EntryInfo)
 				entryInfo.EntryHash = ebEntry.EntryHash
@@ -108,9 +110,11 @@ func (db *LevelDb) ProcessEBlockBatch(eblock *common.EBlock) error {
 				entryInfoKey = append(entryInfoKey, entryInfo.EntryHash.Bytes...)
 				binaryEntryInfo, _ := entryInfo.MarshalBinary()
 				db.lbatch.Put(entryInfoKey, binaryEntryInfo)
+			
 			}
 
 		}
+	    *****************************************/
 
 		err = db.lDb.Write(db.lbatch, db.wo)
 		if err != nil {
