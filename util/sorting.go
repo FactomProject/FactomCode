@@ -12,7 +12,7 @@ func (f ByDBlockIDAccending) Len() int {
 	return len(f)
 }
 func (f ByDBlockIDAccending) Less(i, j int) bool {
-	return f[i].Header.BlockID < f[j].Header.BlockID
+	return f[i].Header.BlockHeight < f[j].Header.BlockHeight
 }
 func (f ByDBlockIDAccending) Swap(i, j int) {
 	f[i], f[j] = f[j], f[i]

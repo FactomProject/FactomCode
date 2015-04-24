@@ -12,7 +12,7 @@ type CChain struct {
 	Name         [][]byte
 
 	NextBlock *CBlock
-	NextBlockID  uint32
+	NextBlockHeight  uint32
 	BlockMutex   sync.Mutex	
 }
 
@@ -35,9 +35,9 @@ type CBInfo struct {
 }
 
 func CreateCBlock(chain *CChain, prev *CBlock, cap uint) (b *CBlock, err error) {
-	if prev == nil && chain.NextBlockID != 0 {
+	if prev == nil && chain.NextBlockHeight != 0 {
 		return nil, errors.New("Previous block cannot be nil")
-	} else if prev != nil && chain.NextBlockID == 0 {
+	} else if prev != nil && chain.NextBlockHeight == 0 {
 		return nil, errors.New("Origin block cannot have a parent block")
 	}
 
@@ -62,7 +62,7 @@ func CreateCBlock(chain *CChain, prev *CBlock, cap uint) (b *CBlock, err error) 
 		b.Header.PrevHash = prev.CBHash		
 	}
  
-	b.Header.DBHeight = chain.NextBlockID
+	b.Header.DBHeight = chain.NextBlockHeight
 	b.Header.SegmentsMR = NewHash()
 	b.Header.BalanceMR = NewHash()
 	b.Chain = chain
@@ -392,16 +392,6 @@ func (b *CBlockHeader) UnmarshalBinary(data []byte) (err error) {
 	return nil
 }
 
-//---------------------------------------------------------------
-// Three types of entries (transactions) for Entry Credit Block
-//---------------------------------------------------------------
-const (
- 	TYPE_SERVER_INDEX uint8 = iota
-	TYPE_MINUTE_NUMBER 
-	TYPE_PAY_CHAIN
-	TYPE_PAY_ENTRY	
-	TYPE_BUY	
-)
 
 type CBEntry interface {
 	Type() byte

@@ -25,8 +25,8 @@ import (
 var (
 	serverAddr      = "localhost:8083"
 	db              database.Db
-	creditsPerChain uint32              = 10
-	inMsgQueue     chan<- wire.FtmInternalMsg //outgoing message queue for factom application messages
+	creditsPerChain uint32                     = 10
+	inMsgQueue      chan<- wire.FtmInternalMsg //outgoing message queue for factom application messages
 )
 
 // This method will be replaced with a Factoid transaction once we have the factoid implementation in place
@@ -67,7 +67,7 @@ func BuyEntryCredit(version uint16, ecPubKey *common.Hash, from *common.Hash, va
 
 func GetEntryCreditBalance(ecPubKey *common.Hash) (credits int32, err error) {
 
-	return  btcd.GetEntryCreditBalance(ecPubKey)
+	return btcd.GetEntryCreditBalance(ecPubKey)
 }
 
 func GetChainByHashStr(id string) (*common.EChain, error) {
@@ -85,15 +85,15 @@ func GetAllChains() ([]common.EChain, error) {
 	return db.FetchAllChains()
 }
 
-func GetDirectoryBloks(fromBlockHeight uint64, toBlockHeight uint64) (dBlocks []common.DBlock, err error) {
+func GetDirectoryBloks(fromBlockHeight uint32, toBlockHeight uint32) (dBlocks []common.DBlock, err error) {
 	//needs to be improved ??
 	dBlocks, _ = db.FetchAllDBlocks()
 	sort.Sort(byBlockID(dBlocks))
 
-	if fromBlockHeight > uint64(len(dBlocks)-1) {
+	if fromBlockHeight > uint32(len(dBlocks)-1) {
 		return nil, nil
-	} else if toBlockHeight > uint64(len(dBlocks)-1) {
-		toBlockHeight = uint64(len(dBlocks) - 1)
+	} else if toBlockHeight > uint32(len(dBlocks)-1) {
+		toBlockHeight = uint32(len(dBlocks) - 1)
 	}
 
 	return dBlocks[fromBlockHeight : toBlockHeight+1], nil
@@ -230,7 +230,7 @@ func (f byBlockID) Len() int {
 	return len(f)
 }
 func (f byBlockID) Less(i, j int) bool {
-	return f[i].Header.BlockID < f[j].Header.BlockID
+	return f[i].Header.BlockHeight < f[j].Header.BlockHeight
 }
 func (f byBlockID) Swap(i, j int) {
 	f[i], f[j] = f[j], f[i]

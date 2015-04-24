@@ -12,8 +12,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/FactomProject/FactomCode/factomapi"
 	"github.com/FactomProject/FactomCode/common"
+	"github.com/FactomProject/FactomCode/factomapi"
 	"github.com/FactomProject/FactomCode/wallet"
 	"github.com/FactomProject/gocoding"
 	"github.com/hoisie/web"
@@ -149,7 +149,7 @@ func handleChains(ctx *web.Context) {
 			break
 		}
 	}
-	
+
 	if err != nil {
 		httpcode = 400
 		buf.WriteString("Bad request ")
@@ -300,8 +300,8 @@ func handleDBlocksByRange(ctx *web.Context, fromHeightStr string,
 		return
 	}
 
-	dBlocks, err := factomapi.GetDirectoryBloks(uint64(fromBlockHeight),
-		uint64(toBlockHeight))
+	dBlocks, err := factomapi.GetDirectoryBloks(uint32(fromBlockHeight),
+		uint32(toBlockHeight))
 	if err != nil {
 		httpcode = 400
 		buf.WriteString("Bad request")
@@ -423,7 +423,6 @@ func handleEntriesByExtID(ctx *web.Context, eid string) {
 		ctx.WriteHeader(httpcode)
 		ctx.Write(buf.Bytes())
 	}()
-
 
 	entries, err := factomapi.GetEntriesByExtID(eid)
 	if err != nil {
