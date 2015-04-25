@@ -130,4 +130,23 @@ func (e *Entry) UnmarshalBinary(data []byte) (err error) {
 	return nil
 }
 
+func GetChainID(chainName [][]byte) (chainID *Hash, err error){
+    byteSlice := make([]byte, 0, 64)
+    
+    if len(chainName)==0 {
+      err = fmt.Errorf("Some name is required to create a ChainID")
+      return nil,err
+    }
+    
+    for _, bytes := range chainName {
+        byteSlice = append(byteSlice, Sha(bytes).Bytes...)
+    }
+    chainID = Sha(byteSlice)
+    return chainID, nil
+}
 
+// To generate a chain id (hash) from a binary array name
+// The algorithm is chainID = Sha(Sha(Name[0]) + Sha(Name[1] + ... + Sha(Name[n])
+func (b *Entry) GenerateIDFromName() (chainID *Hash, err error) {
+    return GetChainID(b.ExtIDs)
+}

@@ -455,14 +455,14 @@ func handleSubmitChain(ctx *web.Context) {
 		c := new(common.EChain)
 		factomapi.SafeUnmarshal(reader, c)
 
-		c.GenerateIDFromName()
 		if c.FirstEntry == nil {
 			fmt.Fprintln(ctx,
 				"The first entry is required for submitting the chain:")
 			log.Warning("The first entry is required for submitting the chain")
 			return
 		} else {
-			c.FirstEntry.ChainID = *c.ChainID
+            c.FirstEntry.GenerateIDFromName()
+            c.ChainID = &c.FirstEntry.ChainID
 		}
 
 		log.Debug("c.ChainID:", c.ChainID.String())

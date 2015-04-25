@@ -23,7 +23,7 @@ const (
 type EChain struct {
 	//Marshalized
 	ChainID    *Hash
-	Name       [][]byte
+// Removed the name...	
 	FirstEntry *Entry
 
 	//Not Marshalized
@@ -425,14 +425,6 @@ func (b *EChain) MarshalBinary() (data []byte, err error) {
 	}
 	buf.Write(data)
 
-	count := len(b.Name)
-	binary.Write(&buf, binary.BigEndian, uint64(count))
-
-	for _, bytes := range b.Name {
-		count = len(bytes)
-		binary.Write(&buf, binary.BigEndian, uint64(count))
-		buf.Write(bytes)
-	}
 	if b.FirstEntry != nil {
 		data, err = b.FirstEntry.MarshalBinary()
 		if err != nil {
@@ -448,19 +440,7 @@ func (b *EChain) MarshalBinary() (data []byte, err error) {
 func (b *EChain) UnmarshalBinary(data []byte) (err error) {
 	b.ChainID = new(Hash)
 	b.ChainID.UnmarshalBinary(data[:33])
-
 	data = data[33:]
-	count := binary.BigEndian.Uint64(data[0:8])
-	data = data[8:]
-
-	b.Name = make([][]byte, count, count)
-
-	for i := uint64(0); i < count; i++ {
-		length := binary.BigEndian.Uint64(data[0:8])
-		data = data[8:]
-		b.Name[i] = data[:length]
-		data = data[length:]
-	}
 
 	if len(data) > HashSize {
 		b.FirstEntry = new(Entry)
@@ -469,40 +449,8 @@ func (b *EChain) UnmarshalBinary(data []byte) (err error) {
 	return nil
 }
 
-// For Json marshaling
-func (b *EChain) EncodableFields() map[string]reflect.Value {
-	fields := map[string]reflect.Value{
-		`ChainID`:    reflect.ValueOf(b.ChainID),
-		`Name`:       reflect.ValueOf(b.Name),
-		`FirstEntry`: reflect.ValueOf(b.FirstEntry),
-	}
-	return fields
-}
 
-// To generate a chain id (hash) from a binary array name
-// The algorithm is chainID = Sha(Sha(Name[0]) + Sha(Name[1] + ... + Sha(Name[n])
-func (b *EChain) GenerateIDFromName() (chainID *Hash, err error) {
-	byteSlice := make([]byte, 0, 32)
-	for _, bytes := range b.Name {
-		byteSlice = append(byteSlice, Sha(bytes).Bytes...)
-	}
-	b.ChainID = Sha(byteSlice)
-	return b.ChainID, nil
-}
 
-// To encode the binary name to a string to enable internal path search in db
-// The algorithm is PathString = Hex(Name[0]) + ":" + Hex(Name[0]) + ":" + ... + Hex(Name[n])
-func EncodeChainNameToString(name [][]byte) (pathstr string) {
-	for _, bytes := range name {
-		pathstr = pathstr + EncodeBinary(&bytes) + Separator
-	}
-
-	if len(pathstr) > 0 {
-		pathstr = pathstr[:len(pathstr)-1]
-	}
-
-	return pathstr
-}
 
 // To decode the binary name to a string to enable internal path search in db
 // The algorithm is PathString = Hex(Name[0]) + ":" + Hex(Name[0]) + ":" + ... + Hex(Name[n])
