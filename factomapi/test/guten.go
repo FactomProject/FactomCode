@@ -125,7 +125,9 @@ func AddEntry() {
 		log.Fatal("could not find entries file")
 	}
 	scanner := bufio.NewScanner(file)
+	limit := make(chan int, 25)
 	for scanner.Scan() {
+		limit <- 1
 		e, err := UnmarshalJSON([]byte(scanner.Text()))
 		if err != nil {
 			log.Println("Error:", err)
@@ -149,6 +151,7 @@ func AddEntry() {
 		} else {
 			log.Println("Entry successfully submitted to factomclient.")
 		}
+		<-limit
 	}
 }
 
