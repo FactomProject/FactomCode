@@ -444,7 +444,6 @@ func (b *EChain) MarshalBinary() (data []byte, err error) {
 	return buf.Bytes(), err
 }
 
-
 func (b *EChain) UnmarshalBinary(data []byte) (err error) {
 	b.ChainID = new(Hash)
 	b.ChainID.UnmarshalBinary(data[:33])
