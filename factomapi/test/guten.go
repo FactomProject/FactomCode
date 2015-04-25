@@ -126,34 +126,38 @@ func AddEntry() {
 	}
 	scanner := bufio.NewScanner(file)
 	line := make(chan string, 25)
-	for scanner.Scan() {
-		line <- scanner.Text()
-	}
-	for v := range line {
-		e, err := UnmarshalJSON([]byte(v))
-		if err != nil {
-			log.Println("Error:", err)
+	go func() {
+		for scanner.Scan() {
+			line <- scanner.Text()
 		}
-		e.ChainID = *chain.ChainID
-	
-		buf := new(bytes.Buffer)
-		err = factomapi.SafeMarshal(buf, e)
-	
-		jsonstr := string(buf.Bytes())
-	
-		// Post the entry JSON to FactomClient web server
-		data := url.Values{}
-		data.Set("entry", jsonstr)
-		data.Set("format", "json")
-		data.Set("password", "opensesame")
-	
-		_, err = http.PostForm("http://localhost:8088/v1/submitentry", data)
-		if err != nil {
-			log.Println("Error:", err)
-		} else {
-			log.Println("Entry successfully submitted to factomclient.")
+	}()
+	go func() {
+		for v := range line {
+			e, err := UnmarshalJSON([]byte(v))
+			if err != nil {
+				log.Println("Error:", err)
+			}
+			e.ChainID = *chain.ChainID
+		
+			buf := new(bytes.Buffer)
+			err = factomapi.SafeMarshal(buf, e)
+		
+			jsonstr := string(buf.Bytes())
+		
+			// Post the entry JSON to FactomClient web server
+			data := url.Values{}
+			data.Set("entry", jsonstr)
+			data.Set("format", "json")
+			data.Set("password", "opensesame")
+		
+			_, err = http.PostForm("http://localhost:8088/v1/submitentry", data)
+			if err != nil {
+				log.Println("Error:", err)
+			} else {
+				log.Println("Entry successfully submitted to factomclient.")
+			}
 		}
-	}
+	}()
 }
 
 func main() {
