@@ -125,8 +125,12 @@ func AddEntry() {
 		log.Fatal("could not find entries file")
 	}
 	scanner := bufio.NewScanner(file)
+	line := make(chan string, 25)
 	for scanner.Scan() {
-		e, err := UnmarshalJSON([]byte(scanner.Text()))
+		line <- scanner.Text()
+	}
+	for v := range line {
+		e, err := UnmarshalJSON([]byte(v))
 		if err != nil {
 			log.Println("Error:", err)
 		}
