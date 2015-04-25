@@ -48,6 +48,7 @@ func (db *LevelDb) FetchEntryByHash(entrySha *common.Hash) (entry *common.Entry,
 	return entry, nil
 }
 
+/**********************************************
 // FetchEntryInfoBranchByHash gets an EntryInfoBranch obj
 func (db *LevelDb) FetchEntryInfoBranchByHash(entryHash *common.Hash) (entryInfoBranch *common.EntryInfoBranch, err error) {
 	entryInfoBranch = new(common.EntryInfoBranch)
@@ -80,7 +81,7 @@ func (db *LevelDb) FetchEntryInfoByHash(entryHash *common.Hash) (entryInfo *comm
 	}
 	return entryInfo, nil
 }
-
+********************************************/
 // Initialize External ID map for explorer search
 func (db *LevelDb) InitializeExternalIDMap() (extIDMap map[string]bool, err error) {
 

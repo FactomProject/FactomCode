@@ -52,10 +52,10 @@ type Db interface {
 	FetchAllChainsByName(chainName [][]byte) (chains *[]common.EChain, err error)
 
 	// FetchEntryInfoBranchByHash gets an EntryInfo obj
-	FetchEntryInfoByHash(entryHash *common.Hash) (entryInfo *common.EntryInfo, err error)
+	//FetchEntryInfoByHash(entryHash *common.Hash) (entryInfo *common.EntryInfo, err error)
 
 	// FetchEntryInfoBranchByHash gets an EntryInfoBranch obj
-	FetchEntryInfoBranchByHash(entryHash *common.Hash) (entryInfoBranch *common.EntryInfoBranch, err error)
+	// FetchEntryInfoBranchByHash(entryHash *common.Hash) (entryInfoBranch *common.EntryInfoBranch, err error)
 
 	// FetchEntryBlock gets an entry by hash from the database.
 	FetchEBlockByHash(eBlockHash *common.Hash) (eBlock *common.EBlock, err error)

@@ -416,19 +416,6 @@ func (b *DirectoryBlock) BuildKeyMerkleRoot() (err error) {
 	return
 }
 
-func (b *DirectoryBlock) MarshalledSize() uint64 {
-	var size uint64 = 0
-
-	size += b.Header.MarshalledSize()
-	size += 4 // len(Entries) uint32
-
-	for _, dbEntry := range b.DBEntries {
-		size += dbEntry.MarshalledSize()
-	}
-
-	return 0
-}
-
 func (b *DirectoryBlock) UnmarshalBinary(data []byte) (err error) {
 	fbh := new(DBlockHeader)
 	fbh.UnmarshalBinary(data)

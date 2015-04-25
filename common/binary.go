@@ -12,7 +12,6 @@ import (
 type BinaryMarshallable interface {
 	encoding.BinaryMarshaler
 	encoding.BinaryUnmarshaler
-	MarshalledSize() uint64
 }
 
 func bigIntMarshalBinary(i *big.Int) (data []byte, err error) {

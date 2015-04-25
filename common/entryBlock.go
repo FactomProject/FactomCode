@@ -444,22 +444,6 @@ func (b *EChain) MarshalBinary() (data []byte, err error) {
 	return buf.Bytes(), err
 }
 
-func (b *EChain) MarshalledSize() uint64 {
-	var size uint64 = 0
-	size += 33 //b.ChainID
-	size += 8  // Name length
-
-	for _, bytes := range b.Name {
-		size += 8
-		size += uint64(len(bytes))
-	}
-
-	if b.FirstEntry != nil {
-		size += b.FirstEntry.MarshalledSize()
-	}
-
-	return size
-}
 
 func (b *EChain) UnmarshalBinary(data []byte) (err error) {
 	b.ChainID = new(Hash)
