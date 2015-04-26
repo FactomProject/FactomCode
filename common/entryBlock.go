@@ -22,8 +22,8 @@ const (
 
 type EChain struct {
 	//Marshalized
-	ChainID    *Hash
-// Removed the name...	
+	ChainID *Hash
+	// Removed the name...
 	FirstEntry *Entry
 
 	//Not Marshalized
@@ -447,9 +447,6 @@ func (b *EChain) UnmarshalBinary(data []byte) (err error) {
 	}
 	return nil
 }
-
-
-
 
 // To decode the binary name to a string to enable internal path search in db
 // The algorithm is PathString = Hex(Name[0]) + ":" + Hex(Name[0]) + ":" + ... + Hex(Name[n])
