@@ -150,7 +150,7 @@ func AddEntry() {
 			data.Set("format", "json")
 			data.Set("password", "opensesame")
 		
-			resp, err = http.PostForm("http://localhost:8088/v1/submitentry", data)
+			resp, err := http.PostForm("http://localhost:8088/v1/submitentry", data)
 			if err != nil {
 				log.Println("Error:", err)
 			} else {
