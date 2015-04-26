@@ -131,8 +131,8 @@ func AddEntry() {
 			line <- scanner.Text()
 		}
 	}()
-	go func() {
-		for v := range line {
+	for v := range line {
+		go func() {
 			e, err := UnmarshalJSON([]byte(v))
 			if err != nil {
 				log.Println("Error:", err)
@@ -157,8 +157,8 @@ func AddEntry() {
 				log.Println("Entry successfully submitted to factomclient.")
 			}
 			resp.Body.Close()
-		}
-	}()
+		}()
+	}
 }
 
 func main() {
