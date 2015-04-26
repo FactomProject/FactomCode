@@ -6,20 +6,16 @@ package common
 
 import (
 	"bytes"
-	"encoding/binary"
-	"errors"
-	"sync"
+	"encoding/binary"	
+    "fmt"
 )
 
 
 // Administrative Chain
 type AdminChain struct {
-	ChainID *Hash
-	Name    [][]byte
-
+	ChainID         *Hash
 	NextBlock       *AdminBlock
-	NextBlockHeight uint32
-	BlockMutex      sync.Mutex
+	NextBlockHeight  uint32
 }
 
 
@@ -31,8 +27,13 @@ type AdminChain struct {
 // https://github.com/FactomProject/FactomDocs/blob/master/factomDataStructureDetails.md#administrative-block
 type AdminBlock struct {
 	//Marshalized
-	Header    *ABlockHeader
-	ABEntries []ABEntry //Interface
+    ChainID    *Hash        // The Admin ChainID is predefined,
+    PrevHash3  *Hash        // This is a SHA3-256 checksum of the previous Admin Block.
+    DBHeight   uint32       // Height of the Directory Block associated with this Admin Block
+    MsgCount   uint32       // This is the number of Admin Messages and time delimiters contained in this block.
+    BodySize   uint32       // Size in bytes of the body
+	Msgs       []Msg        // A series of variable sized objects and timestamps arranged in chronological order.
+	                        //  Each object is prepended with an AdminID byte.
 
 	//Not Marshalized
 	ABHash     *Hash
@@ -40,31 +41,74 @@ type AdminBlock struct {
 	Chain      *AdminChain
 }
 
+// https://github.com/FactomProject/FactomDocs/blob/master/factomDataStructureDetails.md#adminid-bytes
+type Msg struct {
+    cmd         byte        // See the documentation 
+    operands    []byte      // Variable data for each Msg
+}
 
-func CreateAdminBlock(chain *AdminChain, prev *AdminBlock, cap uint) (b *AdminBlock, err error) {
-	if prev == nil && chain.NextBlockHeight != 0 {
-		return nil, errors.New("Previous block cannot be nil")
-	} else if prev != nil && chain.NextBlockHeight == 0 {
-		return nil, errors.New("Origin block cannot have a parent block")
-	}
+// Defines a set of opcodes and sizes for their operand(s) 
+var msg = map[string] []byte { 
+    "MinuteNumber"          : []byte{ 0, 1   },     // The preceding data was acknowledged before the minute specified.
+    "DBSignature"           : []byte{ 1, 128 },     // The signature of the preceding Directory Block header. 
+    "RevealMHash"           : []byte{ 2, 64  },     // The latest M-hash reveal to be considered for determining server priority in subsequent blocks.
+    "AddMHash"              : []byte{ 3, 64  },     // Adds or replaces the current M-hash for the specified identity with this new M-hash.
+    "IncFedServer"          : []byte{ 4, 1   },     // The server count is incremented by the amount encoded in a following single byte.
+    "AddFedServer"          : []byte{ 5, 32  },     // The ChainID of the Federated server which is added to the pool.
+    "RemoveFedServer"       : []byte{ 6, 32  },     // The ChainID of the Federated server which is removed from the pool.
+    "AddFedServerKey"       : []byte{ 7, 65  },     // Adds an Ed25519 public key to the authority set.
+    "AddFedServerBTCKey"    : []byte{ 8, 66  },     // Adds a Bitcoin public key hash to the authority set.
+}
+
+// This map gives us a maping of an opcode to its operand size. I could fill out the table
+// but I'd rather build it from the msg map, so we don't have to worry about two independent
+// definitions.
+var msgSize map[byte]int
+
+// ONLY GET the msgSize using THIS function!  That's because we look to see if we have a map yet, and build
+// it iff we don't have one yet.
+func getMsgSize() map[byte]int {
+    if (msgSize == nil){
+        msgSize = make((map[byte]int))
+        for k := range msg {
+            op := msg[k][0]
+            msgSize[op] = int(msg[k][1])
+        }
+    }
+    return msgSize
+}
+
+// Given a name, this routine returns a new msg struct. This routine will check that the operand is the right length.
+func getMsg(name string, operands []byte ) (m *Msg, err error) {
+    entry := msg[name]
+    m = new(Msg)
+    m.cmd = entry[0]
+    if len(operands)!= int(entry[1]) {
+        return nil, fmt.Errorf("Operand is the incorrect size for ",name)
+    }
+    m.operands = operands
+    return m, nil
+}    
+    
+func CreateAdminBlock(chain *AdminChain, prev *AdminBlock) (b *AdminBlock, err error) {
 
 	b = new(AdminBlock)
 
-	b.Header = new(ABlockHeader)
-	b.Header.ChainID = chain.ChainID
+	b.ChainID = new(Hash)
+    b.ChainID.Bytes = ADMIN_CHAINID
 
 	if prev == nil {
-		b.Header.PrevHash = NewHash()
+		b.PrevHash3 = NewHash()
 	} else {
 
 		if prev.ABHash == nil {
 			prev.BuildABHash()
 		}
-		b.Header.PrevHash = prev.ABHash
+		b.PrevHash3 = prev.ABHash
 	}
 
-	b.Header.DBHeight = chain.NextBlockHeight
-	b.ABEntries = make([]ABEntry, 0, cap)
+	b.DBHeight = chain.NextBlockHeight
+	b.Msgs     = make([]Msg, 0, AB_CAP)
 
 	return b, err
 }
@@ -78,203 +122,64 @@ func (b *AdminBlock) BuildABHash() (err error) {
 	return
 }
 
-func (b *AdminBlock) AddABEntry(e ABEntry) (err error) {
-	b.ABEntries = append(b.ABEntries, e)
+func (b *AdminBlock) AddABMsg(e Msg) (err error) {
+	b.Msgs = append(b.Msgs, e)
 	return
 }
 
-func (b *AdminBlock) AddEndOfMinuteMarker(eomType byte) (err error) {
-
-	eOMEntry := &EndOfMinuteEntry{
-		entryType: TYPE_MINUTE_NUMBER,
-		EOM_Type:  eomType}
-
-	b.AddABEntry(eOMEntry)
-
-	return
-}
-
-
+// Write out the AdminBlock to binary...
 func (b *AdminBlock) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
+    
+    data, err = b.ChainID.MarshalBinary()
+    if err != nil {
+        return nil, err
+    }
+    buf.Write(data)
 
-	data, _ = b.Header.MarshalBinary()
-	buf.Write(data)
+    data, err = b.PrevHash3.MarshalBinary()
+    if err != nil {
+        return nil, err
+    }
+    buf.Write(data)
 
-	for i := uint32(0); i < b.Header.EntryCount; i++ {
-		data, _ := b.ABEntries[i].MarshalBinary()
-		buf.Write(data)
+    binary.Write(&buf, binary.BigEndian, b.DBHeight)
+    binary.Write(&buf, binary.BigEndian, b.MsgCount)
+    binary.Write(&buf, binary.BigEndian, b.BodySize)
+    
+    for i := uint32(0); i < b.MsgCount; i++ {
+        buf.WriteByte(b.Msgs[i].cmd)    
+        buf.Write(b.Msgs[i].operands)
 	}
 	return buf.Bytes(), err
 }
 
-func (b *AdminBlock) MarshalledSize() uint64 {
-	var size uint64 = 0
-
-	size += b.Header.MarshalledSize()
-
-	for _, entry := range b.ABEntries {
-		size += entry.MarshalledSize()
-	}
-
-	return size
-}
-
+// Read in the binary into the Admin block.  I am slicing the data... 
+// Maybe we should copy?
 func (b *AdminBlock) UnmarshalBinary(data []byte) (err error) {
-	h := new(ABlockHeader)
-	h.UnmarshalBinary(data)
-	b.Header = h
+    
+    b.ChainID = new(Hash)
+    b.ChainID.UnmarshalBinary(data)
+    data = data[HASH_LENGTH:]
 
-	data = data[h.MarshalledSize():]
+    b.PrevHash3 = new(Hash)
+    b.PrevHash3.UnmarshalBinary(data)
+    data = data[HASH_LENGTH:]
 
-	b.ABEntries = make([]ABEntry, b.Header.EntryCount)
-	for i := uint32(0); i < b.Header.EntryCount; i++ {
-		if data[0] == TYPE_DB_SIGNATURE {
-			b.ABEntries[i] = new(DBSignatureEntry)
-		} else if data[0] == TYPE_MINUTE_NUMBER {
-			b.ABEntries[i] = new(EndOfMinuteEntry)
-		}
-		err = b.ABEntries[i].UnmarshalBinary(data)
-		if err != nil {
-			return
-		}
-		data = data[b.ABEntries[i].MarshalledSize():]
+    b.DBHeight, data = binary.BigEndian.Uint32(data[0:4]), data[4:]
+    b.MsgCount, data = binary.BigEndian.Uint32(data[0:4]), data[4:]
+    b.BodySize, data = binary.BigEndian.Uint32(data[0:4]), data[4:]
+    
+    msm := getMsgSize()
+    
+	b.Msgs = make([]Msg, b.MsgCount)
+	for i := uint32(0); i < b.MsgCount; i++ {
+	    b.Msgs[i].cmd,data = data[0], data[1:]
+        b.Msgs[i].operands,data = data[:msm[b.Msgs[i].cmd]], data[msm[b.Msgs[i].cmd]:]
 	}
 
 	return nil
 }
 
-//Admin Block Header
-type ABlockHeader struct {
-	ChainID    *Hash
-	PrevHash   *Hash
-	DBHeight   uint32
-	EntryCount uint32
-	BodySize   uint32
-}
 
-func (b *ABlockHeader) MarshalBinary() (data []byte, err error) {
-	var buf bytes.Buffer
 
-	data, err = b.ChainID.MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-	buf.Write(data)
-
-	data, err = b.PrevHash.MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-	buf.Write(data)
-
-	binary.Write(&buf, binary.BigEndian, b.DBHeight)
-
-	binary.Write(&buf, binary.BigEndian, b.EntryCount)
-
-	binary.Write(&buf, binary.BigEndian, b.BodySize)
-
-	return buf.Bytes(), err
-}
-
-func (b *ABlockHeader) MarshalledSize() uint64 {
-	var size uint64 = 0
-
-	size += b.ChainID.MarshalledSize()
-	size += b.PrevHash.MarshalledSize()
-	size += 4 // DB Height
-	size += 4 // Entry count
-	size += 4 // Body Size
-
-	return size
-}
-
-func (b *ABlockHeader) UnmarshalBinary(data []byte) (err error) {
-
-	b.ChainID = new(Hash)
-	b.ChainID.UnmarshalBinary(data)
-	data = data[b.ChainID.MarshalledSize():]
-
-	b.PrevHash = new(Hash)
-	b.PrevHash.UnmarshalBinary(data)
-	data = data[b.PrevHash.MarshalledSize():]
-
-	b.DBHeight, data = binary.BigEndian.Uint32(data[0:4]), data[4:]
-
-	b.EntryCount, data = binary.BigEndian.Uint32(data[0:4]), data[4:]
-
-	b.BodySize, data = binary.BigEndian.Uint32(data[0:4]), data[4:]
-
-	return nil
-}
-
-type ABEntry interface {
-	Type() byte
-	MarshalBinary() ([]byte, error)
-	MarshalledSize() uint64
-	UnmarshalBinary(data []byte) (err error)
-}
-
-// DB Signature Entry -------------------------
-type DBSignatureEntry struct {
-	ABEntry     	//interface
-	entryType   	byte
-	IdentityChainID *Hash
-	PubKey			*Hash
-	PrevDBSig		[]byte	
-}
-
-func (e *DBSignatureEntry) Type() byte {
-	return e.entryType
-}
-
-func (e *DBSignatureEntry) MarshalBinary() (data []byte, err error) {
-	var buf bytes.Buffer
-
-	buf.Write([]byte{e.entryType})
-	
-	data, err = e.IdentityChainID.MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-	buf.Write(data)	
-	
-	data, err = e.PubKey.MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-	buf.Write(data)		
-
-	_, err = buf.Write(e.PrevDBSig)
-	if err != nil {
-		return nil, err
-	}
-
-	return buf.Bytes(), nil
-}
-
-func (e *DBSignatureEntry) MarshalledSize() uint64 {
-	var size uint64 = 0
-	size += 1 // Type (byte)
-	size += HASH_LENGTH
-	size += HASH_LENGTH
-	size += SIG_LENGTH	
-	
-	return size
-}
-
-func (e *DBSignatureEntry) UnmarshalBinary(data []byte) (err error) {
-	e.entryType, data = data[0], data[1:]
-	
-	e.IdentityChainID = new(Hash)
-	e.IdentityChainID.UnmarshalBinary(data)
-	data = data[e.IdentityChainID.MarshalledSize():]
-	
-	e.PubKey = new(Hash)
-	e.PubKey.UnmarshalBinary(data)
-	data = data[e.PubKey.MarshalledSize():]
-	
-	e.PrevDBSig = data[:SIG_LENGTH]
-	
-	return nil
-}
