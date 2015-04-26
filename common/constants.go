@@ -54,5 +54,9 @@ const (
 )
 
 // Chain Values.  Not exactly constants, but nice to have.
+// Entry Credit Chain
 var EC_CHAINID = []byte { 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0, 0, 
                           0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0, 0x0c }
+// Directory Chain
+var D_CHAINID = []byte  { 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0, 0, 
+                          0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0, 0x0d }
