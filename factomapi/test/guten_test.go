@@ -132,7 +132,8 @@ func TestAddEntry(t *testing.T) {
 
 	file, _ := os.Open("/tmp/gutenberg/entries")
 	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
+	for n := 0; scanner.Scan(); {
+		n++
 		e, err := UnmarshalJSON([]byte(scanner.Text()))
 		if err != nil {
 			t.Errorf("Error: %v", err)
@@ -154,7 +155,7 @@ func TestAddEntry(t *testing.T) {
 		if err != nil {
 			t.Errorf("Error:%v", err)
 		} else {
-			fmt.Println("Entry successfully submitted to factomclient.")
+			fmt.Println(n)
 		}
 		resp.Body.Close()
 	}
