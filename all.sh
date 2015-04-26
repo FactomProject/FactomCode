@@ -9,7 +9,6 @@ echo checking out $1
 checkout() {
     cd $1
     echo $1
-    if `git pull | grep "There is no tracking information" ] 
     if [[ `git branch --list $2` ]]
     then
         git checkout $2
