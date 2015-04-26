@@ -114,7 +114,7 @@ func AddChain() {
 func AddEntry() {
 	chain := new(notaryapi.EChain)
 	bName := make([][]byte, 0, 5)
-	bName = append(bName, []byte("Project Gutenberg"))
+	bName = append(bName, []byte("Project Guttenberg"))
 	bName = append(bName, []byte("3e0435d280ef6e1"))
 
 	chain.Name = bName
@@ -150,12 +150,13 @@ func AddEntry() {
 			data.Set("format", "json")
 			data.Set("password", "opensesame")
 		
-			_, err = http.PostForm("http://localhost:8088/v1/submitentry", data)
+			resp, err = http.PostForm("http://localhost:8088/v1/submitentry", data)
 			if err != nil {
 				log.Println("Error:", err)
 			} else {
 				log.Println("Entry successfully submitted to factomclient.")
 			}
+			resp.Body.Close()
 		}
 	}()
 }
