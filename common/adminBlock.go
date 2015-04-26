@@ -133,17 +133,8 @@ func (b *AdminBlock) AddABMsg(e Msg) (err error) {
 func (b *AdminBlock) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
     
-    data, err = b.ChainID.MarshalBinary()
-    if err != nil {
-        return nil, err
-    }
-    buf.Write(data)
-
-    data, err = b.PrevHash3.MarshalBinary()
-    if err != nil {
-        return nil, err
-    }
-    buf.Write(data)
+    buf.Write(b.ChainID.Bytes)
+    buf.Write(b.PrevHash3.Bytes)
 
     binary.Write(&buf, binary.BigEndian, b.DBHeight)
     binary.Write(&buf, binary.BigEndian, b.MsgCount)
@@ -160,13 +151,8 @@ func (b *AdminBlock) MarshalBinary() (data []byte, err error) {
 // Maybe we should copy?
 func (b *AdminBlock) UnmarshalBinary(data []byte) (err error) {
     
-    b.ChainID = new(Hash)
-    b.ChainID.UnmarshalBinary(data)
-    data = data[HASH_LENGTH:]
-
-    b.PrevHash3 = new(Hash)
-    b.PrevHash3.UnmarshalBinary(data)
-    data = data[HASH_LENGTH:]
+    b.ChainID,  data, err = UnmarshalHash(data)
+    b.PrevHash3,data, err = UnmarshalHash(data)
 
     b.DBHeight, data = binary.BigEndian.Uint32(data[0:4]), data[4:]
     b.MsgCount, data = binary.BigEndian.Uint32(data[0:4]), data[4:]

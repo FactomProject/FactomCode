@@ -13,7 +13,7 @@ import (
 
 type Entry struct {
     Version     uint8   // 1
-    ChainID     Hash    // 32
+    ChainID    *Hash    // 32
 	ExIDSize    uint16  // 2
 	PayloadSize uint16  // 2 Total of 37 bytes
 	ExtIDs      [][]byte
@@ -30,13 +30,7 @@ func (e *Entry) MarshalBinary() ([]byte, error) {
     binary.Write(&buf,binary.BigEndian, e.Version)
 
     // Write ChainID
-    {
-	    data, err := e.ChainID.MarshalBinary()
-	    if err != nil {
-		    return nil, err
-	    }
-        buf.Write(data)
-    }
+    buf.Write(e.ChainID.Bytes)
     
     // First compute the ExIDSize (just in case someone edited the ExtIDs
     var exIDSize uint16
@@ -70,15 +64,7 @@ func (e *Entry) MarshalBinary() ([]byte, error) {
         
 	return buf.Bytes(), nil
 	
-	data, err := e.ChainID.MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = buf.Write(data)
-	if err != nil {
-		return nil, err
-	}
+	buf.Write(e.ChainID.Bytes)
 
 	buf.Write(e.Data)
 
@@ -86,19 +72,14 @@ func (e *Entry) MarshalBinary() ([]byte, error) {
 }
 
 func (e *Entry) UnmarshalBinary(data []byte) (err error) {
-    // Get the Version byte
-	e.Version, data = data[0], data[1:]
-	// Get the ChainID
-	err = e.ChainID.UnmarshalBinary(data[:HASH_LENGTH])
-	if(err != nil) {
-        return err
-    }
-    // Get the External ID Size
-    e.ExIDSize,   data = binary.BigEndian.Uint16(data[0:2]), data[2:]
-    e.PayloadSize,data = binary.BigEndian.Uint16(data[0:2]), data[2:]
+
+    e.Version,    data      = data[0], data[1:]                            // Get the Version byte
+	e.ChainID,    data, err = UnmarshalHash(data)                          // Get the ChainID
+    e.ExIDSize,   data      = binary.BigEndian.Uint16(data[0:2]), data[2:] // Get External ID Size
+    e.PayloadSize,data      = binary.BigEndian.Uint16(data[0:2]), data[2:] // Get the "stuff"
     
-    if len(data) > 10240 || uint16(len(data)) != e.PayloadSize+37 {
-       return fmt.Errorf("Data is too long, or Lengths don't add up") 
+    if len(data) > 10240 || uint16(len(data)) != e.PayloadSize+37 {         // Check and make sure the
+       return fmt.Errorf("Data is too long, or Lengths don't add up")       //   stuff is all there.
     } else if e.ExIDSize>e.PayloadSize {
        return fmt.Errorf("External IDs are longer than the payload size")
     }

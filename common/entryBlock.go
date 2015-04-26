@@ -11,8 +11,6 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
-	"sync"
-	//	"time"
 )
 
 const (
@@ -20,186 +18,82 @@ const (
 	Separator       = "/"
 )
 
-type EChainx struct {
-	//Marshalized
-	ChainID    *Hash
-// Removed the name...	
-	FirstEntry *Entry
-
-	//Not Marshalized
-	//Blocks       []*EBlock
-	NextBlock       *EBlock
-	NextBlockHeight uint32
-	BlockMutex      sync.Mutex
-}
+// An Entry Block is a datastructure which packages references to Entries all 
+// sharing a ChainID over a 10 minute period. The Entries are ordered in the 
+// Entry Block in the order that they were received by the Federated server. 
+// The Entry Blocks form a blockchain for a specific ChainID.
+//
+//https://github.com/FactomProject/FactomDocs/blob/master/factomDataStructureDetails.md#entry-block
 
 type EBlock struct {
 	//Marshalized
-	Version    byte
-    NetworkID  uint32
-    ChainID    *Hash
-    BodyMR     *Hash
-    PrevKeyMR  *Hash
-    PrevHash   *Hash
-    EBHeight   uint32
-    DBHeight   uint32
-    StartTime  uint64
-    EntryCount uint32
+    ChainID    *Hash        // 32 All the Entries in this Entry Block have this ChainID
+    BodyMR     *Hash        // 32 The Merkle root of the body data which accompanies this block.
+    PrevKeyMR  *Hash        // 32 Key Merkle root of previous block.
+    PrevHash3  *Hash        // 32 The SHA3-256 checksum of the previous Entry Block of this ChainID.
+    EBSequence uint32       // 4 The sequence number, incremented by 1, for the Entry Block in for this ChainID. 
+    DBHeight   uint32       // 4 The Directory Block height for the Directory Block that references this Entry Block.
+    EntryCount uint32       // 4 Number of Entries + time delimiters
+                            
+                            // Total header size is 4*32+4+4+4 = 140 
+                            
+	EBEntries []*Hash       // Entry hashes and time delimiters
+
+}
+
+// The size of the header is a fixed thing.  Just return it.
+func (e *EBlock) headersize() int {
+    return 140
+}
+
+// The Body size is also easily calculated.  Just return it.
+func (e *EBlock) bodysize() int {
+    return len(e.EBEntries)*HASH_LENGTH
+}
+
+// Get our Entry Block back out of the Binary
+
+func (e *EBlock) UnmarshalBinary(data []byte) (err error) {
+
+    e.ChainID,    data, err = UnmarshalHash(data)
+    e.BodyMR,     data, err = UnmarshalHash(data)
+    e.PrevKeyMR,  data, err = UnmarshalHash(data)
+    e.PrevHash3,  data, err = UnmarshalHash(data)
+    e.EBSequence, data = binary.BigEndian.Uint32(data[0:4]), data[4:]
+    e.DBHeight,   data = binary.BigEndian.Uint32(data[0:4]), data[4:]
+    e.EntryCount, data = binary.BigEndian.Uint32(data[0:4]), data[4:]
     
-	EBEntries []*EBEntry
-
-	//Not Marshalized
-	EBHash     *Hash
-	MerkleRoot *Hash
-	IsSealed   bool
+    e.EBEntries = make(EBEntry,e.EntryCount,e.EntryCount)
+    for i:=0;i<EntryCount; i++ {
+        e.EBEntries[i], data, err = UnmarshalHash(data)
+    }
+    
+    return nil
 }
 
-type EBInfo struct {
-	EBHash     *Hash
-	MerkleRoot *Hash
-	DBHash     *Hash
-	DBBlockNum uint64
-	ChainID    *Hash
-}
-
-type EBlockHeader struct {
-	
-}
-
-type EBEntry struct {
-	EntryHash *Hash
-}
-
-func NewEBEntry(h *Hash) *EBEntry {
-	return &EBEntry{
-		EntryHash: h}
-}
-
-func (e *EBEntry) EncodableFields() map[string]reflect.Value {
-	fields := map[string]reflect.Value{
-		`EntryHash`: reflect.ValueOf(e.EntryHash),
-	}
-	return fields
-}
-
-func (e *EBEntry) MarshalBinary() ([]byte, error) {
+func (b *EBlock) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
-
-	data, err := e.EntryHash.MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-
-	buf.Write(data)
-
-	return buf.Bytes(), nil
-}
-
-func (e *EBEntry) MarshalledSize() uint64 {
-	var size uint64 = 0
-
-	size += e.EntryHash.MarshalledSize()
-
-	return size
-}
-
-func (e *EBEntry) UnmarshalBinary(data []byte) (err error) {
-	e.EntryHash = new(Hash)
-	e.EntryHash.UnmarshalBinary(data)
-	return nil
-}
-
-func (e *EBEntry) ShaHash() *Hash {
-	byteArray, _ := e.MarshalBinary()
-	return Sha(byteArray)
-}
-
-func (b *EBlockHeader) MarshalBinary() (data []byte, err error) {
-	var buf bytes.Buffer
-
-	buf.Write([]byte{b.Version})
-	binary.Write(&buf, binary.BigEndian, b.NetworkID)
-	data, err = b.ChainID.MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-	buf.Write(data)
-
-	data, err = b.BodyMR.MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-	buf.Write(data)
-
-	data, err = b.PrevKeyMR.MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-	buf.Write(data)
-
-	data, err = b.PrevHash.MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-	buf.Write(data)
+    
+    buf.Write(b.ChainID.Bytes)
+	buf.Write(b.BodyMR.Bytes)
+	buf.Write(b.PrevKeyMR.Bytes)
+    buf.Write(b.PrevHash.Bytes)
 
 	binary.Write(&buf, binary.BigEndian, b.EBHeight)
-
 	binary.Write(&buf, binary.BigEndian, b.DBHeight)
-
 	binary.Write(&buf, binary.BigEndian, b.StartTime)
-
 	binary.Write(&buf, binary.BigEndian, b.EntryCount)
+
+    for i:=0;i<EntryCount; i++ {
+        buf.Write(e.EBEntries[i].Bytes)
+    }
 
 	return buf.Bytes(), err
 }
 
-func (b *EBlockHeader) MarshalledSize() uint64 {
-	var size uint64 = 0
-
-	size += 1
-	size += 4
-	size += b.ChainID.MarshalledSize()
-	size += b.BodyMR.MarshalledSize()
-	size += b.PrevKeyMR.MarshalledSize()
-	size += b.PrevHash.MarshalledSize()
-	size += 4
-	size += 4
-	size += 8
-	size += 4
-
-	return size
-}
 
 func (b *EBlockHeader) UnmarshalBinary(data []byte) (err error) {
 
-	b.Version, data = data[0], data[1:]
-
-	b.NetworkID, data = binary.BigEndian.Uint32(data[0:4]), data[4:]
-
-	b.ChainID = new(Hash)
-	b.ChainID.UnmarshalBinary(data)
-	data = data[b.ChainID.MarshalledSize():]
-
-	b.BodyMR = new(Hash)
-	b.BodyMR.UnmarshalBinary(data)
-	data = data[b.BodyMR.MarshalledSize():]
-
-	b.PrevKeyMR = new(Hash)
-	b.PrevKeyMR.UnmarshalBinary(data)
-	data = data[b.PrevKeyMR.MarshalledSize():]
-
-	b.PrevHash = new(Hash)
-	b.PrevHash.UnmarshalBinary(data)
-	data = data[b.PrevHash.MarshalledSize():]
-
-	b.EBHeight, data = binary.BigEndian.Uint32(data[0:4]), data[4:]
-
-	b.DBHeight, data = binary.BigEndian.Uint32(data[0:4]), data[4:]
-
-	b.StartTime, data = binary.BigEndian.Uint64(data[0:8]), data[8:]
-
-	b.EntryCount, data = binary.BigEndian.Uint32(data[0:4]), data[4:]
 
 	return nil
 }

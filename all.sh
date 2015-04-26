@@ -8,8 +8,9 @@ echo checking out $1
 # In all cases we do a pull.  Something might have changed.
 checkout() {
     cd $1
-    git pull
-    if [ `git branch --list $2 `]
+    echo $1
+    if `git pull | grep "There is no tracking information" ] 
+    if [[ `git branch --list $2` ]]
     then
         git checkout $2
     fi
