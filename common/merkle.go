@@ -27,9 +27,9 @@ func nextPowerOfTwo(n int) int {
 // function used to aid in the generation of a merkle tree.
 func hashMerkleBranches(left *Hash, right *Hash) *Hash {
 	// Concatenate the left and right nodes.
-	var barray []byte = make([]byte, HashSize*2)
-	copy(barray[:HashSize], left.Bytes)
-	copy(barray[HashSize:], right.Bytes)
+	var barray []byte = make([]byte, HASH_LENGTH*2)
+	copy(barray[:HASH_LENGTH], left.Bytes)
+	copy(barray[HASH_LENGTH:], right.Bytes)
 
 	newSha := Sha(barray)
 	return newSha

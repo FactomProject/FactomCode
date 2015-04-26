@@ -441,7 +441,7 @@ func (b *EChain) UnmarshalBinary(data []byte) (err error) {
 	b.ChainID.UnmarshalBinary(data[:33])
 	data = data[33:]
 
-	if len(data) > HashSize {
+	if len(data) > HASH_LENGTH {
 		b.FirstEntry = new(Entry)
 		b.FirstEntry.UnmarshalBinary(data)
 	}

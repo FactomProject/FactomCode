@@ -10,13 +10,14 @@ import (
 
 const (
   
-    //Entry Credit Blocks
+    //Entry Credit Blocks (For now, everyone gets the same cap)
     EC_CAP          = 5                  //Number of ECBlocks we start with.
-   
+    AB_CAP          = EC_CAP             //Administrative Block Cap for AB messages
+    
     //Limits and Sizes
     MAX_ENTRY_SIZE  = uint16(10240)      //Maximum size for Entry External IDs and the Data
-    HASH_LENGTH     = uint64(32)            //Length of a Hash 
-    SIG_LENGTH     = uint64(64)            //Length of a signature     
+    HASH_LENGTH     = int(32)            //Length of a Hash 
+    SIG_LENGTH      = int(64)            //Length of a signature     
 	//Common constants
 	VERSION_0       = byte(0)
 	NETWORK_ID_DB   = uint32(4203931041) //0xFA92E5A1	
@@ -55,8 +56,12 @@ const (
 
 // Chain Values.  Not exactly constants, but nice to have.
 // Entry Credit Chain
-var EC_CHAINID = []byte { 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0, 0, 
-                          0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0, 0x0c }
+var EC_CHAINID = []byte     { 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0, 0, 
+                              0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0, 0x0c }
 // Directory Chain
-var D_CHAINID = []byte  { 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0, 0, 
-                          0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0, 0x0d }
+var D_CHAINID = []byte      { 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0, 0, 
+                              0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0, 0x0d }
+// Directory Chain
+var ADMIN_CHAINID = []byte  { 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0, 0, 
+                              0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0, 0x0a }
+                          

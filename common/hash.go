@@ -14,15 +14,12 @@ import (
 	"github.com/FactomProject/gocoding"
 )
 
-// Size of array used to store sha hashes.  See ShaHash.
-const HashSize = 32
-
 type Hash struct {
 	Bytes []byte `json:"bytes"`
 }
 
 //Fixed sixe hash used for map, where byte slice wont work
-type HashF [HashSize]byte
+type HashF [HASH_LENGTH]byte
 
 func (h HashF) Hash() Hash {
 	return Hash{Bytes: h[:]}
@@ -34,7 +31,7 @@ func (h *HashF) From(hash *Hash) {
 
 func NewHash() *Hash {
 	h := new(Hash)
-	h.Bytes = make([]byte, 32)
+	h.Bytes = make([]byte, HASH_LENGTH)
 	return h
 }
 
@@ -90,27 +87,27 @@ func (h *Hash) Decoding(m gocoding.Unmarshaller, t reflect.Type) gocoding.Decode
 }
 
 func (h *Hash) GetBytes() []byte {
-	newHash := make([]byte, HashSize)
+	newHash := make([]byte, HASH_LENGTH)
 	copy(newHash, h.Bytes)
 
 	return newHash
 }
 
 // SetBytes sets the bytes which represent the hash.  An error is returned if
-// the number of bytes passed in is not HashSize.
+// the number of bytes passed in is not HASH_LENGTH.
 func (hash *Hash) SetBytes(newHash []byte) error {
 	nhlen := len(newHash)
-	if nhlen != HashSize {
-		return fmt.Errorf("invalid sha length of %v, want %v", nhlen, HashSize)
+	if nhlen != HASH_LENGTH {
+		return fmt.Errorf("invalid sha length of %v, want %v", nhlen, HASH_LENGTH)
 	}
 
-	hash.Bytes = make([]byte, HashSize)
+	hash.Bytes = make([]byte, HASH_LENGTH)
 	copy(hash.Bytes, newHash)
 	return nil
 }
 
 // NewShaHash returns a new ShaHash from a byte slice.  An error is returned if
-// the number of bytes passed in is not HashSize.
+// the number of bytes passed in is not HASH_LENGTH.
 func NewShaHash(newHash []byte) (*Hash, error) {
 	var sh Hash
 	err := sh.SetBytes(newHash)
@@ -148,7 +145,7 @@ func (h *Hash) BTCString() string {
 	hashstr := ""
 	hash := h.Bytes
 	for i := range hash {
-		hashstr += fmt.Sprintf("%02x", hash[HashSize-1-i])
+		hashstr += fmt.Sprintf("%02x", hash[HASH_LENGTH-1-i])
 	}
 
 	return hashstr
