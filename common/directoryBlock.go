@@ -145,12 +145,6 @@ func (e *DBEntry) MarshalBinary() (data []byte, err error) {
 	return buf.Bytes(), nil
 }
 
-func (e *DBEntry) MarshalledSize() (size uint64) {
-	size += e.ChainID.MarshalledSize() // Chain ID
-	size += e.MerkleRoot.MarshalledSize()
-	return size
-}
-
 func (e *DBEntry) UnmarshalBinary(data []byte) (err error) {
 	e.ChainID = new(Hash)
 	err = e.ChainID.UnmarshalBinary(data[:33])
@@ -430,7 +424,7 @@ func (b *DirectoryBlock) UnmarshalBinary(data []byte) (err error) {
 		if err != nil {
 			return
 		}
-		data = data[b.DBEntries[i].MarshalledSize():]
+		data = data[HASH_LENGTH*2:]
 	}
 
 	return nil
