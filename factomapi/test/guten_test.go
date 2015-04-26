@@ -82,8 +82,8 @@ func TestAddChain(t *testing.T) {
 	fmt.Println("\nTestAddChain===========================================================================")
 	chain := new(notaryapi.EChain)
 	bName := make([][]byte, 0, 5)
-	bName = append(bName, []byte("5c1d290be98200b29dd1c3fe"))
 	bName = append(bName, []byte("Project Gutenberg"))
+	bName = append(bName, []byte("5c1d290be98200b29dd1c3fe"))
 
 	chain.Name = bName
 	chain.GenerateIDFromName()
@@ -124,8 +124,8 @@ func TestAddEntry(t *testing.T) {
 
 	chain := new(notaryapi.EChain)
 	bName := make([][]byte, 0, 5)
-	bName = append(bName, []byte("5c1d290be98200b29dd1c3fe"))
 	bName = append(bName, []byte("Project Gutenberg"))
+	bName = append(bName, []byte("5c1d290be98200b29dd1c3fe"))
 
 	chain.Name = bName
 	chain.GenerateIDFromName()
@@ -150,11 +150,12 @@ func TestAddEntry(t *testing.T) {
 		data.Set("format", "json")
 		data.Set("password", "opensesame")
 	
-		_, err = http.PostForm("http://localhost:8088/v1/submitentry", data)
+		resp, err = http.PostForm("http://localhost:8088/v1/submitentry", data)
 		if err != nil {
 			t.Errorf("Error:%v", err)
 		} else {
 			fmt.Println("Entry successfully submitted to factomclient.")
 		}
+		resp.Body.Close()
 	}
 }
