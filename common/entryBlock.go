@@ -20,7 +20,7 @@ const (
 	Separator       = "/"
 )
 
-type EChain struct {
+type EChainx struct {
 	//Marshalized
 	ChainID    *Hash
 // Removed the name...	
@@ -35,13 +35,22 @@ type EChain struct {
 
 type EBlock struct {
 	//Marshalized
-	Header    *EBlockHeader
+	Version    byte
+    NetworkID  uint32
+    ChainID    *Hash
+    BodyMR     *Hash
+    PrevKeyMR  *Hash
+    PrevHash   *Hash
+    EBHeight   uint32
+    DBHeight   uint32
+    StartTime  uint64
+    EntryCount uint32
+    
 	EBEntries []*EBEntry
 
 	//Not Marshalized
 	EBHash     *Hash
 	MerkleRoot *Hash
-	Chain      *EChain
 	IsSealed   bool
 }
 
@@ -54,16 +63,7 @@ type EBInfo struct {
 }
 
 type EBlockHeader struct {
-	Version    byte
-	NetworkID  uint32
-	ChainID    *Hash
-	BodyMR     *Hash
-	PrevKeyMR  *Hash
-	PrevHash   *Hash
-	EBHeight   uint32
-	DBHeight   uint32
-	StartTime  uint64
-	EntryCount uint32
+	
 }
 
 type EBEntry struct {

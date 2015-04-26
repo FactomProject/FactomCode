@@ -85,7 +85,7 @@ func NewDBEntry(eb *EBlock) *DBEntry {
 	e := &DBEntry{}
 	e.hash = eb.EBHash
 
-	e.ChainID = eb.Chain.ChainID
+	e.ChainID = eb.ChainID
 	e.MerkleRoot = eb.MerkleRoot
 
 	return e
