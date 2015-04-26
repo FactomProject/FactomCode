@@ -225,12 +225,6 @@ func (db *LevelDb) InsertChain(chain *common.EChain) (err error) {
 
 	db.lbatch.Put(chainByHashKey, binaryChain)
 
-	var chainByNameKey []byte = []byte{byte(TBL_CHAIN_NAME)}
-	chainByNameKey = append(chainByNameKey, []byte(common.EncodeChainNameToString(chain.Name))...)
-
-	// Cross reference to chain id
-	db.lbatch.Put(chainByNameKey, chain.ChainID.Bytes)
-
 	err = db.lDb.Write(db.lbatch, db.wo)
 	if err != nil {
 		log.Println("batch failed %v\n", err)
@@ -261,18 +255,13 @@ func (db *LevelDb) FetchChainIDByName(chainName [][]byte) (chainID *common.Hash,
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
-	name := common.EncodeChainNameToString(chainName)
-
-	var key []byte = []byte{byte(TBL_CHAIN_NAME)}
-	key = append(key, []byte(name)...)
-	data, err := db.lDb.Get(key, db.ro)
-
-	if data != nil {
-		chainID = new(common.Hash)
-		chainID.Bytes = make([]byte, len(data))
-		copy(chainID.Bytes, data)
+	chainID, err = common.GetChainID(chainName)
+	if err != nil  {
+	   return nil,err
 	}
-	return chainID, nil
+	
+	return 
+
 }
 
 // FetchChainByName gets a chain by chain name
@@ -309,49 +298,9 @@ func (db *LevelDb) FetchAllChains() (chains []common.EChain, err error) {
 	return chainSlice, err
 }
 
-// FetchAllChainByName gets all of the chains under the path - name
-func (db *LevelDb) FetchAllChainsByName(chainName [][]byte) (chains *[]common.EChain, err error) {
 
-	chainSlice := make([]common.EChain, 0, 10)
 
-	chainIDSlice, _ := db.FetchAllChainIDsByName(chainName)
 
-	for _, chainID := range *chainIDSlice {
-		chain, _ := db.FetchChainByHash(&chainID)
-		if chain != nil {
-			chainSlice = append(chainSlice, *chain)
-		}
-	}
-
-	return &chainSlice, nil
-}
-
-// FetchAllChainIDsByName gets all of the chainIDs under the path - name
-func (db *LevelDb) FetchAllChainIDsByName(chainName [][]byte) (chainIDs *[]common.Hash, err error) {
-	db.dbLock.Lock()
-	defer db.dbLock.Unlock()
-
-	name := common.EncodeChainNameToString(chainName)
-
-	var fromkey []byte = []byte{byte(TBL_CHAIN_NAME)} // Table Name (1 bytes)
-	fromkey = append(fromkey, []byte(name)...)        // Chain Type (32 bytes)
-	var tokey []byte = addOneToByteArray(fromkey)
-
-	chainIDSlice := make([]common.Hash, 0, 10)
-
-	iter := db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
-
-	for iter.Next() {
-		chainID := new(common.Hash)
-		chainID.Bytes = make([]byte, len(iter.Value()))
-		copy(chainID.Bytes, iter.Value())
-		chainIDSlice = append(chainIDSlice, *chainID)
-	}
-	iter.Release()
-	err = iter.Error()
-
-	return &chainIDSlice, nil
-}
 
 // FetchAllEBlocksByChain gets all of the blocks by chain id
 func (db *LevelDb) FetchAllEBlocksByChain(chainID *common.Hash) (eBlocks *[]common.EBlock, err error) {
