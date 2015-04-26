@@ -113,7 +113,7 @@ func CreateAdminBlock(chain *AdminChain, prev *AdminBlock) (b *AdminBlock, err e
 	return b, err
 }
 
-
+// Just do a simple hash of the whole block.  
 func (b *AdminBlock) BuildABHash() (err error) {
 
 	binaryAB, _ := b.MarshalBinary()
@@ -122,7 +122,9 @@ func (b *AdminBlock) BuildABHash() (err error) {
 	return
 }
 
+//Add a msg to the block, increment our counter!
 func (b *AdminBlock) AddABMsg(e Msg) (err error) {
+    b.MsgCount++
 	b.Msgs = append(b.Msgs, e)
 	return
 }
