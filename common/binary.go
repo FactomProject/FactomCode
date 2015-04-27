@@ -1,12 +1,9 @@
 package common
 
 import (
-	"bytes"
 	"encoding"
-	"encoding/binary"
 	"errors"
-	"math/big"
-	//"fmt"
+	
 )
 
 type BinaryMarshallable interface {

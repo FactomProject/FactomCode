@@ -91,20 +91,11 @@ func (b *EBlock) MarshalBinary() (data []byte, err error) {
 	return buf.Bytes(), err
 }
 
+func (b *EBlock) computeHash() *Hash {
+    
 
-func (b *EBlockHeader) UnmarshalBinary(data []byte) (err error) {
-
-
-	return nil
-}
-
-func CreateBlock(chain *EChain, prev *EBlock, capacity uint) (b *EBlock, err error) {
-	if prev == nil && chain.NextBlockHeight != 0 {
-		return nil, errors.New("Previous block cannot be nil")
-	} else if prev != nil && chain.NextBlockHeight == 0 {
-		return nil, errors.New("Origin block cannot have a parent block")
-	}
-
+func CreateBlock(prev *EBlock) (b *EBlock, err error) {
+	
 	b = new(EBlock)
 
 	b.Header = new(EBlockHeader)
