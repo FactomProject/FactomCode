@@ -61,7 +61,7 @@ type Db interface {
 	FetchEBlockByMR(eBMR *common.Hash) (eBlock *common.EBlock, err error)
 
 	// FetchEBlockByHeight gets an entry block by height from the database.
-	FetchEBlockByHeight(chainID * common.Hash, eBlockHeight uint64) (eBlock *common.EBlock, err error)
+	FetchEBlockByHeight(chainID * common.Hash, eBlockHeight uint32) (eBlock *common.EBlock, err error)
 
 	// FetchEBHashByMR gets an entry by hash from the database.
 	FetchEBHashByMR(eBMR *common.Hash) (eBlockHash *common.Hash, err error)
@@ -94,7 +94,7 @@ type Db interface {
 	FetchAllDBlocks() (fBlocks []common.DirectoryBlock, err error)
 	
 	// FetchDBlockByHeight gets an directory block by height from the database.
-	FetchDBlockByHeight(dBlockHeight uint64) (dBlock *common.DirectoryBlock, err error) 
+	FetchDBlockByHeight(dBlockHeight uint32) (dBlock *common.DirectoryBlock, err error) 
 	
 	// ProcessCBlockBatche inserts the CBlock and update all it's cbentries in DB
 	ProcessCBlockBatch(block *common.CBlock) (err error)
@@ -105,14 +105,13 @@ type Db interface {
 	// Initialize External ID map for explorer search
 	InitializeExternalIDMap() (extIDMap map[string]bool, err error)
 
-	/*
-		// ProcessFBlockBatche inserts the FBlock
-		ProcessFBlockBatch(block *factoid.FBlock) error
+	// ProcessABlockBatch inserts the AdminBlock
+	ProcessABlockBatch(block *common.AdminBlock) error 
+	
+	// FetchABlockByHash gets an admin block by hash from the database.
+	FetchABlockByHash(aBlockHash *common.Hash) (aBlock *common.AdminBlock, err error) 	
+	
+	// FetchAllABlocks gets all of the admin blocks
+	FetchAllABlocks() (aBlocks []common.AdminBlock, err error) 	
 
-		// FetchFBInfoByHash gets an FBInfo obj
-		//FetchFBInfoByHash(fbHash *common.Hash) (fbInfo *common.FBInfo, err error)
-
-		// FetchAllFBlocks gets all of the factoid blocks
-		FetchAllFBlocks() (fBlocks []factoid.FBlock, err error)
-	*/
 }

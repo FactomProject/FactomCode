@@ -25,29 +25,25 @@ const (
 // the "table" prefix
 const (
 	TBL_ENTRY uint8 = iota
-//	TBL_ENTRY_QUEUE
-	TBL_ENTRY_INFO //1
 
-	TBL_EB       //2
-//	TBL_EB_QUEUE //
-	TBL_EB_INFO  //3
+	TBL_EB       //1
+	TBL_EB_INFO  //2
 	TBL_EB_CHAIN_NUM 
 	TBL_EB_MR
 
-	TBL_DB //6
+	TBL_DB //5
 	TBL_DB_NUM
 	TBL_DB_INFO
 
-	TBL_CHAIN_HASH //9
+	TBL_CHAIN_HASH //8
 	TBL_CHAIN_NAME
 
-	TBL_CB //11
+	TBL_CB //10
 	TBL_CB_NUM
-	TBL_CB_INFO
- 
-	TBL_FB //14
-	TBL_FB_NUM
-	TBL_FB_INFO
+	TBL_CB_MR
+	
+	TBL_AB //15
+	TBL_AB_NUM
 )
 
 // the process status in db

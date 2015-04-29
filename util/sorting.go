@@ -33,6 +33,20 @@ func (f ByCBlockIDAccending) Swap(i, j int) {
 }
 
 //------------------------------------------------
+// ABlock array sorting implementation - accending
+type ByABlockIDAccending []common.AdminBlock
+
+func (f ByABlockIDAccending) Len() int {
+	return len(f)
+}
+func (f ByABlockIDAccending) Less(i, j int) bool {
+	return f[i].Header.DBHeight < f[j].Header.DBHeight
+}
+func (f ByABlockIDAccending) Swap(i, j int) {
+	f[i], f[j] = f[j], f[i]
+}
+
+//------------------------------------------------
 // EBlock array sorting implementation - accending
 type ByEBlockIDAccending []common.EBlock
 

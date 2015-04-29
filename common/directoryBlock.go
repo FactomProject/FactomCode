@@ -77,7 +77,7 @@ type DBEntry struct {
 	ChainID    *Hash
 
 	// not marshalllized
-	hash   *Hash
+	hash   *Hash  // to be removed??
 	status int8 //for future use??
 }
 
@@ -97,6 +97,16 @@ func NewDBEntryFromCBlock(cb *CBlock) *DBEntry {
 
 	e.ChainID = cb.Chain.ChainID
 	e.MerkleRoot = cb.CBHash //To use MerkleRoot??
+
+	return e
+}
+
+func NewDBEntryFromABlock(b *AdminBlock) *DBEntry {
+	e := &DBEntry{}
+	e.hash = b.ABHash
+
+	e.ChainID = b.Header.ChainID
+	e.MerkleRoot = b.ABHash
 
 	return e
 }
@@ -298,13 +308,33 @@ func (c *DChain) AddCBlockToDBEntry(cb *CBlock) (err error) {
 
 	dbEntry := NewDBEntryFromCBlock(cb)
 
+	if len(c.NextBlock.DBEntries) < 3 {
+		panic("DBEntries not initialized properly for block: " + string(c.NextBlockHeight))
+	}
+
 	c.BlockMutex.Lock()
 	// Cblock is always at the first entry
-	if len(c.NextBlock.DBEntries) > 0 {
-		c.NextBlock.DBEntries[0] = dbEntry
-	} else {
-		c.NextBlock.DBEntries = append(c.NextBlock.DBEntries, dbEntry)
+	c.NextBlock.DBEntries[1] = dbEntry // First three entries are ABlock, CBlock, FBlock
+	c.BlockMutex.Unlock()
+
+	return nil
+}
+
+// Add DBEntry from an Admin Block
+func (c *DChain) AddABlockToDBEntry(b *AdminBlock) (err error) {
+
+	dbEntry := &DBEntry{}
+	dbEntry.ChainID = b.Header.ChainID
+	dbEntry.MerkleRoot = b.ABHash
+
+	if len(c.NextBlock.DBEntries) < 3 {
+		panic("DBEntries not initialized properly for block: " + string(c.NextBlockHeight))
 	}
+
+	c.BlockMutex.Lock()
+	// Ablock is always at the first entry
+	// First three entries are ABlock, CBlock, FBlock		
+	c.NextBlock.DBEntries[0] = dbEntry 
 	c.BlockMutex.Unlock()
 
 	return nil
@@ -325,12 +355,13 @@ func (c *DChain) AddFBlockMRToDBEntry(dbEntry *DBEntry) (err error) {
 
 	fmt.Println("AddFDBlock >>>>>")
 
-	if len(c.NextBlock.DBEntries) < 2 {
+	if len(c.NextBlock.DBEntries) < 3 {
 		panic("DBEntries not initialized properly for block: " + string(c.NextBlockHeight))
 	}
 	c.BlockMutex.Lock()
 	// Factoid entry is alwasy at the same position
-	c.NextBlock.DBEntries[1] = dbEntry
+	// First three entries are ABlock, CBlock, FBlock	
+	c.NextBlock.DBEntries[2] = dbEntry 
 	c.BlockMutex.Unlock()
 
 	return nil

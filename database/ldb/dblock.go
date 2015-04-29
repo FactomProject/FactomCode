@@ -179,7 +179,7 @@ func (db *LevelDb) FetchDBlockByHash(dBlockHash *common.Hash) (dBlock *common.Di
 }
 
 // FetchDBlockByHeight gets an directory block by height from the database.
-func (db *LevelDb) FetchDBlockByHeight(dBlockHeight uint64) (dBlock *common.DirectoryBlock, err error) {
+func (db *LevelDb) FetchDBlockByHeight(dBlockHeight uint32) (dBlock *common.DirectoryBlock, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 

@@ -48,40 +48,6 @@ func (db *LevelDb) FetchEntryByHash(entrySha *common.Hash) (entry *common.Entry,
 	return entry, nil
 }
 
-/**********************************************
-// FetchEntryInfoBranchByHash gets an EntryInfoBranch obj
-func (db *LevelDb) FetchEntryInfoBranchByHash(entryHash *common.Hash) (entryInfoBranch *common.EntryInfoBranch, err error) {
-	entryInfoBranch = new(common.EntryInfoBranch)
-	entryInfoBranch.EntryHash = entryHash
-	entryInfoBranch.EntryInfo, _ = db.FetchEntryInfoByHash(entryHash)
-
-	if entryInfoBranch.EntryInfo != nil {
-		entryInfoBranch.EBInfo, _ = db.FetchEBInfoByHash(entryInfoBranch.EntryInfo.EBHash)
-	}
-
-	if entryInfoBranch.EBInfo != nil {
-		entryInfoBranch.DBInfo, _ = db.FetchDBInfoByHash(entryInfoBranch.EBInfo.DBHash)
-	} 
-
-	return entryInfoBranch, nil
-}
-
-// FetchEntryInfoBranchByHash gets an EntryInfo obj
-func (db *LevelDb) FetchEntryInfoByHash(entryHash *common.Hash) (entryInfo *common.EntryInfo, err error) {
-	db.dbLock.Lock()
-	defer db.dbLock.Unlock()
-
-	var key []byte = []byte{byte(TBL_ENTRY_INFO)}
-	key = append(key, entryHash.Bytes...)
-	data, err := db.lDb.Get(key, db.ro)
-
-	if data != nil {
-		entryInfo = new(common.EntryInfo)
-		entryInfo.UnmarshalBinary(data)
-	}
-	return entryInfo, nil
-}
-********************************************/
 // Initialize External ID map for explorer search
 func (db *LevelDb) InitializeExternalIDMap() (extIDMap map[string]bool, err error) {
 

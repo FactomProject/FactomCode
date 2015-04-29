@@ -10,44 +10,6 @@ import (
 	"github.com/FactomProject/goleveldb/leveldb/util"
 )
 
-// FetchEBEntriesFromQueue gets all of the ebentries that have not been processed
-/*func (db *LevelDb) FetchEBEntriesFromQueue(chainID *[]byte, startTime *[]byte) (ebentries []*common.EBEntry, err error) {
-	db.dbLock.Lock()
-	defer db.dbLock.Unlock()
-
-	var fromkey []byte = []byte{byte(TBL_ENTRY_QUEUE)} // Table Name (1 bytes)
-	fromkey = append(fromkey, *chainID...)             // Chain Type (32 bytes)
-	fromkey = append(fromkey, *startTime...)           // Timestamp  (8 bytes)
-
-	var tokey []byte = []byte{byte(TBL_ENTRY_QUEUE)} // Table Name (4 bytes)
-	tokey = append(tokey, *chainID...)               // Chain Type (4 bytes)
-
-	binaryTimestamp := make([]byte, 8)
-	binary.BigEndian.PutUint64(binaryTimestamp, uint64(time.Now().Unix()))
-	tokey = append(tokey, binaryTimestamp...) // Timestamp (8 bytes)
-
-	ebEntrySlice := make([]*common.EBEntry, 0, 10)
-
-	iter := db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
-
-	for iter.Next() {
-		if bytes.Equal(iter.Value(), []byte{byte(STATUS_IN_QUEUE)}) {
-			key := make([]byte, len(iter.Key()))
-			copy(key, iter.Key())
-			ebEntry := new(common.EBEntry)
-
-			ebEntry.SetTimeStamp(key[33:41])
-			ebEntry.SetHash(key[41:73])
-			ebEntrySlice = append(ebEntrySlice, ebEntry)
-		}
-
-	}
-	iter.Release()
-	err = iter.Error()
-
-	return ebEntrySlice, nil
-}
-*/
 // ProcessEBlockBatche inserts the EBlock and update all it's ebentries in DB
 func (db *LevelDb) ProcessEBlockBatch(eblock *common.EBlock) error {
 
@@ -89,32 +51,10 @@ func (db *LevelDb) ProcessEBlockBatch(eblock *common.EBlock) error {
 		// Insert the entry block number cross reference
 		key = []byte{byte(TBL_EB_CHAIN_NUM)}
 		key = append(key, eblock.Header.ChainID.Bytes...)
-		bytes := make([]byte, 8)
+		bytes := make([]byte, 4)
 		binary.BigEndian.PutUint32(bytes, eblock.Header.EBHeight)
 		key = append(key, bytes...)
 		db.lbatch.Put(key, binaryEBHash)
-
-		// Update entry process queue for each entry in eblock
-		/**************************************
-		for i := 0; i < len(eblock.EBEntries); i++ {
-			var ebEntry common.EBEntry = *eblock.EBEntries[i]
-
-			if isLookupDB {
-			
-				// Create an EntryInfo and insert it into db
-				var entryInfo = new(common.EntryInfo)
-				entryInfo.EntryHash = ebEntry.EntryHash
-				entryInfo.EBHash = eblock.EBHash
-				entryInfo.EBBlockNum = uint64(eblock.Header.EBHeight)
-				var entryInfoKey []byte = []byte{byte(TBL_ENTRY_INFO)}
-				entryInfoKey = append(entryInfoKey, entryInfo.EntryHash.Bytes...)
-				binaryEntryInfo, _ := entryInfo.MarshalBinary()
-				db.lbatch.Put(entryInfoKey, binaryEntryInfo)
-			
-			}
-
-		}
-	    *****************************************/
 
 		err = db.lDb.Write(db.lbatch, db.wo)
 		if err != nil {
@@ -171,14 +111,14 @@ func (db *LevelDb) FetchEBlockByHash(eBlockHash *common.Hash) (eBlock *common.EB
 }
 
 // FetchEBlockByHeight gets an entry block by height from the database.
-func (db *LevelDb) FetchEBlockByHeight(chainID * common.Hash, eBlockHeight uint64) (eBlock *common.EBlock, err error) {
+func (db *LevelDb) FetchEBlockByHeight(chainID * common.Hash, eBlockHeight uint32) (eBlock *common.EBlock, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
 	var key []byte = []byte{byte(TBL_EB_CHAIN_NUM)}
 	key = append(key, chainID.Bytes...)
-	bytes := make([]byte, 8)
-	binary.BigEndian.PutUint64(bytes, eBlockHeight)
+	bytes := make([]byte, 4)
+	binary.BigEndian.PutUint32(bytes, eBlockHeight)
 	key = append(key, bytes...)	
 	data, err := db.lDb.Get(key, db.ro)
 

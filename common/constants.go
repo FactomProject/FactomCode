@@ -39,6 +39,7 @@ const (
 
 //---------------------------------------------------------------
 // Types of entries (transactions) for Admin Block
+// https://github.com/FactomProject/FactomDocs/blob/master/factomDataStructureDetails.md#adminid-bytes
 //---------------------------------------------------------------
 const (
 	TYPE_MINUTE_NUM uint8 = iota
