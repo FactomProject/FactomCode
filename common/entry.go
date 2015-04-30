@@ -3,7 +3,6 @@
 // license that can be found in the LICENSE file.
 package common
 
-// Defines the Entries
 
 import (
 	"bytes"
@@ -11,16 +10,16 @@ import (
 	"fmt"
 )
 
+// An Entry is the element which carries user data
+// https://github.com/FactomProject/FactomDocs/blob/master/factomDataStructureDetails.md#entry
 type Entry struct {
-	Version     uint8  // 1
-	ChainID     Hash   // 32
-	ExIDSize    uint16 // 2
-	PayloadSize uint16 // 2 Total of 37 bytes
+	Version     uint8  	// 1
+	ChainID     *Hash   // 33
+	ExIDSize    uint16 	// 2
+	PayloadSize uint16 	// 2 Total of 38 bytes // to be changed to 37??
 	ExtIDs      [][]byte
 	Data        []byte
 }
-
-//
 
 func (e *Entry) MarshalBinary() ([]byte, error) {
 	var buf bytes.Buffer
@@ -29,15 +28,13 @@ func (e *Entry) MarshalBinary() ([]byte, error) {
 	binary.Write(&buf, binary.BigEndian, e.Version)
 
 	// Write ChainID
-	{
-		data, err := e.ChainID.MarshalBinary()
-		if err != nil {
-			return nil, err
-		}
-		buf.Write(data)
+	data, err := e.ChainID.MarshalBinary()
+	if err != nil {
+		return nil, err
 	}
+	buf.Write(data)
 
-	// First compute the ExIDSize (just in case someone edited the ExtIDs
+	// First compute the ExIDSize 
 	var exIDSize uint16
 
 	for _, exId := range e.ExtIDs {
@@ -48,13 +45,13 @@ func (e *Entry) MarshalBinary() ([]byte, error) {
 	// Write ExIDSize
 	binary.Write(&buf, binary.BigEndian, exIDSize)
 
-	// Write the Payload Size
-	var totalsize uint16
-	totalsize = uint16(len(e.Data)) + exIDSize
-	if totalsize > MAX_ENTRY_SIZE {
-		return nil, fmt.Errorf("Size of entry exceeds Entry Size Limit, i.e ", totalsize, " > ", MAX_ENTRY_SIZE)
+	// Write the Payload Size	
+	var payloadsize uint16
+	payloadsize = uint16(len(e.Data)) + exIDSize
+	if payloadsize > MAX_ENTRY_SIZE {
+		return nil, fmt.Errorf("Size of entry exceeds Entry Size Limit, i.e ", payloadsize, " > ", MAX_ENTRY_SIZE)
 	}
-	binary.Write(&buf, binary.BigEndian, totalsize)
+	binary.Write(&buf, binary.BigEndian, payloadsize)
 
 	// Write out the External IDs
 	for _, exId := range e.ExtIDs {
@@ -68,55 +65,50 @@ func (e *Entry) MarshalBinary() ([]byte, error) {
 	buf.Write(e.Data)
 
 	return buf.Bytes(), nil
-
-	data, err := e.ChainID.MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = buf.Write(data)
-	if err != nil {
-		return nil, err
-	}
-
-	buf.Write(e.Data)
-
-	return buf.Bytes(), nil
 }
 
 func (e *Entry) UnmarshalBinary(data []byte) (err error) {
+	totalSize := len(data)
+	
 	// Get the Version byte
 	e.Version, data = data[0], data[1:]
-	// Get the ChainID
-	err = e.ChainID.UnmarshalBinary(data[:HASH_LENGTH])
+	
+	// Get the ChainID	
+	e.ChainID = new(Hash)
+	err = e.ChainID.UnmarshalBinary(data)
 	if err != nil {
 		return err
 	}
+	data = data[e.ChainID.MarshalledSize():]
+	
 	// Get the External ID Size
 	e.ExIDSize, data = binary.BigEndian.Uint16(data[0:2]), data[2:]
 	e.PayloadSize, data = binary.BigEndian.Uint16(data[0:2]), data[2:]
 
-	if len(data) > 10240 || uint16(len(data)) != e.PayloadSize+37 {
+	if  totalSize> int(MAX_ENTRY_SIZE) || uint16(totalSize) != e.PayloadSize+38 {		// 38 to be changed to 37??
 		return fmt.Errorf("Data is too long, or Lengths don't add up")
-	} else if e.ExIDSize > e.PayloadSize {
+	} else if e.ExIDSize > e.PayloadSize {		
 		return fmt.Errorf("External IDs are longer than the payload size")
 	}
 
-	var size, cnt uint16
+	var size, cnt, eid_len uint16
+
 	datas := data
 	for size < e.ExIDSize {
 		cnt++
-		eid_len, datas := binary.BigEndian.Uint16(datas[0:2]), datas[2:]
-		size += eid_len
+		eid_len, datas = binary.BigEndian.Uint16(datas[0:2]), datas[2:]
+		size += eid_len + 2		
 		if size > e.ExIDSize {
 			return fmt.Errorf("Invalid External IDs")
 		}
 		datas = datas[eid_len:]
-	} // we only get out of this nice when size == e.ExIDSize.
+	} 
+	
+	// we only get out of this nice when size == e.ExIDSize.
 	// Otherwise we get an error.
 	e.ExtIDs = make([][]byte, cnt, cnt)
 	for i := uint16(0); i < cnt; i++ {
-		eid_len, data := binary.BigEndian.Uint16(data[0:2]), data[2:]
+		eid_len, data = binary.BigEndian.Uint16(data[0:2]), data[2:]
 		e.ExtIDs[i] = make([]byte, eid_len, eid_len)
 		copy(e.ExtIDs[i], data[0:eid_len])
 		data = data[eid_len:]

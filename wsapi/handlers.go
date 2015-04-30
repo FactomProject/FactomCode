@@ -462,7 +462,7 @@ func handleSubmitChain(ctx *web.Context) {
 			return
 		} else {
             c.FirstEntry.GenerateIDFromName()
-            c.ChainID = &c.FirstEntry.ChainID
+            c.ChainID = c.FirstEntry.ChainID
 		}
 
 		log.Debug("c.ChainID:", c.ChainID.String())
