@@ -1,8 +1,8 @@
 // Copyright 2015 Factom Foundation
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
-package common
 
+package common
 
 import (
 	"bytes"
@@ -65,6 +65,57 @@ func (e *Entry) MarshalBinary() ([]byte, error) {
 	buf.Write(e.Data)
 
 	return buf.Bytes(), nil
+}
+
+func (e *Entry) NewUnmarshalBinary(d []byte) (err error) {
+	buf := bytes.NewBuffer(d)
+	
+	// 1 byte Version
+	e.Version, err = buf.ReadByte()
+	if err != nil {
+		return err
+	}
+	
+	// 32 byte ChainID
+	e.ChainID = new(Hash)
+	e.ChainID.Bytes = make([]byte, 0, 32)
+	if _, err := buf.Read(e.ChainID.Bytes); err != nil {
+		return err
+	}
+	
+	// 2 byte size of ExtIDs
+	if err := binary.Read(buf, binary.BigEndian, int16(e.ExIDSize)); err != nil {
+		return err
+	}
+	
+	// 2 byte size of the Payload
+	if err := binary.Read(buf, binary.BigEndian, int16(e.PayloadSize)); err != nil {
+		return err
+	}
+	
+	// unmarshal the extids
+	for i := e.ExIDSize; i > 0; {
+		xsize := int16(0)
+		binary.Read(buf, binary.BigEndian, xsize)
+		i -= 2
+		
+		x := make([]byte, 0, xsize)
+		if n, err := buf.Read(x); err != nil {
+			return err
+		} else {
+			if c := cap(x); n != c {
+				return fmt.Errorf("Could not read ExtID: Read %d bytes of %d\n",
+					n, c)
+			}
+			e.ExtIDs = append(e.ExtIDs, x)
+			i -= uint16(n)
+		}
+	}
+	
+	// content
+	e.Data = buf.Bytes()
+	
+	return nil
 }
 
 func (e *Entry) UnmarshalBinary(data []byte) (err error) {

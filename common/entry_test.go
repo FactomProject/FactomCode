@@ -1,13 +1,28 @@
 package common
 
 import (
-
+	"encoding/hex"
 	"fmt"
 	"testing"
 	"bytes"
 
 )
 
+func TestNewUnmarshal(t *testing.T) {
+	fmt.Printf("TestNewUnmarshal\n---\n")
+	e := new(Entry)
+	
+	data, err := hex.DecodeString("00954d5a49fd70d9b8bcdb35d252267829957f7ef7fa6c74f88419bdc5e82209f4000600110004746573745061796c6f616448657265")
+	if err != nil {
+		t.Error(err)
+	}
+	
+	if err := e.NewUnmarshalBinary(data); err != nil {
+		t.Error(err)
+	}
+	
+	fmt.Println(e)
+}
 
 func TestFirstEntry(t *testing.T) {
 	fmt.Println("\nTestFirstEntry===========================================================================")
@@ -38,7 +53,7 @@ func TestFirstEntry(t *testing.T) {
 	}
 	
 	if err != nil {
-		t.Errorf("Error:%v", err)
+		t.Errorf("Error: %v", err)
 	}
 }
 
