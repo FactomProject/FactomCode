@@ -3,7 +3,6 @@
 // license that can be found in the LICENSE file.
 package common
 
-
 import (
 	"bytes"
 	"encoding/binary"
@@ -13,10 +12,10 @@ import (
 // An Entry is the element which carries user data
 // https://github.com/FactomProject/FactomDocs/blob/master/factomDataStructureDetails.md#entry
 type Entry struct {
-	Version     uint8  	// 1
-	ChainID     *Hash   // 33
-	ExIDSize    uint16 	// 2
-	PayloadSize uint16 	// 2 Total of 38 bytes // to be changed to 37??
+	Version     uint8  // 1
+	ChainID     *Hash  // 33
+	ExIDSize    uint16 // 2
+	PayloadSize uint16 // 2 Total of 38 bytes // to be changed to 37??
 	ExtIDs      [][]byte
 	Data        []byte
 }
@@ -34,7 +33,7 @@ func (e *Entry) MarshalBinary() ([]byte, error) {
 	}
 	buf.Write(data)
 
-	// First compute the ExIDSize 
+	// First compute the ExIDSize
 	var exIDSize uint16
 
 	for _, exId := range e.ExtIDs {
@@ -45,7 +44,7 @@ func (e *Entry) MarshalBinary() ([]byte, error) {
 	// Write ExIDSize
 	binary.Write(&buf, binary.BigEndian, exIDSize)
 
-	// Write the Payload Size	
+	// Write the Payload Size
 	var payloadsize uint16
 	payloadsize = uint16(len(e.Data)) + exIDSize
 	if payloadsize > MAX_ENTRY_SIZE {
@@ -69,25 +68,25 @@ func (e *Entry) MarshalBinary() ([]byte, error) {
 
 func (e *Entry) UnmarshalBinary(data []byte) (err error) {
 	totalSize := len(data)
-	
+
 	// Get the Version byte
 	e.Version, data = data[0], data[1:]
-	
-	// Get the ChainID	
+
+	// Get the ChainID
 	e.ChainID = new(Hash)
 	err = e.ChainID.UnmarshalBinary(data)
 	if err != nil {
 		return err
 	}
 	data = data[e.ChainID.MarshalledSize():]
-	
+
 	// Get the External ID Size
 	e.ExIDSize, data = binary.BigEndian.Uint16(data[0:2]), data[2:]
 	e.PayloadSize, data = binary.BigEndian.Uint16(data[0:2]), data[2:]
 
-	if  totalSize> int(MAX_ENTRY_SIZE) || uint16(totalSize) != e.PayloadSize+38 {		// 38 to be changed to 37??
+	if totalSize > int(MAX_ENTRY_SIZE) || uint16(totalSize) != e.PayloadSize+38 { // 38 to be changed to 37??
 		return fmt.Errorf("Data is too long, or Lengths don't add up")
-	} else if e.ExIDSize > e.PayloadSize {		
+	} else if e.ExIDSize > e.PayloadSize {
 		return fmt.Errorf("External IDs are longer than the payload size")
 	}
 
@@ -97,13 +96,13 @@ func (e *Entry) UnmarshalBinary(data []byte) (err error) {
 	for size < e.ExIDSize {
 		cnt++
 		eid_len, datas = binary.BigEndian.Uint16(datas[0:2]), datas[2:]
-		size += eid_len + 2		
+		size += eid_len + 2
 		if size > e.ExIDSize {
 			return fmt.Errorf("Invalid External IDs")
 		}
 		datas = datas[eid_len:]
-	} 
-	
+	}
+
 	// we only get out of this nice when size == e.ExIDSize.
 	// Otherwise we get an error.
 	e.ExtIDs = make([][]byte, cnt, cnt)

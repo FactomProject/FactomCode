@@ -9,8 +9,8 @@ import (
 
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/factomapi"
-	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/FactomCode/util"
+	"github.com/FactomProject/btcd/wire"
 	"github.com/hoisie/web"
 )
 

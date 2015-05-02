@@ -461,8 +461,8 @@ func handleSubmitChain(ctx *web.Context) {
 			log.Warning("The first entry is required for submitting the chain")
 			return
 		} else {
-            c.FirstEntry.GenerateIDFromName()
-            c.ChainID = c.FirstEntry.ChainID
+			c.FirstEntry.GenerateIDFromName()
+			c.ChainID = c.FirstEntry.ChainID
 		}
 
 		log.Debug("c.ChainID:", c.ChainID.String())

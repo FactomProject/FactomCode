@@ -77,8 +77,8 @@ type DBEntry struct {
 	ChainID    *Hash
 
 	// not marshalllized
-	hash   *Hash  // to be removed??
-	status int8 //for future use??
+	hash   *Hash // to be removed??
+	status int8  //for future use??
 }
 
 func NewDBEntry(eb *EBlock) *DBEntry {
@@ -333,8 +333,8 @@ func (c *DChain) AddABlockToDBEntry(b *AdminBlock) (err error) {
 
 	c.BlockMutex.Lock()
 	// Ablock is always at the first entry
-	// First three entries are ABlock, CBlock, FBlock		
-	c.NextBlock.DBEntries[0] = dbEntry 
+	// First three entries are ABlock, CBlock, FBlock
+	c.NextBlock.DBEntries[0] = dbEntry
 	c.BlockMutex.Unlock()
 
 	return nil
@@ -360,8 +360,8 @@ func (c *DChain) AddFBlockMRToDBEntry(dbEntry *DBEntry) (err error) {
 	}
 	c.BlockMutex.Lock()
 	// Factoid entry is alwasy at the same position
-	// First three entries are ABlock, CBlock, FBlock	
-	c.NextBlock.DBEntries[2] = dbEntry 
+	// First three entries are ABlock, CBlock, FBlock
+	c.NextBlock.DBEntries[2] = dbEntry
 	c.BlockMutex.Unlock()
 
 	return nil
