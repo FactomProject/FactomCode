@@ -2,7 +2,7 @@ package factomapi
 
 import (
 	"bytes"
-	"encoding/hex"
+//	"encoding/hex"
 	"fmt"
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/gocoding"
@@ -60,28 +60,19 @@ func TestBuyCreditWallet(t *testing.T) {
 //need to call commit first because we added payment logic on server
 func TestAddChain(t *testing.T) {
 	fmt.Println("\nTestAddChain===========================================================================")
-	chain := new(common.EChain)
-	bName := make([][]byte, 0, 5)
-	bName = append(bName, []byte("myCompany"))
-	bName = append(bName, []byte("bookkeeping5"))
-
-	chain.Name = bName
-	chain.GenerateIDFromName()
 
 	entry := new(common.Entry)
-	entry.ChainID = *chain.ChainID
+
 	entry.ExtIDs = make([][]byte, 0, 5)
-	entry.ExtIDs = append(entry.ExtIDs, []byte("1001"))
-	entry.ExtIDs = append(entry.ExtIDs, []byte("570b9e3fb2f5ae823685eb4422d4fd83f3f0d9e7ce07d988bd17e665394668c6"))
-	entry.ExtIDs = append(entry.ExtIDs, []byte("mvRJqMTMfrY3KtH2A4qdPfq3Q6L4Kw9Ck4"))
+	entry.ExtIDs = append(entry.ExtIDs, []byte("myCompany"))
+	entry.ExtIDs = append(entry.ExtIDs, []byte("bookkeeping5"))
+	entry.ChainID, _  = entry.GenerateIDFromName()	
 	entry.Data = []byte("First entry for chain:\"2FrgD2+vPP3yz5zLVaE5Tc2ViVv9fwZeR3/adzITjJc=\"Rules:\"asl;djfasldkfjasldfjlksouiewopurw\"")
 
-	chain.FirstEntry = entry
-
 	buf := new(bytes.Buffer)
-	err := SafeMarshal(buf, chain)
+	err := SafeMarshal(buf, entry)
 
-	fmt.Println("chain:%v", string(buf.Bytes()))
+	fmt.Println("firstentry:%v", string(buf.Bytes()))
 	jsonstr := string(buf.Bytes())
 
 	// Unmarshal the json string locally to compare
@@ -90,7 +81,7 @@ func TestAddChain(t *testing.T) {
 
 	// Post the chain JSON to FactomClient web server	---------------------------------------
 	data := url.Values{}
-	data.Set("chain", jsonstr)
+	data.Set("firstentry", jsonstr)
 	data.Set("format", "json")
 	data.Set("password", "opensesame")
 
@@ -101,15 +92,6 @@ func TestAddChain(t *testing.T) {
 		fmt.Println("Chain successfully submitted to factomclient.")
 	}
 
-	// JSON ws test done ----------------------------------------------------------------------------
-
-	chain3 := new(common.EChain)
-	reader := gocoding.ReadBytes([]byte(jsonstr))
-	err = SafeUnmarshal(reader, chain3)
-
-	fmt.Println("chainid:%v", hex.EncodeToString(chain3.ChainID.Bytes))
-	fmt.Println("name0:%v", string(chain3.Name[0]))
-	fmt.Println("entrydata:%v", string(chain3.FirstEntry.Data))
 
 	if err != nil {
 		t.Errorf("Error:%v", err)
@@ -120,16 +102,15 @@ func TestAddChain(t *testing.T) {
 func TestAddEntry(t *testing.T) {
 	fmt.Println("\nTestAddEntry===========================================================================")
 
-	chain := new(common.EChain)
-	bName := make([][]byte, 0, 5)
-	bName = append(bName, []byte("myCompany"))
-	bName = append(bName, []byte("bookkeeping5"))
+	entry0 := new(common.Entry)
 
-	chain.Name = bName
-	chain.GenerateIDFromName()
+	entry0.ExtIDs = make([][]byte, 0, 5)
+	entry0.ExtIDs = append(entry0.ExtIDs, []byte("myCompany"))
+	entry0.ExtIDs = append(entry0.ExtIDs, []byte("bookkeeping5"))
+	entry0.ChainID, _  = entry0.GenerateIDFromName()
 
 	entry := new(common.Entry)
-	entry.ChainID = *chain.ChainID
+	entry.ChainID = entry0.ChainID
 	entry.ExtIDs = make([][]byte, 0, 5)
 	entry.ExtIDs = append(entry.ExtIDs, []byte("1001"))
 	entry.ExtIDs = append(entry.ExtIDs, []byte("570b9e3fb2f5ae823685eb4422d4fd83f3f0d9e7ce07d988bd17e665394668c6"))
@@ -175,16 +156,15 @@ func TestAddEntry(t *testing.T) {
 func TestAddEntry2(t *testing.T) {
 	fmt.Println("\nTestAddEntry===========================================================================")
 
-	chain := new(common.EChain)
-	bName := make([][]byte, 0, 5)
-	bName = append(bName, []byte("myCompany"))
-	bName = append(bName, []byte("bookkeeping4"))
+	entry0 := new(common.Entry)
 
-	chain.Name = bName
-	chain.GenerateIDFromName()
+	entry0.ExtIDs = make([][]byte, 0, 5)
+	entry0.ExtIDs = append(entry0.ExtIDs, []byte("myCompany"))
+	entry0.ExtIDs = append(entry0.ExtIDs, []byte("bookkeeping4"))
+	entry0.ChainID, _  = entry0.GenerateIDFromName()
 
 	entry := new(common.Entry)
-	entry.ChainID = *chain.ChainID
+	entry.ChainID = entry0.ChainID
 	entry.ExtIDs = make([][]byte, 0, 5)
 	entry.ExtIDs = append(entry.ExtIDs, []byte("1001"))
 	entry.ExtIDs = append(entry.ExtIDs, []byte("570b9e3fb2f5ae823685eb4422d4fd83f3f0d9e7ce07d988bd17e665394668c6"))

@@ -9,7 +9,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"sync"
-	"fmt"
+//	"fmt"
 )
 
 
@@ -129,7 +129,6 @@ func (b *AdminBlock) UnmarshalBinary(data []byte) (err error) {
 	b.Header = h
 
 	data = data[h.MarshalledSize():]
-	fmt.Printf("b:%v\n", b)
 	b.ABEntries = make([]ABEntry, b.Header.EntryCount)
 	for i := uint32(0); i < b.Header.EntryCount; i++ {
 		if data[0] == TYPE_DB_SIGNATURE {

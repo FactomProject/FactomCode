@@ -127,7 +127,11 @@ func Sha(p []byte) (h *Hash) {
 }
 
 func (h *Hash) String() string {
-	return hex.EncodeToString(h.Bytes)
+	if h == nil {
+		return hex.EncodeToString(nil)
+	} else {
+		return hex.EncodeToString(h.Bytes)
+	}
 }
 
 func (h *Hash) ByteString() string {

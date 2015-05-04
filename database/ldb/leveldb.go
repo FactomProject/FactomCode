@@ -42,7 +42,7 @@ const (
 	TBL_CB_NUM
 	TBL_CB_MR
 	
-	TBL_AB //15
+	TBL_AB //13
 	TBL_AB_NUM
 )
 
