@@ -8,7 +8,7 @@ import (
 
 )
 
-func TestNewUnmarshal(t *testing.T) {
+func TestUnmarshal(t *testing.T) {
 	fmt.Printf("TestNewUnmarshal\n---\n")
 	e := new(Entry)
 	
@@ -17,7 +17,7 @@ func TestNewUnmarshal(t *testing.T) {
 		t.Error(err)
 	}
 	
-	if err := e.NewUnmarshalBinary(data); err != nil {
+	if err := e.UnmarshalBinary(data); err != nil {
 		t.Error(err)
 	}
 	
