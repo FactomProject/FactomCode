@@ -13,9 +13,9 @@ import (
 // https://github.com/FactomProject/FactomDocs/blob/master/factomDataStructureDetails.md#entry
 type Entry struct {
 	Version     uint8  // 1
-	ChainID     *Hash  // 33
+	ChainID     *Hash  // 32
 	ExIDSize    uint16 // 2
-	PayloadSize uint16 // 2 Total of 38 bytes // to be changed to 37??
+	PayloadSize uint16 // 2 Total of 37 bytes 
 	ExtIDs      [][]byte
 	Data        []byte
 }
@@ -84,7 +84,7 @@ func (e *Entry) UnmarshalBinary(data []byte) (err error) {
 	e.ExIDSize, data = binary.BigEndian.Uint16(data[0:2]), data[2:]
 	e.PayloadSize, data = binary.BigEndian.Uint16(data[0:2]), data[2:]
 
-	if totalSize > int(MAX_ENTRY_SIZE) || uint16(totalSize) != e.PayloadSize+38 { // 38 to be changed to 37??
+	if totalSize > int(MAX_ENTRY_SIZE) || uint16(totalSize) != e.PayloadSize+37 { 
 		return fmt.Errorf("Data is too long, or Lengths don't add up")
 	} else if e.ExIDSize > e.PayloadSize {
 		return fmt.Errorf("External IDs are longer than the payload size")

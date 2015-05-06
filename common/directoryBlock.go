@@ -157,13 +157,13 @@ func (e *DBEntry) MarshalBinary() (data []byte, err error) {
 
 func (e *DBEntry) UnmarshalBinary(data []byte) (err error) {
 	e.ChainID = new(Hash)
-	err = e.ChainID.UnmarshalBinary(data[:33])
+	err = e.ChainID.UnmarshalBinary(data[:HASH_LENGTH])
 	if err != nil {
 		return
 	}
 
 	e.MerkleRoot = new(Hash)
-	err = e.MerkleRoot.UnmarshalBinary(data[33:])
+	err = e.MerkleRoot.UnmarshalBinary(data[HASH_LENGTH:])
 	if err != nil {
 		return
 	}
@@ -501,25 +501,13 @@ func (b *DBInfo) MarshalBinary() (data []byte, err error) {
 	return buf.Bytes(), err
 }
 
-func (b *DBInfo) MarshalledSize() uint64 {
-	var size uint64 = 0
-	size += 33 //DBHash
-	size += 33 //BTCTxHash
-	size += 4  //BTCTxOffset
-	size += 4  //BTCBlockHeight
-	size += 33 //BTCBlockHash
-	size += 33 //DBMerkleRoot
-
-	return size
-}
-
 func (b *DBInfo) UnmarshalBinary(data []byte) (err error) {
 	b.DBHash = new(Hash)
-	b.DBHash.UnmarshalBinary(data[:33])
+	b.DBHash.UnmarshalBinary(data[:HASH_LENGTH])
 
 	b.BTCTxHash = new(Hash)
-	b.BTCTxHash.UnmarshalBinary(data[:33])
-	data = data[33:]
+	b.BTCTxHash.UnmarshalBinary(data[:HASH_LENGTH])
+	data = data[HASH_LENGTH:]
 
 	b.BTCTxOffset = int(binary.BigEndian.Uint32(data[:4]))
 	data = data[4:]
@@ -528,10 +516,10 @@ func (b *DBInfo) UnmarshalBinary(data []byte) (err error) {
 	data = data[4:]
 
 	b.BTCBlockHash = new(Hash)
-	b.BTCBlockHash.UnmarshalBinary(data[:33])
+	b.BTCBlockHash.UnmarshalBinary(data[:HASH_LENGTH])
 
 	b.DBMerkleRoot = new(Hash)
-	b.DBMerkleRoot.UnmarshalBinary(data[:33])
+	b.DBMerkleRoot.UnmarshalBinary(data[:HASH_LENGTH])
 
 	return nil
 }

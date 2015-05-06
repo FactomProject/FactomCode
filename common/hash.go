@@ -9,15 +9,16 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"reflect"
+	"errors"
+//	"reflect"
 
-	"github.com/FactomProject/gocoding"
+//	"github.com/FactomProject/gocoding"
 )
 
 type Hash struct {
 	Bytes []byte `json:"bytes"`
 }
-
+/*
 //Fixed sixe hash used for map, where byte slice wont work
 type HashF [HASH_LENGTH]byte
 
@@ -28,7 +29,7 @@ func (h HashF) Hash() Hash {
 func (h *HashF) From(hash *Hash) {
 	copy(h[:], hash.Bytes)
 }
-
+*/
 func NewHash() *Hash {
 	h := new(Hash)
 	h.Bytes = make([]byte, HASH_LENGTH)
@@ -50,25 +51,24 @@ func CreateHash(entities ...BinaryMarshallable) (h *Hash, err error) {
 }
 
 func (h *Hash) MarshalBinary() ([]byte, error) {
+	if h.Bytes == nil || len(h.Bytes) != HASH_LENGTH {
+		return nil, errors.New("(h *Hash) MarshalBinary() Invalid Hash byte stream: " + string(h.Bytes))
+	}	
 	var buf bytes.Buffer
-	buf.Write([]byte{byte(len(h.Bytes))})
 	buf.Write(h.Bytes)
 	return buf.Bytes(), nil
 }
 
 func (h *Hash) MarshalledSize() uint64 {
-	return uint64(len(h.Bytes)) + 1
+	return uint64(HASH_LENGTH)
 }
 
 func (h *Hash) UnmarshalBinary(p []byte) error {
-	h.Bytes = make([]byte, p[0])
-	if p[0] > byte(0) {
-		p = p[1:]
-		copy(h.Bytes, p)
-	}
+	h.Bytes = make([]byte, HASH_LENGTH)	
+	copy(h.Bytes, p)
 	return nil
 }
-
+/*
 func (h *Hash) Encoding(m gocoding.Marshaller, t reflect.Type) gocoding.Encoder {
 	return func(scratch [64]byte, renderer gocoding.Renderer, value reflect.Value) {
 		hash := value.Interface().(*Hash)
@@ -85,7 +85,7 @@ func (h *Hash) Decoding(m gocoding.Unmarshaller, t reflect.Type) gocoding.Decode
 		m.UnmarshalObject(scanner, &hash.Bytes)
 	}
 }
-
+*/
 func (h *Hash) GetBytes() []byte {
 	newHash := make([]byte, HASH_LENGTH)
 	copy(newHash, h.Bytes)
@@ -117,6 +117,7 @@ func NewShaHash(newHash []byte) (*Hash, error) {
 	return &sh, err
 }
 
+// Create a Sha256 Hash from a byte array
 func Sha(p []byte) (h *Hash) {
 	sha := sha256.New()
 	sha.Write(p)
@@ -126,6 +127,7 @@ func Sha(p []byte) (h *Hash) {
 	return h
 }
 
+// Convert a hash into a string with hex encoding
 func (h *Hash) String() string {
 	if h == nil {
 		return hex.EncodeToString(nil)

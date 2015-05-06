@@ -45,14 +45,6 @@ type EBlock struct {
 	IsSealed   bool
 }
 
-type EBInfo struct {
-	EBHash     *Hash
-	MerkleRoot *Hash
-	DBHash     *Hash
-	DBBlockNum uint64
-	ChainID    *Hash
-}
-
 type EBlockHeader struct {
 	Version    byte
 	NetworkID  uint32
@@ -352,70 +344,6 @@ func (b *EBlock) UnmarshalBinary(data []byte) (err error) {
 	return nil
 }
 
-func (b *EBInfo) MarshalBinary() (data []byte, err error) {
-	var buf bytes.Buffer
-
-	data, err = b.EBHash.MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-	buf.Write(data)
-
-	data, err = b.MerkleRoot.MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-	buf.Write(data)
-
-	data, err = b.DBHash.MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-	buf.Write(data)
-
-	binary.Write(&buf, binary.BigEndian, b.DBBlockNum)
-
-	data, err = b.ChainID.MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-	buf.Write(data)
-
-	return buf.Bytes(), err
-}
-
-func (b *EBInfo) MarshalledSize() (size uint64) {
-	size += 33 //b.EBHash
-	size += 33 //b.MerkleRoot
-	size += 33 //b.FBHash
-	size += 8  //b.FBBlockNum
-	size += 33 //b.ChainID
-
-	return size
-}
-
-func (b *EBInfo) UnmarshalBinary(data []byte) (err error) {
-	b.EBHash = new(Hash)
-	b.EBHash.UnmarshalBinary(data[:33])
-
-	data = data[33:]
-	b.MerkleRoot = new(Hash)
-	b.MerkleRoot.UnmarshalBinary(data[:33])
-
-	data = data[33:]
-	b.DBHash = new(Hash)
-	b.DBHash.UnmarshalBinary(data[:33])
-
-	data = data[33:]
-	b.DBBlockNum = binary.BigEndian.Uint64(data[0:8])
-
-	data = data[8:]
-	b.ChainID = new(Hash)
-	b.ChainID.UnmarshalBinary(data[:33])
-
-	return nil
-}
-
 func (b *EChain) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
 
@@ -438,8 +366,8 @@ func (b *EChain) MarshalBinary() (data []byte, err error) {
 
 func (b *EChain) UnmarshalBinary(data []byte) (err error) {
 	b.ChainID = new(Hash)
-	b.ChainID.UnmarshalBinary(data[:33])
-	data = data[33:]
+	b.ChainID.UnmarshalBinary(data[:HASH_LENGTH])
+	data = data[HASH_LENGTH:]
 
 	if len(data) > HASH_LENGTH {
 		b.FirstEntry = new(Entry)

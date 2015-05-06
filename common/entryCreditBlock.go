@@ -27,13 +27,6 @@ type CBlock struct {
 	Chain      *CChain
 }
 
-type CBInfo struct {
-	CBHash     *Hash
-	FBHash     *Hash
-	FBBlockNum uint64
-	ChainID    *Hash
-}
-
 func CreateCBlock(chain *CChain, prev *CBlock, cap uint) (b *CBlock, err error) {
 	if prev == nil && chain.NextBlockHeight != 0 {
 		return nil, errors.New("Previous block cannot be nil")
@@ -185,51 +178,6 @@ func (b *CBlock) UnmarshalBinary(data []byte) (err error) {
 	return nil
 }
 
-func (b *CBInfo) MarshalBinary() (data []byte, err error) {
-	var buf bytes.Buffer
-
-	data, _ = b.CBHash.MarshalBinary()
-	buf.Write(data)
-
-	data, _ = b.FBHash.MarshalBinary()
-	buf.Write(data)
-
-	binary.Write(&buf, binary.BigEndian, b.FBBlockNum)
-
-	data, _ = b.ChainID.MarshalBinary()
-	buf.Write(data)
-
-	return buf.Bytes(), err
-}
-
-func (b *CBInfo) MarshalledSize() uint64 {
-	var size uint64 = 0
-	size += 33 //b.EBHash
-	size += 33 //b.FBHash
-	size += 8  //b.FBBlockNum
-	size += 33 //b.ChainID
-
-	return size
-}
-
-func (b *CBInfo) UnmarshalBinary(data []byte) (err error) {
-	b.CBHash = new(Hash)
-	b.CBHash.UnmarshalBinary(data[:33])
-
-	data = data[33:]
-	b.FBHash = new(Hash)
-	b.FBHash.UnmarshalBinary(data[:33])
-
-	data = data[33:]
-	b.FBBlockNum = binary.BigEndian.Uint64(data[0:8])
-
-	data = data[8:]
-	b.ChainID = new(Hash)
-	b.ChainID.UnmarshalBinary(data[:33])
-
-	return nil
-}
-
 func (b *CChain) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
 
@@ -248,22 +196,11 @@ func (b *CChain) MarshalBinary() (data []byte, err error) {
 	return buf.Bytes(), err
 }
 
-func (b *CChain) MarshalledSize() uint64 {
-	var size uint64 = 0
-	size += 33 //b.ChainID
-	size += 8  //Name length
-	for _, bytes := range b.Name {
-		size += 8
-		size += uint64(len(bytes))
-	}
-	return size
-}
-
 func (b *CChain) UnmarshalBinary(data []byte) (err error) {
 	b.ChainID = new(Hash)
-	b.ChainID.UnmarshalBinary(data[:33])
+	b.ChainID.UnmarshalBinary(data[:HASH_LENGTH])
 
-	data = data[33:]
+	data = data[HASH_LENGTH:]
 	count := binary.BigEndian.Uint64(data[0:8])
 	data = data[8:]
 

@@ -39,7 +39,7 @@ type Db interface {
 	// InsertChain inserts the newly created chain into db
 	InsertChain(chain *common.EChain) (err error)
 
-	// FetchEBInfoByHash gets a chain by chainID
+	// FetchChainByHash gets a chain by chainID
 	FetchChainByHash(chainID *common.Hash) (chain *common.EChain, err error)
 
 	// FetchChainByName gets a chain by chain name
@@ -66,14 +66,8 @@ type Db interface {
 	// FetchEBHashByMR gets an entry by hash from the database.
 	FetchEBHashByMR(eBMR *common.Hash) (eBlockHash *common.Hash, err error)
 
-	// FetchEBInfoByHash gets an EBInfo obj
-	FetchEBInfoByHash(ebHash *common.Hash) (ebInfo *common.EBInfo, err error)
-
 	// FetchAllEBlocksByChain gets all of the blocks by chain id
 	FetchAllEBlocksByChain(chainID *common.Hash) (eBlocks *[]common.EBlock, err error)
-
-	// FetchAllEBInfosByChain gets all of the entry block infos by chain id
-	FetchAllEBInfosByChain(chainID *common.Hash) (eBInfos *[]common.EBInfo, err error)
 
 	// FetchDBlock gets an entry by hash from the database.
 	FetchDBlockByHash(dBlockHash *common.Hash) (dBlock *common.DirectoryBlock, err error)
