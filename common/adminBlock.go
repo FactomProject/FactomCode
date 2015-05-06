@@ -181,8 +181,8 @@ func (b *ABlockHeader) MarshalBinary() (data []byte, err error) {
 func (b *ABlockHeader) MarshalledSize() uint64 {
 	var size uint64 = 0
 
-	size += b.ChainID.MarshalledSize()
-	size += b.PrevHash.MarshalledSize()
+	size += uint64(HASH_LENGTH)
+	size += uint64(HASH_LENGTH)
 	size += 4 // DB Height
 	size += 4 // Entry count
 	size += 4 // Body Size
@@ -195,11 +195,11 @@ func (b *ABlockHeader) UnmarshalBinary(data []byte) (err error) {
 
 	b.ChainID = new(Hash)
 	b.ChainID.UnmarshalBinary(data)
-	data = data[b.ChainID.MarshalledSize():]
+	data = data[HASH_LENGTH:]
 
 	b.PrevHash = new(Hash)
 	b.PrevHash.UnmarshalBinary(data)
-	data = data[b.PrevHash.MarshalledSize():]
+	data = data[HASH_LENGTH:]
 
 	b.DBHeight, data = binary.BigEndian.Uint32(data[0:4]), data[4:]
 
@@ -259,8 +259,8 @@ func (e *DBSignatureEntry) MarshalBinary() (data []byte, err error) {
 func (e *DBSignatureEntry) MarshalledSize() uint64 {
 	var size uint64 = 0
 	size += 1 // Type (byte)
-	size += uint64(e.IdentityChainID.MarshalledSize())
-	size += uint64(e.PubKey.MarshalledSize())
+	size += uint64(HASH_LENGTH)
+	size += uint64(HASH_LENGTH)
 	size += uint64(SIG_LENGTH)
 
 	return size
@@ -271,11 +271,11 @@ func (e *DBSignatureEntry) UnmarshalBinary(data []byte) (err error) {
 
 	e.IdentityChainID = new(Hash)
 	e.IdentityChainID.UnmarshalBinary(data)
-	data = data[e.IdentityChainID.MarshalledSize():]
+	data = data[HASH_LENGTH:]
 
 	e.PubKey = new(Hash)
 	e.PubKey.UnmarshalBinary(data)
-	data = data[e.PubKey.MarshalledSize():]
+	data = data[HASH_LENGTH:]
 
 	e.PrevDBSig = data[:SIG_LENGTH]
 

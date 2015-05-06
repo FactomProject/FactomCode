@@ -90,7 +90,7 @@ func (e *EBEntry) MarshalBinary() ([]byte, error) {
 func (e *EBEntry) MarshalledSize() uint64 {
 	var size uint64 = 0
 
-	size += e.EntryHash.MarshalledSize()
+	size += uint64(HASH_LENGTH)
 
 	return size
 }
@@ -151,10 +151,10 @@ func (b *EBlockHeader) MarshalledSize() uint64 {
 
 	size += 1
 	size += 4
-	size += b.ChainID.MarshalledSize()
-	size += b.BodyMR.MarshalledSize()
-	size += b.PrevKeyMR.MarshalledSize()
-	size += b.PrevHash.MarshalledSize()
+	size += uint64(HASH_LENGTH)
+	size += uint64(HASH_LENGTH)
+	size += uint64(HASH_LENGTH)
+	size += uint64(HASH_LENGTH)
 	size += 4
 	size += 4
 	size += 8
@@ -171,19 +171,19 @@ func (b *EBlockHeader) UnmarshalBinary(data []byte) (err error) {
 
 	b.ChainID = new(Hash)
 	b.ChainID.UnmarshalBinary(data)
-	data = data[b.ChainID.MarshalledSize():]
+	data = data[HASH_LENGTH:]
 
 	b.BodyMR = new(Hash)
 	b.BodyMR.UnmarshalBinary(data)
-	data = data[b.BodyMR.MarshalledSize():]
+	data = data[HASH_LENGTH:]
 
 	b.PrevKeyMR = new(Hash)
 	b.PrevKeyMR.UnmarshalBinary(data)
-	data = data[b.PrevKeyMR.MarshalledSize():]
+	data = data[HASH_LENGTH:]
 
 	b.PrevHash = new(Hash)
 	b.PrevHash.UnmarshalBinary(data)
-	data = data[b.PrevHash.MarshalledSize():]
+	data = data[HASH_LENGTH:]
 
 	b.EBHeight, data = binary.BigEndian.Uint32(data[0:4]), data[4:]
 

@@ -10,26 +10,12 @@ import (
 	"encoding/hex"
 	"fmt"
 	"errors"
-//	"reflect"
-
-//	"github.com/FactomProject/gocoding"
 )
 
 type Hash struct {
 	Bytes []byte `json:"bytes"`
 }
-/*
-//Fixed sixe hash used for map, where byte slice wont work
-type HashF [HASH_LENGTH]byte
 
-func (h HashF) Hash() Hash {
-	return Hash{Bytes: h[:]}
-}
-
-func (h *HashF) From(hash *Hash) {
-	copy(h[:], hash.Bytes)
-}
-*/
 func NewHash() *Hash {
 	h := new(Hash)
 	h.Bytes = make([]byte, HASH_LENGTH)
@@ -59,33 +45,12 @@ func (h *Hash) MarshalBinary() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (h *Hash) MarshalledSize() uint64 {
-	return uint64(HASH_LENGTH)
-}
-
 func (h *Hash) UnmarshalBinary(p []byte) error {
 	h.Bytes = make([]byte, HASH_LENGTH)	
 	copy(h.Bytes, p)
 	return nil
 }
-/*
-func (h *Hash) Encoding(m gocoding.Marshaller, t reflect.Type) gocoding.Encoder {
-	return func(scratch [64]byte, renderer gocoding.Renderer, value reflect.Value) {
-		hash := value.Interface().(*Hash)
-		m.MarshalObject(renderer, hash.Bytes)
-	}
-}
 
-func (h *Hash) Decoding(m gocoding.Unmarshaller, t reflect.Type) gocoding.Decoder {
-	return func(scratch [64]byte, scanner gocoding.Scanner, value reflect.Value) {
-		if value.IsNil() {
-			value.Set(reflect.ValueOf(new(Hash)))
-		}
-		hash := value.Interface().(*Hash)
-		m.UnmarshalObject(scanner, &hash.Bytes)
-	}
-}
-*/
 func (h *Hash) GetBytes() []byte {
 	newHash := make([]byte, HASH_LENGTH)
 	copy(newHash, h.Bytes)

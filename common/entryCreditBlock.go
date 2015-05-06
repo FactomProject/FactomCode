@@ -280,13 +280,13 @@ func (b *CBlockHeader) MarshalBinary() (data []byte, err error) {
 func (b *CBlockHeader) MarshalledSize() uint64 {
 	var size uint64 = 0
 
-	size += b.ChainID.MarshalledSize()
-	size += b.BodyHash.MarshalledSize()
-	size += b.PrevKeyMR.MarshalledSize()
-	size += b.PrevHash.MarshalledSize()
+	size += uint64(HASH_LENGTH)
+	size += uint64(HASH_LENGTH)
+	size += uint64(HASH_LENGTH)
+	size += uint64(HASH_LENGTH)
 	size += 4 // DB Height
-	size += b.SegmentsMR.MarshalledSize()
-	size += b.BalanceMR.MarshalledSize()
+	size += uint64(HASH_LENGTH)
+	size += uint64(HASH_LENGTH)
 	size += 8 // Entry count
 	size += 8 // Body Size
 
@@ -297,29 +297,29 @@ func (b *CBlockHeader) UnmarshalBinary(data []byte) (err error) {
 
 	b.ChainID = new(Hash)
 	b.ChainID.UnmarshalBinary(data)
-	data = data[b.ChainID.MarshalledSize():]
+	data = data[HASH_LENGTH:]
 
 	b.BodyHash = new(Hash)
 	b.BodyHash.UnmarshalBinary(data)
-	data = data[b.BodyHash.MarshalledSize():]
+	data = data[HASH_LENGTH:]
 
 	b.PrevKeyMR = new(Hash)
 	b.PrevKeyMR.UnmarshalBinary(data)
-	data = data[b.PrevKeyMR.MarshalledSize():]
+	data = data[HASH_LENGTH:]
 
 	b.PrevHash = new(Hash)
 	b.PrevHash.UnmarshalBinary(data)
-	data = data[b.PrevHash.MarshalledSize():]
+	data = data[HASH_LENGTH:]
 
 	b.DBHeight, data = binary.BigEndian.Uint32(data[0:4]), data[4:]
 
 	b.SegmentsMR = new(Hash)
 	b.SegmentsMR.UnmarshalBinary(data)
-	data = data[b.SegmentsMR.MarshalledSize():]
+	data = data[HASH_LENGTH:]
 
 	b.BalanceMR = new(Hash)
 	b.BalanceMR.UnmarshalBinary(data)
-	data = data[b.BalanceMR.MarshalledSize():]
+	data = data[HASH_LENGTH:]
 
 	b.EntryCount, data = binary.BigEndian.Uint64(data[0:8]), data[8:]
 
@@ -457,9 +457,9 @@ func (e *BuyCBEntry) MarshalBinary() (data []byte, err error) {
 func (e *BuyCBEntry) MarshalledSize() uint64 {
 	var size uint64 = 0
 	size += 1                               // Type (byte)
-	size += e.publicKey.MarshalledSize()    // PublicKey
+	size += uint64(HASH_LENGTH)    			// PublicKey
 	size += 4                               // Credits (int32)
-	size += e.FactomTxHash.MarshalledSize() // Factoid Trans Hash
+	size += uint64(HASH_LENGTH) 			// Factoid Trans Hash
 
 	return size
 }
@@ -469,7 +469,7 @@ func (e *BuyCBEntry) UnmarshalBinary(data []byte) (err error) {
 	e.publicKey = new(Hash)
 
 	e.publicKey.UnmarshalBinary(data)
-	data = data[e.publicKey.MarshalledSize():]
+	data = data[HASH_LENGTH:]
 
 	buf, data := bytes.NewBuffer(data[:4]), data[4:]
 	binary.Read(buf, binary.BigEndian, &e.credits)
@@ -526,9 +526,9 @@ func (e *PayEntryCBEntry) MarshalBinary() (data []byte, err error) {
 func (e *PayEntryCBEntry) MarshalledSize() uint64 {
 	var size uint64 = 0
 	size += 1                            // Type (byte)
-	size += e.publicKey.MarshalledSize() // PublicKey
+	size += uint64(HASH_LENGTH)			 // PublicKey
 	size += 4                            // Credits (int32)
-	size += e.EntryHash.MarshalledSize() // Entry Hash
+	size += uint64(HASH_LENGTH) // Entry Hash
 	size += 8                            //	TimeStamp int64
 	size += 4                            // len(e.Sig)
 	size += uint64(len(e.Sig))           // sig
@@ -542,14 +542,14 @@ func (e *PayEntryCBEntry) UnmarshalBinary(data []byte) (err error) {
 	e.publicKey = new(Hash)
 	e.publicKey.UnmarshalBinary(data)
 
-	data = data[e.publicKey.MarshalledSize():]
+	data = data[HASH_LENGTH:]
 
 	buf, data := bytes.NewBuffer(data[:4]), data[4:]
 	binary.Read(buf, binary.BigEndian, &e.credits)
 
 	e.EntryHash = new(Hash)
 	e.EntryHash.UnmarshalBinary(data)
-	data = data[e.EntryHash.MarshalledSize():]
+	data = data[HASH_LENGTH:]
 
 	buf = bytes.NewBuffer(data[:8])
 	binary.Read(buf, binary.BigEndian, &e.TimeStamp)
@@ -619,11 +619,11 @@ func (e *PayChainCBEntry) MarshalBinary() (data []byte, err error) {
 func (e *PayChainCBEntry) MarshalledSize() uint64 {
 	var size uint64 = 0
 	size += 1                                   // Type (byte)
-	size += e.publicKey.MarshalledSize()        // PublicKey
+	size += uint64(HASH_LENGTH)			        // PublicKey
 	size += 4                                   // Credits (int32)
-	size += e.EntryHash.MarshalledSize()        // Entry Hash
-	size += e.ChainIDHash.MarshalledSize()      // ChainID Hash
-	size += e.EntryChainIDHash.MarshalledSize() // EntryChainID Hash
+	size += uint64(HASH_LENGTH)			        // Entry Hash
+	size += uint64(HASH_LENGTH)				    // ChainID Hash
+	size += uint64(HASH_LENGTH)					// EntryChainID Hash
 	size += 4                                   // len(e.Sig)
 	size += uint64(len(e.Sig))                  // sig
 
@@ -635,22 +635,22 @@ func (e *PayChainCBEntry) UnmarshalBinary(data []byte) (err error) {
 
 	e.publicKey = new(Hash)
 	e.publicKey.UnmarshalBinary(data)
-	data = data[e.publicKey.MarshalledSize():]
+	data = data[HASH_LENGTH:]
 
 	buf, data := bytes.NewBuffer(data[:4]), data[4:]
 	binary.Read(buf, binary.BigEndian, &e.credits)
 
 	e.EntryHash = new(Hash)
 	e.EntryHash.UnmarshalBinary(data)
-	data = data[e.EntryHash.MarshalledSize():]
+	data = data[HASH_LENGTH:]
 
 	e.ChainIDHash = new(Hash)
 	e.ChainIDHash.UnmarshalBinary(data)
-	data = data[e.ChainIDHash.MarshalledSize():]
+	data = data[HASH_LENGTH:]
 
 	e.EntryChainIDHash = new(Hash)
 	e.EntryChainIDHash.UnmarshalBinary(data)
-	data = data[e.EntryChainIDHash.MarshalledSize():]
+	data = data[HASH_LENGTH:]
 
 	length := binary.BigEndian.Uint32(data[0:4])
 	data = data[4:]

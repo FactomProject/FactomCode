@@ -223,9 +223,9 @@ func (b *DBlockHeader) MarshalledSize() uint64 {
 	var size uint64 = 0
 	size += 1
 	size += 4
-	size += b.BodyMR.MarshalledSize()
-	size += b.PrevKeyMR.MarshalledSize()
-	size += b.PrevBlockHash.MarshalledSize()
+	size += uint64(HASH_LENGTH)
+	size += uint64(HASH_LENGTH)
+	size += uint64(HASH_LENGTH)
 	size += 4 //db height
 	size += 8 //start time
 	size += 4
@@ -241,15 +241,15 @@ func (b *DBlockHeader) UnmarshalBinary(data []byte) (err error) {
 
 	b.BodyMR = new(Hash)
 	b.BodyMR.UnmarshalBinary(data)
-	data = data[b.BodyMR.MarshalledSize():]
+	data = data[HASH_LENGTH:]
 
 	b.PrevKeyMR = new(Hash)
 	b.PrevKeyMR.UnmarshalBinary(data)
-	data = data[b.PrevKeyMR.MarshalledSize():]
+	data = data[HASH_LENGTH:]
 
 	b.PrevBlockHash = new(Hash)
 	b.PrevBlockHash.UnmarshalBinary(data)
-	data = data[b.PrevBlockHash.MarshalledSize():]
+	data = data[HASH_LENGTH:]
 
 	b.BlockHeight, data = binary.BigEndian.Uint32(data[0:4]), data[4:]
 

@@ -78,7 +78,7 @@ func (e *Entry) UnmarshalBinary(data []byte) (err error) {
 	if err != nil {
 		return err
 	}
-	data = data[e.ChainID.MarshalledSize():]
+	data = data[HASH_LENGTH:]
 
 	// Get the External ID Size
 	e.ExIDSize, data = binary.BigEndian.Uint16(data[0:2]), data[2:]
