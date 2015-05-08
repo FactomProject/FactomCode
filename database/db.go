@@ -61,7 +61,7 @@ type Db interface {
 	FetchEBlockByMR(eBMR *common.Hash) (eBlock *common.EBlock, err error)
 
 	// FetchEBlockByHeight gets an entry block by height from the database.
-	FetchEBlockByHeight(chainID * common.Hash, eBlockHeight uint32) (eBlock *common.EBlock, err error)
+	//FetchEBlockByHeight(chainID * common.Hash, eBlockHeight uint32) (eBlock *common.EBlock, err error)
 
 	// FetchEBHashByMR gets an entry by hash from the database.
 	FetchEBHashByMR(eBMR *common.Hash) (eBlockHash *common.Hash, err error)

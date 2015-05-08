@@ -223,8 +223,18 @@ type DBSignatureEntry struct {
 	ABEntry         //interface
 	entryType       byte
 	IdentityChainID *Hash
-	PubKey          *Hash
+	PubKey          PublicKey
 	PrevDBSig       []byte
+}
+
+// Create a new DB Signature Entry
+func NewDBSignatureEntry(identityChainID *Hash, sig Signature) (e *DBSignatureEntry) {
+	e = new(DBSignatureEntry)
+	e.entryType = TYPE_DB_SIGNATURE
+	e.IdentityChainID = identityChainID
+	e.PubKey = sig.Pub
+	e.PrevDBSig = sig.Sig[:]
+	return 
 }
 
 func (e *DBSignatureEntry) Type() byte {
@@ -242,11 +252,10 @@ func (e *DBSignatureEntry) MarshalBinary() (data []byte, err error) {
 	}
 	buf.Write(data)
 
-	data, err = e.PubKey.MarshalBinary()
+	_, err = buf.Write(e.PubKey.Key[:])
 	if err != nil {
 		return nil, err
 	}
-	buf.Write(data)
 
 	_, err = buf.Write(e.PrevDBSig)
 	if err != nil {
@@ -273,8 +282,8 @@ func (e *DBSignatureEntry) UnmarshalBinary(data []byte) (err error) {
 	e.IdentityChainID.UnmarshalBinary(data)
 	data = data[HASH_LENGTH:]
 
-	e.PubKey = new(Hash)
-	e.PubKey.UnmarshalBinary(data)
+	e.PubKey.Key = new([HASH_LENGTH]byte)
+	copy(e.PubKey.Key[:], data[:HASH_LENGTH])
 	data = data[HASH_LENGTH:]
 
 	e.PrevDBSig = data[:SIG_LENGTH]

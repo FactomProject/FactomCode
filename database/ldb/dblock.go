@@ -78,26 +78,7 @@ func (db *LevelDb) ProcessDBlockBatch(dblock *common.DirectoryBlock) error {
 		binary.Write(&buf, binary.BigEndian, dblock.Header.BlockHeight)
 		dbNumkey = append(dbNumkey, buf.Bytes()...)
 		db.lbatch.Put(dbNumkey, dblock.DBHash.Bytes)
-
-		// Update DBEntry process queue for each dbEntry in dblock
-/*		for i := 0; i < len(dblock.DBEntries); i++ {
-			var dbEntry common.DBEntry = *dblock.DBEntries[i]
-
-			if isLookupDB {
-				// Create an EBInfo and insert it into db
-				var ebInfo = new(common.EBInfo)
-				ebInfo.EBHash = dbEntry.Hash()
-				ebInfo.MerkleRoot = dbEntry.MerkleRoot
-				ebInfo.DBHash = dblock.DBHash
-				ebInfo.DBBlockNum = dblock.Header.BlockID
-				ebInfo.ChainID = dbEntry.ChainID
-				var ebInfoKey []byte = []byte{byte(TBL_EB_INFO)}
-				ebInfoKey = append(ebInfoKey, ebInfo.EBHash.Bytes...)
-				binaryEbInfo, _ := ebInfo.MarshalBinary()
-				db.lbatch.Put(ebInfoKey, binaryEbInfo)
-			}
-		}
-*/
+		
 		err = db.lDb.Write(db.lbatch, db.wo)
 		if err != nil {
 			log.Println("batch failed %v\n", err)
@@ -180,6 +161,17 @@ func (db *LevelDb) FetchDBlockByHash(dBlockHash *common.Hash) (dBlock *common.Di
 
 // FetchDBlockByHeight gets an directory block by height from the database.
 func (db *LevelDb) FetchDBlockByHeight(dBlockHeight uint32) (dBlock *common.DirectoryBlock, err error) {
+	dBlockHash, _ := db.FetchDBHashByHeight(dBlockHeight)
+
+	if dBlockHash != nil {
+		dBlock, _ = db.FetchDBlockByHash(dBlockHash)
+	}
+
+	return dBlock, nil
+}
+
+// FetchDBHashByHeight gets a dBlockHash from the database.
+func (db *LevelDb) FetchDBHashByHeight(dBlockHeight uint32) (dBlockHash *common.Hash, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -189,14 +181,11 @@ func (db *LevelDb) FetchDBlockByHeight(dBlockHeight uint32) (dBlock *common.Dire
 	key = append(key, buf.Bytes()...)
 	data, err := db.lDb.Get(key, db.ro)
 
-	if data == nil {
-		return nil, errors.New("DBlock not found for height: " + string(dBlockHeight))
-	} else {
-		dBlock = new(common.DirectoryBlock)
-		dBlock.UnmarshalBinary(data)
+	if data != nil {
+		dBlockHash = new(common.Hash)
+		dBlockHash.UnmarshalBinary(data)
 	}
-
-	return dBlock, nil
+	return dBlockHash, nil
 }
 
 // FetchAllDBInfo gets all of the fbInfo
