@@ -14,6 +14,9 @@ import (
 	"github.com/davecgh/go-spew/spew"
 )
 
+// maxTrials is the max attempts to writeToBTC
+const maxTrials = 3
+
 // the spentResult is the one showing up in ListSpent()
 // but is already spent in blockexploer
 // it's a bug in btcwallet
