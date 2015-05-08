@@ -49,20 +49,6 @@ var failedMerkles []*common.Hash
 // maxTrials is the max attempts to writeToBTC
 const maxTrials = 3
 
-// spentResult is the one showing up in ListSpent()
-// but is already spent in blockexploer
-// it's a bug in btcwallet
-var spentResult = btcjson.ListUnspentResult{
-	TxID:          "1a3450d99659d5b704d89c26d56082a0f13ba2a275fdd9ffc0ec4f42c88fe857",
-	Vout:          0xb,
-	Address:       "mvwnVraAK1VKRcbPgrSAVZ6E5hkqbwRxCy",
-	Account:       "",
-	ScriptPubKey:  "76a914a93c1baaaeae1b30688edab5e927fb2bfc794cae88ac",
-	RedeemScript:  "",
-	Amount:        1,
-	Confirmations: 28247,
-}
-
 // ByAmount defines the methods needed to satisify sort.Interface to
 // sort a slice of Utxos by their amount.
 type ByAmount []btcjson.ListUnspentResult
@@ -71,29 +57,14 @@ func (u ByAmount) Len() int           { return len(u) }
 func (u ByAmount) Less(i, j int) bool { return u[i].Amount < u[j].Amount }
 func (u ByAmount) Swap(i, j int)      { u[i], u[j] = u[j], u[i] }
 
-func writeToBTC(bytes []byte) (*wire.ShaHash, error) {
-	for attempts := 0; attempts < maxTrials; attempts++ {
-		txHash, err := SendRawTransactionToBTC(bytes)
-		if err != nil {
-			log.Printf("Attempt %d to send raw tx to BTC failed: %s\n", attempts, err)
-			time.Sleep(time.Duration(attempts*20) * time.Second)
-			continue
-		}
-		return txHash, nil
-	}
-	return nil, fmt.Errorf("Fail to write hash %s to BTC. ", bytes)
-}
-
 // SendRawTransactionToBTC is the main function used to anchor factom
 // dir block hash to bitcoin blockchain
-func SendRawTransactionToBTC(hash []byte) (*wire.ShaHash, error) {
+func SendRawTransactionToBTC(hash []byte, blockHeight uint64) (*wire.ShaHash, error) {
 	b := balances[0]
 	i := copy(balances, balances[1:])
 	balances[i] = b
-	//balances[0:] = balances[1:]
-	//balances[len(balances) - 1] = b
 
-	msgtx, err := createRawTransaction(b, hash)
+	msgtx, err := createRawTransaction(b, hash, blockHeight)
 	if err != nil {
 		return nil, fmt.Errorf("cannot create Raw Transaction: %s", err)
 	}
@@ -105,11 +76,11 @@ func SendRawTransactionToBTC(hash []byte) (*wire.ShaHash, error) {
 	return shaHash, nil
 }
 
-func createRawTransaction(b balance, hash []byte) (*wire.MsgTx, error) {
+func createRawTransaction(b balance, hash []byte, blockHeight uint64) (*wire.MsgTx, error) {
 
 	msgtx := wire.NewMsgTx()
 
-	if err := addTxOuts(msgtx, b, hash); err != nil {
+	if err := addTxOuts(msgtx, b, hash, blockHeight); err != nil {
 		return nil, fmt.Errorf("cannot addTxOuts: %s", err)
 	}
 
@@ -125,10 +96,6 @@ func createRawTransaction(b balance, hash []byte) (*wire.MsgTx, error) {
 }
 
 func addTxIn(msgtx *wire.MsgTx, b balance) error {
-
-	//util.Trace("NOT IMPLEMENTED !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-	//return errors.New("NOT IMPLEMENTED -- revisit !!!")
-
 	output := b.unspentResult
 	fmt.Printf("unspentResult: %#v\n", output)
 	prevTxHash, err := wire.NewShaHashFromStr(output.TxID)
@@ -161,14 +128,11 @@ func addTxIn(msgtx *wire.MsgTx, b balance) error {
 
 }
 
-func addTxOuts(msgtx *wire.MsgTx, b balance, anchorHash []byte) error {
-
-	//const tempBlock uint64 = 0x123456789ABC // XXX: temp block height, needs to be passed in from upper layers
-
-	//anchorHash, err := prependBlockHeight(tempBlock, hash)
-	//if err != nil {
-	//fmt.Printf("ScriptBuilder error: %v\n", err)
-	//}
+func addTxOuts(msgtx *wire.MsgTx, b balance, hash []byte, blockHeight uint64) error {
+	anchorHash, err := prependBlockHeight(blockHeight, hash)
+	if err != nil {
+		fmt.Printf("ScriptBuilder error: %v\n", err)
+	}
 
 	builder := txscript.NewScriptBuilder()
 	builder.AddOp(txscript.OP_RETURN)
@@ -177,7 +141,6 @@ func addTxOuts(msgtx *wire.MsgTx, b balance, anchorHash []byte) error {
 	// latest routine from Conformal btcsuite returns 2 parameters, not 1... not sure what to do for people with the old conformal libraries :(
 	opReturn, err := builder.Script()
 	msgtx.AddTxOut(wire.NewTxOut(0, opReturn))
-
 	if err != nil {
 		fmt.Printf("ScriptBuilder error: %v\n", err)
 	}
@@ -224,9 +187,6 @@ func selectInputs(eligible []btcjson.ListUnspentResult, minconf int) (selected [
 }
 
 func validateMsgTx(msgtx *wire.MsgTx, inputs []btcjson.ListUnspentResult) error {
-	//util.Trace("NOT IMPLEMENTED !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-	//return errors.New("NOT IMPLEMENTED -- revisit 2 !!!")
-
 	flags := txscript.ScriptBip16 | txscript.ScriptStrictMultiSig //ScriptCanonicalSignatures
 	bip16 := time.Now().After(txscript.Bip16Activation)
 	if bip16 {
@@ -327,45 +287,23 @@ func createBtcdNotificationHandlers() btcrpcclient.NotificationHandlers {
 	return ntfnHandlers
 }
 
-/*
-// Save the BTC anchor transaction details into db
-func saveDirBlockInfo(transaction *btcutil.Tx, details *btcjson.BlockDetails) {
-
-	for _, dbInfo := range dbInfoMap {
-
-		if dbInfo.BTCTxHash != nil &&
-			bytes.Compare(dbInfo.BTCTxHash.Bytes, transaction.Sha().Bytes()) == 0 {
-
-			dbInfo.BTCTxOffset = details.Index
-			dbInfo.BTCBlockHeight = details.Height
-
-			txHash, _ := wire.NewShaHashFromStr(details.Hash)
-			dbInfo.BTCBlockHash = toHash(txHash)
-
-			// Update db with DBBatch
-			db.InsertDBInfo(*dbInfo)
-
-			//delete dbInfo from dbInfoMap
-			delete(dbInfoMap, dbInfo.DBHash.String())
-
-			fmt.Printf("In saveDirBlockInfo, dbInfo:%+v\n", dbInfo)
-
-			break
-		}
+func init() {
+	err := initRPCClient()
+	if err != nil {
+		fmt.Println(err.Error())
 	}
-}*/
+	if err := initWallet(); err != nil {
+		fmt.Println(err.Error())
+	}
+}
 
 func initRPCClient() error {
 	cfg = util.ReadConfig()
-	//BTCPubAddr := cfg.Btc.BTCPubAddr
-	//sendToBTCinSeconds := cfg.Btc.SendToBTCinSeconds
-	//walletPassphrase := cfg.Btc.WalletPassphrase
 	certHomePath := cfg.Btc.CertHomePath
 	rpcClientHost := cfg.Btc.RpcClientHost
 	rpcClientEndpoint := cfg.Btc.RpcClientEndpoint
 	rpcClientUser := cfg.Btc.RpcClientUser
 	rpcClientPass := cfg.Btc.RpcClientPass
-	//btcTransFee	:= cfg.Btc.BtcTransFee
 	certHomePathBtcd := cfg.Btc.CertHomePathBtcd
 	rpcBtcdHost := cfg.Btc.RpcBtcdHost
 
@@ -524,23 +462,6 @@ func shutdown() {
 	// terminates the process with Ctrl+C).
 	wclient.WaitForShutdown()
 	dclient.WaitForShutdown()
-}
-
-func saveDBMerkleRoottoBTC(dbInfo *common.DBInfo) {
-
-	txHash, err := writeToBTC(dbInfo.DBMerkleRoot.Bytes)
-	if err != nil {
-		failedMerkles = append(failedMerkles, dbInfo.DBMerkleRoot)
-		fmt.Println("failed to record ", dbInfo.DBMerkleRoot.Bytes, " to BTC: ", err.Error())
-	}
-
-	//convert btc tx hash to factom hash, and update dbInfo
-	dbInfo.BTCTxHash = toHash(txHash)
-	//put dbInfo in the map for btc callback
-	//dbInfoMap[dbInfo.DBHash.String()] = dbInfo
-
-	fmt.Print("Recorded Direcory Block merkle root in BTC tx hash:\n", txHash, "\nconverted hash: ", dbInfo.BTCTxHash.String(), "\n")
-
 }
 
 func toHash(txHash *wire.ShaHash) *common.Hash {
