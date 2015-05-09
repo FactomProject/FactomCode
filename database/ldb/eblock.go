@@ -190,32 +190,6 @@ func (db *LevelDb) FetchChainByHash(chainID *common.Hash) (chain *common.EChain,
 	return chain, nil
 }
 
-// FetchChainIDByName gets a chainID by chain name
-func (db *LevelDb) FetchChainIDByName(chainName [][]byte) (chainID *common.Hash, err error) {
-	db.dbLock.Lock()
-	defer db.dbLock.Unlock()
-
-	chainID, err = common.GetChainID(chainName)
-	if err != nil  {
-	   return nil,err
-	}
-	
-	return 
-
-}
-
-// FetchChainByName gets a chain by chain name
-func (db *LevelDb) FetchChainByName(chainName [][]byte) (chain *common.EChain, err error) {
-
-	chainID, _ := db.FetchChainIDByName(chainName)
-
-	if chainID != nil {
-		chain, _ = db.FetchChainByHash(chainID)
-	}
-	return chain, nil
-
-}
-
 // FetchAllChains get all of the cahins
 func (db *LevelDb) FetchAllChains() (chains []common.EChain, err error) {
 	db.dbLock.Lock()
@@ -237,10 +211,6 @@ func (db *LevelDb) FetchAllChains() (chains []common.EChain, err error) {
 
 	return chainSlice, err
 }
-
-
-
-
 
 // FetchAllEBlocksByChain gets all of the blocks by chain id
 func (db *LevelDb) FetchAllEBlocksByChain(chainID *common.Hash) (eBlocks *[]common.EBlock, err error) {

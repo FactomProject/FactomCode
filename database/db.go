@@ -42,9 +42,6 @@ type Db interface {
 	// FetchEBInfoByHash gets a chain by chainID
 	FetchChainByHash(chainID *common.Hash) (chain *common.EChain, err error)
 
-	// FetchChainByName gets a chain by chain name
-	FetchChainByName(chainName [][]byte) (chain *common.EChain, err error)
-
 	//FetchAllChains gets all of the chains
 	FetchAllChains() (chains []common.EChain, err error)
 
