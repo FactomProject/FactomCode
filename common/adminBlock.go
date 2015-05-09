@@ -8,10 +8,9 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	//"fmt"
 	"sync"
-	"fmt"
 )
-
 
 // Administrative Chain
 type AdminChain struct {
@@ -23,10 +22,9 @@ type AdminChain struct {
 	BlockMutex      sync.Mutex
 }
 
-
 // Administrative Block
-// This is a special block which accompanies this Directory Block. 
-// It contains the signatures and organizational data needed to validate previous and future Directory Blocks. 
+// This is a special block which accompanies this Directory Block.
+// It contains the signatures and organizational data needed to validate previous and future Directory Blocks.
 // This block is included in the DB body. It appears there with a pair of the Admin ChainID:SHA256 of the block.
 // For more details, please go to:
 // https://github.com/FactomProject/FactomDocs/blob/master/factomDataStructureDetails.md#administrative-block
@@ -36,7 +34,7 @@ type AdminBlock struct {
 	ABEntries []ABEntry //Interface
 
 	//Not Marshalized
-	ABHash     *Hash
+	ABHash *Hash
 }
 
 // Create an empty Admin Block
@@ -129,7 +127,6 @@ func (b *AdminBlock) UnmarshalBinary(data []byte) (err error) {
 	b.Header = h
 
 	data = data[h.MarshalledSize():]
-	fmt.Printf("b:%v\n", b)
 	b.ABEntries = make([]ABEntry, b.Header.EntryCount)
 	for i := uint32(0); i < b.Header.EntryCount; i++ {
 		if data[0] == TYPE_DB_SIGNATURE {
@@ -181,12 +178,11 @@ func (b *ABlockHeader) MarshalBinary() (data []byte, err error) {
 	return buf.Bytes(), err
 }
 
-
 func (b *ABlockHeader) MarshalledSize() uint64 {
 	var size uint64 = 0
 
-	size += b.ChainID.MarshalledSize()
-	size += b.PrevHash.MarshalledSize()
+	size += uint64(HASH_LENGTH)
+	size += uint64(HASH_LENGTH)
 	size += 4 // DB Height
 	size += 4 // Entry count
 	size += 4 // Body Size
@@ -199,11 +195,11 @@ func (b *ABlockHeader) UnmarshalBinary(data []byte) (err error) {
 
 	b.ChainID = new(Hash)
 	b.ChainID.UnmarshalBinary(data)
-	data = data[b.ChainID.MarshalledSize():]
+	data = data[HASH_LENGTH:]
 
 	b.PrevHash = new(Hash)
 	b.PrevHash.UnmarshalBinary(data)
-	data = data[b.PrevHash.MarshalledSize():]
+	data = data[HASH_LENGTH:]
 
 	b.DBHeight, data = binary.BigEndian.Uint32(data[0:4]), data[4:]
 
@@ -224,11 +220,21 @@ type ABEntry interface {
 
 // DB Signature Entry -------------------------
 type DBSignatureEntry struct {
-	ABEntry     	//interface
-	entryType   	byte
+	ABEntry         //interface
+	entryType       byte
 	IdentityChainID *Hash
-	PubKey			*Hash
-	PrevDBSig		[]byte	
+	PubKey          PublicKey
+	PrevDBSig       []byte
+}
+
+// Create a new DB Signature Entry
+func NewDBSignatureEntry(identityChainID *Hash, sig Signature) (e *DBSignatureEntry) {
+	e = new(DBSignatureEntry)
+	e.entryType = TYPE_DB_SIGNATURE
+	e.IdentityChainID = identityChainID
+	e.PubKey = sig.Pub
+	e.PrevDBSig = sig.Sig[:]
+	return 
 }
 
 func (e *DBSignatureEntry) Type() byte {
@@ -239,18 +245,17 @@ func (e *DBSignatureEntry) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
 
 	buf.Write([]byte{e.entryType})
-	
+
 	data, err = e.IdentityChainID.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
-	buf.Write(data)	
-	
-	data, err = e.PubKey.MarshalBinary()
+	buf.Write(data)
+
+	_, err = buf.Write(e.PubKey.Key[:])
 	if err != nil {
 		return nil, err
 	}
-	buf.Write(data)		
 
 	_, err = buf.Write(e.PrevDBSig)
 	if err != nil {
@@ -263,25 +268,25 @@ func (e *DBSignatureEntry) MarshalBinary() (data []byte, err error) {
 func (e *DBSignatureEntry) MarshalledSize() uint64 {
 	var size uint64 = 0
 	size += 1 // Type (byte)
-	size += uint64(e.IdentityChainID.MarshalledSize())
-	size += uint64(e.PubKey.MarshalledSize())
+	size += uint64(HASH_LENGTH)
+	size += uint64(HASH_LENGTH)
 	size += uint64(SIG_LENGTH)
-	
+
 	return size
 }
 
 func (e *DBSignatureEntry) UnmarshalBinary(data []byte) (err error) {
 	e.entryType, data = data[0], data[1:]
-	
+
 	e.IdentityChainID = new(Hash)
 	e.IdentityChainID.UnmarshalBinary(data)
-	data = data[e.IdentityChainID.MarshalledSize():]
-	
-	e.PubKey = new(Hash)
-	e.PubKey.UnmarshalBinary(data)
-	data = data[e.PubKey.MarshalledSize():]
-	
+	data = data[HASH_LENGTH:]
+
+	e.PubKey.Key = new([HASH_LENGTH]byte)
+	copy(e.PubKey.Key[:], data[:HASH_LENGTH])
+	data = data[HASH_LENGTH:]
+
 	e.PrevDBSig = data[:SIG_LENGTH]
-	
+
 	return nil
 }

@@ -15,7 +15,7 @@ type FactomdConfig struct {
 		DataStorePath           string // should be removed, and default to $defaultDataDir/store
 		DirectoryBlockInSeconds int
 		NodeMode                string
-		FederatedId             string
+		ServerPrivKey           string
 	}
 	Btc struct {
 		BTCPubAddr         string
@@ -67,7 +67,7 @@ DataStorePath			= "/tmp/store/seed/"
 DirectoryBlockInSeconds	= 60
 ;---- NodeMode - FULL,SERVER,LIGHT -----
 NodeMode				= FULL
-FederatedId				= "5706d2ebbc0e1dc7fb1df24d0b6fc6f2b3b35bb04ec316c4683c2"
+ServerPrivKey			= ""
 
 [btc]
 BTCPubAddr				= "movaFTARmsaTMk3j71MpX8HtMURpsKhdra"

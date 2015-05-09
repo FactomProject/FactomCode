@@ -77,8 +77,8 @@ type DBEntry struct {
 	ChainID    *Hash
 
 	// not marshalllized
-	hash   *Hash  // to be removed??
-	status int8 //for future use??
+	hash   *Hash // to be removed??
+	status int8  //for future use??
 }
 
 func NewDBEntry(eb *EBlock) *DBEntry {
@@ -157,13 +157,13 @@ func (e *DBEntry) MarshalBinary() (data []byte, err error) {
 
 func (e *DBEntry) UnmarshalBinary(data []byte) (err error) {
 	e.ChainID = new(Hash)
-	err = e.ChainID.UnmarshalBinary(data[:33])
+	err = e.ChainID.UnmarshalBinary(data[:HASH_LENGTH])
 	if err != nil {
 		return
 	}
 
 	e.MerkleRoot = new(Hash)
-	err = e.MerkleRoot.UnmarshalBinary(data[33:])
+	err = e.MerkleRoot.UnmarshalBinary(data[HASH_LENGTH:])
 	if err != nil {
 		return
 	}
@@ -223,9 +223,9 @@ func (b *DBlockHeader) MarshalledSize() uint64 {
 	var size uint64 = 0
 	size += 1
 	size += 4
-	size += b.BodyMR.MarshalledSize()
-	size += b.PrevKeyMR.MarshalledSize()
-	size += b.PrevBlockHash.MarshalledSize()
+	size += uint64(HASH_LENGTH)
+	size += uint64(HASH_LENGTH)
+	size += uint64(HASH_LENGTH)
 	size += 4 //db height
 	size += 8 //start time
 	size += 4
@@ -241,15 +241,15 @@ func (b *DBlockHeader) UnmarshalBinary(data []byte) (err error) {
 
 	b.BodyMR = new(Hash)
 	b.BodyMR.UnmarshalBinary(data)
-	data = data[b.BodyMR.MarshalledSize():]
+	data = data[HASH_LENGTH:]
 
 	b.PrevKeyMR = new(Hash)
 	b.PrevKeyMR.UnmarshalBinary(data)
-	data = data[b.PrevKeyMR.MarshalledSize():]
+	data = data[HASH_LENGTH:]
 
 	b.PrevBlockHash = new(Hash)
 	b.PrevBlockHash.UnmarshalBinary(data)
-	data = data[b.PrevBlockHash.MarshalledSize():]
+	data = data[HASH_LENGTH:]
 
 	b.BlockHeight, data = binary.BigEndian.Uint32(data[0:4]), data[4:]
 
@@ -333,8 +333,8 @@ func (c *DChain) AddABlockToDBEntry(b *AdminBlock) (err error) {
 
 	c.BlockMutex.Lock()
 	// Ablock is always at the first entry
-	// First three entries are ABlock, CBlock, FBlock		
-	c.NextBlock.DBEntries[0] = dbEntry 
+	// First three entries are ABlock, CBlock, FBlock
+	c.NextBlock.DBEntries[0] = dbEntry
 	c.BlockMutex.Unlock()
 
 	return nil
@@ -360,8 +360,8 @@ func (c *DChain) AddFBlockMRToDBEntry(dbEntry *DBEntry) (err error) {
 	}
 	c.BlockMutex.Lock()
 	// Factoid entry is alwasy at the same position
-	// First three entries are ABlock, CBlock, FBlock	
-	c.NextBlock.DBEntries[2] = dbEntry 
+	// First three entries are ABlock, CBlock, FBlock
+	c.NextBlock.DBEntries[2] = dbEntry
 	c.BlockMutex.Unlock()
 
 	return nil
@@ -501,25 +501,13 @@ func (b *DBInfo) MarshalBinary() (data []byte, err error) {
 	return buf.Bytes(), err
 }
 
-func (b *DBInfo) MarshalledSize() uint64 {
-	var size uint64 = 0
-	size += 33 //DBHash
-	size += 33 //BTCTxHash
-	size += 4  //BTCTxOffset
-	size += 4  //BTCBlockHeight
-	size += 33 //BTCBlockHash
-	size += 33 //DBMerkleRoot
-
-	return size
-}
-
 func (b *DBInfo) UnmarshalBinary(data []byte) (err error) {
 	b.DBHash = new(Hash)
-	b.DBHash.UnmarshalBinary(data[:33])
+	b.DBHash.UnmarshalBinary(data[:HASH_LENGTH])
 
 	b.BTCTxHash = new(Hash)
-	b.BTCTxHash.UnmarshalBinary(data[:33])
-	data = data[33:]
+	b.BTCTxHash.UnmarshalBinary(data[:HASH_LENGTH])
+	data = data[HASH_LENGTH:]
 
 	b.BTCTxOffset = int(binary.BigEndian.Uint32(data[:4]))
 	data = data[4:]
@@ -528,10 +516,10 @@ func (b *DBInfo) UnmarshalBinary(data []byte) (err error) {
 	data = data[4:]
 
 	b.BTCBlockHash = new(Hash)
-	b.BTCBlockHash.UnmarshalBinary(data[:33])
+	b.BTCBlockHash.UnmarshalBinary(data[:HASH_LENGTH])
 
 	b.DBMerkleRoot = new(Hash)
-	b.DBMerkleRoot.UnmarshalBinary(data[:33])
+	b.DBMerkleRoot.UnmarshalBinary(data[:HASH_LENGTH])
 
 	return nil
 }

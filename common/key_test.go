@@ -2,6 +2,7 @@ package common
 
 import (
 	"testing"
+	"encoding/hex"
 )
 
 func TestGenerateKey(t *testing.T) {
@@ -17,10 +18,13 @@ func TestGenerateKey(t *testing.T) {
 	}
 	t.Logf("PrivateKey: %v", priv.Key)
 
+	t.Logf("PrivateKey-Hex: %v", 	hex.EncodeToString((*priv.Key)[:]))
+	
 	if priv.Pub.Key == nil {
 		t.Fatalf("bad Pub.Key")
 	}
 	t.Logf("Pub.Key: %v", priv.Pub.Key)
+	t.Logf("Pub.Key - Hex: %v", hex.EncodeToString((*priv.Pub.Key)[:]))
 }
 
 func TestSign(t *testing.T) {

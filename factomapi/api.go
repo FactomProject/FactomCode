@@ -12,7 +12,7 @@ import (
 	"sort"
 	"strings"
 	"time"
-
+	"errors"
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/util"
@@ -330,24 +330,29 @@ func RevealEntry(e *Entry) error {
 }
 */
 // CommitChain sends a message to the factom network containing a series of
-// hashes to be used to verify the later RevealChain.
-func CommitChain(c *common.EChain) error {
+// It takes the first Entry of the chain and build the commintChain message
+func CommitChain(e *common.Entry) error {
 	util.Trace()
 	var buf bytes.Buffer
 
-	// Calculate the required credits
-	bChain, _ := c.MarshalBinary()
-	credits := uint32(binary.Size(bChain)/1000+1) + creditsPerChain
+	// Check if this is the first entry of the chain
+	chainid, _ := e.GenerateIDFromName()
+	if chainid == nil || !chainid.IsSameAs(e.ChainID) {
+		errors.New("The chain names in the first entry do not match with its chain id: " + e.ChainID.String())
+	}
 
-	binaryEntry, _ := c.FirstEntry.MarshalBinary()
+	binaryEntry, _ := e.MarshalBinary()
 	entryHash := common.Sha(binaryEntry)
+	
+	// Calculate the required credits
+	credits := uint32(binary.Size(binaryEntry)/1000+1) + creditsPerChain
 
-	entryChainIDHash := common.Sha(append(c.ChainID.Bytes, entryHash.Bytes...))
+	entryChainIDHash := common.Sha(append(e.ChainID.Bytes, entryHash.Bytes...))
 
 	// Create a msg signature (timestamp + chainid + entry hash + entryChainIDHash + credits)
 	timestamp := uint64(time.Now().Unix())
 	binary.Write(&buf, binary.BigEndian, timestamp)
-	buf.Write(c.ChainID.Bytes)
+	buf.Write(e.ChainID.Bytes)
 	buf.Write(entryHash.Bytes)
 	buf.Write(entryChainIDHash.Bytes)
 	binary.Write(&buf, binary.BigEndian, credits)
@@ -355,7 +360,7 @@ func CommitChain(c *common.EChain) error {
 
 	//Construct a msg and add it to the msg queue
 	msgCommitChain := wire.NewMsgCommitChain()
-	msgCommitChain.ChainID = c.ChainID
+	msgCommitChain.ChainID = e.ChainID
 	msgCommitChain.Credits = credits
 	msgCommitChain.ECPubKey = new(common.Hash)
 	msgCommitChain.ECPubKey.Bytes = (*sig.Pub.Key)[:]
@@ -372,11 +377,11 @@ func CommitChain(c *common.EChain) error {
 // RevealChain sends a message to the factom network containing the binary
 // encoded first entry for a chain to be used by the server to add a new factom
 // chain. It will be rejected if a CommitChain was not done.
-func RevealChain(c *common.EChain) error {
+func RevealChain(e *common.Entry) error {
 
 	//Construct a msg and add it to the msg queue
 	msgRevealChain := wire.NewMsgRevealChain()
-	msgRevealChain.Chain = c
+	msgRevealChain.FirstEntry = e
 
 	inMsgQueue <- msgRevealChain
 

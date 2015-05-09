@@ -27,22 +27,20 @@ const (
 	TBL_ENTRY uint8 = iota
 
 	TBL_EB       //1
-	TBL_EB_INFO  //2
 	TBL_EB_CHAIN_NUM 
 	TBL_EB_MR
 
-	TBL_DB //5
+	TBL_DB //4
 	TBL_DB_NUM
 	TBL_DB_INFO
 
-	TBL_CHAIN_HASH //8
-	TBL_CHAIN_NAME
+	TBL_CHAIN_HASH //7
 
-	TBL_CB //10
+	TBL_CB //8
 	TBL_CB_NUM
 	TBL_CB_MR
 	
-	TBL_AB //15
+	TBL_AB //11
 	TBL_AB_NUM
 )
 

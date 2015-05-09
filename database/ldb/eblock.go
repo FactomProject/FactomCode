@@ -66,23 +66,6 @@ func (db *LevelDb) ProcessEBlockBatch(eblock *common.EBlock) error {
 	return nil
 }
 
-// FetchEBInfoByHash gets an EBInfo obj
-func (db *LevelDb) FetchEBInfoByHash(ebHash *common.Hash) (ebInfo *common.EBInfo, err error) {
-	db.dbLock.Lock()
-	defer db.dbLock.Unlock()
-
-	var key []byte = []byte{byte(TBL_EB_INFO)}
-	key = append(key, ebHash.Bytes...)
-	data, err := db.lDb.Get(key, db.ro)
-
-	if data != nil {
-		ebInfo = new(common.EBInfo)
-		ebInfo.UnmarshalBinary(data)
-	}
-
-	return ebInfo, nil
-}
-
 // FetchEBlockByMR gets an entry block by merkle root from the database.
 func (db *LevelDb) FetchEBlockByMR(eBMR *common.Hash) (eBlock *common.EBlock, err error) {
 	eBlockHash, _ := db.FetchEBHashByMR(eBMR)
@@ -111,7 +94,8 @@ func (db *LevelDb) FetchEBlockByHash(eBlockHash *common.Hash) (eBlock *common.EB
 }
 
 // FetchEBlockByHeight gets an entry block by height from the database.
-func (db *LevelDb) FetchEBlockByHeight(chainID * common.Hash, eBlockHeight uint32) (eBlock *common.EBlock, err error) {
+// Need to rewrite since only the cross ref is stored in db ??
+/*func (db *LevelDb) FetchEBlockByHeight(chainID * common.Hash, eBlockHeight uint32) (eBlock *common.EBlock, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -128,7 +112,7 @@ func (db *LevelDb) FetchEBlockByHeight(chainID * common.Hash, eBlockHeight uint3
 	}
 	return eBlock, nil
 }
-
+*/
 
 // FetchEBHashByMR gets an entry by hash from the database.
 func (db *LevelDb) FetchEBHashByMR(eBMR *common.Hash) (eBlockHash *common.Hash, err error) {
@@ -140,10 +124,8 @@ func (db *LevelDb) FetchEBHashByMR(eBMR *common.Hash) (eBlockHash *common.Hash, 
 	data, err := db.lDb.Get(key, db.ro)
 
 	if data != nil {
-		log.Println("data:%v", data)
 		eBlockHash = new(common.Hash)
 		eBlockHash.UnmarshalBinary(data)
-		log.Println("eBlockHash:%v", eBlockHash.Bytes)
 	}
 	return eBlockHash, nil
 }
@@ -244,40 +226,6 @@ func (db *LevelDb) FetchAllEBlocksByChain(chainID *common.Hash) (eBlocks *[]comm
 	err = iter.Error()
 
 	return &eBlockSlice, nil
-}
-
-// FetchAllEBInfosByChain gets all of the entry block infos by chain id
-func (db *LevelDb) FetchAllEBInfosByChain(chainID *common.Hash) (eBInfos *[]common.EBInfo, err error) {
-	db.dbLock.Lock()
-	defer db.dbLock.Unlock()
-
-	var fromkey []byte = []byte{byte(TBL_EB_CHAIN_NUM)} // Table Name (1 bytes)
-	fromkey = append(fromkey, []byte(chainID.Bytes)...) // Chain Type (32 bytes)
-	var tokey []byte = addOneToByteArray(fromkey)
-
-	eBInfoSlice := make([]common.EBInfo, 0, 10)
-
-	iter := db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
-
-	for iter.Next() {
-		eBlockHash := new(common.Hash)
-		eBlockHash.Bytes = make([]byte, len(iter.Value()))
-		copy(eBlockHash.Bytes, iter.Value())
-
-		var key []byte = []byte{byte(TBL_EB_INFO)}
-		key = append(key, eBlockHash.Bytes...)
-		data, _ := db.lDb.Get(key, db.ro)
-
-		if data != nil {
-			eBInfo := new(common.EBInfo)
-			eBInfo.UnmarshalBinary(data)
-			eBInfoSlice = append(eBInfoSlice, *eBInfo)
-		}
-	}
-	iter.Release()
-	err = iter.Error()
-
-	return &eBInfoSlice, nil
 }
 
 // Internal db use only

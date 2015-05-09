@@ -451,23 +451,11 @@ func handleSubmitChain(ctx *web.Context) {
 	log.Debug("handleSubmitChain")
 	switch ctx.Params["format"] {
 	case "json":
-		reader := gocoding.ReadBytes([]byte(ctx.Params["chain"]))
-		c := new(common.EChain)
-		factomapi.SafeUnmarshal(reader, c)
+		reader := gocoding.ReadBytes([]byte(ctx.Params["firstentry"]))
+		e := new(common.Entry)
+		factomapi.SafeUnmarshal(reader, e)
 
-		if c.FirstEntry == nil {
-			fmt.Fprintln(ctx,
-				"The first entry is required for submitting the chain:")
-			log.Warning("The first entry is required for submitting the chain")
-			return
-		} else {
-            c.FirstEntry.GenerateIDFromName()
-            c.ChainID = c.FirstEntry.ChainID
-		}
-
-		log.Debug("c.ChainID:", c.ChainID.String())
-
-		if err := factomapi.CommitChain(c); err != nil {
+		if err := factomapi.CommitChain(e); err != nil {
 			fmt.Fprintln(ctx,
 				"there was a problem with submitting the chain:", err)
 			log.Error(err)
@@ -475,7 +463,7 @@ func handleSubmitChain(ctx *web.Context) {
 
 		time.Sleep(1 * time.Second)
 
-		if err := factomapi.RevealChain(c); err != nil {
+		if err := factomapi.RevealChain(e); err != nil {
 			fmt.Println(err.Error())
 			fmt.Fprintln(ctx,
 				"there was a problem with submitting the chain:", err)

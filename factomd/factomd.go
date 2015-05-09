@@ -29,7 +29,6 @@ var (
 	outCtlMsgQueue  = make(chan wire.FtmInternalMsg, 100) //outgoing message queue for factom application messages
 	doneFBlockQueue = make(chan wire.FtmInternalMsg)      //incoming message queue for factoid component to send MR
 	//	inRpcQueue      = make(chan wire.Message, 100) //incoming message queue for factom application messages
-	federatedid string
 )
 
 // winServiceMain is only invoked on Windows.  It detects when btcd is running
@@ -104,7 +103,6 @@ func loadConfigurations() {
 	cfg = util.ReadConfig()
 
 	ldbpath = cfg.App.LdbPath
-	federatedid = cfg.App.FederatedId
 	btcd.LoadConfigurations(cfg)
 
 	fmt.Println("CHECK cfg= ", cfg)
