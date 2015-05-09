@@ -62,7 +62,8 @@ func NewCommitEntry(d []byte) (err error) {
 	if err != nil {
 		return err
 	} else if cred > 10 {
-		fmt.Errorf("Cannot commit Entry over 10 Entry Credits: got %d\n", cred)
+		return fmt.Errorf(
+			"Cannot commit Entry over 10 Entry Credits: got %d\n", cred)
 	}
 	fmt.Println("cred:", cred)
 	
@@ -72,6 +73,15 @@ func NewCommitEntry(d []byte) (err error) {
 	
 	// 64 byte Signature
 	copy(sig[:], buf.Next(64))
-	fmt.Printf("sig: %x\n", *sig)	
+	fmt.Printf("sig: %x\n", *sig)
+
+	msgCommitEntry := wire.NewMsgCommitEntry()
+	msgCommitEntry.Credits = uint32(cred)
+	msgCommitEntry.ECPubKey.Bytes = pubkey[:]
+	msgCommitEntry.EntryHash = ehash
+	msgCommitEntry.Sig = sig[:]
+	msgCommitEntry.Timestamp = // TODO mtime does not match this type
+	inMsgQueue <- msgCommitEntry
+
 	return nil
 }

@@ -6,6 +6,7 @@ package common
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
 )
@@ -13,56 +14,80 @@ import (
 // An Entry is the element which carries user data
 // https://github.com/FactomProject/FactomDocs/blob/master/factomDataStructureDetails.md#entry
 type Entry struct {
-	Version     uint8  // 1
-	ChainID     *Hash  // 33
-	ExIDSize    uint16 // 2
-	PayloadSize uint16 // 2 Total of 38 bytes // to be changed to 37??
-	ExtIDs      [][]byte
-	Data        []byte
+	Version uint8
+	ChainID *Hash
+	ExtIDs  [][]byte
+	Content []byte
+}
+
+// NewChainID generates a ChainID from an entry. ChainID = Sha(Sha(ExtIDs[0]) +
+// Sha(ExtIDs[1] + ... + Sha(ExtIDs[n]))
+func NewChainID(e *Entry) *Hash {
+	id := new(Hash)
+	sum := sha256.New()
+	for _, v := range e.ExtIDs {
+		x := sha256.Sum256(v)
+		sum.Write(x[:])
+	}
+	copy(id.Bytes, sum.Sum(nil))
+
+	return id
 }
 
 func (e *Entry) MarshalBinary() ([]byte, error) {
-	var buf bytes.Buffer
+	buf := new(bytes.Buffer)
 
-	// Write Version
-	binary.Write(&buf, binary.BigEndian, e.Version)
-
-	// Write ChainID
-	data, err := e.ChainID.MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-	buf.Write(data)
-
-	// First compute the ExIDSize
-	var exIDSize uint16
-
-	for _, exId := range e.ExtIDs {
-		exIDSize += 2 // Add 2 for the length
-		exIDSize += uint16(len(exId))
+	// 1 byte Version
+	if err := binary.Write(buf, binary.BigEndian, e.Version); err != nil {
+		return buf.Bytes(), err
 	}
 
-	// Write ExIDSize
-	binary.Write(&buf, binary.BigEndian, exIDSize)
-
-	// Write the Payload Size
-	var payloadsize uint16
-	payloadsize = uint16(len(e.Data)) + exIDSize
-	if payloadsize > MAX_ENTRY_SIZE {
-		return nil, fmt.Errorf("Size of entry exceeds Entry Size Limit, i.e ", payloadsize, " > ", MAX_ENTRY_SIZE)
-	}
-	binary.Write(&buf, binary.BigEndian, payloadsize)
-
-	// Write out the External IDs
-	for _, exId := range e.ExtIDs {
-		var size uint16
-		size = uint16(len(exId))
-		binary.Write(&buf, binary.BigEndian, size)
-		buf.Write(exId)
+	// 32 byte ChainID
+	if _, err := buf.Write(e.ChainID.Bytes); err != nil {
+		return buf.Bytes(), err
 	}
 
-	// Write out the Data
-	buf.Write(e.Data)
+	// ExtIDs
+	if ext, err := e.MarshalExtIDsBinary(); err != nil {
+		return buf.Bytes(), err
+	} else {
+		// 2 byte size of ExtIDs
+		if err := binary.Write(buf, binary.BigEndian, int16(len(ext)));
+			err != nil {
+			return buf.Bytes(), err
+		}
+
+		// binary ExtIDs
+		if _, err := buf.Write(ext); err != nil {
+			return buf.Bytes(), err
+		}
+	}
+
+	// Content
+	if _, err := buf.Write(e.Content); err != nil {
+		return buf.Bytes(), err
+	}
+
+	return buf.Bytes(), nil
+}
+
+// MarshalExtIDsBinary marshals the ExtIDs into a []byte containing a series of
+// 2 byte size of each ExtID followed by the ExtID.
+func (e *Entry) MarshalExtIDsBinary() ([]byte, error) {
+	buf := new(bytes.Buffer)
+
+	for _, x := range e.ExtIDs {
+		// 2 byte size of the ExtID
+		if err := binary.Write(buf, binary.BigEndian, uint16(len(x)));
+			err != nil {
+			return buf.Bytes(), err
+		}
+
+		// ExtID bytes
+		if _, err := buf.Write(x); err != nil {
+			return buf.Bytes(), err
+		}
+	}
 
 	return buf.Bytes(), nil
 }
@@ -84,17 +109,13 @@ func (e *Entry) UnmarshalBinary(d []byte) (err error) {
 	}
 
 	// 2 byte size of ExtIDs
-	if err := binary.Read(buf, binary.BigEndian, &e.ExIDSize); err != nil {
+	var extSize uint16
+	if err := binary.Read(buf, binary.BigEndian, &extSize); err != nil {
 		return err
 	}
 
-	// 2 byte size of the Payload
-	if err := binary.Read(buf, binary.BigEndian, &e.PayloadSize); err != nil {
-		return err
-	}
-
-	// unmarshal the extids
-	for i := e.ExIDSize; i > 0; {
+	// ExtIDs
+	for i := extSize; i > 0; {
 		var xsize int16
 		binary.Read(buf, binary.BigEndian, &xsize)
 		i -= 2
@@ -112,29 +133,8 @@ func (e *Entry) UnmarshalBinary(d []byte) (err error) {
 		}
 	}
 
-	// content
-	e.Data = buf.Bytes()
+	// Content
+	e.Content = buf.Bytes()
 
 	return nil
-}
-
-func GetChainID(chainName [][]byte) (chainID *Hash, err error) {
-	byteSlice := make([]byte, 0, 64)
-
-	if len(chainName) == 0 {
-		err = fmt.Errorf("Some name is required to create a ChainID")
-		return nil, err
-	}
-
-	for _, bytes := range chainName {
-		byteSlice = append(byteSlice, Sha(bytes).Bytes...)
-	}
-	chainID = Sha(byteSlice)
-	return chainID, nil
-}
-
-// To generate a chain id (hash) from a binary array name
-// The algorithm is chainID = Sha(Sha(Name[0]) + Sha(Name[1] + ... + Sha(Name[n])
-func (b *Entry) GenerateIDFromName() (chainID *Hash, err error) {
-	return GetChainID(b.ExtIDs)
 }
