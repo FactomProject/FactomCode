@@ -447,7 +447,7 @@ type ECBalance struct {
 
 func NewPayEntryCBEntry(pubKey *Hash, entryHash *Hash, credits int32,
 	timeStamp int64, sig []byte) *PayEntryCBEntry {
-	e := &PayEntryCBEntry{}
+	e := new(PayEntryCBEntry)
 	e.publicKey = pubKey
 	e.entryType = TYPE_PAY_ENTRY
 	e.credits = credits
