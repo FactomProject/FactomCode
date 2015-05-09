@@ -12,6 +12,11 @@ import (
 	ed "github.com/agl/ed25519"
 )
 
+const (
+	// CommitEntrySize = 1 + 6 + 32 + 1 + 32 + 64
+	CommitEntrySize int = 136
+)
+
 type CommitEntry struct {
 	Version   uint8
 	MilliTime *[6]byte

@@ -71,9 +71,9 @@ func CreateCBlock(chain *CChain, prev *CBlock, cap uint) (b *CBlock, err error) 
 	return b, err
 }
 
+// BuildMerkleRoot creates the Entry Block Key Merkle Root from the hash of the
+// Header and the Body Merkle Root.
 func (b *CBlock) BuildMerkleRoot() (err error) {
-
-	// Create the Entry Block Key Merkle Root from the hash of Header and the Body Merkle Root
 	hashes := make([]*Hash, 0, 2)
 	binaryEBHeader, _ := b.Header.MarshalBinary()
 	hashes = append(hashes, Sha(binaryEBHeader))
@@ -85,7 +85,6 @@ func (b *CBlock) BuildMerkleRoot() (err error) {
 }
 
 func (b *CBlock) BuildCBHash() (err error) {
-
 	binaryEB, _ := b.MarshalBinary()
 	b.CBHash = Sha(binaryEB)
 
