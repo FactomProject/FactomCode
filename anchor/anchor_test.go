@@ -1,21 +1,33 @@
 package anchor
 
 import (
-	//	"fmt"
-	//"reflect"
-	//"testing"
-
 	"bytes"
 	"fmt"
+	"log"
+	"reflect"
 	"testing"
 	"time"
 
+	"github.com/btcsuitereleases/btcd/btcjson/v2/btcjson"
 	"github.com/btcsuitereleases/btcd/wire"
 	"github.com/btcsuitereleases/btcutil"
 	"github.com/davecgh/go-spew/spew"
 )
 
-/*
+// the spentResult is the one showing up in ListSpent()
+// but is already spent in blockexploer
+// it's a bug in btcwallet
+var spentResult = btcjson.ListUnspentResult{
+	TxID:          "1a3450d99659d5b704d89c26d56082a0f13ba2a275fdd9ffc0ec4f42c88fe857",
+	Vout:          0xb,
+	Address:       "mvwnVraAK1VKRcbPgrSAVZ6E5hkqbwRxCy",
+	Account:       "",
+	ScriptPubKey:  "76a914a93c1baaaeae1b30688edab5e927fb2bfc794cae88ac",
+	RedeemScript:  "",
+	Amount:        1,
+	Confirmations: 28247,
+}
+
 func TestPrependBlockHeight(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping test in short mode.")
@@ -72,17 +84,6 @@ func TestPrependBlockHeight(t *testing.T) {
 		fmt.Printf("%x\n", r5)
 	}
 }
-*/
-
-func init() {
-	err := initRPCClient()
-	if err != nil {
-		fmt.Println(err.Error())
-	}
-	if err := initWallet(); err != nil {
-		fmt.Println(err.Error())
-	}
-}
 
 func TestWallet(t *testing.T) {
 	accountMap, err := wclient.ListAccounts()
@@ -91,13 +92,7 @@ func TestWallet(t *testing.T) {
 	}
 	fmt.Println("account & balance: ", spew.Sdump(accountMap))
 	fmt.Println("wallet account map len = ", len(accountMap))
-	/*
-		if accountMap[""] <= 0 {
-			t.Errorf("wallet account name is not empty")
-		}
-		if len(accountMap) != 1 {
-			t.Errorf("wallet account map len =%d, is not empty", len(accountMap))
-		}*/
+
 	allAddr := make([]btcutil.Address, 0, 1000)
 	for key := range accountMap {
 		addresses, err := wclient.GetAddressesByAccount(key)
@@ -108,9 +103,7 @@ func TestWallet(t *testing.T) {
 		allAddr = append(allAddr, addresses...)
 	}
 	fmt.Println("allAddr.len=", len(allAddr))
-	//if len(allAddr) != 268 {
-	//t.Errorf("allAddr.len=%d, NOT 268", len(allAddr))
-	//}
+
 	var i int
 	ca := make([]btcutil.Address, 1)
 	for _, a := range allAddr {
@@ -129,9 +122,6 @@ func TestWallet(t *testing.T) {
 		}
 	}
 	fmt.Println("num of addresses with balance=", i)
-	//if i != 87 {
-	//t.Errorf("num of addresses with balance=%d, NOT 87", i)
-	//}
 }
 
 func TestListUnspent(t *testing.T) {
@@ -140,9 +130,7 @@ func TestListUnspent(t *testing.T) {
 		t.Fatal(err)
 	}
 	fmt.Printf("test.listunspent.len==%d\n", len(balance))
-	//if len(balance) != 93 {
-	//t.Errorf("test.listunspent.len==%d, NOT 93", len(balance))
-	//}
+
 	var i int
 	for _, b := range balance {
 		if b.Amount > float64(0.0001) {
@@ -151,9 +139,7 @@ func TestListUnspent(t *testing.T) {
 		}
 	}
 	fmt.Printf("qualified unspent len==%d\n", i)
-	//if i != 21 {
-	//t.Errorf("qualified unspent len==%d, NOT 21", i)
-	//}
+
 	var included bool
 	for _, b := range balance {
 		if compareUnspentResult(spentResult, b) {
@@ -183,23 +169,17 @@ func TestUnconfirmedSpent(t *testing.T) {
 		}
 	}
 	fmt.Println("Unconfirmed unspent len=", len(b2))
-	//if len(b2) != 4 {
-	//t.Errorf("Unconfirmed unspent len=%d, NOT 4", len(b2))
-	//}
+
 	var sum float64
 	for i := 0; i < len(b2); i++ {
 		sum += b2[i].Amount
 	}
 	fmt.Println("Unconfirmed unspent sum = ", sum)
-	// the same as unconfirmed balance in OnAccountBalance call back
-	//if sum != 1.9936741999999998 {
-	//t.Errorf("Unconfirmed unspent sum = %f, not 1.9936742", sum)
-	//}
 }
 
 func TestRepeatedSpending(t *testing.T) {
 	for i := 0; i < 10; i++ {
-		hash, err := writeToBTC([]byte{byte(i)})
+		hash, err := writeToBTC([]byte{byte(i)}, uint64(10))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -218,4 +198,17 @@ func TestToHash(t *testing.T) {
 	fmt.Println("txHash=", txHash.String(), ", toHash=", h.String())
 	fmt.Println("equal in string: ", txHash.String() == h.String())
 	fmt.Println("equal in bytes: ", bytes.Compare(txHash.Bytes(), h.Bytes))
+}
+
+func writeToBTC(bytes []byte, blockHeight uint64) (*wire.ShaHash, error) {
+	for attempts := 0; attempts < maxTrials; attempts++ {
+		txHash, err := SendRawTransactionToBTC(bytes, blockHeight)
+		if err != nil {
+			log.Printf("Attempt %d to send raw tx to BTC failed: %s\n", attempts, err)
+			time.Sleep(time.Duration(attempts*20) * time.Second)
+			continue
+		}
+		return txHash, nil
+	}
+	return nil, fmt.Errorf("Fail to write hash %s to BTC. ", bytes)
 }
