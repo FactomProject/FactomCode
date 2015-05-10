@@ -85,7 +85,7 @@ func (b *AdminBlock) AddABEntry(e ABEntry) (err error) {
 func (b *AdminBlock) AddEndOfMinuteMarker(eomType byte) (err error) {
 
 	eOMEntry := &EndOfMinuteEntry{
-		entryType: TYPE_MINUTE_NUMBER,
+		entryType: TYPE_MINUTE_NUM,
 		EOM_Type:  eomType}
 
 	b.AddABEntry(eOMEntry)
@@ -131,7 +131,7 @@ func (b *AdminBlock) UnmarshalBinary(data []byte) (err error) {
 	for i := uint32(0); i < b.Header.EntryCount; i++ {
 		if data[0] == TYPE_DB_SIGNATURE {
 			b.ABEntries[i] = new(DBSignatureEntry)
-		} else if data[0] == TYPE_MINUTE_NUMBER {
+		} else if data[0] == TYPE_MINUTE_NUM {
 			b.ABEntries[i] = new(EndOfMinuteEntry)
 		}
 		err = b.ABEntries[i].UnmarshalBinary(data)
