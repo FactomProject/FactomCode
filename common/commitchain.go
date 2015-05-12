@@ -13,22 +13,24 @@ import (
 )
 
 const (
-	// CommitEntrySize = 1 + 6 + 32 + 1 + 32 + 64
-	CommitEntrySize int = 136
+	// CommitChainSize = 1 + 6 + 32 + 32 + 32 + 1 + 32 + 64
+	CommitChainSize int = 200
 )
 
-type CommitEntry struct {
-	Version   uint8
-	MilliTime *[6]byte
-	EntryHash *Hash
-	Credits   uint8
-	ECPubKey  *[32]byte
-	Sig       *[64]byte
+type CommitChain struct {
+	Version     uint8
+	MilliTime   *[6]byte
+	ChainIDHash *Hash
+	Weld        *Hash
+	EntryHash   *Hash
+	Credits     uint8
+	ECPubKey    *[32]byte
+	Sig         *[64]byte
 }
 
 // CommitMsg returns the binary marshaled message section of the CommitEntry
 // that is covered by the CommitEntry.Sig.
-func (c *CommitEntry) CommitMsg() []byte {
+func (c *CommitChain) CommitMsg() []byte {
 	p, err := c.MarshalBinary()
 	if err != nil {
 		return []byte{byte(0)}
@@ -36,11 +38,11 @@ func (c *CommitEntry) CommitMsg() []byte {
 	return p[:len(p)-64-32]
 }
 
-func (c *CommitEntry) IsValid() bool {
+func (c *CommitChain) IsValid() bool {
 	return ed.Verify(c.ECPubKey, c.CommitMsg(), c.Sig)
 }
 
-func (c *CommitEntry) MarshalBinary() ([]byte, error) {
+func (c *CommitChain) MarshalBinary() ([]byte, error) {
 	buf := new(bytes.Buffer)
 
 	// 1 byte Version
@@ -50,6 +52,12 @@ func (c *CommitEntry) MarshalBinary() ([]byte, error) {
 
 	// 6 byte MilliTime
 	buf.Write(c.MilliTime[:])
+
+	// 32 byte double sha256 hash of the ChainID
+	buf.Write(c.ChainIDHash.Bytes)
+
+	// 32 byte Commit Weld sha256(sha256(Entry Hash + ChainID))
+	buf.Write(c.Weld.Bytes)
 
 	// 32 byte Entry Hash
 	buf.Write(c.EntryHash.Bytes)
@@ -68,11 +76,11 @@ func (c *CommitEntry) MarshalBinary() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (c *CommitEntry) Type() byte {
-	return ECIDEntryCommit
+func (c *CommitChain) Type() byte {
+	return ECIDChainCommit
 }
 
-func (c *CommitEntry) UnmarshalBinary(d []byte) (err error) {
+func (c *CommitChain) UnmarshalBinary(d []byte) (err error) {
 	buf := bytes.NewBuffer(d)
 
 	// 1 byte Version
@@ -87,6 +95,20 @@ func (c *CommitEntry) UnmarshalBinary(d []byte) (err error) {
 		return fmt.Errorf("Could not read MilliTime")
 	} else {
 		copy(c.MilliTime[:], p)
+	}
+
+	// 32 byte ChainIDHash
+	if p := buf.Next(32); p == nil {
+		return fmt.Errorf("Could not read ChainIDHash")
+	} else {
+		copy(c.ChainIDHash.Bytes, p)
+	}
+
+	// 32 byte Weld
+	if p := buf.Next(32); p == nil {
+		return fmt.Errorf("Could not read Weld")
+	} else {
+		copy(c.Weld.Bytes, p)
 	}
 
 	// 32 byte Entry Hash
