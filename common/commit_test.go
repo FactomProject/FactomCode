@@ -15,6 +15,7 @@ var (
 )
 
 func TestCommitEntryMarshal(t *testing.T) {
+	fmt.Printf("TestCommitEntryMarshal\n---\n")
 	rand, _ := os.Open("/dev/random")
 	
 	ce := common.NewCommitEntry()
@@ -33,22 +34,64 @@ func TestCommitEntryMarshal(t *testing.T) {
 	ce.Credits = 1
 	
 	// make a key and sign the msg
-	pub, privkey, err := ed.GenerateKey(rand)
-	if err != nil {
+	if pub, privkey, err := ed.GenerateKey(rand); err != nil {
 		t.Error(err)
+	} else {
+		ce.ECPubKey = pub
+		ce.Sig = ed.Sign(privkey, ce.CommitMsg())
 	}
-	ce.ECPubKey = pub
-	ce.Sig = ed.Sign(privkey, ce.CommitMsg())
 	
 	// marshal and unmarshal the commit and see if it matches
-	c2 := common.NewCommitEntry()
+	ce2 := common.NewCommitEntry()
 	if p, err := ce.MarshalBinary(); err != nil {
 		t.Error(err)
 	} else {
-		c2.UnmarshalBinary(p)
+		ce2.UnmarshalBinary(p)
 	}
 	
-	if !c2.IsValid() {
+	if !ce2.IsValid() {
+		t.Errorf("signature did not match after unmarshalbinary")
+	}
+}
+
+func TestCommitChainMarshal(t *testing.T) {
+	fmt.Printf("TestCommitChainMarshal\n---\n")
+	rand, _ := os.Open("/dev/random")
+	
+	cc := common.NewCommitChain()
+
+	// test MarshalBinary on a zeroed CommitChain
+	if p, err := cc.MarshalBinary(); err != nil {
+		t.Error(err)
+	} else if z := make([]byte, 200); string(p) != string(z) {
+		t.Errorf("Marshal failed on zeroed CommitChain")
+	}
+	
+	// build a CommitChain for testing
+	cc.Version = 0
+	cc.MilliTime = &[6]byte{1, 1, 1, 1, 1, 1}
+	cc.ChainIDHash.Bytes, _ = hex.DecodeString("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+	cc.Weld.Bytes, _ = hex.DecodeString("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
+	cc.EntryHash.Bytes, _ = hex.DecodeString("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc")
+	cc.Credits = 11
+	
+	// make a key and sign the msg
+	if pub, privkey, err := ed.GenerateKey(rand); err != nil {
+		t.Error(err)
+	} else {
+		cc.ECPubKey = pub
+		cc.Sig = ed.Sign(privkey, cc.CommitMsg())
+	}
+	
+	// marshal and unmarshal the commit and see if it matches
+	cc2 := common.NewCommitChain()
+	if p, err := cc.MarshalBinary(); err != nil {
+		t.Error(err)
+	} else {
+		cc2.UnmarshalBinary(p)
+	}
+	
+	if !cc2.IsValid() {
 		t.Errorf("signature did not match after unmarshalbinary")
 	}
 }

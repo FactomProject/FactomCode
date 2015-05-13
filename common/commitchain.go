@@ -28,6 +28,19 @@ type CommitChain struct {
 	Sig         *[64]byte
 }
 
+func NewCommitChain() *CommitChain {
+	c := new(CommitChain)
+	c.Version = 0
+	c.MilliTime = new([6]byte)
+	c.ChainIDHash = NewHash()
+	c.Weld = NewHash()
+	c.EntryHash = NewHash()
+	c.Credits = 0
+	c.ECPubKey = new([32]byte)
+	c.Sig = new([64]byte)
+	return c
+}
+
 // CommitMsg returns the binary marshaled message section of the CommitEntry
 // that is covered by the CommitEntry.Sig.
 func (c *CommitChain) CommitMsg() []byte {
