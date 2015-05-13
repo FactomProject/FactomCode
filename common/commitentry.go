@@ -79,12 +79,12 @@ func (c *CommitEntry) MarshalBinary() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (c *CommitEntry) Type() byte {
+func (c *CommitEntry) ECID() byte {
 	return ECIDEntryCommit
 }
 
-func (c *CommitEntry) UnmarshalBinary(d []byte) (err error) {
-	buf := bytes.NewBuffer(d)
+func (c *CommitEntry) UnmarshalBinary(data []byte) (err error) {
+	buf := bytes.NewBuffer(data)
 
 	// 1 byte Version
 	if p, err := buf.ReadByte(); err != nil {

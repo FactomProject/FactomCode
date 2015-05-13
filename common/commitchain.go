@@ -89,12 +89,12 @@ func (c *CommitChain) MarshalBinary() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (c *CommitChain) Type() byte {
+func (c *CommitChain) ECID() byte {
 	return ECIDChainCommit
 }
 
-func (c *CommitChain) UnmarshalBinary(d []byte) (err error) {
-	buf := bytes.NewBuffer(d)
+func (c *CommitChain) UnmarshalBinary(data []byte) (err error) {
+	buf := bytes.NewBuffer(data)
 
 	// 1 byte Version
 	if p, err := buf.ReadByte(); err != nil {

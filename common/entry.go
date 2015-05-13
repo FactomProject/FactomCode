@@ -43,9 +43,7 @@ func (e *Entry) MarshalBinary() ([]byte, error) {
 	}
 
 	// 32 byte ChainID
-	if _, err := buf.Write(e.ChainID.Bytes); err != nil {
-		return buf.Bytes(), err
-	}
+	buf.Write(e.ChainID.Bytes)
 
 	// ExtIDs
 	if ext, err := e.MarshalExtIDsBinary(); err != nil {
@@ -58,15 +56,11 @@ func (e *Entry) MarshalBinary() ([]byte, error) {
 		}
 
 		// binary ExtIDs
-		if _, err := buf.Write(ext); err != nil {
-			return buf.Bytes(), err
-		}
+		buf.Write(ext)
 	}
 
 	// Content
-	if _, err := buf.Write(e.Content); err != nil {
-		return buf.Bytes(), err
-	}
+	buf.Write(e.Content)
 
 	return buf.Bytes(), nil
 }
@@ -84,26 +78,24 @@ func (e *Entry) MarshalExtIDsBinary() ([]byte, error) {
 		}
 
 		// ExtID bytes
-		if _, err := buf.Write(x); err != nil {
-			return buf.Bytes(), err
-		}
+		buf.Write(x)
 	}
 
 	return buf.Bytes(), nil
 }
 
-func (e *Entry) UnmarshalBinary(d []byte) (err error) {
-	buf := bytes.NewBuffer(d)
+func (e *Entry) UnmarshalBinary(data []byte) (err error) {
+	buf := bytes.NewBuffer(data)
 
 	// 1 byte Version
-	e.Version, err = buf.ReadByte()
-	if err != nil {
+	if x, err := buf.ReadByte(); err != nil {
 		return err
+	} else {
+		e.Version = x
 	}
 
 	// 32 byte ChainID
-	e.ChainID = new(Hash)
-	e.ChainID.Bytes = make([]byte, 32)
+	e.ChainID = NewHash()
 	if _, err := buf.Read(e.ChainID.Bytes); err != nil {
 		return err
 	}

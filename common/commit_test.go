@@ -23,7 +23,8 @@ func TestCommitEntryMarshal(t *testing.T) {
 	// test MarshalBinary on a zeroed CommitEntry
 	if p, err := ce.MarshalBinary(); err != nil {
 		t.Error(err)
-	} else if z := make([]byte, 136); string(p) != string(z) {
+	} else if z := make([]byte, common.CommitEntrySize);
+		string(p) != string(z) {
 		t.Errorf("Marshal failed on zeroed CommitEntry")
 	}
 	
@@ -64,7 +65,8 @@ func TestCommitChainMarshal(t *testing.T) {
 	// test MarshalBinary on a zeroed CommitChain
 	if p, err := cc.MarshalBinary(); err != nil {
 		t.Error(err)
-	} else if z := make([]byte, 200); string(p) != string(z) {
+	} else if z := make([]byte, common.CommitChainSize);
+		string(p) != string(z) {
 		t.Errorf("Marshal failed on zeroed CommitChain")
 	}
 	

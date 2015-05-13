@@ -7,6 +7,7 @@ package common
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 )
 
 const (
@@ -15,14 +16,24 @@ const (
 	ECIDChainCommit
 	ECIDEntryCommit
 	ECIDBalanceIncrease
+
+	// ecBlockHeaderSize 32+32+32+32+4+32+32+8
+	ecBlockHeaderSize = 204
 )
 
 // The Entry Credit Block consists of a header and a body. The body is composed
 // of primarily Commits and balance increases with minute markers and server
-// markers distributed throughout the body.
+// markers distributed throughout.
 type ECBlock struct {
 	Header *ECBlockHeader
 	Body   []ECBlockEntry
+}
+
+func NewECBlock() *ECBlock {
+	e := new(ECBlock)
+	e.Header = NewECBlockHeader()
+	e.Body = make([]ECBlockEntry, 0)
+	return e
 }
 
 func (e *ECBlock) AddEntry(n ECBlockEntry) {
@@ -45,15 +56,59 @@ func (e *ECBlock) MarshalBinary() ([]byte, error) {
 		if err != nil {
 			return buf.Bytes(), err
 		}
-		buf.WriteByte(v.Type())
+		buf.WriteByte(v.ECID())
 		buf.Write(p)
 	}
 
 	return buf.Bytes(), nil
 }
 
+func (e *ECBlock) UnmarshalBinary(data []byte) error {
+	buf := bytes.NewBuffer(data)
+	
+	// Unmarshal Header
+	if p := buf.Next(ecBlockHeaderSize); len(p) != ecBlockHeaderSize {
+		return fmt.Errorf("Entry Block is smaller than ecBlockHeaderSize")
+	} else {
+		if err := e.Header.UnmarshalBinary(p); err != nil {
+			return err
+		}
+	}
+	
+	// Unmarshal Body
+	for i := uint64(0); i < e.Header.ObjectCount; i++ {
+		if id, err := buf.ReadByte(); err != nil {
+			return err
+		} else {
+			switch id {
+			case ECIDServerIndexNumber:
+			case ECIDMinuteNumber:
+			case ECIDChainCommit:
+				x := NewCommitChain()
+				err := x.UnmarshalBinary(buf.Next(CommitChainSize))
+				if err != nil {
+					return err
+				}
+				e.AddEntry(x)
+			case ECIDEntryCommit:
+				x := NewCommitEntry()
+				err := x.UnmarshalBinary(buf.Next(CommitEntrySize))
+				if err != nil {
+					return err
+				}
+				e.AddEntry(x)
+			case ECIDBalanceIncrease:
+			default:
+				return fmt.Errorf("Unsupported ECID: %x\n", id)
+			}
+		}
+	}
+	
+	return nil
+}
+
 type ECBlockEntry interface {
-	Type() byte
+	ECID() byte
 	MarshalBinary() ([]byte, error)
 	UnmarshalBinary(data []byte) error
 }
@@ -67,6 +122,19 @@ type ECBlockHeader struct {
 	SegmentsMR    *Hash
 	BalanceCommit *Hash
 	ObjectCount   uint64
+}
+
+func NewECBlockHeader() *ECBlockHeader {
+	h := new(ECBlockHeader)
+	h.ECChainID = NewHash()
+	h.BodyHash = NewHash()
+	h.PrevKeyMR = NewHash()
+	h.PrevHash3 = NewHash()
+	h.DBHeight = 0
+	h.SegmentsMR = NewHash()
+	h.BalanceCommit = NewHash()
+	h.ObjectCount = 0
+	return h
 }
 
 func (e *ECBlockHeader) MarshalBinary() ([]byte, error) {
@@ -86,4 +154,35 @@ func (e *ECBlockHeader) MarshalBinary() ([]byte, error) {
 	}
 
 	return buf.Bytes(), nil
+}
+
+func (e *ECBlockHeader) UnmarshalBinary(data []byte) error {
+	buf := bytes.NewBuffer(data)
+	
+	if _, err := buf.Read(e.ECChainID.Bytes); err != nil {
+		return err
+	}
+	if _, err := buf.Read(e.BodyHash.Bytes); err != nil {
+		return err
+	}
+	if _, err := buf.Read(e.PrevKeyMR.Bytes); err != nil {
+		return err
+	}
+	if _, err := buf.Read(e.PrevHash3.Bytes); err != nil {
+		return err
+	}
+	if err := binary.Read(buf, binary.BigEndian, e.DBHeight); err != nil {
+		return err
+	}
+	if _, err := buf.Read(e.SegmentsMR.Bytes); err != nil {
+		return err
+	}
+	if _, err := buf.Read(e.BalanceCommit.Bytes); err != nil {
+		return err
+	}
+	if err := binary.Read(buf, binary.BigEndian, e.ObjectCount); err != nil {
+		return err
+	}
+	
+	return nil
 }
