@@ -22,7 +22,7 @@ const (
 // markers distributed throughout the body.
 type ECBlock struct {
 	Header *ECBlockHeader
-	Body []ECBlockEntry
+	Body   []ECBlockEntry
 }
 
 func (e *ECBlock) AddEntry(n ECBlockEntry) {
@@ -31,14 +31,14 @@ func (e *ECBlock) AddEntry(n ECBlockEntry) {
 
 func (e *ECBlock) MarshalBinary() ([]byte, error) {
 	buf := new(bytes.Buffer)
-	
+
 	// Header
 	if p, err := e.Header.MarshalBinary(); err != nil {
 		return buf.Bytes(), err
 	} else {
 		buf.Write(p)
 	}
-	
+
 	// Body of ECBlockEntries
 	for _, v := range e.Body {
 		p, err := v.MarshalBinary()
@@ -48,7 +48,7 @@ func (e *ECBlock) MarshalBinary() ([]byte, error) {
 		buf.WriteByte(v.Type())
 		buf.Write(p)
 	}
-	
+
 	return buf.Bytes(), nil
 }
 
@@ -71,7 +71,7 @@ type ECBlockHeader struct {
 
 func (e *ECBlockHeader) MarshalBinary() ([]byte, error) {
 	buf := new(bytes.Buffer)
-	
+
 	buf.Write(e.ECChainID.Bytes)
 	buf.Write(e.BodyHash.Bytes)
 	buf.Write(e.PrevKeyMR.Bytes)
@@ -84,6 +84,6 @@ func (e *ECBlockHeader) MarshalBinary() ([]byte, error) {
 	if err := binary.Write(buf, binary.BigEndian, e.ObjectCount); err != nil {
 		return buf.Bytes(), err
 	}
-	
+
 	return buf.Bytes(), nil
 }
