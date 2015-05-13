@@ -27,7 +27,6 @@ import (
 	"github.com/btcsuitereleases/btcutil"
 	"github.com/davecgh/go-spew/spew"
 
-	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/util"
 )
 
@@ -41,21 +40,6 @@ type balance struct {
 	address       btcutil.Address
 	wif           *btcutil.WIF
 }
-
-// failedMerkles stores to-be-written-to-btc FactomBlock Hash
-// after it failed for maxTrials attempt
-var failedMerkles []*common.Hash
-
-// maxTrials is the max attempts to writeToBTC
-const maxTrials = 3
-
-// ByAmount defines the methods needed to satisify sort.Interface to
-// sort a slice of Utxos by their amount.
-type ByAmount []btcjson.ListUnspentResult
-
-func (u ByAmount) Len() int           { return len(u) }
-func (u ByAmount) Less(i, j int) bool { return u[i].Amount < u[j].Amount }
-func (u ByAmount) Swap(i, j int)      { u[i], u[j] = u[j], u[i] }
 
 // SendRawTransactionToBTC is the main function used to anchor factom
 // dir block hash to bitcoin blockchain
@@ -358,8 +342,6 @@ func unlockWallet(timeoutSecs int64) error {
 
 func initWallet() error {
 	fee, _ = btcutil.NewAmount(cfg.Btc.BtcTransFee)
-	failedMerkles = make([]*common.Hash, 0, 100)
-
 	err := unlockWallet(int64(600))
 	if err != nil {
 		return fmt.Errorf("%s", err)
@@ -375,12 +357,7 @@ func initWallet() error {
 	if len(unspentResults) > 0 {
 		var i int
 		for _, b := range unspentResults {
-			// need to use different btcd packages and improve??
-
-			//bypass the bug in btcwallet where one unconfirmed spent
-			//is listed in unspent result
-			if b.Amount > fee.ToBTC() { //float64(0.0001) && !compareUnspentResult(spentResult, b) {
-				//fmt.Println(i, "  ", b.Amount)
+			if b.Amount > fee.ToBTC() {
 				balances = append(balances, balance{unspentResult: b})
 				i++
 			}
@@ -440,13 +417,6 @@ func registerNotifications() {
 
 }
 
-func compareUnspentResult(a, b btcjson.ListUnspentResult) bool {
-	if a.TxID == b.TxID && a.Vout == b.Vout && a.Amount == b.Amount && a.Address == b.Address {
-		return true
-	}
-	return false
-}
-
 func shutdown() {
 	// For this example gracefully shutdown the client after 10 seconds.
 	// Ordinarily when to shutdown the client is highly application
@@ -457,17 +427,11 @@ func shutdown() {
 		wclient.Shutdown()
 		dclient.Shutdown()
 	})
-	defer log.Println("Shutdown done!")
+	defer log.Println("btcsuite rpcclient and wallet client shutdown is done!")
 	// Wait until the client either shuts down gracefully (or the user
 	// terminates the process with Ctrl+C).
 	wclient.WaitForShutdown()
 	dclient.WaitForShutdown()
-}
-
-func toHash(txHash *wire.ShaHash) *common.Hash {
-	h := new(common.Hash)
-	h.SetBytes(txHash.Bytes())
-	return h
 }
 
 func prependBlockHeight(height uint64, hash []byte) ([]byte, error) {
