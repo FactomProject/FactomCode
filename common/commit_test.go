@@ -46,6 +46,7 @@ func TestCommitEntryMarshal(t *testing.T) {
 	if p, err := ce.MarshalBinary(); err != nil {
 		t.Error(err)
 	} else {
+		fmt.Printf("%x\n", p)
 		ce2.UnmarshalBinary(p)
 	}
 	
@@ -88,6 +89,7 @@ func TestCommitChainMarshal(t *testing.T) {
 	if p, err := cc.MarshalBinary(); err != nil {
 		t.Error(err)
 	} else {
+		fmt.Printf("%x\n", p)
 		cc2.UnmarshalBinary(p)
 	}
 	
