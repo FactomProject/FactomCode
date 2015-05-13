@@ -26,6 +26,17 @@ type CommitEntry struct {
 	Sig       *[64]byte
 }
 
+func NewCommitEntry() *CommitEntry {
+	c := new(CommitEntry)
+	c.Version = 0
+	c.MilliTime = new([6]byte)
+	c.EntryHash = NewHash()
+	c.Credits = 0
+	c.ECPubKey = new([32]byte)
+	c.Sig = new([64]byte)
+	return c
+}
+
 // CommitMsg returns the binary marshaled message section of the CommitEntry
 // that is covered by the CommitEntry.Sig.
 func (c *CommitEntry) CommitMsg() []byte {
