@@ -1,7 +1,6 @@
 package anchor
 
 import (
-	"bytes"
 	"fmt"
 	"log"
 	"reflect"
@@ -29,6 +28,13 @@ var spentResult = btcjson.ListUnspentResult{
 	RedeemScript:  "",
 	Amount:        1,
 	Confirmations: 28247,
+}
+
+func compareUnspentResult(a, b btcjson.ListUnspentResult) bool {
+	if a.TxID == b.TxID && a.Vout == b.Vout && a.Amount == b.Amount && a.Address == b.Address {
+		return true
+	}
+	return false
 }
 
 func TestPrependBlockHeight(t *testing.T) {
@@ -189,18 +195,6 @@ func TestRepeatedSpending(t *testing.T) {
 		fmt.Printf("repeating=%d, hash=%s\n", i, hash)
 		time.Sleep(30 * time.Second)
 	}
-}
-
-func TestToHash(t *testing.T) {
-	s := "e517043a9770aacc7406db5f2ae8b3d687ce9bca3c8f76bc0be1ed18aed7ad68"
-	txHash, err := wire.NewShaHashFromStr(s)
-	if err != nil {
-		fmt.Println(err.Error())
-	}
-	h := toHash(txHash)
-	fmt.Println("txHash=", txHash.String(), ", toHash=", h.String())
-	fmt.Println("equal in string: ", txHash.String() == h.String())
-	fmt.Println("equal in bytes: ", bytes.Compare(txHash.Bytes(), h.Bytes))
 }
 
 func writeToBTC(bytes []byte, blockHeight uint64) (*wire.ShaHash, error) {

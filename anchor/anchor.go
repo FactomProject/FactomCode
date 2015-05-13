@@ -27,7 +27,6 @@ import (
 	"github.com/btcsuitereleases/btcutil"
 	"github.com/davecgh/go-spew/spew"
 
-	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/util"
 )
 
@@ -418,13 +417,6 @@ func registerNotifications() {
 
 }
 
-func compareUnspentResult(a, b btcjson.ListUnspentResult) bool {
-	if a.TxID == b.TxID && a.Vout == b.Vout && a.Amount == b.Amount && a.Address == b.Address {
-		return true
-	}
-	return false
-}
-
 func shutdown() {
 	// For this example gracefully shutdown the client after 10 seconds.
 	// Ordinarily when to shutdown the client is highly application
@@ -435,17 +427,11 @@ func shutdown() {
 		wclient.Shutdown()
 		dclient.Shutdown()
 	})
-	defer log.Println("Shutdown done!")
+	defer log.Println("btcsuite rpcclient and wallet client shutdown is done!")
 	// Wait until the client either shuts down gracefully (or the user
 	// terminates the process with Ctrl+C).
 	wclient.WaitForShutdown()
 	dclient.WaitForShutdown()
-}
-
-func toHash(txHash *wire.ShaHash) *common.Hash {
-	h := new(common.Hash)
-	h.SetBytes(txHash.Bytes())
-	return h
 }
 
 func prependBlockHeight(height uint64, hash []byte) ([]byte, error) {
