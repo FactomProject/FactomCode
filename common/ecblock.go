@@ -38,6 +38,7 @@ func NewECBlock() *ECBlock {
 
 func (e *ECBlock) AddEntry(n ECBlockEntry) {
 	e.Body = append(e.Body, n)
+	e.Header.ObjectCount = uint64(len(e.Body))
 }
 
 func (e *ECBlock) MarshalBinary() ([]byte, error) {
@@ -171,7 +172,7 @@ func (e *ECBlockHeader) UnmarshalBinary(data []byte) error {
 	if _, err := buf.Read(e.PrevHash3.Bytes); err != nil {
 		return err
 	}
-	if err := binary.Read(buf, binary.BigEndian, e.DBHeight); err != nil {
+	if err := binary.Read(buf, binary.BigEndian, &e.DBHeight); err != nil {
 		return err
 	}
 	if _, err := buf.Read(e.SegmentsMR.Bytes); err != nil {
@@ -180,7 +181,7 @@ func (e *ECBlockHeader) UnmarshalBinary(data []byte) error {
 	if _, err := buf.Read(e.BalanceCommit.Bytes); err != nil {
 		return err
 	}
-	if err := binary.Read(buf, binary.BigEndian, e.ObjectCount); err != nil {
+	if err := binary.Read(buf, binary.BigEndian, &e.ObjectCount); err != nil {
 		return err
 	}
 	
