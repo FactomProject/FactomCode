@@ -15,7 +15,7 @@ var (
 )
 
 func TestCommitEntryMarshal(t *testing.T) {
-	fmt.Printf("TestCommitEntryMarshal\n---\n")
+	fmt.Printf("---\nTestCommitEntryMarshal\n---\n")
 	rand, _ := os.Open("/dev/random")
 	
 	ce := common.NewCommitEntry()
@@ -57,7 +57,7 @@ func TestCommitEntryMarshal(t *testing.T) {
 }
 
 func TestCommitChainMarshal(t *testing.T) {
-	fmt.Printf("TestCommitChainMarshal\n---\n")
+	fmt.Printf("---\nTestCommitChainMarshal\n---\n")
 	rand, _ := os.Open("/dev/random")
 	
 	cc := common.NewCommitChain()

@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"io"
 )
 
 const (
@@ -36,8 +37,8 @@ func NewECBlock() *ECBlock {
 	return e
 }
 
-func (e *ECBlock) AddEntry(n ECBlockEntry) {
-	e.Body = append(e.Body, n)
+func (e *ECBlock) AddEntries(entries ...ECBlockEntry) {
+	e.Body = append(e.Body, entries...)
 	e.Header.ObjectCount = uint64(len(e.Body))
 }
 
@@ -64,6 +65,28 @@ func (e *ECBlock) MarshalBinary() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+/* TODO
+func (e *ECBlock) GenerateHeader() {
+	// Marshal the Body
+	buf := new(bytes.Buffer)
+	
+	for _, v := range e.Body {
+		p, err := v.MarshalBinary()
+		if err != nil {
+			// something
+		}
+		buf.WriteByte(v.ECID())
+		buf.Write(p)
+	}
+	
+	body := buf.Bytes()
+	
+	e.Header.BodyHash.Bytes = sha256.Sum256(body)[:]
+	e.Header.ObjectCount = len(e.Body)
+	e.Header.BodySize = len(body)
+}
+*/
+
 func (e *ECBlock) UnmarshalBinary(data []byte) error {
 	buf := bytes.NewBuffer(data)
 	
@@ -77,8 +100,11 @@ func (e *ECBlock) UnmarshalBinary(data []byte) error {
 	}
 	
 	// Unmarshal Body
-	for i := uint64(0); i < e.Header.ObjectCount; i++ {
+	for {
 		if id, err := buf.ReadByte(); err != nil {
+			if err == io.EOF {
+				break
+			}
 			return err
 		} else {
 			switch id {
@@ -90,21 +116,21 @@ func (e *ECBlock) UnmarshalBinary(data []byte) error {
 				if err != nil {
 					return err
 				}
-				e.AddEntry(x)
+				e.AddEntries(x)
 			case ECIDEntryCommit:
 				x := NewCommitEntry()
 				err := x.UnmarshalBinary(buf.Next(CommitEntrySize))
 				if err != nil {
 					return err
 				}
-				e.AddEntry(x)
+				e.AddEntries(x)
 			case ECIDBalanceIncrease:
 			default:
 				return fmt.Errorf("Unsupported ECID: %x\n", id)
 			}
 		}
 	}
-	
+
 	return nil
 }
 
@@ -123,6 +149,7 @@ type ECBlockHeader struct {
 	SegmentsMR    *Hash
 	BalanceCommit *Hash
 	ObjectCount   uint64
+	BodySize      uint64
 }
 
 func NewECBlockHeader() *ECBlockHeader {
@@ -141,16 +168,36 @@ func NewECBlockHeader() *ECBlockHeader {
 func (e *ECBlockHeader) MarshalBinary() ([]byte, error) {
 	buf := new(bytes.Buffer)
 
+	// 32 byte ECChainID
 	buf.Write(e.ECChainID.Bytes)
+	
+	// 32 byte BodyHash
 	buf.Write(e.BodyHash.Bytes)
+	
+	// 32 byte Previous KeyMR
 	buf.Write(e.PrevKeyMR.Bytes)
+	
+	// 32 byte Previous Hash
 	buf.Write(e.PrevHash3.Bytes)
+	
+	// 4 byte Directory Block Height
 	if err := binary.Write(buf, binary.BigEndian, e.DBHeight); err != nil {
 		return buf.Bytes(), err
 	}
+	
+	// 32 byte SegmentsMR
 	buf.Write(e.SegmentsMR.Bytes)
+	
+	// 32 byte Balance Commit
 	buf.Write(e.BalanceCommit.Bytes)
+	
+	// 8 byte Object Count
 	if err := binary.Write(buf, binary.BigEndian, e.ObjectCount); err != nil {
+		return buf.Bytes(), err
+	}
+	
+	// 8 byte size of the Body
+	if err := binary.Write(buf, binary.BigEndian, e.BodySize); err != nil {
 		return buf.Bytes(), err
 	}
 
