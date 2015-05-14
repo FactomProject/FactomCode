@@ -26,15 +26,16 @@ type DChain struct {
 
 type DirectoryBlock struct {
 	//Marshalized
-	Header    *DBlockHeader
-	DBEntries []*DBEntry
+	Header    		*DBlockHeader
+	DBEntries 		[]*DBEntry
 
 	//Not Marshalized
-	Chain       *DChain
-	IsSealed    bool
-	DBHash      *Hash
-	KeyMR       *Hash
-	IsSavedInDB bool
+	Chain       	*DChain
+	IsSealed    	bool
+	DBHash      	*Hash
+	KeyMR       	*Hash
+	IsSavedInDB 	bool
+	IsValidated     bool	
 }
 
 type DBInfo struct {
