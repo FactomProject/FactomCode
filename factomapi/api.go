@@ -250,140 +250,15 @@ func (f byEBlockID) Swap(i, j int) {
 }
 
 //-------------------------------------
-/*
 
-// PrintEntry is a helper function for debugging entry transport and encoding
-func PrintEntry(e *Entry) {
-	fmt.Println("ChainID:", hex.EncodeToString(e.ChainID))
-	fmt.Println("ExtIDs:")
-	for i := range e.ExtIDs {
-		fmt.Println("	", string(e.ExtIDs[i]))
-	}
-	fmt.Println("Data:", string(e.Data))
-}
-
-// NewEntry creates a factom entry. It is supplied a string chain id, a []byte
-// of data, and a series of string external ids for entry lookup
-func NewEntry(cid string, eids []string, data []byte) (e *Entry, err error) {
-	e = new(Entry)
-	e.ChainID, err = hex.DecodeString(cid)
-	if err != nil {
-		return nil, err
-	}
-	e.Data = data
-	for _, v := range eids {
-		e.ExtIDs = append(e.ExtIDs, []byte(v))
-	}
-	return
-}
-
-// NewChain creates a factom chain from a []string chain name and a new entry
-// to be the first entry of the new chain from []byte data, and a series of
-// string external ids
-func NewChain(name []string, eids []string, data []byte) (c *Chain, err error) {
-	c = new(Chain)
-	for _, v := range name {
-		c.Name = append(c.Name, []byte(v))
-	}
-	c.GenerateID()
-	e := new(Entry)
-	e.ChainID = c.ChainID
-	e.Data = data
-	for _, v := range eids {
-		e.ExtIDs = append(e.ExtIDs, []byte(v))
-	}
-	c.FirstEntry = e
-	return
-}
-
-// CommitEntry sends a message to the factom network containing a hash of the
-// entry to be used to verify the later RevealEntry.
-func CommitEntry(e *Entry) error {
-	data := url.Values{
-		"datatype": {"entryhash"},
-		"format":   {"binary"},
-		"data":     {e.Hash()},
-	}
-	server := fmt.Sprintf(`http://%s/v1`, serverAddr)
-	_, err := http.PostForm(server, data)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-// RevealEntry sends a message to the factom network containing the binary
-// encoded entry for the server to add it to the factom blockchain. The entry
-// will be rejected if a CommitEntry was not done.
-func RevealEntry(e *Entry) error {
-	data := url.Values{
-		"datatype": {"entry"},
-		"format":   {"binary"},
-		"entry":    {e.Hex()},
-	}
-	server := fmt.Sprintf(`http://%s/v1`, serverAddr)
-	_, err := http.PostForm(server, data)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-*/
-// CommitChain sends a message to the factom network containing a series of
-// It takes the first Entry of the chain and build the commintChain message
-func CommitChain(e *common.Entry) error {
-	util.Trace()
-	var buf bytes.Buffer
-
-	// Check if this is the first entry of the chain
-	chainid, _ := e.GenerateIDFromName()
-	if chainid == nil || !chainid.IsSameAs(e.ChainID) {
-		errors.New("The chain names in the first entry do not match with its chain id: " + e.ChainID.String())
-	}
-
-	binaryEntry, _ := e.MarshalBinary()
-	entryHash := common.Sha(binaryEntry)
-	
-	// Calculate the required credits
-	credits := uint32(binary.Size(binaryEntry)/1000+1) + creditsPerChain
-
-	entryChainIDHash := common.Sha(append(e.ChainID.Bytes, entryHash.Bytes...))
-
-	// Create a msg signature (timestamp + chainid + entry hash + entryChainIDHash + credits)
-	timestamp := uint64(time.Now().Unix())
-	binary.Write(&buf, binary.BigEndian, timestamp)
-	buf.Write(e.ChainID.Bytes)
-	buf.Write(entryHash.Bytes)
-	buf.Write(entryChainIDHash.Bytes)
-	binary.Write(&buf, binary.BigEndian, credits)
-	sig := wallet.SignData(buf.Bytes())
-
+// CommitChain sends a message to the factom network containing a CommitChain
+// Message.
+func CommitChain(c *common.CommitChain) error {
 	//Construct a msg and add it to the msg queue
-	msgCommitChain := wire.NewMsgCommitChain()
-	msgCommitChain.ChainID = e.ChainID
-	msgCommitChain.Credits = credits
-	msgCommitChain.ECPubKey = new(common.Hash)
-	msgCommitChain.ECPubKey.Bytes = (*sig.Pub.Key)[:]
-	msgCommitChain.EntryChainIDHash = entryChainIDHash
-	msgCommitChain.EntryHash = entryHash
-	msgCommitChain.Sig = (*sig.Sig)[:]
-	msgCommitChain.Timestamp = timestamp
+	msg := wire.NewMsgCommitChain()
+	msg.CommitChain = c
 
 	inMsgQueue <- msgCommitChain
-
-	return nil
-}
-
-// RevealChain sends a message to the factom network containing the binary
-// encoded first entry for a chain to be used by the server to add a new factom
-// chain. It will be rejected if a CommitChain was not done.
-func RevealChain(e *common.Entry) error {
-
-	//Construct a msg and add it to the msg queue
-	msgRevealChain := wire.NewMsgRevealChain()
-	msgRevealChain.FirstEntry = e
-
-	inMsgQueue <- msgRevealChain
 
 	return nil
 }
