@@ -78,8 +78,8 @@ type Db interface {
 	// ProcessDBlockBatche inserts the EBlock and update all it's ebentries in DB
 	ProcessDBlockBatch(block *common.DirectoryBlock) error
 
-	// FetchAllCBlocks gets all of the entry credit blocks
-	FetchAllCBlocks() (cBlocks []common.CBlock, err error)
+	// FetchAllECBlocks gets all of the entry credit blocks
+	FetchAllECBlocks() (cBlocks []common.ECBlock, err error)
 
 	// FetchAllFBInfo gets all of the fbInfo
 	FetchAllDBlocks() (fBlocks []common.DirectoryBlock, err error)
@@ -87,11 +87,11 @@ type Db interface {
 	// FetchDBlockByHeight gets an directory block by height from the database.
 	FetchDBlockByHeight(dBlockHeight uint32) (dBlock *common.DirectoryBlock, err error) 
 	
-	// ProcessCBlockBatche inserts the CBlock and update all it's cbentries in DB
-	ProcessCBlockBatch(block *common.CBlock) (err error)
+	// ProcessECBlockBatche inserts the ECBlock and update all it's ecbentries in DB
+	ProcessECBlockBatch(block *common.ECBlock) (err error)
 
-	// FetchCBlockByHash gets an Entry Credit block by hash from the database.
-	FetchCBlockByHash(cBlockHash *common.Hash) (cBlock *common.CBlock, err error)
+	// FetchECBlockByHash gets an Entry Credit block by hash from the database.
+	FetchECBlockByHash(cBlockHash *common.Hash) (ecBlock *common.ECBlock, err error)
 
 	// Initialize External ID map for explorer search
 	InitializeExternalIDMap() (extIDMap map[string]bool, err error)

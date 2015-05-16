@@ -20,15 +20,15 @@ func (f ByDBlockIDAccending) Swap(i, j int) {
 
 //------------------------------------------------
 // CBlock array sorting implementation - accending
-type ByCBlockIDAccending []common.CBlock
+type ByECBlockIDAccending []common.ECBlock
 
-func (f ByCBlockIDAccending) Len() int {
+func (f ByECBlockIDAccending) Len() int {
 	return len(f)
 }
-func (f ByCBlockIDAccending) Less(i, j int) bool {
+func (f ByECBlockIDAccending) Less(i, j int) bool {
 	return f[i].Header.DBHeight < f[j].Header.DBHeight
 }
-func (f ByCBlockIDAccending) Swap(i, j int) {
+func (f ByECBlockIDAccending) Swap(i, j int) {
 	f[i], f[j] = f[j], f[i]
 }
 
