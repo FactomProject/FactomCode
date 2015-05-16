@@ -91,12 +91,12 @@ func NewDBEntry(eb *EBlock) *DBEntry {
 	return e
 }
 
-func NewDBEntryFromCBlock(cb *CBlock) *DBEntry {
+func NewDBEntryFromECBlock(cb *ECBlock) *DBEntry {
 	e := &DBEntry{}
-	e.hash = cb.CBHash
+	e.hash = cb.Header.BodyHash
 
-	e.ChainID = cb.Chain.ChainID
-	e.MerkleRoot = cb.CBHash //To use MerkleRoot??
+	e.ChainID = cb.Header.ECChainID
+	e.MerkleRoot = cb.KeyMR() //To use MerkleRoot??
 
 	return e
 }
@@ -304,9 +304,9 @@ func (c *DChain) AddEBlockToDBEntry(eb *EBlock) (err error) {
 }
 
 // Add DBEntry from an Entry Credit Block
-func (c *DChain) AddCBlockToDBEntry(cb *CBlock) (err error) {
+func (c *DChain) AddECBlockToDBEntry(ecb *ECBlock) (err error) {
 
-	dbEntry := NewDBEntryFromCBlock(cb)
+	dbEntry := NewDBEntryFromECBlock(ecb)
 
 	if len(c.NextBlock.DBEntries) < 3 {
 		panic("DBEntries not initialized properly for block: " + string(c.NextBlockHeight))

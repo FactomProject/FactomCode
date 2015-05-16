@@ -23,23 +23,23 @@ const (
 )
 
 // The Entry Credit Block consists of a header and a body. The body is composed
-// of primarily Commits and balance increases with minute markers and server
-// markers distributed throughout.
+// of primarily Commits and Balance Increases with Minute Markers and Server
+// Markers distributed throughout.
 type ECBlock struct {
 	Header *ECBlockHeader
-	Body   []ECBlockEntry
+	Body   *ECBlockBody
 }
 
 func NewECBlock() *ECBlock {
 	e := new(ECBlock)
 	e.Header = NewECBlockHeader()
-	e.Body = make([]ECBlockEntry, 0)
+	e.Body = NewECBlockBody()
 	return e
 }
 
 func (e *ECBlock) AddEntries(entries ...ECBlockEntry) {
-	e.Body = append(e.Body, entries...)
-	e.Header.ObjectCount = uint64(len(e.Body))
+	e.Body.Entries = append(e.Body.Entries, entries...)
+	e.Header.ObjectCount = uint64(len(e.Body.Entries))
 }
 
 func (e *ECBlock) MarshalBinary() ([]byte, error) {
@@ -53,37 +53,42 @@ func (e *ECBlock) MarshalBinary() ([]byte, error) {
 	}
 
 	// Body of ECBlockEntries
-	for _, v := range e.Body {
-		p, err := v.MarshalBinary()
-		if err != nil {
-			return buf.Bytes(), err
-		}
-		buf.WriteByte(v.ECID())
+	if p, err := e.Body.MarshalBinary(); err != nil {
+		return buf.Bytes(), err
+	} else {
 		buf.Write(p)
 	}
 
 	return buf.Bytes(), nil
 }
 
-/* TODO
-func (e *ECBlock) GenerateHeader() {
-	// Marshal the Body
-	buf := new(bytes.Buffer)
+// KeyMR returns a hash of the serialized Block Header + the serialized Body.
+func (e *ECBlock) KeyMR() *Hash {
+	r := NewHash()
+	p := make([]byte, 0)
 	
-	for _, v := range e.Body {
-		p, err := v.MarshalBinary()
-		if err != nil {
-			// something
-		}
-		buf.WriteByte(v.ECID())
-		buf.Write(p)
+	head, _ := e.Header.MarshalBinary()
+	p = append(p, head...)
+	body, _ := e.Body.MarshalBinary()
+	p = append(p, body...)
+	
+	r = Sha(p)
+	return r
+}
+
+/* TODO
+func (e *ECBlock) BuildHeader() error {
+	// Marshal the Body
+	p, err := e.Body.MarshalBinary()
+	if err != nil {
+		return err
 	}
 	
-	body := buf.Bytes()
+	e.Header.BodyHash.Bytes = Sha(p)
+	e.Header.ObjectCount = len(e.Body.Entries)
+	e.Header.BodySize = len(p)
 	
-	e.Header.BodyHash.Bytes = sha256.Sum256(body)[:]
-	e.Header.ObjectCount = len(e.Body)
-	e.Header.BodySize = len(body)
+	return nil
 }
 */
 
@@ -100,34 +105,69 @@ func (e *ECBlock) UnmarshalBinary(data []byte) error {
 	}
 	
 	// Unmarshal Body
+	if err := e.Body.UnmarshalBinary(buf.Bytes()); err != nil {
+		return err
+	}
+	
+	return nil
+}
+
+type ECBlockBody struct {
+	Entries []ECBlockEntry
+}
+
+func NewECBlockBody() *ECBlockBody {
+	b := new(ECBlockBody)
+	b.Entries = make([]ECBlockEntry, 0)
+	return b
+}
+
+func (b *ECBlockBody) MarshalBinary() ([]byte, error) {
+	buf := new(bytes.Buffer)
+	
+	for _, v := range b.Entries {
+		p, err := v.MarshalBinary()
+		if err != nil {
+			return buf.Bytes(), err
+		}
+		buf.WriteByte(v.ECID())
+		buf.Write(p)
+	}
+	
+	return buf.Bytes(), nil
+}
+
+func (b *ECBlockBody) UnmarshalBinary(data []byte) error {
+	buf := bytes.NewBuffer(data)
+	
 	for {
-		if id, err := buf.ReadByte(); err != nil {
+		id, err := buf.ReadByte()
+		if err != nil {
 			if err == io.EOF {
 				break
 			}
 			return err
-		} else {
-			switch id {
-			case ECIDServerIndexNumber:
-			case ECIDMinuteNumber:
-			case ECIDChainCommit:
-				x := NewCommitChain()
-				err := x.UnmarshalBinary(buf.Next(CommitChainSize))
-				if err != nil {
-					return err
-				}
-				e.AddEntries(x)
-			case ECIDEntryCommit:
-				x := NewCommitEntry()
-				err := x.UnmarshalBinary(buf.Next(CommitEntrySize))
-				if err != nil {
-					return err
-				}
-				e.AddEntries(x)
-			case ECIDBalanceIncrease:
-			default:
-				return fmt.Errorf("Unsupported ECID: %x\n", id)
+		}
+		switch id {
+		case ECIDServerIndexNumber:
+		case ECIDMinuteNumber:
+		case ECIDChainCommit:
+			c := NewCommitChain()
+			err := c.UnmarshalBinary(buf.Next(CommitChainSize))
+			if err != nil {
+				return err
 			}
+			b.Entries = append(b.Entries, c)
+		case ECIDEntryCommit:
+			c := NewCommitEntry()
+			err := c.UnmarshalBinary(buf.Next(CommitEntrySize))
+			if err != nil {
+				return err
+			}
+			b.Entries = append(b.Entries, c)
+		case ECIDBalanceIncrease:
+		default:
+			return fmt.Errorf("Unsupported ECID: %x\n", id)
 		}
 	}
 

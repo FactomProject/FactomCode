@@ -258,7 +258,7 @@ func CommitChain(c *common.CommitChain) error {
 	msg := wire.NewMsgCommitChain()
 	msg.CommitChain = c
 
-	inMsgQueue <- msgCommitChain
+	inMsgQueue <- msg
 
 	return nil
 }

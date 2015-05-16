@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	// CommitChainSize = 1 + 6 + 32 + 32 + 32 + 1 + 32 + 64
+	// CommitChainSize = 1+6+32+32+32+1+32+64
 	CommitChainSize int = 200
 )
 
