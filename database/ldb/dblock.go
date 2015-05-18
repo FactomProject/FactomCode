@@ -62,7 +62,7 @@ func (db *LevelDb) ProcessDBlockBatch(dblock *common.DirectoryBlock) error {
 		if err != nil {
 			return err
 		}
-		
+
 		if dblock.DBHash == nil {
 			dblock.DBHash = common.Sha(binaryDblock)
 		}
@@ -78,7 +78,7 @@ func (db *LevelDb) ProcessDBlockBatch(dblock *common.DirectoryBlock) error {
 		binary.Write(&buf, binary.BigEndian, dblock.Header.BlockHeight)
 		dbNumkey = append(dbNumkey, buf.Bytes()...)
 		db.lbatch.Put(dbNumkey, dblock.DBHash.Bytes)
-		
+
 		err = db.lDb.Write(db.lbatch, db.wo)
 		if err != nil {
 			log.Println("batch failed %v\n", err)
@@ -150,10 +150,10 @@ func (db *LevelDb) FetchDBlockByHash(dBlockHash *common.Hash) (dBlock *common.Di
 		dBlock.UnmarshalBinary(data)
 	}
 
-	log.Println("dBlock.Header.MerkleRoot:%v", dBlock.Header.BodyMR.String())
+	log.Println("dBlock.Header.MerkleRoot: ", dBlock.Header.BodyMR.String())
 
 	for _, entry := range dBlock.DBEntries {
-		log.Println("entry.MerkleRoot:%v", entry.MerkleRoot.String())
+		log.Println("entry.MerkleRoot: ", entry.MerkleRoot.String())
 	}
 
 	return dBlock, nil
