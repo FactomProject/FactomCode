@@ -67,6 +67,10 @@ func (db *LevelDb) ProcessDBlockBatch(dblock *common.DirectoryBlock) error {
 			dblock.DBHash = common.Sha(binaryDblock)
 		}
 
+		if dblock.KeyMR == nil {
+			dblock.BuildKeyMerkleRoot()
+		}
+		
 		// Insert the binary directory block
 		var key []byte = []byte{byte(TBL_DB)}
 		key = append(key, dblock.DBHash.Bytes...)
@@ -79,6 +83,12 @@ func (db *LevelDb) ProcessDBlockBatch(dblock *common.DirectoryBlock) error {
 		dbNumkey = append(dbNumkey, buf.Bytes()...)
 		db.lbatch.Put(dbNumkey, dblock.DBHash.Bytes)
 
+		// Insert the directory block merkle root cross reference
+		key = []byte{byte(TBL_DB_MR)}
+		key = append(key, dblock.KeyMR.Bytes...)
+		binaryDBHash, _ := dblock.DBHash.MarshalBinary()
+		db.lbatch.Put(key, binaryDBHash)
+
 		err = db.lDb.Write(db.lbatch, db.wo)
 		if err != nil {
 			log.Println("batch failed %v\n", err)
@@ -90,8 +100,8 @@ func (db *LevelDb) ProcessDBlockBatch(dblock *common.DirectoryBlock) error {
 }
 
 // Insert the Directory Block meta data into db
-func (db *LevelDb) InsertDBInfo(dbInfo common.DBInfo) (err error) {
-	if dbInfo.BTCBlockHash == nil || dbInfo.BTCTxHash == nil {
+func (db *LevelDb) InsertDBInfo(dbInfo *common.DBInfo) (err error) {
+	if dbInfo.BTCTxHash == nil {
 		return
 	}
 
@@ -188,7 +198,34 @@ func (db *LevelDb) FetchDBHashByHeight(dBlockHeight uint32) (dBlockHash *common.
 	return dBlockHash, nil
 }
 
-// FetchAllDBInfo gets all of the fbInfo
+// FetchDBHashByMR gets a DBHash by MR from the database.
+func (db *LevelDb) FetchDBHashByMR(dBMR *common.Hash) (dBlockHash *common.Hash, err error) {
+	db.dbLock.Lock()
+	defer db.dbLock.Unlock()
+
+	var key []byte = []byte{byte(TBL_DB_MR)}
+	key = append(key, dBMR.Bytes...)
+	data, err := db.lDb.Get(key, db.ro)
+
+	if data != nil {
+		dBlockHash = new(common.Hash)
+		dBlockHash.UnmarshalBinary(data)
+	}
+	return dBlockHash, nil
+}
+
+// FetchDBlockByMR gets a directory block by merkle root from the database.
+func (db *LevelDb) FetchDBlockByMR(dBMR *common.Hash) (dBlock *common.DirectoryBlock, err error) {
+	dBlockHash, _ := db.FetchDBHashByMR(dBMR)
+
+	if dBlockHash != nil {
+		dBlock, _ = db.FetchDBlockByHash(dBlockHash)
+	}
+
+	return dBlock, nil
+}
+
+// FetchAllDBlocks gets all of the fbInfo
 func (db *LevelDb) FetchAllDBlocks() (dBlocks []common.DirectoryBlock, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
@@ -212,4 +249,58 @@ func (db *LevelDb) FetchAllDBlocks() (dBlocks []common.DirectoryBlock, err error
 	err = iter.Error()
 
 	return dBlockSlice, nil
+}
+
+// FetchAllDBInfo gets all of the dbInfo
+func (db *LevelDb) FetchAllDBInfo() (dBInfoSlice []common.DBInfo, err error) {
+	db.dbLock.Lock()
+	defer db.dbLock.Unlock()
+
+	var fromkey []byte = []byte{byte(TBL_DB_INFO)}   // Table Name (1 bytes)					
+	var tokey []byte = []byte{byte(TBL_DB_INFO + 1)} // Table Name (1 bytes)
+
+	dBInfoSlice = make([]common.DBInfo, 0, 10)
+
+	iter := db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
+
+	for iter.Next() {
+		var dBInfo common.DBInfo
+		dBInfo.UnmarshalBinary(iter.Value())
+
+		dBInfoSlice = append(dBInfoSlice, dBInfo)
+
+	}
+	iter.Release()
+	err = iter.Error()
+
+	return dBInfoSlice, nil
+}
+
+// FetchAllUnconfirmedDBInfo gets all of the dbInfos that have BTC Anchor confirmation
+func (db *LevelDb) FetchAllUnconfirmedDBInfo() (dBInfoSlice []common.DBInfo, err error) {
+	db.dbLock.Lock()
+	defer db.dbLock.Unlock()
+
+	var fromkey []byte = []byte{byte(TBL_DB_INFO)}   // Table Name (1 bytes)					
+	var tokey []byte = []byte{byte(TBL_DB_INFO + 1)} // Table Name (1 bytes)
+
+	dBInfoSlice = make([]common.DBInfo, 0, 10)
+
+	iter := db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
+
+	for iter.Next() {
+		var dBInfo common.DBInfo
+		
+		// The last byte stores the confirmation flag
+		if iter.Value()[len(iter.Value())-1] == 0 {
+			dBInfo.UnmarshalBinary(iter.Value())
+	
+			dBInfoSlice = append(dBInfoSlice, dBInfo)
+		}
+		
+	}
+	iter.Release()
+	err = iter.Error()
+
+	return dBInfoSlice, nil
 }

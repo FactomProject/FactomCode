@@ -71,12 +71,24 @@ type Db interface {
 
 	// FetchDBlock gets an entry by hash from the database.
 	FetchDBlockByHash(dBlockHash *common.Hash) (dBlock *common.DirectoryBlock, err error)
+	
+	// FetchDBlockByMR gets a directory block by merkle root from the database.
+	FetchDBlockByMR(dBMR *common.Hash) (dBlock *common.DirectoryBlock, err error)	
+	
+	// FetchDBHashByMR gets a DBHash by MR from the database.
+	FetchDBHashByMR(dBMR *common.Hash) (dBlockHash *common.Hash, err error) 	
 
 	// FetchDBBatchByHash gets an FBBatch obj
 	FetchDBInfoByHash(dbHash *common.Hash) (dbInfo *common.DBInfo, err error)
 
 	// Insert the Directory Block meta data into db
-	InsertDBInfo(dbInfo common.DBInfo) (err error)
+	InsertDBInfo(dbInfo *common.DBInfo) (err error)
+	
+	// FetchAllDBInfo gets all of the dbInfo
+	FetchAllDBInfo() (dBInfoSlice []common.DBInfo, err error) 
+	
+	// FetchAllUnconfirmedDBInfo gets all of the dbInfos that have BTC Anchor confirmation
+	FetchAllUnconfirmedDBInfo() (dBInfoSlice []common.DBInfo, err error)
 
 	// ProcessDBlockBatche inserts the EBlock and update all it's ebentries in DB
 	ProcessDBlockBatch(block *common.DirectoryBlock) error

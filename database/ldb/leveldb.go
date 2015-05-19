@@ -24,23 +24,30 @@ const (
 
 // the "table" prefix
 const (
+	//Entry
 	TBL_ENTRY uint8 = iota
 
+	// Entry Block
 	TBL_EB       //1
 	TBL_EB_CHAIN_NUM 
 	TBL_EB_MR
 
+	// Directory Block
 	TBL_DB //4
 	TBL_DB_NUM
+	TBL_DB_MR
 	TBL_DB_INFO
 
-	TBL_CHAIN_HASH //7
+	// Entry Chain
+	TBL_CHAIN_HASH //8
 
-	TBL_CB //8
+	// Entry Credit Block
+	TBL_CB //9
 	TBL_CB_NUM
 	TBL_CB_MR
 	
-	TBL_AB //11
+	// Admin Block
+	TBL_AB //12
 	TBL_AB_NUM
 )
 
