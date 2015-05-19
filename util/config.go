@@ -29,6 +29,8 @@ type FactomdConfig struct {
 		BtcTransFee        float64
 		CertHomePathBtcd   string
 		RpcBtcdHost        string
+		RpcUser            string
+		RpcPass            string
 	}
 	Rpc struct {
 		PortNumber       int
