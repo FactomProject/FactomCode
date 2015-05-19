@@ -9,6 +9,9 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"sync"
+	
+	"golang.org/x/crypto/sha3"
 )
 
 const (
@@ -21,6 +24,52 @@ const (
 	// ecBlockHeaderSize 32+32+32+32+4+32+32+8
 	ecBlockHeaderSize = 204
 )
+
+type IncreaseBalance struct {
+	PubKey *[32]byte
+	Credits int32
+	FactomTxHash *Hash
+}
+
+func NewIncreaseBalance(pubkey *[32]byte, facTX *Hash, credits int32) *IncreaseBalance {
+	b := new(IncreaseBalance)
+	b.PubKey = pubkey
+	b.Credits = credits
+	b.FactomTxHash = facTX
+	return b
+}
+
+func (b *IncreaseBalance) ECID() byte {
+	return ECIDBalanceIncrease
+}
+
+func (b *IncreaseBalance) MarshalBinary() ([]byte, error) {
+	buf := new(bytes.Buffer)
+	
+	buf.Write(b.PubKey[:])
+	if err := binary.Write(buf, binary.BigEndian, b.Credits); err != nil {
+		return buf.Bytes(), err
+	}
+	buf.Write(b.FactomTxHash.Bytes)
+	
+	return buf.Bytes(), nil
+}
+
+func (b *IncreaseBalance) UnmarshalBinary(data []byte) error {
+	buf := bytes.NewBuffer(data)
+
+	if _, err := buf.Read(b.PubKey[:]); err != nil {
+		return err
+	}
+	if err := binary.Read(buf, binary.BigEndian, &b.Credits); err != nil {
+		return err
+	}
+	if _, err := buf.Read(b.FactomTxHash.Bytes); err != nil {
+		return err
+	}
+	
+	return nil
+}
 
 // The Entry Credit Block consists of a header and a body. The body is composed
 // of primarily Commits and Balance Increases with Minute Markers and Server
@@ -37,9 +86,50 @@ func NewECBlock() *ECBlock {
 	return e
 }
 
-func (e *ECBlock) AddEntries(entries ...ECBlockEntry) {
+func NextECBlock(p *ECBlock) *ECBlock {
+	e := NewECBlock()
+	e.Header.PrevKeyMR = p.KeyMR()
+	e.Header.PrevHash3 = p.Hash3()
+	e.Header.DBHeight = p.Header.DBHeight + 1
+	return e
+}
+
+func (e *ECBlock) AddEntry(entries ...ECBlockEntry) {
 	e.Body.Entries = append(e.Body.Entries, entries...)
-	e.Header.ObjectCount = uint64(len(e.Body.Entries))
+}
+
+// Hash3 returns the sha3-256 checksum of the previous Entry Credit Block from
+// the Header to the end of the Body
+func (e *ECBlock) Hash3() *Hash {
+	r := NewHash()
+	
+	p, err := e.MarshalBinary()
+	if err != nil {
+		return r
+	}
+	
+	sum := sha3.Sum256(p)
+	copy(r.Bytes, sum[:])
+	return r
+}
+
+// KeyMR returns a hash of the serialized Block Header + the serialized Body.
+func (e *ECBlock) KeyMR() *Hash {
+	r := NewHash()
+	p := make([]byte, 0)
+	
+	head, err := e.Header.MarshalBinary()
+	if err != nil {
+		return r
+	}
+	p = append(p, head...)
+	body, err := e.Body.MarshalBinary()
+	if err != nil {
+		return r
+	}
+	p = append(p, body...)
+	
+	return Sha(p)
 }
 
 func (e *ECBlock) MarshalBinary() ([]byte, error) {
@@ -62,21 +152,6 @@ func (e *ECBlock) MarshalBinary() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// KeyMR returns a hash of the serialized Block Header + the serialized Body.
-func (e *ECBlock) KeyMR() *Hash {
-	r := NewHash()
-	p := make([]byte, 0)
-	
-	head, _ := e.Header.MarshalBinary()
-	p = append(p, head...)
-	body, _ := e.Body.MarshalBinary()
-	p = append(p, body...)
-	
-	r = Sha(p)
-	return r
-}
-
-/* TODO
 func (e *ECBlock) BuildHeader() error {
 	// Marshal the Body
 	p, err := e.Body.MarshalBinary()
@@ -84,13 +159,12 @@ func (e *ECBlock) BuildHeader() error {
 		return err
 	}
 	
-	e.Header.BodyHash.Bytes = Sha(p)
-	e.Header.ObjectCount = len(e.Body.Entries)
-	e.Header.BodySize = len(p)
+	e.Header.BodyHash = Sha(p)
+	e.Header.ObjectCount = uint64(len(e.Body.Entries))
+	e.Header.BodySize = uint64(len(p))
 	
 	return nil
 }
-*/
 
 func (e *ECBlock) UnmarshalBinary(data []byte) error {
 	buf := bytes.NewBuffer(data)
@@ -272,5 +346,67 @@ func (e *ECBlockHeader) UnmarshalBinary(data []byte) error {
 		return err
 	}
 	
+	return nil
+}
+
+type ECChain struct {
+	ChainID         *Hash
+	Name            [][]byte
+	NextBlock       *ECBlock
+	NextBlockHeight uint32
+	BlockMutex      sync.Mutex
+}
+
+func NewECChain() *ECChain {
+	c := new(ECChain)
+	c.ChainID = NewHash()
+	copy(c.ChainID.Bytes, EC_CHAINID)
+	c.Name = make([][]byte, 0)
+	return c
+}
+
+func (c *ECChain) MarshalBinary() ([]byte, error) {
+	buf := new(bytes.Buffer)
+
+	if p, err := c.ChainID.MarshalBinary(); err != nil {
+		return buf.Bytes(), err
+	} else {
+		buf.Write(p)
+	}
+
+	binary.Write(buf, binary.BigEndian, uint64(len(c.Name)))
+
+	for _, v := range c.Name {
+		binary.Write(buf, binary.BigEndian, uint64(len(v)))
+		buf.Write(v)
+	}
+
+	return buf.Bytes(), nil
+}
+
+func (c *ECChain) UnmarshalBinary(data []byte) error {
+	buf := bytes.NewBuffer(data)
+	
+	if _, err := buf.Read(c.ChainID.Bytes); err != nil {
+		return err
+	}
+
+	count := uint64(0)
+	if err := binary.Read(buf, binary.BigEndian, count); err != nil {
+		return err
+	}
+	c.Name = make([][]byte, count)
+
+	for _, name := range c.Name {
+		var l uint64
+		if err := binary.Read(buf, binary.BigEndian, &l); err != nil {
+			return err
+		}
+		name = make([]byte, l)
+		if _, err := buf.Read(name); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
