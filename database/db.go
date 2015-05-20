@@ -79,17 +79,17 @@ type Db interface {
 	FetchDBHashByMR(dBMR *common.Hash) (dBlockHash *common.Hash, err error)
 
 	// FetchDBBatchByHash gets an FBBatch obj
-	FetchDBInfoByHash(dbHash *common.Hash) (dbInfo *common.DBInfo, err error)
+	FetchDirBlockInfoByHash(dbHash *common.Hash) (dirBlockInfo *common.DirBlockInfo, err error)
 
 	// Insert the Directory Block meta data into db
-	InsertDBInfo(dbInfo *common.DBInfo) (err error)
+	InsertDirBlockInfo(dirBlockInfo *common.DirBlockInfo) (err error)
 
-	// FetchAllDBInfo gets all of the dbInfo
-	FetchAllDBInfo() (ddbInfoMap map[string]*common.DBInfo, err error)
+	// FetchAllDirBlockInfo gets all of the dirBlockInfo
+	FetchAllDirBlockInfo() (ddirBlockInfoMap map[string]*common.DirBlockInfo, err error)
 
-	// FetchAllUnconfirmedDBInfo gets all of the dbInfos that have BTC Anchor confirmation
-	//FetchAllUnconfirmedDBInfo() (dBInfoSlice []common.DBInfo, err error)
-	FetchAllUnconfirmedDBInfo() (dbInfoMap map[string]*common.DBInfo, err error)
+	// FetchAllUnconfirmedDirBlockInfo gets all of the dirBlockInfos that have BTC Anchor confirmation
+	//FetchAllUnconfirmedDirBlockInfo() (dBInfoSlice []common.DirBlockInfo, err error)
+	FetchAllUnconfirmedDirBlockInfo() (dirBlockInfoMap map[string]*common.DirBlockInfo, err error)
 
 	// ProcessDBlockBatche inserts the EBlock and update all it's ebentries in DB
 	ProcessDBlockBatch(block *common.DirectoryBlock) error

@@ -238,11 +238,11 @@ func handleDBlockByHash(ctx *web.Context, hashStr string) {
 	}
 }
 
-// handleDBInfoByHash will take a Directory Block Hash and return the directory
+// handleDirBlockInfoByHash will take a Directory Block Hash and return the directory
 // block information in json format.
-func handleDBInfoByHash(ctx *web.Context, hashStr string) {
+func handleDirBlockInfoByHash(ctx *web.Context, hashStr string) {
 	log := serverLog
-	log.Debug("handleDBInfoByHash")
+	log.Debug("handleDirBlockInfoByHash")
 	var httpcode int = 200
 	buf := new(bytes.Buffer)
 
@@ -251,7 +251,7 @@ func handleDBInfoByHash(ctx *web.Context, hashStr string) {
 		ctx.Write(buf.Bytes())
 	}()
 
-	dBInfo, err := factomapi.GetDBInfoByHashStr(hashStr)
+	dBInfo, err := factomapi.GetDirBlockInfoByHashStr(hashStr)
 	log.Debug(dBInfo)
 	if err != nil {
 		httpcode = 400

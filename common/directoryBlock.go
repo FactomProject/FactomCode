@@ -38,7 +38,7 @@ type DirectoryBlock struct {
 	IsValidated     bool
 }
 
-type DBInfo struct {
+type DirBlockInfo struct {
 
 	// Serial hash for the directory block
 	DBHash *Hash
@@ -115,10 +115,10 @@ func NewDBEntryFromABlock(b *AdminBlock) *DBEntry {
 	return e
 }
 
-func NewDBInfoFromDBlock(b *DirectoryBlock) *DBInfo {
-	e := &DBInfo{}
+func NewDirBlockInfoFromDBlock(b *DirectoryBlock) *DirBlockInfo {
+	e := &DirBlockInfo{}
 	e.DBHash = b.DBHash
-	e.DBMerkleRoot = b.KeyMR 
+	e.DBMerkleRoot = b.KeyMR
 	e.BTCConfirmed = false
 	e.BTCTxHash = NewHash()
 
@@ -474,7 +474,7 @@ func (b *DirectoryBlock) EncodableFields() map[string]reflect.Value {
 	return fields
 }
 
-func (b *DBInfo) MarshalBinary() (data []byte, err error) {
+func (b *DirBlockInfo) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
 
 	data, err = b.DBHash.MarshalBinary()
@@ -513,7 +513,7 @@ func (b *DBInfo) MarshalBinary() (data []byte, err error) {
 	return buf.Bytes(), err
 }
 
-func (b *DBInfo) UnmarshalBinary(data []byte) (err error) {
+func (b *DirBlockInfo) UnmarshalBinary(data []byte) (err error) {
 	b.DBHash = new(Hash)
 	b.DBHash.UnmarshalBinary(data[:HASH_LENGTH])
 

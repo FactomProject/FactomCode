@@ -101,8 +101,8 @@ func (db *LevelDb) ProcessDBlockBatch(dblock *common.DirectoryBlock) error {
 }
 
 // Insert the Directory Block meta data into db
-func (db *LevelDb) InsertDBInfo(dbInfo *common.DBInfo) (err error) {
-	if dbInfo.BTCTxHash == nil {
+func (db *LevelDb) InsertDirBlockInfo(dirBlockInfo *common.DirBlockInfo) (err error) {
+	if dirBlockInfo.BTCTxHash == nil {
 		return
 	}
 
@@ -115,9 +115,9 @@ func (db *LevelDb) InsertDBInfo(dbInfo *common.DBInfo) (err error) {
 	defer db.lbatch.Reset()
 
 	var key []byte = []byte{byte(TBL_DB_INFO)} // Table Name (1 bytes)
-	key = append(key, dbInfo.DBHash.Bytes...)
-	binaryDBInfo, _ := dbInfo.MarshalBinary()
-	db.lbatch.Put(key, binaryDBInfo)
+	key = append(key, dirBlockInfo.DBHash.Bytes...)
+	binaryDirBlockInfo, _ := dirBlockInfo.MarshalBinary()
+	db.lbatch.Put(key, binaryDirBlockInfo)
 
 	err = db.lDb.Write(db.lbatch, db.wo)
 	if err != nil {
@@ -128,8 +128,8 @@ func (db *LevelDb) InsertDBInfo(dbInfo *common.DBInfo) (err error) {
 	return nil
 }
 
-// FetchDBInfoByHash gets an DBInfo obj
-func (db *LevelDb) FetchDBInfoByHash(dbHash *common.Hash) (dbInfo *common.DBInfo, err error) {
+// FetchDirBlockInfoByHash gets an DirBlockInfo obj
+func (db *LevelDb) FetchDirBlockInfoByHash(dbHash *common.Hash) (dirBlockInfo *common.DirBlockInfo, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -138,11 +138,11 @@ func (db *LevelDb) FetchDBInfoByHash(dbHash *common.Hash) (dbInfo *common.DBInfo
 	data, err := db.lDb.Get(key, db.ro)
 
 	if data != nil {
-		dbInfo = new(common.DBInfo)
-		dbInfo.UnmarshalBinary(data)
+		dirBlockInfo = new(common.DirBlockInfo)
+		dirBlockInfo.UnmarshalBinary(data)
 	}
 
-	return dbInfo, nil
+	return dirBlockInfo, nil
 }
 
 // FetchDBlock gets an entry by hash from the database.
@@ -252,50 +252,50 @@ func (db *LevelDb) FetchAllDBlocks() (dBlocks []common.DirectoryBlock, err error
 	return dBlockSlice, nil
 }
 
-// FetchAllDBInfo gets all of the dbInfo
-func (db *LevelDb) FetchAllDBInfo() (dbInfoMap map[string]*common.DBInfo, err error) {
+// FetchAllDirBlockInfo gets all of the dirBlockInfo
+func (db *LevelDb) FetchAllDirBlockInfo() (dirBlockInfoMap map[string]*common.DirBlockInfo, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
 	var fromkey []byte = []byte{byte(TBL_DB_INFO)}   // Table Name (1 bytes)
 	var tokey []byte = []byte{byte(TBL_DB_INFO + 1)} // Table Name (1 bytes)
 
-	dbInfoMap = make(map[string]*common.DBInfo)
+	dirBlockInfoMap = make(map[string]*common.DirBlockInfo)
 
 	iter := db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
 
 	for iter.Next() {
-		dBInfo := new(common.DBInfo)
+		dBInfo := new(common.DirBlockInfo)
 		dBInfo.UnmarshalBinary(iter.Value())
-		dbInfoMap[dBInfo.DBMerkleRoot.String()] = dBInfo
+		dirBlockInfoMap[dBInfo.DBMerkleRoot.String()] = dBInfo
 	}
 	iter.Release()
 	err = iter.Error()
-	return dbInfoMap, err
+	return dirBlockInfoMap, err
 }
 
-// FetchAllUnconfirmedDBInfo gets all of the dbInfos that have BTC Anchor confirmation
-func (db *LevelDb) FetchAllUnconfirmedDBInfo() (dbInfoMap map[string]*common.DBInfo, err error) {
+// FetchAllUnconfirmedDirBlockInfo gets all of the dirBlockInfos that have BTC Anchor confirmation
+func (db *LevelDb) FetchAllUnconfirmedDirBlockInfo() (dirBlockInfoMap map[string]*common.DirBlockInfo, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
 	var fromkey []byte = []byte{byte(TBL_DB_INFO)}   // Table Name (1 bytes)
 	var tokey []byte = []byte{byte(TBL_DB_INFO + 1)} // Table Name (1 bytes)
 
-	dbInfoMap = make(map[string]*common.DBInfo)
+	dirBlockInfoMap = make(map[string]*common.DirBlockInfo)
 
 	iter := db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
 
 	for iter.Next() {
-		dBInfo := new(common.DBInfo)
+		dBInfo := new(common.DirBlockInfo)
 
 		// The last byte stores the confirmation flag
 		if iter.Value()[len(iter.Value())-1] == 0 {
 			dBInfo.UnmarshalBinary(iter.Value())
-			dbInfoMap[dBInfo.DBMerkleRoot.String()] = dBInfo
+			dirBlockInfoMap[dBInfo.DBMerkleRoot.String()] = dBInfo
 		}
 	}
 	iter.Release()
 	err = iter.Error()
-	return dbInfoMap, err
+	return dirBlockInfoMap, err
 }

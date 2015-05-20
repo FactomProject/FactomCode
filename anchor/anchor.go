@@ -17,6 +17,7 @@ import (
 	"io/ioutil"
 	"log"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"github.com/btcsuitereleases/btcd/btcjson/v2/btcjson"
@@ -36,8 +37,8 @@ var (
 	balances         []balance // unspent balance & address & its WIF
 	cfg              *util.FactomdConfig
 	dclient, wclient *btcrpcclient.Client
-	fee              btcutil.Amount            // tx fee for written into btc
-	dbInfoMap        map[string]*common.DBInfo //dbHash string as key
+	fee              btcutil.Amount                  // tx fee for written into btc
+	dirBlockInfoMap  map[string]*common.DirBlockInfo //dbHash string as key
 	db               database.Db
 )
 
@@ -50,20 +51,20 @@ type balance struct {
 // SendRawTransactionToBTC is the main function used to anchor factom
 // dir block hash to bitcoin blockchain
 func SendRawTransactionToBTC(hash *common.Hash, blockHeight uint64) (*wire.ShaHash, error) {
-	util.Trace("SendRawTransactionToBTC: hash=", hash.String(), ", dir block height=", string(blockHeight))
-	dbInfo := dbInfoMap[hash.String()]
-	if dbInfo == nil {
-		s := fmt.Sprintf("Anchor Error: hash %s does not exist in dbInfoMap.\n", hash.String())
+	util.Trace("SendRawTransactionToBTC: hash=", hash.String(), ", dir block height=", strconv.FormatUint(blockHeight, 10))
+	dirBlockInfo := dirBlockInfoMap[hash.String()]
+	if dirBlockInfo == nil {
+		s := fmt.Sprintf("Anchor Error: hash %s does not exist in dirBlockInfoMap.\n", hash.String())
 		fmt.Println(s)
 		return nil, errors.New(s)
 	}
-	if dbInfo.BTCConfirmed {
+	if dirBlockInfo.BTCConfirmed {
 		s := fmt.Sprintf("Anchor Warning: hash %s has already been confirmed in btc block chain.\n", hash.String())
 		fmt.Println(s)
 		return nil, errors.New(s)
 	}
-	if !common.NewHash().IsSameAs(dbInfo.BTCTxHash) {
-		s := fmt.Sprintf("Anchor Warning: hash %s has already been anchored but not confirmed. btc tx hash is %s\n", hash.String(), dbInfo.BTCTxHash.String())
+	if !common.NewHash().IsSameAs(dirBlockInfo.BTCTxHash) {
+		s := fmt.Sprintf("Anchor Warning: hash %s has already been anchored but not confirmed. btc tx hash is %s\n", hash.String(), dirBlockInfo.BTCTxHash.String())
 		fmt.Println(s)
 		return nil, errors.New(s)
 	}
@@ -86,7 +87,7 @@ func SendRawTransactionToBTC(hash *common.Hash, blockHeight uint64) (*wire.ShaHa
 	if err != nil {
 		return nil, fmt.Errorf("cannot send Raw Transaction: %s", err)
 	}
-	dbInfo.BTCTxHash = toHash(shaHash)
+	dirBlockInfo.BTCTxHash = toHash(shaHash)
 	return shaHash, nil
 }
 
@@ -299,11 +300,11 @@ func createBtcdNotificationHandlers() btcrpcclient.NotificationHandlers {
 }
 
 // InitAnchor inits rpc clients for factom
-// and load up unconfirmed DBInfo from leveldb
+// and load up unconfirmed DirBlockInfo from leveldb
 func InitAnchor(ldb database.Db) {
 	util.Trace("InitAnchor")
 	db = ldb
-	dbInfoMap, _ = db.FetchAllUnconfirmedDBInfo()
+	dirBlockInfoMap, _ = db.FetchAllUnconfirmedDirBlockInfo()
 
 	if err := initRPCClient(); err != nil {
 		fmt.Println(err.Error())
@@ -486,15 +487,15 @@ func prependBlockHeight(height uint64, hash []byte) ([]byte, error) {
 
 func saveDirBlockInfo(transaction *btcutil.Tx, details *btcjson.BlockDetails) {
 	var saved = false
-	for _, dbInfo := range dbInfoMap {
-		if dbInfo.BTCTxHash != nil &&
-			bytes.Compare(dbInfo.BTCTxHash.Bytes, transaction.Sha().Bytes()) == 0 {
-			dbInfo.BTCTxOffset = details.Index
-			dbInfo.BTCBlockHeight = details.Height
-			dbInfo.BTCConfirmed = true
-			db.InsertDBInfo(dbInfo)
-			delete(dbInfoMap, dbInfo.DBMerkleRoot.String())
-			fmt.Printf("In saveDirBlockInfo, dbInfo:%+v saved to db\n", dbInfo)
+	for _, dirBlockInfo := range dirBlockInfoMap {
+		if dirBlockInfo.BTCTxHash != nil &&
+			bytes.Compare(dirBlockInfo.BTCTxHash.Bytes, transaction.Sha().Bytes()) == 0 {
+			dirBlockInfo.BTCTxOffset = details.Index
+			dirBlockInfo.BTCBlockHeight = details.Height
+			dirBlockInfo.BTCConfirmed = true
+			db.InsertDirBlockInfo(dirBlockInfo)
+			delete(dirBlockInfoMap, dirBlockInfo.DBMerkleRoot.String())
+			fmt.Printf("In saveDirBlockInfo, dirBlockInfo:%+v saved to db\n", dirBlockInfo)
 			saved = true
 			break
 		}
@@ -511,9 +512,9 @@ func toHash(txHash *wire.ShaHash) *common.Hash {
 	return h
 }
 
-// UpdateDBInfoMap allows factom processor to update DBInfo
+// UpdateDirBlockInfoMap allows factom processor to update DirBlockInfo
 // when a new Directory Block is saved to db
-func UpdateDBInfoMap(dbInfo *common.DBInfo) {
-	util.Trace(spew.Sdump(dbInfo))
-	dbInfoMap[dbInfo.DBMerkleRoot.String()] = dbInfo
+func UpdateDirBlockInfoMap(dirBlockInfo *common.DirBlockInfo) {
+	util.Trace(spew.Sdump(dirBlockInfo))
+	dirBlockInfoMap[dirBlockInfo.DBMerkleRoot.String()] = dirBlockInfo
 }

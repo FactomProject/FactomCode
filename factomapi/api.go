@@ -110,7 +110,7 @@ func GetDirectoryBlokByHashStr(addr string) (*common.DirectoryBlock, error) {
 	return db.FetchDBlockByHash(hash)
 }
 
-func GetDBInfoByHashStr(addr string) (*common.DBInfo, error) {
+func GetDirBlockInfoByHashStr(addr string) (*common.DirBlockInfo, error) {
 	hash := new(common.Hash)
 	a, err := hex.DecodeString(addr)
 	if err != nil {
@@ -118,7 +118,7 @@ func GetDBInfoByHashStr(addr string) (*common.DBInfo, error) {
 	}
 	hash.Bytes = a
 
-	return db.FetchDBInfoByHash(hash)
+	return db.FetchDirBlockInfoByHash(hash)
 }
 
 func GetEntryBlokByHashStr(addr string) (*common.EBlock, error) {
