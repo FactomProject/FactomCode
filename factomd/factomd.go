@@ -41,6 +41,14 @@ func main() {
 	fmt.Println("//////////////////////// license that can be found in the LICENSE file.")
 
 	util.Trace()
+
+	// Load configuration file and send settings to components
+	loadConfigurations()
+
+	// Initialize db
+	initDB()
+
+	util.Trace()
 	// Use all processor cores.
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
@@ -68,18 +76,6 @@ func main() {
 	if err := factomdMain(); err != nil {
 		os.Exit(1)
 	}
-
-}
-
-func init() {
-
-	util.Trace()
-
-	// Load configuration file and send settings to components
-	loadConfigurations()
-
-	// Initialize db
-	initDB()
 
 }
 
