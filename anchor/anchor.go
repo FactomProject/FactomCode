@@ -69,7 +69,7 @@ func SendRawTransactionToBTC(hash *common.Hash, blockHeight uint64) (*wire.ShaHa
 		return nil, errors.New(s)
 	}
 	if dclient == nil || wclient == nil || balances == nil {
-		s := fmt.Sprintf("$$$ WARNING: rpc clients and/or wallet are not initiated successfully. No anchoring for now.")
+		s := fmt.Sprintf("\n\n$$$ WARNING: rpc clients and/or wallet are not initiated successfully. No anchoring for now.\n")
 		fmt.Println(s)
 		return nil, errors.New(s)
 	}
@@ -251,17 +251,17 @@ func createBtcwalletNotificationHandlers() btcrpcclient.NotificationHandlers {
 	ntfnHandlers := btcrpcclient.NotificationHandlers{
 		OnAccountBalance: func(account string, balance btcutil.Amount, confirmed bool) {
 			//go newBalance(account, balance, confirmed)
-			fmt.Println("wclient: OnAccountBalance, account=", account, ", balance=",
-				balance.ToUnit(btcutil.AmountBTC), ", confirmed=", confirmed)
+			//fmt.Println("wclient: OnAccountBalance, account=", account, ", balance=",
+			//balance.ToUnit(btcutil.AmountBTC), ", confirmed=", confirmed)
 		},
 
 		OnWalletLockState: func(locked bool) {
-			fmt.Println("wclient: OnWalletLockState, locked=", locked)
+			//fmt.Println("wclient: OnWalletLockState, locked=", locked)
 		},
 
 		OnUnknownNotification: func(method string, params []json.RawMessage) {
-			fmt.Println("wclient: OnUnknownNotification: method=", method, "\nparams[0]=",
-				string(params[0]), "\nparam[1]=", string(params[1]))
+			//fmt.Println("wclient: OnUnknownNotification: method=", method, "\nparams[0]=",
+			//string(params[0]), "\nparam[1]=", string(params[1]))
 		},
 	}
 
@@ -310,8 +310,8 @@ func InitAnchor(ldb database.Db) {
 		fmt.Println(err.Error())
 		return
 	}
-	defer shutdown(dclient)
-	defer shutdown(wclient)
+	//defer shutdown(dclient)
+	//defer shutdown(wclient)
 
 	if err := initWallet(); err != nil {
 		fmt.Println(err.Error())
@@ -472,7 +472,10 @@ func shutdown(client *btcrpcclient.Client) {
 }
 
 func prependBlockHeight(height uint64, hash []byte) ([]byte, error) {
-	if (0 == height) || (0xFFFFFFFFFFFF&height != height) {
+	// dir block genesis block height starts with 0, for now
+	// similar to bitcoin genesis block
+	//if (0 == height) || (0xFFFFFFFFFFFF&height != height) {
+	if 0xFFFFFFFFFFFF&height != height {
 		return nil, errors.New("bad block height")
 	}
 
@@ -486,6 +489,7 @@ func prependBlockHeight(height uint64, hash []byte) ([]byte, error) {
 }
 
 func saveDirBlockInfo(transaction *btcutil.Tx, details *btcjson.BlockDetails) {
+	util.Trace("to save dir block hash to btc.")
 	var saved = false
 	for _, dirBlockInfo := range dirBlockInfoMap {
 		if dirBlockInfo.BTCTxHash != nil &&
