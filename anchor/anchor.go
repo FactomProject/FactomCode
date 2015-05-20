@@ -49,18 +49,21 @@ type balance struct {
 
 // SendRawTransactionToBTC is the main function used to anchor factom
 // dir block hash to bitcoin blockchain
-func SendRawTransactionToBTC(hash []byte, blockHeight uint64) (*wire.ShaHash, error) {
-	dbInfo := dbInfoMap[string(hash)]
+func SendRawTransactionToBTC(hash *common.Hash, blockHeight uint64) (*wire.ShaHash, error) {
+	util.Trace("SendRawTransactionToBTC: hash=", hash.String(), ", dir block height=", string(blockHeight))
+	dbInfo := dbInfoMap[hash.String()]
 	if dbInfo == nil {
-		s := fmt.Sprintf("Anchor Error: hash %s does not exist in dbInfoMap.\n", string(hash))
+		s := fmt.Sprintf("Anchor Error: hash %s does not exist in dbInfoMap.\n", hash.String())
+		fmt.Println(s)
 		return nil, errors.New(s)
 	}
 	if dbInfo.BTCConfirmed {
-		s := fmt.Sprintf("Anchor Warning: hash %s has already been confirmed in btc block chain.\n", string(hash))
+		s := fmt.Sprintf("Anchor Warning: hash %s has already been confirmed in btc block chain.\n", hash.String())
+		fmt.Println(s)
 		return nil, errors.New(s)
 	}
 	if dbInfo.BTCTxHash != nil {
-		s := fmt.Sprintf("Anchor Warning: hash %s has already been anchored but not confirmed. btc tx hash is %s\n", string(hash), dbInfo.BTCTxHash.String())
+		s := fmt.Sprintf("Anchor Warning: hash %s has already been anchored but not confirmed. btc tx hash is %s\n", hash.String(), dbInfo.BTCTxHash.String())
 		return nil, errors.New(s)
 	}
 
@@ -68,7 +71,7 @@ func SendRawTransactionToBTC(hash []byte, blockHeight uint64) (*wire.ShaHash, er
 	i := copy(balances, balances[1:])
 	balances[i] = b
 
-	msgtx, err := createRawTransaction(b, hash, blockHeight)
+	msgtx, err := createRawTransaction(b, hash.Bytes, blockHeight)
 	if err != nil {
 		return nil, fmt.Errorf("cannot create Raw Transaction: %s", err)
 	}
@@ -214,11 +217,9 @@ func validateMsgTx(msgtx *wire.MsgTx, inputs []btcjson.ListUnspentResult) error 
 		}
 	}
 	return nil
-
 }
 
 func sendRawTransaction(msgtx *wire.MsgTx) (*wire.ShaHash, error) {
-
 	buf := bytes.Buffer{}
 	buf.Grow(msgtx.SerializeSize())
 	if err := msgtx.BtcEncode(&buf, wire.ProtocolVersion); err != nil {
@@ -234,8 +235,7 @@ func sendRawTransaction(msgtx *wire.MsgTx) (*wire.ShaHash, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed in rpcclient.SendRawTransaction: %s", err)
 	}
-	fmt.Println("btc txHash returned: ", shaHash) // new tx hash
-
+	//fmt.Println("btc txHash returned: ", shaHash) // new tx hash
 	return shaHash, nil
 }
 
@@ -465,19 +465,16 @@ func shutdown(client *btcrpcclient.Client) {
 }
 
 func prependBlockHeight(height uint64, hash []byte) ([]byte, error) {
-
 	if (0 == height) || (0xFFFFFFFFFFFF&height != height) {
 		return nil, errors.New("bad block height")
 	}
 
 	header := []byte{'F', 'a'}
-
 	big := make([]byte, 8)
 	binary.BigEndian.PutUint64(big, height)
 
 	newdata := append(big[2:8], hash...)
 	newdata = append(header, newdata...)
-
 	return newdata, nil
 }
 
@@ -508,10 +505,9 @@ func toHash(txHash *wire.ShaHash) *common.Hash {
 	return h
 }
 
+// UpdateDBInfoMap allows factom processor to update DBInfo
+// when a new Directory Block is saved to db
 func UpdateDBInfoMap(dbInfo *common.DBInfo) {
 	util.Trace(spew.Sdump(dbInfo))
-	if dbInfoMap == nil {
-		fmt.Println("dbInfoMap is nil")
-	}
 	dbInfoMap[dbInfo.DBMerkleRoot.String()] = dbInfo
 }
