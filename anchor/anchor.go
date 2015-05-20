@@ -297,6 +297,11 @@ func createBtcdNotificationHandlers() btcrpcclient.NotificationHandlers {
 func InitAnchor(ldb database.Db) {
 	util.Trace("InitAnchor")
 	db = ldb
+	dbInfoMap, _ = db.FetchAllUnconfirmedDBInfo()
+	if dbInfoMap == nil {
+		panic("dbInfoMap is nil from db.FetchAllUnconfirmedDBInfo")
+	}
+
 	if err := initRPCClient(); err != nil {
 		fmt.Println(err.Error())
 		return
@@ -307,10 +312,6 @@ func InitAnchor(ldb database.Db) {
 	if err := initWallet(); err != nil {
 		fmt.Println(err.Error())
 		return
-	}
-	dbInfoMap, _ = db.FetchAllUnconfirmedDBInfo()
-	if dbInfoMap == nil {
-		panic("dbInfoMap is nil from db.FetchAllUnconfirmedDBInfo")
 	}
 	return
 }
