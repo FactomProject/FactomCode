@@ -6,6 +6,10 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"os"
+	"runtime"
+	
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/database/ldb"
 	"github.com/FactomProject/FactomCode/util"
@@ -13,9 +17,6 @@ import (
 	"github.com/FactomProject/btcd"
 	"github.com/FactomProject/btcd/limits"
 	"github.com/FactomProject/btcd/wire"
-	"log"
-	"os"
-	"runtime"
 )
 
 var (

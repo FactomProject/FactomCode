@@ -5,20 +5,15 @@
 package factomapi
 
 import (
-	"bytes"
-	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"sort"
 	"strings"
-	"time"
-	"errors"
-	"github.com/FactomProject/FactomCode/common"
-	"github.com/FactomProject/FactomCode/database"
-	"github.com/FactomProject/FactomCode/util"
-	"github.com/FactomProject/FactomCode/wallet"
+
 	"github.com/FactomProject/btcd"
 	"github.com/FactomProject/btcd/wire"
+	"github.com/FactomProject/FactomCode/common"
+	"github.com/FactomProject/FactomCode/database"
 )
 
 //to be improved
@@ -26,7 +21,7 @@ var (
 	serverAddr      = "localhost:8083"
 	db              database.Db
 	creditsPerChain uint32                     = 10
-	inMsgQueue      chan<- wire.FtmInternalMsg //outgoing message queue for factom application messages
+	inMsgQueue      chan<- wire.FtmInternalMsg // message queue for factom application messages
 )
 
 // This method will be replaced with a Factoid transaction once we have the factoid implementation in place
@@ -65,7 +60,7 @@ func BuyEntryCredit(version uint16, ecPubKey *common.Hash, from *common.Hash, va
 //	outMsgQueue <- msg
 //}
 
-func GetEntryCreditBalance(ecPubKey *common.Hash) (credits int32, err error) {
+func GetEntryCreditBalance(ecPubKey *[32]byte) (credits int32, err error) {
 
 	return btcd.GetEntryCreditBalance(ecPubKey)
 }
@@ -303,34 +298,12 @@ func NewChain(name []string, eids []string, data []byte) (c *Chain, err error) {
 
 // CommitEntry sends a message to the factom network containing a hash of the
 // entry to be used to verify the later RevealEntry.
-func CommitEntry(e *common.Entry) error {
-	util.Trace()
-	var buf bytes.Buffer
-
-	bEntry, _ := e.MarshalBinary()
-	entryHash := common.Sha(bEntry)
-	// Calculate the required credits
-	credits := uint32(binary.Size(bEntry)/1000 + 1)
-
-	// Create a msg signature (timestamp + entry hash + credits)
-	timestamp := uint64(time.Now().Unix())
-	binary.Write(&buf, binary.BigEndian, timestamp)
-	buf.Write(entryHash.Bytes)
-	binary.Write(&buf, binary.BigEndian, credits)
-	sig := wallet.SignData(buf.Bytes())
-
+func CommitEntry(c *common.CommitEntry) error {
 	//Construct a msg and add it to the msg queue
-	msgCommitEntry := wire.NewMsgCommitEntry()
-	msgCommitEntry.Credits = credits
-	msgCommitEntry.ECPubKey = new(common.Hash)
-	msgCommitEntry.ECPubKey.Bytes = (*sig.Pub.Key)[:]
-	msgCommitEntry.EntryHash = entryHash
-	msgCommitEntry.Sig = (*sig.Sig)[:]
-	msgCommitEntry.Timestamp = timestamp
+	msg := wire.NewMsgCommitEntry()
+	msg.CommitEntry = c
 
-	util.Trace()
-	inMsgQueue <- msgCommitEntry
-	util.Trace()
+	inMsgQueue <- msg
 
 	return nil
 }
