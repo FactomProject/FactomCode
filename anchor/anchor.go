@@ -27,13 +27,19 @@ import (
 	"github.com/btcsuitereleases/btcutil"
 	"github.com/davecgh/go-spew/spew"
 
+	"github.com/FactomProject/FactomCode/common"
+	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/util"
 )
 
-var balances []balance // unspent balance & address & its WIF
-var cfg *util.FactomdConfig
-var dclient, wclient *btcrpcclient.Client
-var fee btcutil.Amount // tx fee for written into btc
+var (
+	balances         []balance // unspent balance & address & its WIF
+	cfg              *util.FactomdConfig
+	dclient, wclient *btcrpcclient.Client
+	fee              btcutil.Amount            // tx fee for written into btc
+	dbInfoMap        map[string]*common.DBInfo //dbHash string as key
+	db               database.Db
+)
 
 type balance struct {
 	unspentResult btcjson.ListUnspentResult
@@ -44,6 +50,20 @@ type balance struct {
 // SendRawTransactionToBTC is the main function used to anchor factom
 // dir block hash to bitcoin blockchain
 func SendRawTransactionToBTC(hash []byte, blockHeight uint64) (*wire.ShaHash, error) {
+	dbInfo := dbInfoMap[string(hash)]
+	if dbInfo == nil {
+		s := fmt.Sprintf("Anchor Error: hash %s does not exist in dbInfoMap.\n", string(hash))
+		return nil, errors.New(s)
+	}
+	if dbInfo.BTCConfirmed {
+		s := fmt.Sprintf("Anchor Warning: hash %s has already been confirmed in btc block chain.\n", string(hash))
+		return nil, errors.New(s)
+	}
+	if dbInfo.BTCTxHash != nil {
+		s := fmt.Sprintf("Anchor Warning: hash %s has already been anchored but not confirmed. btc tx hash is %s\n", string(hash), dbInfo.BTCTxHash.String())
+		return nil, errors.New(s)
+	}
+
 	b := balances[0]
 	i := copy(balances, balances[1:])
 	balances[i] = b
@@ -57,6 +77,7 @@ func SendRawTransactionToBTC(hash []byte, blockHeight uint64) (*wire.ShaHash, er
 	if err != nil {
 		return nil, fmt.Errorf("cannot send Raw Transaction: %s", err)
 	}
+	dbInfo.BTCTxHash = toHash(shaHash)
 	return shaHash, nil
 }
 
@@ -262,8 +283,8 @@ func createBtcdNotificationHandlers() btcrpcclient.NotificationHandlers {
 
 			if details != nil {
 				// do not block OnRedeemingTx callback
-				//go saveDirBlockInfo(transaction, details)
-				fmt.Println("used to saveDirBlockInfo here.")
+				fmt.Println("Anchor: saveDirBlockInfo.")
+				go saveDirBlockInfo(transaction, details)
 			}
 		},
 	}
@@ -271,17 +292,31 @@ func createBtcdNotificationHandlers() btcrpcclient.NotificationHandlers {
 	return ntfnHandlers
 }
 
-func init() {
-	err := initRPCClient()
-	if err != nil {
+// InitAnchor inits rpc clients for factom
+// and load up unconfirmed DBInfo from leveldb
+func InitAnchor(ldb database.Db) {
+	util.Trace("InitAnchor")
+	db = ldb
+	if err := initRPCClient(); err != nil {
 		fmt.Println(err.Error())
+		return
 	}
+	defer shutdown(dclient)
+	defer shutdown(wclient)
+
 	if err := initWallet(); err != nil {
 		fmt.Println(err.Error())
+		return
 	}
+	dbInfoMap, _ = db.FetchAllUnconfirmedDBInfo()
+	if dbInfoMap == nil {
+		panic("dbInfoMap is nil from db.FetchAllUnconfirmedDBInfo")
+	}
+	return
 }
 
 func initRPCClient() error {
+	util.Trace("init RPC client")
 	cfg = util.ReadConfig()
 	certHomePath := cfg.Btc.CertHomePath
 	rpcClientHost := cfg.Btc.RpcClientHost
@@ -341,6 +376,7 @@ func unlockWallet(timeoutSecs int64) error {
 }
 
 func initWallet() error {
+	util.Trace("init wallet")
 	fee, _ = btcutil.NewAmount(cfg.Btc.BtcTransFee)
 	err := unlockWallet(int64(600))
 	if err != nil {
@@ -362,7 +398,6 @@ func initWallet() error {
 				i++
 			}
 		}
-
 	}
 	fmt.Println("balances.len=", len(balances))
 
@@ -378,14 +413,11 @@ func initWallet() error {
 			return fmt.Errorf("cannot get WIF: %s", err)
 		}
 		balances[i].wif = wif
-
 		fmt.Printf("balance[%d]=%s", i, spew.Sdump(balances[i]))
 	}
 
 	//registerNotifications()
-
 	time.Sleep(1 * time.Second)
-
 	return nil
 }
 
@@ -414,24 +446,24 @@ func registerNotifications() {
 
 	// OnRedeemingTx
 	//err := dclient.NotifySpent(outpoints)
-
 }
 
-func shutdown() {
+func shutdown(client *btcrpcclient.Client) {
+	if client == nil {
+		return
+	}
 	// For this example gracefully shutdown the client after 10 seconds.
 	// Ordinarily when to shutdown the client is highly application
 	// specific.
 	log.Println("Client shutdown in 2 seconds...")
 	time.AfterFunc(time.Second*2, func() {
 		log.Println("Going down...")
-		wclient.Shutdown()
-		dclient.Shutdown()
+		client.Shutdown()
 	})
-	defer log.Println("btcsuite rpcclient and wallet client shutdown is done!")
+	defer log.Println("btcsuite client shutdown is done!")
 	// Wait until the client either shuts down gracefully (or the user
 	// terminates the process with Ctrl+C).
-	wclient.WaitForShutdown()
-	dclient.WaitForShutdown()
+	client.WaitForShutdown()
 }
 
 func prependBlockHeight(height uint64, hash []byte) ([]byte, error) {
@@ -449,4 +481,53 @@ func prependBlockHeight(height uint64, hash []byte) ([]byte, error) {
 	newdata = append(header, newdata...)
 
 	return newdata, nil
+}
+
+func saveDirBlockInfo(transaction *btcutil.Tx, details *btcjson.BlockDetails) {
+	var saved = false
+	for _, dbInfo := range dbInfoMap {
+		if dbInfo.BTCTxHash != nil &&
+			bytes.Compare(dbInfo.BTCTxHash.Bytes, transaction.Sha().Bytes()) == 0 {
+			dbInfo.BTCTxOffset = details.Index
+			dbInfo.BTCBlockHeight = details.Height
+			dbInfo.BTCConfirmed = true
+			db.InsertDBInfo(dbInfo)
+			delete(dbInfoMap, dbInfo.DBMerkleRoot.String())
+			fmt.Printf("In saveDirBlockInfo, dbInfo:%+v saved to db\n", dbInfo)
+			saved = true
+			break
+		}
+	}
+	// should not happen at all?
+	if !saved {
+		fmt.Println("Not saved to db: ")
+	}
+}
+
+/*
+func saveDBMerkleRoottoBTC(dbInfo *common.DBInfo) {
+	txHash, err := writeToBTC(dbInfo.DBMerkleRoot.Bytes)
+	if err != nil {
+		failedMerkles = append(failedMerkles, dbInfo.DBMerkleRoot)
+		fmt.Println("failed to record ", dbInfo.DBMerkleRoot.Bytes, " to BTC: ", err.Error())
+	}
+
+	//convert btc tx hash to factom hash, and update dbInfo
+	dbInfo.BTCTxHash = toHash(txHash)
+	dbInfoMap[dbInfo.DBMerkleRoot.String()] = dbInfo
+	fmt.Print("Recorded Direcory Block merkle root in BTC tx hash:\n", txHash, "\nconverted hash: ", dbInfo.BTCTxHash.String(), "\n")
+}*/
+
+func toHash(txHash *wire.ShaHash) *common.Hash {
+	h := new(common.Hash)
+	h.SetBytes(txHash.Bytes())
+	return h
+}
+
+func UpdateDBInfoMap(dbInfo *common.DBInfo) {
+	util.Trace(spew.Sdump(dbInfo))
+	if dbInfoMap == nil {
+		fmt.Println("dbInfoMap is nil")
+	}
+	dbInfoMap[dbInfo.DBMerkleRoot.String()] = dbInfo
 }

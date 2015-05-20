@@ -29,7 +29,7 @@ const (
 
 	// Entry Block
 	TBL_EB       //1
-	TBL_EB_CHAIN_NUM 
+	TBL_EB_CHAIN_NUM
 	TBL_EB_MR
 
 	// Directory Block
@@ -45,7 +45,7 @@ const (
 	TBL_CB //9
 	TBL_CB_NUM
 	TBL_CB_MR
-	
+
 	// Admin Block
 	TBL_AB //12
 	TBL_AB_NUM

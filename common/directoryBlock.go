@@ -35,7 +35,7 @@ type DirectoryBlock struct {
 	DBHash      	*Hash
 	KeyMR       	*Hash
 	IsSavedInDB 	bool
-	IsValidated     bool	
+	IsValidated     bool
 }
 
 type DBInfo struct {
@@ -58,7 +58,7 @@ type DBInfo struct {
 	// DBMerkleRoot is the merkle root of the Directory Block
 	// and is written into BTC as OP_RETURN data
 	DBMerkleRoot *Hash
-	
+
 	// A flag to to show BTC anchor confirmation
 	BTCConfirmed bool
 }

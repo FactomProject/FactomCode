@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"log"
+
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/goleveldb/leveldb"
 	"github.com/FactomProject/goleveldb/leveldb/util"
-	"log"
 )
 
 // FetchDBEntriesFromQueue gets all of the dbentries that have not been processed
@@ -70,7 +71,7 @@ func (db *LevelDb) ProcessDBlockBatch(dblock *common.DirectoryBlock) error {
 		if dblock.KeyMR == nil {
 			dblock.BuildKeyMerkleRoot()
 		}
-		
+
 		// Insert the binary directory block
 		var key []byte = []byte{byte(TBL_DB)}
 		key = append(key, dblock.DBHash.Bytes...)
@@ -256,7 +257,7 @@ func (db *LevelDb) FetchAllDBInfo() (dBInfoSlice []common.DBInfo, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
-	var fromkey []byte = []byte{byte(TBL_DB_INFO)}   // Table Name (1 bytes)					
+	var fromkey []byte = []byte{byte(TBL_DB_INFO)}   // Table Name (1 bytes)
 	var tokey []byte = []byte{byte(TBL_DB_INFO + 1)} // Table Name (1 bytes)
 
 	dBInfoSlice = make([]common.DBInfo, 0, 10)
@@ -277,30 +278,27 @@ func (db *LevelDb) FetchAllDBInfo() (dBInfoSlice []common.DBInfo, err error) {
 }
 
 // FetchAllUnconfirmedDBInfo gets all of the dbInfos that have BTC Anchor confirmation
-func (db *LevelDb) FetchAllUnconfirmedDBInfo() (dBInfoSlice []common.DBInfo, err error) {
+func (db *LevelDb) FetchAllUnconfirmedDBInfo() (dbInfoMap map[string]*common.DBInfo, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
-	var fromkey []byte = []byte{byte(TBL_DB_INFO)}   // Table Name (1 bytes)					
+	var fromkey []byte = []byte{byte(TBL_DB_INFO)}   // Table Name (1 bytes)
 	var tokey []byte = []byte{byte(TBL_DB_INFO + 1)} // Table Name (1 bytes)
 
-	dBInfoSlice = make([]common.DBInfo, 0, 10)
+	dbInfoMap = make(map[string]*common.DBInfo)
 
 	iter := db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
 
 	for iter.Next() {
-		var dBInfo common.DBInfo
-		
+		var dBInfo *common.DBInfo
+
 		// The last byte stores the confirmation flag
 		if iter.Value()[len(iter.Value())-1] == 0 {
 			dBInfo.UnmarshalBinary(iter.Value())
-	
-			dBInfoSlice = append(dBInfoSlice, dBInfo)
+			dbInfoMap[dBInfo.DBMerkleRoot.String()] = dBInfo
 		}
-		
 	}
 	iter.Release()
 	err = iter.Error()
-
-	return dBInfoSlice, nil
+	return dbInfoMap, nil
 }
