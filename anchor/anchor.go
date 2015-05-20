@@ -277,9 +277,9 @@ func createBtcdNotificationHandlers() btcrpcclient.NotificationHandlers {
 		},
 
 		OnRedeemingTx: func(transaction *btcutil.Tx, details *btcjson.BlockDetails) {
-			fmt.Printf("dclient: OnRedeemingTx: details=%#v\n", details)
-			fmt.Printf("dclient: OnRedeemingTx: tx.Sha=%#v,  tx.index=%d\n",
-				transaction.Sha().String(), transaction.Index())
+			//fmt.Printf("dclient: OnRedeemingTx: details=%#v\n", details)
+			//fmt.Printf("dclient: OnRedeemingTx: tx.Sha=%#v,  tx.index=%d\n",
+			//transaction.Sha().String(), transaction.Index())
 
 			if details != nil {
 				// do not block OnRedeemingTx callback
@@ -298,9 +298,6 @@ func InitAnchor(ldb database.Db) {
 	util.Trace("InitAnchor")
 	db = ldb
 	dbInfoMap, _ = db.FetchAllUnconfirmedDBInfo()
-	if dbInfoMap == nil {
-		panic("dbInfoMap is nil from db.FetchAllUnconfirmedDBInfo")
-	}
 
 	if err := initRPCClient(); err != nil {
 		fmt.Println(err.Error())
@@ -504,20 +501,6 @@ func saveDirBlockInfo(transaction *btcutil.Tx, details *btcjson.BlockDetails) {
 		fmt.Println("Not saved to db: ")
 	}
 }
-
-/*
-func saveDBMerkleRoottoBTC(dbInfo *common.DBInfo) {
-	txHash, err := writeToBTC(dbInfo.DBMerkleRoot.Bytes)
-	if err != nil {
-		failedMerkles = append(failedMerkles, dbInfo.DBMerkleRoot)
-		fmt.Println("failed to record ", dbInfo.DBMerkleRoot.Bytes, " to BTC: ", err.Error())
-	}
-
-	//convert btc tx hash to factom hash, and update dbInfo
-	dbInfo.BTCTxHash = toHash(txHash)
-	dbInfoMap[dbInfo.DBMerkleRoot.String()] = dbInfo
-	fmt.Print("Recorded Direcory Block merkle root in BTC tx hash:\n", txHash, "\nconverted hash: ", dbInfo.BTCTxHash.String(), "\n")
-}*/
 
 func toHash(txHash *wire.ShaHash) *common.Hash {
 	h := new(common.Hash)

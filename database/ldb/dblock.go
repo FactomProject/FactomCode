@@ -253,28 +253,25 @@ func (db *LevelDb) FetchAllDBlocks() (dBlocks []common.DirectoryBlock, err error
 }
 
 // FetchAllDBInfo gets all of the dbInfo
-func (db *LevelDb) FetchAllDBInfo() (dBInfoSlice []common.DBInfo, err error) {
+func (db *LevelDb) FetchAllDBInfo() (dbInfoMap map[string]*common.DBInfo, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
 	var fromkey []byte = []byte{byte(TBL_DB_INFO)}   // Table Name (1 bytes)
 	var tokey []byte = []byte{byte(TBL_DB_INFO + 1)} // Table Name (1 bytes)
 
-	dBInfoSlice = make([]common.DBInfo, 0, 10)
+	dbInfoMap = make(map[string]*common.DBInfo)
 
 	iter := db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
 
 	for iter.Next() {
-		var dBInfo common.DBInfo
+		dBInfo := new(common.DBInfo)
 		dBInfo.UnmarshalBinary(iter.Value())
-
-		dBInfoSlice = append(dBInfoSlice, dBInfo)
-
+		dbInfoMap[dBInfo.DBMerkleRoot.String()] = dBInfo
 	}
 	iter.Release()
 	err = iter.Error()
-
-	return dBInfoSlice, nil
+	return dbInfoMap, err
 }
 
 // FetchAllUnconfirmedDBInfo gets all of the dbInfos that have BTC Anchor confirmation
@@ -290,7 +287,7 @@ func (db *LevelDb) FetchAllUnconfirmedDBInfo() (dbInfoMap map[string]*common.DBI
 	iter := db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
 
 	for iter.Next() {
-		var dBInfo *common.DBInfo
+		dBInfo := new(common.DBInfo)
 
 		// The last byte stores the confirmation flag
 		if iter.Value()[len(iter.Value())-1] == 0 {
@@ -300,5 +297,5 @@ func (db *LevelDb) FetchAllUnconfirmedDBInfo() (dbInfoMap map[string]*common.DBI
 	}
 	iter.Release()
 	err = iter.Error()
-	return dbInfoMap, nil
+	return dbInfoMap, err
 }

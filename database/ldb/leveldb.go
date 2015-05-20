@@ -12,7 +12,7 @@ import (
 
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/goleveldb/leveldb"
-//	"github.com/FactomProject/goleveldb/leveldb/cache"
+	//	"github.com/FactomProject/goleveldb/leveldb/cache"
 	"github.com/FactomProject/goleveldb/leveldb/opt"
 )
 
@@ -28,7 +28,7 @@ const (
 	TBL_ENTRY uint8 = iota
 
 	// Entry Block
-	TBL_EB       //1
+	TBL_EB //1
 	TBL_EB_CHAIN_NUM
 	TBL_EB_MR
 

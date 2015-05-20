@@ -85,7 +85,7 @@ type Db interface {
 	InsertDBInfo(dbInfo *common.DBInfo) (err error)
 
 	// FetchAllDBInfo gets all of the dbInfo
-	FetchAllDBInfo() (dBInfoSlice []common.DBInfo, err error)
+	FetchAllDBInfo() (ddbInfoMap map[string]*common.DBInfo, err error)
 
 	// FetchAllUnconfirmedDBInfo gets all of the dbInfos that have BTC Anchor confirmation
 	//FetchAllUnconfirmedDBInfo() (dBInfoSlice []common.DBInfo, err error)
