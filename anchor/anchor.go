@@ -62,8 +62,14 @@ func SendRawTransactionToBTC(hash *common.Hash, blockHeight uint64) (*wire.ShaHa
 		fmt.Println(s)
 		return nil, errors.New(s)
 	}
-	if dbInfo.BTCTxHash != nil {
+	if !common.NewHash().IsSameAs(dbInfo.BTCTxHash) {
 		s := fmt.Sprintf("Anchor Warning: hash %s has already been anchored but not confirmed. btc tx hash is %s\n", hash.String(), dbInfo.BTCTxHash.String())
+		fmt.Println(s)
+		return nil, errors.New(s)
+	}
+	if dclient == nil || wclient == nil || balances == nil {
+		s := fmt.Sprintf("$$$ WARNING: rpc clients and/or wallet are not initiated successfully. No anchoring for now.")
+		fmt.Println(s)
 		return nil, errors.New(s)
 	}
 
@@ -375,6 +381,7 @@ func unlockWallet(timeoutSecs int64) error {
 
 func initWallet() error {
 	util.Trace("init wallet")
+	balances = make([]balance, 0, 100)
 	fee, _ = btcutil.NewAmount(cfg.Btc.BtcTransFee)
 	err := unlockWallet(int64(600))
 	if err != nil {
@@ -387,7 +394,6 @@ func initWallet() error {
 	}
 	fmt.Println("unspentResults.len=", len(unspentResults))
 
-	balances = make([]balance, 0, 100)
 	if len(unspentResults) > 0 {
 		var i int
 		for _, b := range unspentResults {
