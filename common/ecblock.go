@@ -39,11 +39,11 @@ func NewECBlock() *ECBlock {
 	return e
 }
 
-func NextECBlock(p *ECBlock) *ECBlock {
+func NextECBlock(prev *ECBlock) *ECBlock {
 	e := NewECBlock()
-	e.Header.PrevKeyMR = p.KeyMR()
-	e.Header.PrevHash3 = p.Hash3()
-	e.Header.DBHeight = p.Header.DBHeight + 1
+	e.Header.PrevKeyMR = prev.KeyMR()
+	e.Header.PrevHash3 = prev.Hash3()
+	e.Header.DBHeight = prev.Header.DBHeight + 1
 	return e
 }
 

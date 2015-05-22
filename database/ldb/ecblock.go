@@ -67,11 +67,9 @@ func (db *LevelDb) FetchAllECBlocks() (ecBlocks []common.ECBlock, err error) {
 	iter := db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
 
 	for iter.Next() {
-		var ecBlock common.ECBlock
+		ecBlock := common.NewECBlock()
 		ecBlock.UnmarshalBinary(iter.Value())
-
-		ecBlockSlice = append(ecBlockSlice, ecBlock)
-
+		ecBlockSlice = append(ecBlockSlice, *ecBlock)
 	}
 	iter.Release()
 	err = iter.Error()

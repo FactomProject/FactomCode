@@ -16,7 +16,7 @@ func TestECBlockMarshal(t *testing.T) {
 	if p, err := ecb.MarshalBinary(); err != nil {
 		t.Error(err)
 	} else if z := make([]byte, 212); string(p) != string(z) {
-		t.Errorf("Marshal failed on zeroed CommitChain")
+		t.Errorf("Marshal failed on zeroed ECBlock")
 	}
 	
 	// build a CommitChain for testing
@@ -48,7 +48,7 @@ func TestECBlockMarshal(t *testing.T) {
 	ecb.Header.ObjectCount = 0
 	
 	// add the CommitChain to the ECBlock
-	ecb.AddEntries(cc)
+	ecb.AddEntry(cc)
 	
 	ecb2 := common.NewECBlock()
 	if p, err := ecb.MarshalBinary(); err != nil {
@@ -64,5 +64,4 @@ func TestECBlockMarshal(t *testing.T) {
 			t.Errorf("ecb = %x\necb2 = %x\n", p, q)
 		}
 	}
-		
 }
