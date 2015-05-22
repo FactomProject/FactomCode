@@ -6,325 +6,110 @@ package factomapi
 
 import (
 	"encoding/hex"
-	"fmt"
-	"sort"
-	"strings"
 
-	"github.com/FactomProject/btcd"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/database"
 )
 
-//to be improved
 var (
-	serverAddr      = "localhost:8083"
-	db              database.Db
-	creditsPerChain uint32                     = 10
-	inMsgQueue      chan<- wire.FtmInternalMsg // message queue for factom application messages
+	db     database.Db
+	inMsgQ chan wire.FtmInternalMsg
 )
 
-// This method will be replaced with a Factoid transaction once we have the factoid implementation in place
-func BuyEntryCredit(version uint16, ecPubKey *common.Hash, from *common.Hash, value uint64, fee uint64, sig *common.Signature) error {
-
-	fmt.Println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-	fmt.Println("!!! NOT IMPLEMENTED !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-	fmt.Println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-
-	// XXX TODO FIXME: gotta be linked to Factoid -- there is no buy or get credit P2P message
-	/*
-			msgGetCredit := wire.NewMsgGetCredit()
-			msgGetCredit.ECPubKey = ecPubKey
-				msgGetCredit.FactoidBase = value
-
-		outMsgQueue <- msgGetCredit
-	*/
-
-	return nil
-}
-
-//func FactoidTx(addr factoid.Address, n uint32) {
-//	var msg wire.MsgTx
-//	genb := factoid.FactoidGenesis(wire.TestNet)
-//	outs := factoid.OutputsTx(&genb.Transactions[0])
-//	txm := factoid.NewTxFromOutputToAddr(genb.Transactions[0].Id(), outs,
-//		n, factoid.AddressReveal(*wallet.ClientPublicKey().Key), addr)
-//	ds := wallet.DetachMarshalSign(txm.TxData)
-//	ss := factoid.NewSingleSignature(ds)
-//	factoid.AddSingleSigToTxMsg(txm, ss)
-//
-//	msg.Data, err := txm.MarshalBinary()
-//	if err != nil {
-//		fmt.Println(err)
-//	}
-//	outMsgQueue <- msg
-//}
-
-func GetEntryCreditBalance(ecPubKey *[32]byte) (credits int32, err error) {
-
-	return btcd.GetEntryCreditBalance(ecPubKey)
-}
-
-func GetChainByHashStr(id string) (*common.EChain, error) {
-	hash := new(common.Hash)
-	a, err := hex.DecodeString(id)
+func ChainHead(chainid string) (*common.EBlock, error) {
+	h, err := atoh(chainid)
 	if err != nil {
 		return nil, err
 	}
-	hash.Bytes = a
-
-	return db.FetchChainByHash(hash)
-}
-
-func GetAllChains() ([]common.EChain, error) {
-	return db.FetchAllChains()
-}
-
-func GetDirectoryBloks(fromBlockHeight uint32, toBlockHeight uint32) (dBlocks []common.DirectoryBlock, err error) {
-	//needs to be improved ??
-	dBlocks, _ = db.FetchAllDBlocks()
-	sort.Sort(byBlockID(dBlocks))
-
-	if fromBlockHeight > uint32(len(dBlocks)-1) {
-		return nil, nil
-	} else if toBlockHeight > uint32(len(dBlocks)-1) {
-		toBlockHeight = uint32(len(dBlocks) - 1)
-	}
-
-	return dBlocks[fromBlockHeight : toBlockHeight+1], nil
-}
-
-func GetDirectoryBlokByHashStr(addr string) (*common.DirectoryBlock, error) {
-	hash := new(common.Hash)
-	a, err := hex.DecodeString(addr)
+	c, err := db.FetchChainByHash(h)
 	if err != nil {
 		return nil, err
 	}
-	hash.Bytes = a
-
-	return db.FetchDBlockByHash(hash)
+	return c.NextBlock, nil
 }
 
-func GetDBInfoByHashStr(addr string) (*common.DBInfo, error) {
-	hash := new(common.Hash)
-	a, err := hex.DecodeString(addr)
-	if err != nil {
-		return nil, err
-	}
-	hash.Bytes = a
-
-	return db.FetchDBInfoByHash(hash)
-}
-
-func GetEntryBlokByHashStr(addr string) (*common.EBlock, error) {
-	hash := new(common.Hash)
-	a, err := hex.DecodeString(addr)
-	if err != nil {
-		return nil, err
-	}
-	hash.Bytes = a
-
-	return db.FetchEBlockByHash(hash)
-}
-
-func GetEntryBlokByMRStr(addr string) (*common.EBlock, error) {
-	hash := new(common.Hash)
-	a, err := hex.DecodeString(addr)
-	if err != nil {
-		return nil, err
-	}
-	hash.Bytes = a
-
-	return db.FetchEBlockByMR(hash)
-}
-
-func GetBlokHeight() (int, error) {
-	b := make([]common.DirectoryBlock, 0)
-	b, err := db.FetchAllDBlocks()
-	if err != nil {
-		return 0, err
-	}
-	return len(b), nil
-}
-
-func GetEntriesByExtID(eid string) (entries []common.Entry, err error) {
-	extIDMap, err := db.InitializeExternalIDMap()
-	if err != nil {
-		return nil, err
-	}
-	for key, _ := range extIDMap {
-		if strings.Contains(key[32:], eid) {
-			hash := new(common.Hash)
-			hash.Bytes = []byte(key[:32])
-			entry, err := db.FetchEntryByHash(hash)
-			if err != nil {
-				return entries, err
-			}
-			entries = append(entries, *entry)
-		}
-	}
-	return entries, err
-}
-
-func GetEntryByHashStr(addr string) (*common.Entry, error) {
-	hash := new(common.Hash)
-	a, err := hex.DecodeString(addr)
-	if err != nil {
-		return nil, err
-	}
-	hash.Bytes = a
-
-	return db.FetchEntryByHash(hash)
-}
-
-//func GetDirectoryBlokByHash(dBlockHash *common.Hash) (dBlock *common.DBlock, err error) {
-//
-//	dBlock, err = db.FetchDBlockByHash(dBlockHash)
-//
-//	return dBlock, err
-//}
-
-//func GetEntryBlokByHash(eBlockHash *common.Hash) (eBlock *common.EBlock, err error) {
-//
-//	eBlock, err = db.FetchEBlockByHash(eBlockHash)
-//
-//	return eBlock, err
-//}
-
-//func GetEntryByHash(entrySha *common.Hash) (entry *common.Entry, err error) {
-//
-//	entry, err = db.FetchEntryByHash(entrySha)
-//
-//	return entry, err
-//}
-
-// to be removed------------------------------
-func SetServerAddr(addr string) error {
-	serverAddr = addr
-
-	return nil
-}
-
-func SetDB(database database.Db) error {
-	db = database
-
-	return nil
-}
-func SetInMsgQueue(inMsgQ chan<- wire.FtmInternalMsg) error {
-	inMsgQueue = inMsgQ
-
-	return nil
-}
-
-//-=-----------------------------------------
-
-// array sorting implementation
-type byBlockID []common.DirectoryBlock
-
-func (f byBlockID) Len() int {
-	return len(f)
-}
-func (f byBlockID) Less(i, j int) bool {
-	return f[i].Header.BlockHeight < f[j].Header.BlockHeight
-}
-func (f byBlockID) Swap(i, j int) {
-	f[i], f[j] = f[j], f[i]
-}
-
-// array sorting implementation
-type byEBlockID []common.EBlock
-
-func (f byEBlockID) Len() int {
-	return len(f)
-}
-func (f byEBlockID) Less(i, j int) bool {
-	return f[i].Header.EBHeight > f[j].Header.EBHeight
-}
-func (f byEBlockID) Swap(i, j int) {
-	f[i], f[j] = f[j], f[i]
-}
-
-//-------------------------------------
-
-// CommitChain sends a message to the factom network containing a CommitChain
-// Message.
 func CommitChain(c *common.CommitChain) error {
-	//Construct a msg and add it to the msg queue
-	msg := wire.NewMsgCommitChain()
-	msg.CommitChain = c
-
-	inMsgQueue <- msg
-
+	m := wire.NewMsgCommitChain()
+	m.CommitChain = c
+	inMsgQ <- m
 	return nil
 }
 
-// PrintEntry is a helper function for debugging entry transport and encoding
-func PrintEntry(e *Entry) {
-	fmt.Println("ChainID:", hex.EncodeToString(e.ChainID))
-	fmt.Println("ExtIDs:")
-	for _, v := range e.ExtIDs {
-		fmt.Println("	", string(v))
-	}
-	fmt.Println("Data:", string(e.Data))
+func CommitEntry(c *common.CommitEntry) error {
+	m := wire.NewMsgCommitEntry()
+	m.CommitEntry = c
+	inMsgQ <- m
+	return nil
 }
 
-// NewEntry creates a factom entry. It is supplied a string chain id, a []byte
-// of data, and a series of string external ids for entry lookup
-func NewEntry(cid string, eids []string, data []byte) (e *Entry, err error) {
-	e = new(Entry)
-	e.ChainID, err = hex.DecodeString(cid)
+func DBlockByKeyMR(keymr string) (*common.DirectoryBlock, error) {
+	h, err := atoh(keymr)
 	if err != nil {
 		return nil, err
 	}
-	e.Data = data
-	for _, v := range eids {
-		e.ExtIDs = append(e.ExtIDs, []byte(v))
+	r, err := db.FetchDBlockByHash(h)
+	if err != nil {
+		return r, err
 	}
-	return
+	return r, nil
 }
 
-// NewChain creates a factom chain from a []string chain name and a new entry
-// to be the first entry of the new chain from []byte data, and a series of
-// string external ids
-func NewChain(name []string, eids []string, data []byte) (c *Chain, err error) {
-	c = new(Chain)
-	for _, v := range name {
-		c.Name = append(c.Name, []byte(v))
+func DBlockHead() (*common.DirectoryBlock, error) {
+	bs, err := db.FetchAllDBlocks()
+	if err != nil {
+		return nil, err
 	}
-	str_name := c.GenerateID()
-	c.FirstEntry, err = NewEntry(str_name, eids, data)
-	return
+	return &bs[len(bs)-1], nil
 }
 
-// CommitEntry sends a message to the factom network containing a hash of the
-// entry to be used to verify the later RevealEntry.
-func CommitEntry(c *common.CommitEntry) error {
-	//Construct a msg and add it to the msg queue
-	msg := wire.NewMsgCommitEntry()
-	msg.CommitEntry = c
+func EBlockByKeyMR(keymr string) (*common.EBlock, error) {
+	h, err := atoh(keymr)
+	if err != nil {
+		return nil, err
+	}
+	r, err := db.FetchEBlockByMR(h)
+	if err != nil {
+		return r, err
+	}
+	return r, nil
+}
 
-	inMsgQueue <- msg
+// TODO
+func ECBalance(eckey string) (uint32, error) {
+	return uint32(0), nil
+}
 
+func EntryByHash(hash string) (*common.Entry, error) {
+	h, err := atoh(hash)
+	if err != nil {
+		return nil, err
+	}
+	r, err := db.FetchEntryByHash(h)
+	if err != nil {
+		return r, err
+	}
+	return r, nil
+}
+
+func RevealEntry(*common.Entry) error {
 	return nil
 }
 
-// RevealEntry sends a message to the factom network containing the binary
-// encoded entry for the server to add it to the factom blockchain. The entry
-// will be rejected if a CommitEntry was not done.
-func RevealEntry(e *common.Entry) error {
-
-	//Construct a msg and add it to the msg queue
-	msgRevealEntry := wire.NewMsgRevealEntry()
-	msgRevealEntry.Entry = e
-
-	inMsgQueue <- msgRevealEntry
-
-	return nil
+func SetDB(d database.Db) {
+	db = d
 }
 
-func SubmitFactoidTx(m wire.Message) error {
+func SetInMsgQueue(q chan wire.FtmInternalMsg) {
+	inMsgQ = q
+}
 
-	inMsgQueue <- m
-
-	return nil
+func atoh(a string) (*common.Hash, error) {
+	h := new(common.Hash)
+	p, err := hex.DecodeString(a)
+	if err != nil {
+		return h, err
+	}
+	copy(h.Bytes, p)
+	return h, nil
 }

@@ -33,7 +33,7 @@ var (
 
 var server = web.NewServer()
 
-func Start(db database.Db, inMsgQ chan<- wire.FtmInternalMsg) {
+func Start(db database.Db, inMsgQ chan wire.FtmInternalMsg) {
 	factomapi.SetDB(db)
 	factomapi.SetInMsgQueue(inMsgQ)
 
@@ -226,8 +226,8 @@ func handleDirectoryBlock(ctx *web.Context, keymr string) {
 		return
 	} else {
 		d.Header.PrevBlockKeyMR = block.Header.PrevKeyMR.String()
-		d.Header.SequenceNumber = block.BlockHeight
-		d.Header.TimeStamp = block.StartTime
+		d.Header.SequenceNumber = block.Header.BlockHeight
+		d.Header.TimeStamp = block.Header.StartTime
 		for _, v := range block.DBEntries {
 			l := new(eblockaddr)
 			l.ChainID = v.ChainID.String()
@@ -304,7 +304,7 @@ func handleEntry(ctx *web.Context, hash string) {
 		return
 	} else {
 		e.ChainID = entry.ChainID.String()
-		e.Content = hex.EncodeToString(entry.Data)
+		e.Content = hex.EncodeToString(entry.Content)
 		for _, v := range entry.ExtIDs {
 			e.ExtIDs = append(e.ExtIDs, hex.EncodeToString(v))
 		}

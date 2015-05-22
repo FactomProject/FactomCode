@@ -20,6 +20,14 @@ type Entry struct {
 	Content []byte
 }
 
+func NewEntry() *Entry {
+	e := new(Entry)
+	e.ChainID = NewHash()
+	e.ExtIDs = make([][]byte, 0)
+	e.Content = make([]byte, 0)
+	return e
+}
+
 // NewChainID generates a ChainID from an entry. ChainID = Sha(Sha(ExtIDs[0]) +
 // Sha(ExtIDs[1] + ... + Sha(ExtIDs[n]))
 func NewChainID(e *Entry) *Hash {
