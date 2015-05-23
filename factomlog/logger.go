@@ -46,6 +46,11 @@ func New(w io.Writer, level, prefix string) *FLogger {
 	}
 }
 
+// Get the current log level
+func (logger *FLogger) Level() (level Level) {
+	return logger.level
+}
+
 // Emergency logs with an emergency level and exits the program.
 func (logger *FLogger) Emergency(args ...interface{}) {
 	logger.write(Emergency, args...)

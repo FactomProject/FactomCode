@@ -39,14 +39,14 @@ func CreateHash(entities ...BinaryMarshallable) (h *Hash, err error) {
 func (h *Hash) MarshalBinary() ([]byte, error) {
 	if h.Bytes == nil || len(h.Bytes) != HASH_LENGTH {
 		return nil, errors.New("(h *Hash) MarshalBinary() Invalid Hash byte stream: " + string(h.Bytes))
-	}	
+	}
 	var buf bytes.Buffer
 	buf.Write(h.Bytes)
 	return buf.Bytes(), nil
 }
 
 func (h *Hash) UnmarshalBinary(p []byte) error {
-	h.Bytes = make([]byte, HASH_LENGTH)	
+	h.Bytes = make([]byte, HASH_LENGTH)
 	copy(h.Bytes, p)
 	return nil
 }

@@ -69,11 +69,24 @@ type Db interface {
 	// FetchDBlock gets an entry by hash from the database.
 	FetchDBlockByHash(dBlockHash *common.Hash) (dBlock *common.DirectoryBlock, err error)
 
+	// FetchDBlockByMR gets a directory block by merkle root from the database.
+	FetchDBlockByMR(dBMR *common.Hash) (dBlock *common.DirectoryBlock, err error)
+
+	// FetchDBHashByMR gets a DBHash by MR from the database.
+	FetchDBHashByMR(dBMR *common.Hash) (dBlockHash *common.Hash, err error)
+
 	// FetchDBBatchByHash gets an FBBatch obj
-	FetchDBInfoByHash(dbHash *common.Hash) (dbInfo *common.DBInfo, err error)
+	FetchDirBlockInfoByHash(dbHash *common.Hash) (dirBlockInfo *common.DirBlockInfo, err error)
 
 	// Insert the Directory Block meta data into db
-	InsertDBInfo(dbInfo common.DBInfo) (err error)
+	InsertDirBlockInfo(dirBlockInfo *common.DirBlockInfo) (err error)
+
+	// FetchAllDirBlockInfo gets all of the dirBlockInfo
+	FetchAllDirBlockInfo() (ddirBlockInfoMap map[string]*common.DirBlockInfo, err error)
+
+	// FetchAllUnconfirmedDirBlockInfo gets all of the dirBlockInfos that have BTC Anchor confirmation
+	//FetchAllUnconfirmedDirBlockInfo() (dBInfoSlice []common.DirBlockInfo, err error)
+	FetchAllUnconfirmedDirBlockInfo() (dirBlockInfoMap map[string]*common.DirBlockInfo, err error)
 
 	// ProcessDBlockBatche inserts the EBlock and update all it's ebentries in DB
 	ProcessDBlockBatch(block *common.DirectoryBlock) error
@@ -83,7 +96,7 @@ type Db interface {
 
 	// FetchAllFBInfo gets all of the fbInfo
 	FetchAllDBlocks() (fBlocks []common.DirectoryBlock, err error)
-	
+
 	// FetchDBlockByHeight gets an directory block by height from the database.
 	FetchDBlockByHeight(dBlockHeight uint32) (dBlock *common.DirectoryBlock, err error) 
 	
@@ -97,12 +110,11 @@ type Db interface {
 	InitializeExternalIDMap() (extIDMap map[string]bool, err error)
 
 	// ProcessABlockBatch inserts the AdminBlock
-	ProcessABlockBatch(block *common.AdminBlock) error 
-	
-	// FetchABlockByHash gets an admin block by hash from the database.
-	FetchABlockByHash(aBlockHash *common.Hash) (aBlock *common.AdminBlock, err error) 	
-	
-	// FetchAllABlocks gets all of the admin blocks
-	FetchAllABlocks() (aBlocks []common.AdminBlock, err error) 	
+	ProcessABlockBatch(block *common.AdminBlock) error
 
+	// FetchABlockByHash gets an admin block by hash from the database.
+	FetchABlockByHash(aBlockHash *common.Hash) (aBlock *common.AdminBlock, err error)
+
+	// FetchAllABlocks gets all of the admin blocks
+	FetchAllABlocks() (aBlocks []common.AdminBlock, err error)
 }

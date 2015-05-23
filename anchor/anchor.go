@@ -17,6 +17,7 @@ import (
 	"io/ioutil"
 	"log"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"github.com/btcsuitereleases/btcd/btcjson/v2/btcjson"
@@ -28,13 +29,18 @@ import (
 	"github.com/davecgh/go-spew/spew"
 
 	"github.com/FactomProject/FactomCode/common"
+	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/util"
 )
 
-var balances []balance // unspent balance & address & its WIF
-var cfg *util.FactomdConfig
-var dclient, wclient *btcrpcclient.Client
-var fee btcutil.Amount // tx fee for written into btc
+var (
+	balances         []balance // unspent balance & address & its WIF
+	cfg              *util.FactomdConfig
+	dclient, wclient *btcrpcclient.Client
+	fee              btcutil.Amount                  // tx fee for written into btc
+	dirBlockInfoMap  map[string]*common.DirBlockInfo //dbHash string as key
+	db               database.Db
+)
 
 type balance struct {
 	unspentResult btcjson.ListUnspentResult
@@ -42,29 +48,37 @@ type balance struct {
 	wif           *btcutil.WIF
 }
 
-// failedMerkles stores to-be-written-to-btc FactomBlock Hash
-// after it failed for maxTrials attempt
-var failedMerkles []*common.Hash
-
-// maxTrials is the max attempts to writeToBTC
-const maxTrials = 3
-
-// ByAmount defines the methods needed to satisify sort.Interface to
-// sort a slice of Utxos by their amount.
-type ByAmount []btcjson.ListUnspentResult
-
-func (u ByAmount) Len() int           { return len(u) }
-func (u ByAmount) Less(i, j int) bool { return u[i].Amount < u[j].Amount }
-func (u ByAmount) Swap(i, j int)      { u[i], u[j] = u[j], u[i] }
-
 // SendRawTransactionToBTC is the main function used to anchor factom
 // dir block hash to bitcoin blockchain
-func SendRawTransactionToBTC(hash []byte, blockHeight uint64) (*wire.ShaHash, error) {
+func SendRawTransactionToBTC(hash *common.Hash, blockHeight uint64) (*wire.ShaHash, error) {
+	util.Trace("SendRawTransactionToBTC: hash=", hash.String(), ", dir block height=", strconv.FormatUint(blockHeight, 10))
+	dirBlockInfo := dirBlockInfoMap[hash.String()]
+	if dirBlockInfo == nil {
+		s := fmt.Sprintf("Anchor Error: hash %s does not exist in dirBlockInfoMap.\n", hash.String())
+		fmt.Println(s)
+		return nil, errors.New(s)
+	}
+	if dirBlockInfo.BTCConfirmed {
+		s := fmt.Sprintf("Anchor Warning: hash %s has already been confirmed in btc block chain.\n", hash.String())
+		fmt.Println(s)
+		return nil, errors.New(s)
+	}
+	if !common.NewHash().IsSameAs(dirBlockInfo.BTCTxHash) {
+		s := fmt.Sprintf("Anchor Warning: hash %s has already been anchored but not confirmed. btc tx hash is %s\n", hash.String(), dirBlockInfo.BTCTxHash.String())
+		fmt.Println(s)
+		return nil, errors.New(s)
+	}
+	if dclient == nil || wclient == nil || balances == nil {
+		s := fmt.Sprintf("\n\n$$$ WARNING: rpc clients and/or wallet are not initiated successfully. No anchoring for now.\n")
+		fmt.Println(s)
+		return nil, errors.New(s)
+	}
+
 	b := balances[0]
 	i := copy(balances, balances[1:])
 	balances[i] = b
 
-	msgtx, err := createRawTransaction(b, hash, blockHeight)
+	msgtx, err := createRawTransaction(b, hash.Bytes, blockHeight)
 	if err != nil {
 		return nil, fmt.Errorf("cannot create Raw Transaction: %s", err)
 	}
@@ -73,6 +87,7 @@ func SendRawTransactionToBTC(hash []byte, blockHeight uint64) (*wire.ShaHash, er
 	if err != nil {
 		return nil, fmt.Errorf("cannot send Raw Transaction: %s", err)
 	}
+	dirBlockInfo.BTCTxHash = toHash(shaHash)
 	return shaHash, nil
 }
 
@@ -209,11 +224,9 @@ func validateMsgTx(msgtx *wire.MsgTx, inputs []btcjson.ListUnspentResult) error 
 		}
 	}
 	return nil
-
 }
 
 func sendRawTransaction(msgtx *wire.MsgTx) (*wire.ShaHash, error) {
-
 	buf := bytes.Buffer{}
 	buf.Grow(msgtx.SerializeSize())
 	if err := msgtx.BtcEncode(&buf, wire.ProtocolVersion); err != nil {
@@ -229,8 +242,7 @@ func sendRawTransaction(msgtx *wire.MsgTx) (*wire.ShaHash, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed in rpcclient.SendRawTransaction: %s", err)
 	}
-	fmt.Println("btc txHash returned: ", shaHash) // new tx hash
-
+	//fmt.Println("btc txHash returned: ", shaHash) // new tx hash
 	return shaHash, nil
 }
 
@@ -239,17 +251,17 @@ func createBtcwalletNotificationHandlers() btcrpcclient.NotificationHandlers {
 	ntfnHandlers := btcrpcclient.NotificationHandlers{
 		OnAccountBalance: func(account string, balance btcutil.Amount, confirmed bool) {
 			//go newBalance(account, balance, confirmed)
-			fmt.Println("wclient: OnAccountBalance, account=", account, ", balance=",
-				balance.ToUnit(btcutil.AmountBTC), ", confirmed=", confirmed)
+			//fmt.Println("wclient: OnAccountBalance, account=", account, ", balance=",
+			//balance.ToUnit(btcutil.AmountBTC), ", confirmed=", confirmed)
 		},
 
 		OnWalletLockState: func(locked bool) {
-			fmt.Println("wclient: OnWalletLockState, locked=", locked)
+			//fmt.Println("wclient: OnWalletLockState, locked=", locked)
 		},
 
 		OnUnknownNotification: func(method string, params []json.RawMessage) {
-			fmt.Println("wclient: OnUnknownNotification: method=", method, "\nparams[0]=",
-				string(params[0]), "\nparam[1]=", string(params[1]))
+			//fmt.Println("wclient: OnUnknownNotification: method=", method, "\nparams[0]=",
+			//string(params[0]), "\nparam[1]=", string(params[1]))
 		},
 	}
 
@@ -272,14 +284,14 @@ func createBtcdNotificationHandlers() btcrpcclient.NotificationHandlers {
 		},
 
 		OnRedeemingTx: func(transaction *btcutil.Tx, details *btcjson.BlockDetails) {
-			fmt.Printf("dclient: OnRedeemingTx: details=%#v\n", details)
-			fmt.Printf("dclient: OnRedeemingTx: tx.Sha=%#v,  tx.index=%d\n",
-				transaction.Sha().String(), transaction.Index())
+			//fmt.Printf("dclient: OnRedeemingTx: details=%#v\n", details)
+			//fmt.Printf("dclient: OnRedeemingTx: tx.Sha=%#v,  tx.index=%d\n",
+			//transaction.Sha().String(), transaction.Index())
 
 			if details != nil {
 				// do not block OnRedeemingTx callback
-				//go saveDirBlockInfo(transaction, details)
-				fmt.Println("used to saveDirBlockInfo here.")
+				fmt.Println("Anchor: saveDirBlockInfo.")
+				go saveDirBlockInfo(transaction, details)
 			}
 		},
 	}
@@ -287,17 +299,29 @@ func createBtcdNotificationHandlers() btcrpcclient.NotificationHandlers {
 	return ntfnHandlers
 }
 
-func init() {
-	err := initRPCClient()
-	if err != nil {
+// InitAnchor inits rpc clients for factom
+// and load up unconfirmed DirBlockInfo from leveldb
+func InitAnchor(ldb database.Db) {
+	util.Trace("InitAnchor")
+	db = ldb
+	dirBlockInfoMap, _ = db.FetchAllUnconfirmedDirBlockInfo()
+
+	if err := initRPCClient(); err != nil {
 		fmt.Println(err.Error())
+		return
 	}
+	//defer shutdown(dclient)
+	//defer shutdown(wclient)
+
 	if err := initWallet(); err != nil {
 		fmt.Println(err.Error())
+		return
 	}
+	return
 }
 
 func initRPCClient() error {
+	util.Trace("init RPC client")
 	cfg = util.ReadConfig()
 	certHomePath := cfg.Btc.CertHomePath
 	rpcClientHost := cfg.Btc.RpcClientHost
@@ -357,9 +381,9 @@ func unlockWallet(timeoutSecs int64) error {
 }
 
 func initWallet() error {
+	util.Trace("init wallet")
+	balances = make([]balance, 0, 100)
 	fee, _ = btcutil.NewAmount(cfg.Btc.BtcTransFee)
-	failedMerkles = make([]*common.Hash, 0, 100)
-
 	err := unlockWallet(int64(600))
 	if err != nil {
 		return fmt.Errorf("%s", err)
@@ -371,21 +395,14 @@ func initWallet() error {
 	}
 	fmt.Println("unspentResults.len=", len(unspentResults))
 
-	balances = make([]balance, 0, 100)
 	if len(unspentResults) > 0 {
 		var i int
 		for _, b := range unspentResults {
-			// need to use different btcd packages and improve??
-
-			//bypass the bug in btcwallet where one unconfirmed spent
-			//is listed in unspent result
-			if b.Amount > fee.ToBTC() { //float64(0.0001) && !compareUnspentResult(spentResult, b) {
-				//fmt.Println(i, "  ", b.Amount)
+			if b.Amount > fee.ToBTC() {
 				balances = append(balances, balance{unspentResult: b})
 				i++
 			}
 		}
-
 	}
 	fmt.Println("balances.len=", len(balances))
 
@@ -401,14 +418,11 @@ func initWallet() error {
 			return fmt.Errorf("cannot get WIF: %s", err)
 		}
 		balances[i].wif = wif
-
 		fmt.Printf("balance[%d]=%s", i, spew.Sdump(balances[i]))
 	}
 
 	//registerNotifications()
-
 	time.Sleep(1 * time.Second)
-
 	return nil
 }
 
@@ -437,31 +451,63 @@ func registerNotifications() {
 
 	// OnRedeemingTx
 	//err := dclient.NotifySpent(outpoints)
-
 }
 
-func compareUnspentResult(a, b btcjson.ListUnspentResult) bool {
-	if a.TxID == b.TxID && a.Vout == b.Vout && a.Amount == b.Amount && a.Address == b.Address {
-		return true
+func shutdown(client *btcrpcclient.Client) {
+	if client == nil {
+		return
 	}
-	return false
-}
-
-func shutdown() {
 	// For this example gracefully shutdown the client after 10 seconds.
 	// Ordinarily when to shutdown the client is highly application
 	// specific.
 	log.Println("Client shutdown in 2 seconds...")
 	time.AfterFunc(time.Second*2, func() {
 		log.Println("Going down...")
-		wclient.Shutdown()
-		dclient.Shutdown()
+		client.Shutdown()
 	})
-	defer log.Println("Shutdown done!")
+	defer log.Println("btcsuite client shutdown is done!")
 	// Wait until the client either shuts down gracefully (or the user
 	// terminates the process with Ctrl+C).
-	wclient.WaitForShutdown()
-	dclient.WaitForShutdown()
+	client.WaitForShutdown()
+}
+
+func prependBlockHeight(height uint64, hash []byte) ([]byte, error) {
+	// dir block genesis block height starts with 0, for now
+	// similar to bitcoin genesis block
+	//if (0 == height) || (0xFFFFFFFFFFFF&height != height) {
+	if 0xFFFFFFFFFFFF&height != height {
+		return nil, errors.New("bad block height")
+	}
+
+	header := []byte{'F', 'a'}
+	big := make([]byte, 8)
+	binary.BigEndian.PutUint64(big, height)
+
+	newdata := append(big[2:8], hash...)
+	newdata = append(header, newdata...)
+	return newdata, nil
+}
+
+func saveDirBlockInfo(transaction *btcutil.Tx, details *btcjson.BlockDetails) {
+	util.Trace("to save dir block hash to btc.")
+	var saved = false
+	for _, dirBlockInfo := range dirBlockInfoMap {
+		if dirBlockInfo.BTCTxHash != nil &&
+			bytes.Compare(dirBlockInfo.BTCTxHash.Bytes, transaction.Sha().Bytes()) == 0 {
+			dirBlockInfo.BTCTxOffset = details.Index
+			dirBlockInfo.BTCBlockHeight = details.Height
+			dirBlockInfo.BTCConfirmed = true
+			db.InsertDirBlockInfo(dirBlockInfo)
+			delete(dirBlockInfoMap, dirBlockInfo.DBMerkleRoot.String())
+			fmt.Printf("In saveDirBlockInfo, dirBlockInfo:%+v saved to db\n", dirBlockInfo)
+			saved = true
+			break
+		}
+	}
+	// should not happen at all?
+	if !saved {
+		fmt.Println("Not saved to db: ")
+	}
 }
 
 func toHash(txHash *wire.ShaHash) *common.Hash {
@@ -470,19 +516,9 @@ func toHash(txHash *wire.ShaHash) *common.Hash {
 	return h
 }
 
-func prependBlockHeight(height uint64, hash []byte) ([]byte, error) {
-
-	if (0 == height) || (0xFFFFFFFFFFFF&height != height) {
-		return nil, errors.New("bad block height")
-	}
-
-	header := []byte{'F', 'a'}
-
-	big := make([]byte, 8)
-	binary.BigEndian.PutUint64(big, height)
-
-	newdata := append(big[2:8], hash...)
-	newdata = append(header, newdata...)
-
-	return newdata, nil
+// UpdateDirBlockInfoMap allows factom processor to update DirBlockInfo
+// when a new Directory Block is saved to db
+func UpdateDirBlockInfoMap(dirBlockInfo *common.DirBlockInfo) {
+	util.Trace(spew.Sdump(dirBlockInfo))
+	dirBlockInfoMap[dirBlockInfo.DBMerkleRoot.String()] = dirBlockInfo
 }

@@ -9,6 +9,7 @@ echo checking out $1
 checkout() {
     cd $1
     echo $1
+    git pull
     if [[ `git branch --list $2` ]]
     then
         git checkout $2

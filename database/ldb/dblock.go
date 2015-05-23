@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"log"
+
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/goleveldb/leveldb"
 	"github.com/FactomProject/goleveldb/leveldb/util"
-	"log"
 )
 
 // FetchDBEntriesFromQueue gets all of the dbentries that have not been processed
@@ -62,9 +63,13 @@ func (db *LevelDb) ProcessDBlockBatch(dblock *common.DirectoryBlock) error {
 		if err != nil {
 			return err
 		}
-		
+
 		if dblock.DBHash == nil {
 			dblock.DBHash = common.Sha(binaryDblock)
+		}
+
+		if dblock.KeyMR == nil {
+			dblock.BuildKeyMerkleRoot()
 		}
 
 		// Insert the binary directory block
@@ -78,7 +83,13 @@ func (db *LevelDb) ProcessDBlockBatch(dblock *common.DirectoryBlock) error {
 		binary.Write(&buf, binary.BigEndian, dblock.Header.BlockHeight)
 		dbNumkey = append(dbNumkey, buf.Bytes()...)
 		db.lbatch.Put(dbNumkey, dblock.DBHash.Bytes)
-		
+
+		// Insert the directory block merkle root cross reference
+		key = []byte{byte(TBL_DB_MR)}
+		key = append(key, dblock.KeyMR.Bytes...)
+		binaryDBHash, _ := dblock.DBHash.MarshalBinary()
+		db.lbatch.Put(key, binaryDBHash)
+
 		err = db.lDb.Write(db.lbatch, db.wo)
 		if err != nil {
 			log.Println("batch failed %v\n", err)
@@ -90,8 +101,8 @@ func (db *LevelDb) ProcessDBlockBatch(dblock *common.DirectoryBlock) error {
 }
 
 // Insert the Directory Block meta data into db
-func (db *LevelDb) InsertDBInfo(dbInfo common.DBInfo) (err error) {
-	if dbInfo.BTCBlockHash == nil || dbInfo.BTCTxHash == nil {
+func (db *LevelDb) InsertDirBlockInfo(dirBlockInfo *common.DirBlockInfo) (err error) {
+	if dirBlockInfo.BTCTxHash == nil {
 		return
 	}
 
@@ -104,9 +115,9 @@ func (db *LevelDb) InsertDBInfo(dbInfo common.DBInfo) (err error) {
 	defer db.lbatch.Reset()
 
 	var key []byte = []byte{byte(TBL_DB_INFO)} // Table Name (1 bytes)
-	key = append(key, dbInfo.DBHash.Bytes...)
-	binaryDBInfo, _ := dbInfo.MarshalBinary()
-	db.lbatch.Put(key, binaryDBInfo)
+	key = append(key, dirBlockInfo.DBHash.Bytes...)
+	binaryDirBlockInfo, _ := dirBlockInfo.MarshalBinary()
+	db.lbatch.Put(key, binaryDirBlockInfo)
 
 	err = db.lDb.Write(db.lbatch, db.wo)
 	if err != nil {
@@ -117,8 +128,8 @@ func (db *LevelDb) InsertDBInfo(dbInfo common.DBInfo) (err error) {
 	return nil
 }
 
-// FetchDBInfoByHash gets an DBInfo obj
-func (db *LevelDb) FetchDBInfoByHash(dbHash *common.Hash) (dbInfo *common.DBInfo, err error) {
+// FetchDirBlockInfoByHash gets an DirBlockInfo obj
+func (db *LevelDb) FetchDirBlockInfoByHash(dbHash *common.Hash) (dirBlockInfo *common.DirBlockInfo, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -127,11 +138,11 @@ func (db *LevelDb) FetchDBInfoByHash(dbHash *common.Hash) (dbInfo *common.DBInfo
 	data, err := db.lDb.Get(key, db.ro)
 
 	if data != nil {
-		dbInfo = new(common.DBInfo)
-		dbInfo.UnmarshalBinary(data)
+		dirBlockInfo = new(common.DirBlockInfo)
+		dirBlockInfo.UnmarshalBinary(data)
 	}
 
-	return dbInfo, nil
+	return dirBlockInfo, nil
 }
 
 // FetchDBlock gets an entry by hash from the database.
@@ -150,10 +161,10 @@ func (db *LevelDb) FetchDBlockByHash(dBlockHash *common.Hash) (dBlock *common.Di
 		dBlock.UnmarshalBinary(data)
 	}
 
-	log.Println("dBlock.Header.MerkleRoot:%v", dBlock.Header.BodyMR.String())
+	log.Println("dBlock.Header.MerkleRoot: ", dBlock.Header.BodyMR.String())
 
 	for _, entry := range dBlock.DBEntries {
-		log.Println("entry.MerkleRoot:%v", entry.MerkleRoot.String())
+		log.Println("entry.MerkleRoot: ", entry.MerkleRoot.String())
 	}
 
 	return dBlock, nil
@@ -188,7 +199,34 @@ func (db *LevelDb) FetchDBHashByHeight(dBlockHeight uint32) (dBlockHash *common.
 	return dBlockHash, nil
 }
 
-// FetchAllDBInfo gets all of the fbInfo
+// FetchDBHashByMR gets a DBHash by MR from the database.
+func (db *LevelDb) FetchDBHashByMR(dBMR *common.Hash) (dBlockHash *common.Hash, err error) {
+	db.dbLock.Lock()
+	defer db.dbLock.Unlock()
+
+	var key []byte = []byte{byte(TBL_DB_MR)}
+	key = append(key, dBMR.Bytes...)
+	data, err := db.lDb.Get(key, db.ro)
+
+	if data != nil {
+		dBlockHash = new(common.Hash)
+		dBlockHash.UnmarshalBinary(data)
+	}
+	return dBlockHash, nil
+}
+
+// FetchDBlockByMR gets a directory block by merkle root from the database.
+func (db *LevelDb) FetchDBlockByMR(dBMR *common.Hash) (dBlock *common.DirectoryBlock, err error) {
+	dBlockHash, _ := db.FetchDBHashByMR(dBMR)
+
+	if dBlockHash != nil {
+		dBlock, _ = db.FetchDBlockByHash(dBlockHash)
+	}
+
+	return dBlock, nil
+}
+
+// FetchAllDBlocks gets all of the fbInfo
 func (db *LevelDb) FetchAllDBlocks() (dBlocks []common.DirectoryBlock, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
@@ -212,4 +250,52 @@ func (db *LevelDb) FetchAllDBlocks() (dBlocks []common.DirectoryBlock, err error
 	err = iter.Error()
 
 	return dBlockSlice, nil
+}
+
+// FetchAllDirBlockInfo gets all of the dirBlockInfo
+func (db *LevelDb) FetchAllDirBlockInfo() (dirBlockInfoMap map[string]*common.DirBlockInfo, err error) {
+	db.dbLock.Lock()
+	defer db.dbLock.Unlock()
+
+	var fromkey []byte = []byte{byte(TBL_DB_INFO)}   // Table Name (1 bytes)
+	var tokey []byte = []byte{byte(TBL_DB_INFO + 1)} // Table Name (1 bytes)
+
+	dirBlockInfoMap = make(map[string]*common.DirBlockInfo)
+
+	iter := db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
+
+	for iter.Next() {
+		dBInfo := new(common.DirBlockInfo)
+		dBInfo.UnmarshalBinary(iter.Value())
+		dirBlockInfoMap[dBInfo.DBMerkleRoot.String()] = dBInfo
+	}
+	iter.Release()
+	err = iter.Error()
+	return dirBlockInfoMap, err
+}
+
+// FetchAllUnconfirmedDirBlockInfo gets all of the dirBlockInfos that have BTC Anchor confirmation
+func (db *LevelDb) FetchAllUnconfirmedDirBlockInfo() (dirBlockInfoMap map[string]*common.DirBlockInfo, err error) {
+	db.dbLock.Lock()
+	defer db.dbLock.Unlock()
+
+	var fromkey []byte = []byte{byte(TBL_DB_INFO)}   // Table Name (1 bytes)
+	var tokey []byte = []byte{byte(TBL_DB_INFO + 1)} // Table Name (1 bytes)
+
+	dirBlockInfoMap = make(map[string]*common.DirBlockInfo)
+
+	iter := db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
+
+	for iter.Next() {
+		dBInfo := new(common.DirBlockInfo)
+
+		// The last byte stores the confirmation flag
+		if iter.Value()[len(iter.Value())-1] == 0 {
+			dBInfo.UnmarshalBinary(iter.Value())
+			dirBlockInfoMap[dBInfo.DBMerkleRoot.String()] = dBInfo
+		}
+	}
+	iter.Release()
+	err = iter.Error()
+	return dirBlockInfoMap, err
 }

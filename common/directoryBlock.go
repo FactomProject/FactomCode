@@ -26,18 +26,19 @@ type DChain struct {
 
 type DirectoryBlock struct {
 	//Marshalized
-	Header    *DBlockHeader
-	DBEntries []*DBEntry
+	Header    		*DBlockHeader
+	DBEntries 		[]*DBEntry
 
 	//Not Marshalized
-	Chain       *DChain
-	IsSealed    bool
-	DBHash      *Hash
-	KeyMR       *Hash
-	IsSavedInDB bool
+	Chain       	*DChain
+	IsSealed    	bool
+	DBHash      	*Hash
+	KeyMR       	*Hash
+	IsSavedInDB 	bool
+	IsValidated     bool
 }
 
-type DBInfo struct {
+type DirBlockInfo struct {
 
 	// Serial hash for the directory block
 	DBHash *Hash
@@ -52,11 +53,14 @@ type DBInfo struct {
 	BTCBlockHeight int32
 
 	//BTCBlockHash is the hash of the block where this TX is stored in BTC
-	BTCBlockHash *Hash // use string or *btcwire.ShaHash ???
+	//BTCBlockHash *Hash // use string or *btcwire.ShaHash ???
 
 	// DBMerkleRoot is the merkle root of the Directory Block
 	// and is written into BTC as OP_RETURN data
 	DBMerkleRoot *Hash
+
+	// A flag to to show BTC anchor confirmation
+	BTCConfirmed bool
 }
 
 type DBlockHeader struct {
@@ -111,10 +115,12 @@ func NewDBEntryFromABlock(b *AdminBlock) *DBEntry {
 	return e
 }
 
-func NewDBInfoFromDBlock(b *DirectoryBlock) *DBInfo {
-	e := &DBInfo{}
+func NewDirBlockInfoFromDBlock(b *DirectoryBlock) *DirBlockInfo {
+	e := &DirBlockInfo{}
 	e.DBHash = b.DBHash
-	e.DBMerkleRoot = b.Header.BodyMR //?? double check
+	e.DBMerkleRoot = b.KeyMR
+	e.BTCConfirmed = false
+	e.BTCTxHash = NewHash()
 
 	return e
 }
@@ -468,7 +474,7 @@ func (b *DirectoryBlock) EncodableFields() map[string]reflect.Value {
 	return fields
 }
 
-func (b *DBInfo) MarshalBinary() (data []byte, err error) {
+func (b *DirBlockInfo) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
 
 	data, err = b.DBHash.MarshalBinary()
@@ -486,22 +492,28 @@ func (b *DBInfo) MarshalBinary() (data []byte, err error) {
 	binary.Write(&buf, binary.BigEndian, b.BTCTxOffset)
 	binary.Write(&buf, binary.BigEndian, b.BTCBlockHeight)
 
-	data, err = b.BTCBlockHash.MarshalBinary()
+/*	data, err = b.BTCBlockHash.MarshalBinary()
 	if err != nil {
 		return
 	}
 	buf.Write(data)
-
+*/
 	data, err = b.DBMerkleRoot.MarshalBinary()
 	if err != nil {
 		return
 	}
 	buf.Write(data)
 
+	// convert bool to one byte
+	if b.BTCConfirmed {
+		buf.Write([]byte{1})
+	} else {
+		buf.Write([]byte{0})
+	}
 	return buf.Bytes(), err
 }
 
-func (b *DBInfo) UnmarshalBinary(data []byte) (err error) {
+func (b *DirBlockInfo) UnmarshalBinary(data []byte) (err error) {
 	b.DBHash = new(Hash)
 	b.DBHash.UnmarshalBinary(data[:HASH_LENGTH])
 
@@ -514,12 +526,19 @@ func (b *DBInfo) UnmarshalBinary(data []byte) (err error) {
 
 	b.BTCBlockHeight = int32(binary.BigEndian.Uint32(data[:4]))
 	data = data[4:]
-
+/*
 	b.BTCBlockHash = new(Hash)
 	b.BTCBlockHash.UnmarshalBinary(data[:HASH_LENGTH])
-
+*/
 	b.DBMerkleRoot = new(Hash)
 	b.DBMerkleRoot.UnmarshalBinary(data[:HASH_LENGTH])
+
+	// convert one byte to bool
+	if data[0] > 0 {
+		b.BTCConfirmed = true
+	} else {
+		b.BTCConfirmed = false
+	}
 
 	return nil
 }
