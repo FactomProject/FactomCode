@@ -8,6 +8,10 @@ import (
 	"bytes"
 )
 
+const (
+	MinuteNumberSize = 1
+)
+
 type MinuteNumber struct {
 	Number uint8
 }

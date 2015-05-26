@@ -178,6 +178,12 @@ func (b *ECBlockBody) UnmarshalBinary(data []byte) error {
 		switch id {
 		case ECIDServerIndexNumber:
 		case ECIDMinuteNumber:
+			m := NewMinuteNumber()
+			err := m.UnmarshalBinary(buf.Next(MinuteNumberSize))
+			if err != nil {
+				return err
+			}
+			b.Entries = append(b.Entries, m)
 		case ECIDChainCommit:
 			c := NewCommitChain()
 			err := c.UnmarshalBinary(buf.Next(CommitChainSize))
