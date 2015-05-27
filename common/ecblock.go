@@ -228,6 +228,7 @@ type ECBlockHeader struct {
 func NewECBlockHeader() *ECBlockHeader {
 	h := new(ECBlockHeader)
 	h.ECChainID = NewHash()
+	h.ECChainID.SetBytes(EC_CHAINID)	
 	h.BodyHash = NewHash()
 	h.PrevKeyMR = NewHash()
 	h.PrevHash3 = NewHash()
