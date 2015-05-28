@@ -83,7 +83,6 @@ func (b *AdminBlock) AddABEntry(e ABEntry) (err error) {
 
 // Add the end-of-minute marker into the admin block
 func (b *AdminBlock) AddEndOfMinuteMarker(eomType byte) (err error) {
-
 	eOMEntry := &EndOfMinuteEntry{
 		entryType: TYPE_MINUTE_NUM,
 		EOM_Type:  eomType}
@@ -287,6 +286,40 @@ func (e *DBSignatureEntry) UnmarshalBinary(data []byte) (err error) {
 	data = data[HASH_LENGTH:]
 
 	e.PrevDBSig = data[:SIG_LENGTH]
+
+	return nil
+}
+
+type EndOfMinuteEntry struct {
+	entryType byte
+	EOM_Type byte
+}
+
+func (m *EndOfMinuteEntry) Type() byte {
+	return m.entryType
+}
+
+func (e *EndOfMinuteEntry) MarshalBinary() (data []byte, err error) {
+	var buf bytes.Buffer
+
+	buf.Write([]byte{e.entryType})
+
+	buf.Write([]byte{e.EOM_Type})
+
+	return buf.Bytes(), nil
+}
+
+func (e *EndOfMinuteEntry) MarshalledSize() uint64 {
+	var size uint64 = 0
+	size += 1 // Type (byte)
+	size += 1 // EOM_Type (byte)
+
+	return size
+}
+
+func (e *EndOfMinuteEntry) UnmarshalBinary(data []byte) (err error) {
+	e.entryType, data = data[0], data[1:]
+	e.EOM_Type, data = data[0], data[1:]
 
 	return nil
 }
