@@ -47,6 +47,13 @@ func (c *CommitEntry) CommitMsg() []byte {
 	return p[:len(p)-64-32]
 }
 
+// InTime checks the CommitEntry.MilliTime and returns true if the timestamp is
+// whitin +/- 24 hours of the current time.
+// TODO
+func (c *CommitEntry) InTime() bool {
+	return true
+}
+
 func (c *CommitEntry) IsValid() bool {
 	return ed.Verify(c.ECPubKey, c.CommitMsg(), c.Sig)
 }
