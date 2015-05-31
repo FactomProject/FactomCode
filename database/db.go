@@ -1,7 +1,8 @@
 package database
 
 import (
-	"github.com/FactomProject/FactomCode/common"
+    "github.com/FactomProject/simplecoin/block"
+    "github.com/FactomProject/FactomCode/common"
 )
 
 // AllShas is a special value that can be used as the final sha when requesting
@@ -117,4 +118,14 @@ type Db interface {
 
 	// FetchAllABlocks gets all of the admin blocks
 	FetchAllABlocks() (aBlocks []common.AdminBlock, err error)
+    
+    // ProcessABlockBatch inserts the AdminBlock
+    ProcessSCBlockBatch(block.ISCBlock) error
+    
+    // FetchABlockByHash gets an admin block by hash from the database.
+    FetchSCBlockByHash(*common.Hash) (block.ISCBlock, error)
+    
+    // FetchAllABlocks gets all of the admin blocks
+    FetchAllSCBlocks() ([]block.ISCBlock, error)
+    
 }

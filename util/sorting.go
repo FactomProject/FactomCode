@@ -1,7 +1,8 @@
 package util
 
 import (
-	"github.com/FactomProject/FactomCode/common"
+    "github.com/FactomProject/FactomCode/common"
+    "github.com/FactomProject/simplecoin/block"
 )
 
 //------------------------------------------------
@@ -44,6 +45,20 @@ func (f ByABlockIDAccending) Less(i, j int) bool {
 }
 func (f ByABlockIDAccending) Swap(i, j int) {
 	f[i], f[j] = f[j], f[i]
+}
+
+//------------------------------------------------
+// ABlock array sorting implementation - accending
+type BySCBlockIDAccending []block.ISCBlock
+
+func (f BySCBlockIDAccending) Len() int {
+    return len(f)
+}
+func (f BySCBlockIDAccending) Less(i, j int) bool {
+    return f[i].GetDBHeight() < f[j].GetDBHeight()
+}
+func (f BySCBlockIDAccending) Swap(i, j int) {
+    f[i], f[j] = f[j], f[i]
 }
 
 //------------------------------------------------

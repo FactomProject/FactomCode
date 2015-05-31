@@ -314,7 +314,7 @@ func (c *DChain) AddECBlockToDBEntry(ecb *ECBlock) (err error) {
 
 	dbEntry := NewDBEntryFromECBlock(ecb)
 
-	if len(c.NextBlock.DBEntries) < 3 {
+	if len(c.NextBlock.DBEntries) < 4 {
 		panic("DBEntries not initialized properly for block: " + string(c.NextBlockHeight))
 	}
 
@@ -333,7 +333,7 @@ func (c *DChain) AddABlockToDBEntry(b *AdminBlock) (err error) {
 	dbEntry.ChainID = b.Header.ChainID
 	dbEntry.MerkleRoot = b.ABHash
 
-	if len(c.NextBlock.DBEntries) < 3 {
+	if len(c.NextBlock.DBEntries) < 4 {
 		panic("DBEntries not initialized properly for block: " + string(c.NextBlockHeight))
 	}
 
@@ -344,6 +344,29 @@ func (c *DChain) AddABlockToDBEntry(b *AdminBlock) (err error) {
 	c.BlockMutex.Unlock()
 
 	return nil
+}
+
+// Add DBEntry from an Admin Block
+func (c *DChain) AddSCBlockToDBEntry(b block.ISCBlock) (err error) {
+    
+    dbEntry := &DBEntry{}
+    dbEntry.ChainID = b.GetChainID()
+    
+    data,err = b.MarshalBinary()
+    
+    dbEntry.MerkleRoot = sc.Sha(data)
+    
+    if len(c.NextBlock.DBEntries) < 4 {
+        panic("DBEntries not initialized properly for block: " + string(c.NextBlockHeight))
+    }
+    
+    c.BlockMutex.Lock()
+    // Ablock is always at the first entry
+    // First three entries are ABlock, CBlock, FBlock
+    c.NextBlock.DBEntries[3] = dbEntry
+    c.BlockMutex.Unlock()
+    
+    return nil
 }
 
 // Add DBEntry
@@ -361,7 +384,7 @@ func (c *DChain) AddFBlockMRToDBEntry(dbEntry *DBEntry) (err error) {
 
 	fmt.Println("AddFDBlock >>>>>")
 
-	if len(c.NextBlock.DBEntries) < 3 {
+	if len(c.NextBlock.DBEntries) < 4 {
 		panic("DBEntries not initialized properly for block: " + string(c.NextBlockHeight))
 	}
 	c.BlockMutex.Lock()

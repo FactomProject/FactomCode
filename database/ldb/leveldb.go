@@ -49,6 +49,10 @@ const (
 	// Admin Block
 	TBL_AB //12
 	TBL_AB_NUM
+	
+	// Simplecoin Block
+	TBL_SC
+	TBL_SC_NUM
 )
 
 // the process status in db
