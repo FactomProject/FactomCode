@@ -49,12 +49,19 @@ func Start(db database.Db, inMsgQ chan wire.FtmInternalMsg) {
 	server.Get("/v1/chain-head/([^/]+)", handleChainHead)
 	server.Get("/v1/entry-credit-balance/([^/]+)", handleEntryCreditBalance)
 
+	server.Get("/v1/test/?", handleTest)
+
 	wsLog.Info("Starting server")
-	go web.Run("localhost:" + strconv.Itoa(portNumber))
+	go server.Run("localhost:" + strconv.Itoa(portNumber))
 }
 
 func Stop() {
 	server.Close()
+}
+
+func handleTest(ctx *web.Context) {
+	wsLog.Info("handleTest")
+	ctx.WriteString("hello")
 }
 
 func handleCommitChain(ctx *web.Context) {
