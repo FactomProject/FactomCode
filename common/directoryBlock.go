@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"reflect"
 	"sync"
+    "github.com/FactomProject/simplecoin/block"
 )
 
 const DBlockVersion = 0
@@ -350,11 +351,12 @@ func (c *DChain) AddABlockToDBEntry(b *AdminBlock) (err error) {
 func (c *DChain) AddSCBlockToDBEntry(b block.ISCBlock) (err error) {
     
     dbEntry := &DBEntry{}
-    dbEntry.ChainID = b.GetChainID()
+    dbEntry.ChainID = new(Hash)
+    dbEntry.ChainID.SetBytes(b.GetChainID().Bytes())
     
-    data,err = b.MarshalBinary()
+    data,err := b.MarshalBinary()
     
-    dbEntry.MerkleRoot = sc.Sha(data)
+    dbEntry.MerkleRoot = Sha(data)
     
     if len(c.NextBlock.DBEntries) < 4 {
         panic("DBEntries not initialized properly for block: " + string(c.NextBlockHeight))
