@@ -28,7 +28,7 @@ func (db *LevelDb) ProcessSCBlockBatch(block block.ISCBlock) error {
         scHash := common.Sha(binaryBlock)
 		
 		// Insert the binary factom block
-		var key []byte = []byte{byte(TBL_AB)}
+		var key []byte = []byte{byte(TBL_SC)}
 		key = append(key, scHash.Bytes...)
 		db.lbatch.Put(key, binaryBlock)
 		
@@ -79,7 +79,7 @@ func (db *LevelDb) FetchAllSCBlocks() (scBlocks []block.ISCBlock, err error) {
 	iter := db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
 
 	for iter.Next() {
-		var scBlock *block.SCBlock
+		scBlock := new(block.SCBlock)
 		scBlock.UnmarshalBinary(iter.Value())
 		
 		scBlockSlice = append(scBlockSlice, scBlock)
