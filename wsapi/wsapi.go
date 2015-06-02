@@ -49,8 +49,9 @@ func Start(db database.Db, inMsgQ chan wire.FtmInternalMsg) {
 	server.Get("/v1/chain-head/([^/]+)", handleChainHead)
 	server.Get("/v1/entry-credit-balance/([^/]+)", handleEntryCreditBalance)
 
-	server.Get("/v1/test/?", handleTest)
-
+	// TODO remove before production
+	server.Get("/v1/test-credit/([^/]+)", handleTestCredit)
+	
 	wsLog.Info("Starting server")
 	go server.Run("localhost:" + strconv.Itoa(portNumber))
 }
@@ -59,9 +60,17 @@ func Stop() {
 	server.Close()
 }
 
-func handleTest(ctx *web.Context) {
-	wsLog.Info("handleTest")
-	ctx.WriteString("hello")
+// TODO remove before production
+func handleTestCredit(ctx *web.Context, eckey string) {
+	p, err := hex.DecodeString(eckey)
+	if err != nil {
+		wsLog.Error(err)
+		ctx.WriteHeader(httpBad)
+		return
+	}
+	
+	factomapi.TestCredit(p, 100)
+	ctx.WriteHeader(httpOK)
 }
 
 func handleCommitChain(ctx *web.Context) {

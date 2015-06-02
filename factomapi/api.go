@@ -17,6 +17,16 @@ var (
 	inMsgQ chan wire.FtmInternalMsg
 )
 
+// TODO remove before production
+func TestCredit(key []byte, amt int32) {
+	msg := wire.NewMsgTestCredit()
+	copy(msg.ECKey[:], key)
+	msg.Amt = amt
+	
+	inMsgQ <- msg
+}
+
+
 func ChainHead(chainid string) (*common.EBlock, error) {
 	h, err := atoh(chainid)
 	if err != nil {
