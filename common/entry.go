@@ -9,6 +9,8 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
+
+	"golang.org/x/crypto/sha3"
 )
 
 // An Entry is the element which carries user data
@@ -40,6 +42,20 @@ func NewChainID(e *Entry) *Hash {
 	copy(id.Bytes, sum.Sum(nil))
 
 	return id
+}
+
+func (e *Entry) Hash() *Hash {
+	h := NewHash()
+	a, err := e.MarshalBinary()
+	if err != nil {
+		return h
+	}
+	b := sha3.Sum256(a)
+	c := append(a, b[:]...)
+	d := sha256.Sum256(c)
+	copy(h.Bytes, d[:])
+
+	return h
 }
 
 func (e *Entry) MarshalBinary() ([]byte, error) {
