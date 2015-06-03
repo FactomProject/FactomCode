@@ -314,7 +314,7 @@ func (c *DChain) AddECBlockToDBEntry(ecb *ECBlock) (err error) {
 
 	dbEntry := NewDBEntryFromECBlock(ecb)
 
-	if len(c.NextBlock.DBEntries) < 3 {
+	if len(c.NextBlock.DBEntries) < 2 {
 		panic("DBEntries not initialized properly for block: " + string(c.NextBlockHeight))
 	}
 
@@ -333,7 +333,7 @@ func (c *DChain) AddABlockToDBEntry(b *AdminBlock) (err error) {
 	dbEntry.ChainID = b.Header.ChainID
 	dbEntry.MerkleRoot = b.ABHash
 
-	if len(c.NextBlock.DBEntries) < 3 {
+	if len(c.NextBlock.DBEntries) < 2 {
 		panic("DBEntries not initialized properly for block: " + string(c.NextBlockHeight))
 	}
 
