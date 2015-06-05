@@ -24,31 +24,34 @@ const (
 
 // the "table" prefix
 const (
-	//Entry
-	TBL_ENTRY uint8 = iota
-
-	// Entry Block
-	TBL_EB //1
-	TBL_EB_CHAIN_NUM
-	TBL_EB_MR
 
 	// Directory Block
-	TBL_DB //4
+	TBL_DB  uint8 = iota
 	TBL_DB_NUM
 	TBL_DB_MR
 	TBL_DB_INFO
 
-	// Entry Chain
-	TBL_CHAIN_HASH //8
-
+	// Admin Block
+	TBL_AB //4
+	TBL_AB_NUM 
+	 
 	// Entry Credit Block
-	TBL_CB //9
+	TBL_CB //6
 	TBL_CB_NUM
 	TBL_CB_MR
 
-	// Admin Block
-	TBL_AB //12
-	TBL_AB_NUM
+	
+
+	// Entry Chain
+	TBL_CHAIN_HASH //9
+	
+	// Entry Block
+	TBL_EB //10
+	TBL_EB_CHAIN_NUM
+	TBL_EB_MR
+	
+	//Entry
+	TBL_ENTRY	
 )
 
 // the process status in db
@@ -86,9 +89,6 @@ type LevelDb struct {
 	lastBlkShaCached bool
 	lastBlkSha       wire.ShaHash
 	lastBlkIdx       int64
-
-	//	txUpdateMap      map[wire.ShaHash]*txUpdateObj
-	//	txSpentUpdateMap map[wire.ShaHash]*spentTxUpdate
 }
 
 var CurrentDBVersion int32 = 1
