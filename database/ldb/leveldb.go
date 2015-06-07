@@ -1,3 +1,7 @@
+// Copyright (c) 2013-2014 Conformal Systems LLC.
+// Use of this source code is governed by an ISC
+// license that can be found in the LICENSE file.
+
 package ldb
 
 import (
@@ -84,11 +88,11 @@ type LevelDb struct {
 
 	lbatch *leveldb.Batch
 
-	nextBlock int64
+	nextDirBlockHeight 		int64
 
-	lastBlkShaCached bool
-	lastBlkSha       wire.ShaHash
-	lastBlkIdx       int64
+	lastDirBlkShaCached 	bool
+	lastDirBlkSha       	*wire.ShaHash
+	lastDirBlkHeight       	int64
 }
 
 var CurrentDBVersion int32 = 1

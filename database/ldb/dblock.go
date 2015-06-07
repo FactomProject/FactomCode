@@ -9,6 +9,7 @@ import (
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/goleveldb/leveldb"
 	"github.com/FactomProject/goleveldb/leveldb/util"
+	"github.com/FactomProject/btcd/wire"	
 )
 
 // FetchDBEntriesFromQueue gets all of the dbentries that have not been processed
@@ -95,6 +96,11 @@ func (db *LevelDb) ProcessDBlockBatch(dblock *common.DirectoryBlock) error {
 			log.Println("batch failed %v\n", err)
 			return err
 		}
+		
+		// Update DirBlock Height cache
+		db.lastDirBlkHeight = int64(dblock.Header.BlockHeight)
+		db.lastDirBlkSha, _ = wire.NewShaHash(dblock.DBHash.Bytes)
+		db.lastDirBlkShaCached = true
 
 	}
 	return nil
