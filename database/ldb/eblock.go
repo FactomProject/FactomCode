@@ -39,18 +39,18 @@ func (db *LevelDb) ProcessEBlockBatch(eblock *common.EBlock) error {
 		
 		// Insert the binary entry block
 		var key []byte = []byte{byte(TBL_EB)}
-		key = append(key, eblock.EBHash.Bytes...)
+		key = append(key, eblock.EBHash.Bytes()...)
 		db.lbatch.Put(key, binaryEblock)
 
 		// Insert the entry block merkle root cross reference
 		key = []byte{byte(TBL_EB_MR)}
-		key = append(key, eblock.MerkleRoot.Bytes...)
+		key = append(key, eblock.MerkleRoot.Bytes()...)
 		binaryEBHash, _ := eblock.EBHash.MarshalBinary()
 		db.lbatch.Put(key, binaryEBHash)
 
 		// Insert the entry block number cross reference
 		key = []byte{byte(TBL_EB_CHAIN_NUM)}
-		key = append(key, eblock.Header.ChainID.Bytes...)
+		key = append(key, eblock.Header.ChainID.Bytes()...)
 		bytes := make([]byte, 4)
 		binary.BigEndian.PutUint32(bytes, eblock.Header.EBHeight)
 		key = append(key, bytes...)
@@ -83,7 +83,7 @@ func (db *LevelDb) FetchEBlockByHash(eBlockHash *common.Hash) (eBlock *common.EB
 	defer db.dbLock.Unlock()
 
 	var key []byte = []byte{byte(TBL_EB)}
-	key = append(key, eBlockHash.Bytes...)
+	key = append(key, eBlockHash.Bytes()...)
 	data, err := db.lDb.Get(key, db.ro)
 
 	if data != nil {
@@ -120,7 +120,7 @@ func (db *LevelDb) FetchEBHashByMR(eBMR *common.Hash) (eBlockHash *common.Hash, 
 	defer db.dbLock.Unlock()
 
 	var key []byte = []byte{byte(TBL_EB_MR)}
-	key = append(key, eBMR.Bytes...)
+	key = append(key, eBMR.Bytes()...)
 	data, err := db.lDb.Get(key, db.ro)
 
 	if data != nil {
@@ -143,7 +143,7 @@ func (db *LevelDb) InsertChain(chain *common.EChain) (err error) {
 	binaryChain, _ := chain.MarshalBinary()
 
 	var chainByHashKey []byte = []byte{byte(TBL_CHAIN_HASH)}
-	chainByHashKey = append(chainByHashKey, chain.ChainID.Bytes...)
+	chainByHashKey = append(chainByHashKey, chain.ChainID.Bytes()...)
 
 	db.lbatch.Put(chainByHashKey, binaryChain)
 
@@ -162,7 +162,7 @@ func (db *LevelDb) FetchChainByHash(chainID *common.Hash) (chain *common.EChain,
 	defer db.dbLock.Unlock()
 
 	var key []byte = []byte{byte(TBL_CHAIN_HASH)}
-	key = append(key, chainID.Bytes...)
+	key = append(key, chainID.Bytes()...)
 	data, err := db.lDb.Get(key, db.ro)
 
 	if data != nil {
@@ -200,7 +200,7 @@ func (db *LevelDb) FetchAllEBlocksByChain(chainID *common.Hash) (eBlocks *[]comm
 	defer db.dbLock.Unlock()
 
 	var fromkey []byte = []byte{byte(TBL_EB_CHAIN_NUM)} // Table Name (1 bytes)
-	fromkey = append(fromkey, []byte(chainID.Bytes)...) // Chain Type (32 bytes)
+	fromkey = append(fromkey, chainID.Bytes()...) // Chain Type (32 bytes)
 	var tokey []byte = addOneToByteArray(fromkey)
 
 	eBlockSlice := make([]common.EBlock, 0, 10)
@@ -212,7 +212,7 @@ func (db *LevelDb) FetchAllEBlocksByChain(chainID *common.Hash) (eBlocks *[]comm
 		eBlockHash.UnmarshalBinary(iter.Value())
 
 		var key []byte = []byte{byte(TBL_EB)}
-		key = append(key, eBlockHash.Bytes...)
+		key = append(key, eBlockHash.Bytes()...)
 		data, _ := db.lDb.Get(key, db.ro)
 
 		if data != nil {

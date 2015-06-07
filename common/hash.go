@@ -9,16 +9,18 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"errors"
 )
 
 type Hash struct {
-	Bytes []byte `json:"bytes"`
+    bytes [HASH_LENGTH]byte `json:"bytes"`
+}
+
+func (h *Hash) Bytes() []byte {
+    return h.GetBytes()
 }
 
 func NewHash() *Hash {
 	h := new(Hash)
-	h.Bytes = make([]byte, HASH_LENGTH)
 	return h
 }
 
@@ -32,28 +34,24 @@ func CreateHash(entities ...BinaryMarshallable) (h *Hash, err error) {
 		}
 		sha.Write(data)
 	}
-	h.Bytes = sha.Sum(nil)
+	copy(h.bytes[:],sha.Sum(nil))
 	return
 }
 
 func (h *Hash) MarshalBinary() ([]byte, error) {
-	if h.Bytes == nil || len(h.Bytes) != HASH_LENGTH {
-		return nil, errors.New("(h *Hash) MarshalBinary() Invalid Hash byte stream: " + string(h.Bytes))
-	}
 	var buf bytes.Buffer
-	buf.Write(h.Bytes)
+	buf.Write(h.bytes[:])
 	return buf.Bytes(), nil
 }
 
 func (h *Hash) UnmarshalBinary(p []byte) error {
-	h.Bytes = make([]byte, HASH_LENGTH)
-	copy(h.Bytes, p)
+	copy(h.bytes[:], p)
 	return nil
 }
 
 func (h *Hash) GetBytes() []byte {
 	newHash := make([]byte, HASH_LENGTH)
-	copy(newHash, h.Bytes)
+	copy(newHash, h.bytes[:])
 
 	return newHash
 }
@@ -66,8 +64,7 @@ func (hash *Hash) SetBytes(newHash []byte) error {
 		return fmt.Errorf("invalid sha length of %v, want %v", nhlen, HASH_LENGTH)
 	}
 
-	hash.Bytes = make([]byte, HASH_LENGTH)
-	copy(hash.Bytes, newHash)
+	copy(hash.bytes[:], newHash)
 	return nil
 }
 
@@ -88,7 +85,7 @@ func Sha(p []byte) (h *Hash) {
 	sha.Write(p)
 
 	h = new(Hash)
-	h.Bytes = sha.Sum(nil)
+	copy(h.bytes[:],sha.Sum(nil))
 	return h
 }
 
@@ -97,24 +94,25 @@ func (h *Hash) String() string {
 	if h == nil {
 		return hex.EncodeToString(nil)
 	} else {
-		return hex.EncodeToString(h.Bytes)
+		return hex.EncodeToString(h.bytes[:])
 	}
 }
 
 func (h *Hash) ByteString() string {
-	return string(h.Bytes)
+	return string(h.bytes[:])
 }
 
 func HexToHash(hexStr string) (h *Hash, err error) {
 	h = new(Hash)
-	h.Bytes, err = hex.DecodeString(hexStr)
+	v, err := hex.DecodeString(hexStr)
+    err = h.SetBytes(v)
 	return h, err
 }
 
 // String returns the ShaHash in the standard bitcoin big-endian form.
 func (h *Hash) BTCString() string {
 	hashstr := ""
-	hash := h.Bytes
+	hash := h.bytes
 	for i := range hash {
 		hashstr += fmt.Sprintf("%02x", hash[HASH_LENGTH-1-i])
 	}
@@ -128,7 +126,7 @@ func (a *Hash) IsSameAs(b *Hash) bool {
 		return false
 	}
 
-	if bytes.Compare(a.Bytes, b.Bytes) == 0 {
+	if a.bytes == b.bytes {
 		return true
 	}
 

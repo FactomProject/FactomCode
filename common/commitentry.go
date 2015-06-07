@@ -70,7 +70,7 @@ func (c *CommitEntry) MarshalBinary() ([]byte, error) {
 	buf.Write(c.MilliTime[:])
 
 	// 32 byte Entry Hash
-	buf.Write(c.EntryHash.Bytes)
+	buf.Write(c.EntryHash.Bytes())
 
 	// 1 byte number of Entry Credits
 	if err := binary.Write(buf, binary.BigEndian, c.Credits); err != nil {
@@ -111,7 +111,7 @@ func (c *CommitEntry) UnmarshalBinary(data []byte) (err error) {
 	if p := buf.Next(32); p == nil {
 		return fmt.Errorf("Could not read EntryHash")
 	} else {
-		copy(c.EntryHash.Bytes, p)
+		copy(c.EntryHash.Bytes(), p)
 	}
 
 	// 1 byte number of Entry Credits

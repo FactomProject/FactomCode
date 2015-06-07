@@ -21,7 +21,7 @@ type ECChain struct {
 func NewECChain() *ECChain {
 	c := new(ECChain)
 	c.ChainID = NewHash()
-	copy(c.ChainID.Bytes, EC_CHAINID)
+	c.ChainID.SetBytes(EC_CHAINID)
 	c.Name = make([][]byte, 0)
 	return c
 }
@@ -48,7 +48,7 @@ func (c *ECChain) MarshalBinary() ([]byte, error) {
 func (c *ECChain) UnmarshalBinary(data []byte) error {
 	buf := bytes.NewBuffer(data)
 	
-	if _, err := buf.Read(c.ChainID.Bytes); err != nil {
+	if _, err := buf.Read(c.ChainID.Bytes()); err != nil {
 		return err
 	}
 

@@ -20,7 +20,7 @@ func (db *LevelDb) InsertEntry(entrySha *common.Hash, binaryEntry *[]byte, entry
 	defer db.lbatch.Reset()
 
 	var entryKey []byte = []byte{byte(TBL_ENTRY)}
-	entryKey = append(entryKey, entrySha.Bytes...)
+	entryKey = append(entryKey, entrySha.Bytes()...)
 	db.lbatch.Put(entryKey, *binaryEntry)
 
 	err = db.lDb.Write(db.lbatch, db.wo)
@@ -38,7 +38,7 @@ func (db *LevelDb) FetchEntryByHash(entrySha *common.Hash) (entry *common.Entry,
 	defer db.dbLock.Unlock()
 
 	var key []byte = []byte{byte(TBL_ENTRY)}
-	key = append(key, entrySha.Bytes...)
+	key = append(key, entrySha.Bytes()...)
 	data, err := db.lDb.Get(key, db.ro)
 
 	if data != nil {

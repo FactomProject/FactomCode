@@ -74,7 +74,7 @@ func (db *LevelDb) ProcessDBlockBatch(dblock *common.DirectoryBlock) error {
 
 		// Insert the binary directory block
 		var key []byte = []byte{byte(TBL_DB)}
-		key = append(key, dblock.DBHash.Bytes...)
+		key = append(key, dblock.DBHash.Bytes()...)
 		db.lbatch.Put(key, binaryDblock)
 
 		// Insert block height cross reference
@@ -82,11 +82,11 @@ func (db *LevelDb) ProcessDBlockBatch(dblock *common.DirectoryBlock) error {
 		var buf bytes.Buffer
 		binary.Write(&buf, binary.BigEndian, dblock.Header.BlockHeight)
 		dbNumkey = append(dbNumkey, buf.Bytes()...)
-		db.lbatch.Put(dbNumkey, dblock.DBHash.Bytes)
+		db.lbatch.Put(dbNumkey, dblock.DBHash.Bytes())
 
 		// Insert the directory block merkle root cross reference
 		key = []byte{byte(TBL_DB_MR)}
-		key = append(key, dblock.KeyMR.Bytes...)
+		key = append(key, dblock.KeyMR.Bytes()...)
 		binaryDBHash, _ := dblock.DBHash.MarshalBinary()
 		db.lbatch.Put(key, binaryDBHash)
 
@@ -115,7 +115,7 @@ func (db *LevelDb) InsertDirBlockInfo(dirBlockInfo *common.DirBlockInfo) (err er
 	defer db.lbatch.Reset()
 
 	var key []byte = []byte{byte(TBL_DB_INFO)} // Table Name (1 bytes)
-	key = append(key, dirBlockInfo.DBHash.Bytes...)
+	key = append(key, dirBlockInfo.DBHash.Bytes()...)
 	binaryDirBlockInfo, _ := dirBlockInfo.MarshalBinary()
 	db.lbatch.Put(key, binaryDirBlockInfo)
 
@@ -134,7 +134,7 @@ func (db *LevelDb) FetchDirBlockInfoByHash(dbHash *common.Hash) (dirBlockInfo *c
 	defer db.dbLock.Unlock()
 
 	var key []byte = []byte{byte(TBL_DB_INFO)}
-	key = append(key, dbHash.Bytes...)
+	key = append(key, dbHash.Bytes()...)
 	data, err := db.lDb.Get(key, db.ro)
 
 	if data != nil {
@@ -151,7 +151,7 @@ func (db *LevelDb) FetchDBlockByHash(dBlockHash *common.Hash) (dBlock *common.Di
 	defer db.dbLock.Unlock()
 
 	var key []byte = []byte{byte(TBL_DB)}
-	key = append(key, dBlockHash.Bytes...)
+	key = append(key, dBlockHash.Bytes()...)
 	data, err := db.lDb.Get(key, db.ro)
 
 	if data == nil {
@@ -205,7 +205,7 @@ func (db *LevelDb) FetchDBHashByMR(dBMR *common.Hash) (dBlockHash *common.Hash, 
 	defer db.dbLock.Unlock()
 
 	var key []byte = []byte{byte(TBL_DB_MR)}
-	key = append(key, dBMR.Bytes...)
+	key = append(key, dBMR.Bytes()...)
 	data, err := db.lDb.Get(key, db.ro)
 
 	if data != nil {

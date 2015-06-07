@@ -39,7 +39,7 @@ func NewChainID(e *Entry) *Hash {
 		x := sha256.Sum256(v)
 		sum.Write(x[:])
 	}
-	copy(id.Bytes, sum.Sum(nil))
+	copy(id.Bytes(), sum.Sum(nil))
 
 	return id
 }
@@ -53,7 +53,7 @@ func (e *Entry) Hash() *Hash {
 	b := sha3.Sum256(a)
 	c := append(a, b[:]...)
 	d := sha256.Sum256(c)
-	copy(h.Bytes, d[:])
+	copy(h.Bytes(), d[:])
 
 	return h
 }
@@ -67,7 +67,7 @@ func (e *Entry) MarshalBinary() ([]byte, error) {
 	}
 
 	// 32 byte ChainID
-	buf.Write(e.ChainID.Bytes)
+	buf.Write(e.ChainID.Bytes())
 
 	// ExtIDs
 	if ext, err := e.MarshalExtIDsBinary(); err != nil {
@@ -120,7 +120,7 @@ func (e *Entry) UnmarshalBinary(data []byte) (err error) {
 
 	// 32 byte ChainID
 	e.ChainID = NewHash()
-	if _, err := buf.Read(e.ChainID.Bytes); err != nil {
+	if _, err := buf.Read(e.ChainID.Bytes()); err != nil {
 		return err
 	}
 

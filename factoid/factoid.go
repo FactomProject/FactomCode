@@ -13,7 +13,7 @@ import (
 
 // 1-byte version
 func FactoidTx_VersionCheck(version uint8) bool {
-	util.Trace(fmt.Sprintf("version being checked: %d", version))
+	//	util.Trace(fmt.Sprintf("version being checked: %d", version))
 	return (0 == version)
 }
 

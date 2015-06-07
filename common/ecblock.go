@@ -62,7 +62,7 @@ func (e *ECBlock) Hash3() *Hash {
 	}
 	
 	sum := sha3.Sum256(p)
-	copy(r.Bytes, sum[:])
+	r.SetBytes(sum[:])
 	return r
 }
 
@@ -243,16 +243,16 @@ func (e *ECBlockHeader) MarshalBinary() ([]byte, error) {
 	buf := new(bytes.Buffer)
 
 	// 32 byte ECChainID
-	buf.Write(e.ECChainID.Bytes)
+	buf.Write(e.ECChainID.Bytes())
 	
 	// 32 byte BodyHash
-	buf.Write(e.BodyHash.Bytes)
+	buf.Write(e.BodyHash.Bytes())
 	
 	// 32 byte Previous KeyMR
-	buf.Write(e.PrevKeyMR.Bytes)
+	buf.Write(e.PrevKeyMR.Bytes())
 	
 	// 32 byte Previous Hash
-	buf.Write(e.PrevHash3.Bytes)
+	buf.Write(e.PrevHash3.Bytes())
 	
 	// 4 byte Directory Block Height
 	if err := binary.Write(buf, binary.BigEndian, e.DBHeight); err != nil {
@@ -260,10 +260,10 @@ func (e *ECBlockHeader) MarshalBinary() ([]byte, error) {
 	}
 	
 	// 32 byte SegmentsMR
-	buf.Write(e.SegmentsMR.Bytes)
+	buf.Write(e.SegmentsMR.Bytes())
 	
 	// 32 byte Balance Commit
-	buf.Write(e.BalanceCommit.Bytes)
+	buf.Write(e.BalanceCommit.Bytes())
 	
 	// 8 byte Object Count
 	if err := binary.Write(buf, binary.BigEndian, e.ObjectCount); err != nil {
@@ -281,25 +281,25 @@ func (e *ECBlockHeader) MarshalBinary() ([]byte, error) {
 func (e *ECBlockHeader) UnmarshalBinary(data []byte) error {
 	buf := bytes.NewBuffer(data)
 	
-	if _, err := buf.Read(e.ECChainID.Bytes); err != nil {
+	if _, err := buf.Read(e.ECChainID.Bytes()); err != nil {
 		return err
 	}
-	if _, err := buf.Read(e.BodyHash.Bytes); err != nil {
+	if _, err := buf.Read(e.BodyHash.Bytes()); err != nil {
 		return err
 	}
-	if _, err := buf.Read(e.PrevKeyMR.Bytes); err != nil {
+	if _, err := buf.Read(e.PrevKeyMR.Bytes()); err != nil {
 		return err
 	}
-	if _, err := buf.Read(e.PrevHash3.Bytes); err != nil {
+	if _, err := buf.Read(e.PrevHash3.Bytes()); err != nil {
 		return err
 	}
 	if err := binary.Read(buf, binary.BigEndian, &e.DBHeight); err != nil {
 		return err
 	}
-	if _, err := buf.Read(e.SegmentsMR.Bytes); err != nil {
+	if _, err := buf.Read(e.SegmentsMR.Bytes()); err != nil {
 		return err
 	}
-	if _, err := buf.Read(e.BalanceCommit.Bytes); err != nil {
+	if _, err := buf.Read(e.BalanceCommit.Bytes()); err != nil {
 		return err
 	}
 	if err := binary.Read(buf, binary.BigEndian, &e.ObjectCount); err != nil {

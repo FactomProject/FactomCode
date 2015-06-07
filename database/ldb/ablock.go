@@ -30,16 +30,16 @@ func (db *LevelDb) ProcessABlockBatch(block *common.AdminBlock) error {
 		
 		// Insert the binary factom block
 		var key []byte = []byte{byte(TBL_AB)}
-		key = append(key, block.ABHash.Bytes...)
+		key = append(key, block.ABHash.Bytes()...)
 		db.lbatch.Put(key, binaryBlock)
 		
 		// Insert the admin block number cross reference
 		key = []byte{byte(TBL_AB_NUM)}
-		key = append(key, block.Header.ChainID.Bytes...)
+		key = append(key, block.Header.ChainID.Bytes()...)
 		bytes := make([]byte, 4)
 		binary.BigEndian.PutUint32(bytes, block.Header.DBHeight)
 		key = append(key, bytes...)
-		db.lbatch.Put(key, block.ABHash.Bytes)		
+		db.lbatch.Put(key, block.ABHash.Bytes())		
 
 		err = db.lDb.Write(db.lbatch, db.wo)
 		if err != nil {
@@ -57,7 +57,7 @@ func (db *LevelDb) FetchABlockByHash(aBlockHash *common.Hash) (aBlock *common.Ad
 	defer db.dbLock.Unlock()
 
 	var key []byte = []byte{byte(TBL_AB)}
-	key = append(key, aBlockHash.Bytes...)
+	key = append(key, aBlockHash.Bytes()...)
 	data, err := db.lDb.Get(key, db.ro)
 
 	if data != nil {

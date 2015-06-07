@@ -78,7 +78,7 @@ func SendRawTransactionToBTC(hash *common.Hash, blockHeight uint64) (*wire.ShaHa
 	i := copy(balances, balances[1:])
 	balances[i] = b
 
-	msgtx, err := createRawTransaction(b, hash.Bytes, blockHeight)
+	msgtx, err := createRawTransaction(b, hash.Bytes(), blockHeight)
 	if err != nil {
 		return nil, fmt.Errorf("cannot create Raw Transaction: %s", err)
 	}
@@ -493,7 +493,7 @@ func saveDirBlockInfo(transaction *btcutil.Tx, details *btcjson.BlockDetails) {
 	var saved = false
 	for _, dirBlockInfo := range dirBlockInfoMap {
 		if dirBlockInfo.BTCTxHash != nil &&
-			bytes.Compare(dirBlockInfo.BTCTxHash.Bytes, transaction.Sha().Bytes()) == 0 {
+			bytes.Compare(dirBlockInfo.BTCTxHash.Bytes(), transaction.Sha().Bytes()) == 0 {
 			dirBlockInfo.BTCTxOffset = details.Index
 			dirBlockInfo.BTCBlockHeight = details.Height
 			dirBlockInfo.BTCConfirmed = true

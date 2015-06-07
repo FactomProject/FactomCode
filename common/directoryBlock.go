@@ -132,7 +132,7 @@ func (e *DBEntry) Hash() *Hash {
 
 func (e *DBEntry) SetHash(binaryHash []byte) {
 	h := new(Hash)
-	h.Bytes = binaryHash
+	h.SetBytes(binaryHash)
 	e.hash = h
 }
 
@@ -199,6 +199,7 @@ func (b *DBlockHeader) MarshalBinary() (data []byte, err error) {
 	buf.Write([]byte{b.Version})
 	binary.Write(&buf, binary.BigEndian, b.NetworkID)
 
+    if b.BodyMR == nil { b.BodyMR = new(Hash); b.BodyMR.SetBytes(new([32]byte)[:]) }
 	data, err = b.BodyMR.MarshalBinary()
 	if err != nil {
 		return
@@ -315,8 +316,8 @@ func (c *DChain) AddECBlockToDBEntry(ecb *ECBlock) (err error) {
 
 	dbEntry := NewDBEntryFromECBlock(ecb)
 
-	if len(c.NextBlock.DBEntries) < 4 {
-		panic("DBEntries not initialized properly for block: " + string(c.NextBlockHeight))
+	if len(c.NextBlock.DBEntries) < 3 {
+		panic("1 DBEntries not initialized properly for block: " + string(c.NextBlockHeight))
 	}
 
 	c.BlockMutex.Lock()
@@ -334,8 +335,8 @@ func (c *DChain) AddABlockToDBEntry(b *AdminBlock) (err error) {
 	dbEntry.ChainID = b.Header.ChainID
 	dbEntry.MerkleRoot = b.ABHash
 
-	if len(c.NextBlock.DBEntries) < 4 {
-		panic("DBEntries not initialized properly for block: " + string(c.NextBlockHeight))
+	if len(c.NextBlock.DBEntries) < 3 {
+		panic("2 DBEntries not initialized properly for block: " + string(c.NextBlockHeight))
 	}
 
 	c.BlockMutex.Lock()
@@ -347,7 +348,7 @@ func (c *DChain) AddABlockToDBEntry(b *AdminBlock) (err error) {
 	return nil
 }
 
-// Add DBEntry from an Admin Block
+// Add DBEntry from an SC Block
 func (c *DChain) AddSCBlockToDBEntry(b block.ISCBlock) (err error) {
     
     dbEntry := &DBEntry{}
@@ -358,14 +359,14 @@ func (c *DChain) AddSCBlockToDBEntry(b block.ISCBlock) (err error) {
     
     dbEntry.MerkleRoot = Sha(data)
     
-    if len(c.NextBlock.DBEntries) < 4 {
-        panic("DBEntries not initialized properly for block: " + string(c.NextBlockHeight))
+    if len(c.NextBlock.DBEntries) < 3 {
+        panic("3 DBEntries not initialized properly for block: " + string(c.NextBlockHeight))
     }
     
     c.BlockMutex.Lock()
     // Ablock is always at the first entry
     // First three entries are ABlock, CBlock, FBlock
-    c.NextBlock.DBEntries[3] = dbEntry
+    c.NextBlock.DBEntries[2] = dbEntry
     c.BlockMutex.Unlock()
     
     return nil
@@ -386,13 +387,13 @@ func (c *DChain) AddFBlockMRToDBEntry(dbEntry *DBEntry) (err error) {
 
 	fmt.Println("AddFDBlock >>>>>")
 
-	if len(c.NextBlock.DBEntries) < 4 {
-		panic("DBEntries not initialized properly for block: " + string(c.NextBlockHeight))
+	if len(c.NextBlock.DBEntries) < 3 {
+		panic("4 DBEntries not initialized properly for block: " + string(c.NextBlockHeight))
 	}
 	c.BlockMutex.Lock()
 	// Factoid entry is alwasy at the same position
 	// First three entries are ABlock, CBlock, FBlock
-	c.NextBlock.DBEntries[2] = dbEntry
+	//c.NextBlock.DBEntries[2] = dbEntry
 	c.BlockMutex.Unlock()
 
 	return nil

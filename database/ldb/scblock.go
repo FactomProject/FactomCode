@@ -29,7 +29,7 @@ func (db *LevelDb) ProcessSCBlockBatch(block block.ISCBlock) error {
 		
 		// Insert the binary factom block
 		var key []byte = []byte{byte(TBL_SC)}
-		key = append(key, scHash.Bytes...)
+		key = append(key, scHash.Bytes()...)
 		db.lbatch.Put(key, binaryBlock)
 		
 		// Insert the sc block number cross reference
@@ -38,7 +38,7 @@ func (db *LevelDb) ProcessSCBlockBatch(block block.ISCBlock) error {
 		bytes := make([]byte, 4)
         binary.BigEndian.PutUint32(bytes, block.GetDBHeight())
 		key = append(key, bytes...)
-        db.lbatch.Put(key, scHash.Bytes)		
+        db.lbatch.Put(key, scHash.Bytes())		
 
 		err = db.lDb.Write(db.lbatch, db.wo)
 		if err != nil {
@@ -56,7 +56,7 @@ func (db *LevelDb) FetchSCBlockByHash(hash *common.Hash) ( scBlock block.ISCBloc
 	defer db.dbLock.Unlock()
 
 	var key []byte = []byte{byte(TBL_SC)}
-	key = append(key, hash.Bytes...)
+	key = append(key, hash.Bytes()...)
 	data, err := db.lDb.Get(key, db.ro)
 
 	if data != nil {

@@ -34,7 +34,7 @@ func (b *IncreaseBalance) MarshalBinary() ([]byte, error) {
 	if err := binary.Write(buf, binary.BigEndian, b.Credits); err != nil {
 		return buf.Bytes(), err
 	}
-	buf.Write(b.FactomTxHash.Bytes)
+	buf.Write(b.FactomTxHash.Bytes())
 	
 	return buf.Bytes(), nil
 }
@@ -48,7 +48,7 @@ func (b *IncreaseBalance) UnmarshalBinary(data []byte) error {
 	if err := binary.Read(buf, binary.BigEndian, &b.Credits); err != nil {
 		return err
 	}
-	if _, err := buf.Read(b.FactomTxHash.Bytes); err != nil {
+	if _, err := buf.Read(b.FactomTxHash.Bytes()); err != nil {
 		return err
 	}
 	

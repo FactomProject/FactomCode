@@ -28,8 +28,8 @@ func nextPowerOfTwo(n int) int {
 func hashMerkleBranches(left *Hash, right *Hash) *Hash {
 	// Concatenate the left and right nodes.
 	var barray []byte = make([]byte, HASH_LENGTH*2)
-	copy(barray[:HASH_LENGTH], left.Bytes)
-	copy(barray[HASH_LENGTH:], right.Bytes)
+	copy(barray[:HASH_LENGTH], left.Bytes())
+	copy(barray[HASH_LENGTH:], right.Bytes())
 
 	newSha := Sha(barray)
 	return newSha

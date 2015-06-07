@@ -25,7 +25,7 @@ func (db *LevelDb) ProcessECBlockBatch(block *common.ECBlock) error {
 
 		// Insert the binary factom block
 		var key []byte = []byte{byte(TBL_CB)}
-		key = append(key, block.KeyMR().Bytes...)
+		key = append(key, block.KeyMR().Bytes()...)
 		db.lbatch.Put(key, binaryBlock)
 
 		err = db.lDb.Write(db.lbatch, db.wo)
@@ -44,7 +44,7 @@ func (db *LevelDb) FetchECBlockByHash(ecBlockHash *common.Hash) (ecBlock *common
 	defer db.dbLock.Unlock()
 
 	var key []byte = []byte{byte(TBL_CB)}
-	key = append(key, ecBlockHash.Bytes...)
+	key = append(key, ecBlockHash.Bytes()...)
 	data, err := db.lDb.Get(key, db.ro)
 
 	if data != nil {
