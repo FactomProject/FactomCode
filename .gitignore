@@ -2,9 +2,11 @@
 *.o
 *.a
 *.so
+
+# Temp files
 *~
 *.kate-swp
-
+*.orig
 
 # Folders
 _obj
