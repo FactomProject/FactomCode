@@ -92,6 +92,7 @@ func (c *CommitEntry) ECID() byte {
 
 func (c *CommitEntry) UnmarshalBinary(data []byte) (err error) {
 	buf := bytes.NewBuffer(data)
+	hash := make([]byte, 32)
 
 	// 1 byte Version
 	if p, err := buf.ReadByte(); err != nil {
@@ -108,10 +109,10 @@ func (c *CommitEntry) UnmarshalBinary(data []byte) (err error) {
 	}
 
 	// 32 byte Entry Hash
-	if p := buf.Next(32); p == nil {
-		return fmt.Errorf("Could not read EntryHash")
-	} else {
-		copy(c.EntryHash.Bytes(), p)
+	if _, err := buf.Read(hash); err != nil {
+		return err
+	} else if err := c.EntryHash.SetBytes(hash); err != nil {
+		return err
 	}
 
 	// 1 byte number of Entry Credits
