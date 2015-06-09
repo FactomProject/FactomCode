@@ -5,19 +5,19 @@
 package common
 
 import (
-    "github.com/FactomProject/simplecoin/block"
+    "github.com/FactomProject/factoid/block"
 	//"fmt"
 	"sync"
 )
 
-// Simplecoin Chain
+// factoid Chain
 type SCChain struct {
 	ChainID         *Hash
 	
-	NextBlock       block.ISCBlock
+	NextBlock       block.IFBlock
 	NextBlockHeight uint32
 	BlockMutex      sync.Mutex
 }
 
-// Simplecoin Block
+// factoid Block
 
