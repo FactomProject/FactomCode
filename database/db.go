@@ -7,6 +7,7 @@ package database
 import (
     "github.com/FactomProject/simplecoin/block"
     "github.com/FactomProject/FactomCode/common"
+	"github.com/FactomProject/btcd/wire"	    
 )
 
 // AllShas is a special value that can be used as the final sha when requesting
@@ -101,6 +102,9 @@ type Db interface {
 
 	// FetchAllFBInfo gets all of the fbInfo
 	FetchAllDBlocks() (fBlocks []common.DirectoryBlock, err error)
+	
+	// FetchDBHashByHeight gets a dBlockHash from the database.
+	FetchDBHashByHeight(dBlockHeight uint32) (dBlockHash *common.Hash, err error) 
 
 	// FetchDBlockByHeight gets an directory block by height from the database.
 	FetchDBlockByHeight(dBlockHeight uint32) (dBlock *common.DirectoryBlock, err error) 
@@ -131,5 +135,12 @@ type Db interface {
     
     // FetchAllABlocks gets all of the admin blocks
     FetchAllSCBlocks() ([]block.ISCBlock, error)
+    
+	// UpdateBlockHeightCache updates the dir block height cache in db
+	UpdateBlockHeightCache(dirBlkHeigh uint32, dirBlkHash *common.Hash) error
+	
+	// FetchBlockHeightCache returns the hash and block height of the most recent dir block
+	FetchBlockHeightCache() ( sha *wire.ShaHash, height int64, err error)	
+    
     
 }
