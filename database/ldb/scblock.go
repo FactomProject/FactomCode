@@ -2,7 +2,7 @@ package ldb
 
 import (
 //	"errors"
-    "github.com/FactomProject/simplecoin/block"
+    "github.com/FactomProject/factoid/block"
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/goleveldb/leveldb"
 	"github.com/FactomProject/goleveldb/leveldb/util"
@@ -10,8 +10,8 @@ import (
 	"log"
 )
 
-// ProcessSCBlockBatch inserts the simplecoin block
-func (db *LevelDb) ProcessSCBlockBatch(block block.ISCBlock) error {
+// ProcessFBlockBatch inserts the factoid block
+func (db *LevelDb) ProcessFBlockBatch(block block.IFBlock) error {
 
 	if block != nil {
 		if db.lbatch == nil {
@@ -50,8 +50,8 @@ func (db *LevelDb) ProcessSCBlockBatch(block block.ISCBlock) error {
 	return nil
 }
 
-// FetchSCBlockByHash gets an simplecoin block by hash from the database.
-func (db *LevelDb) FetchSCBlockByHash(hash *common.Hash) ( scBlock block.ISCBlock, err error) {
+// FetchFBlockByHash gets an factoid block by hash from the database.
+func (db *LevelDb) FetchFBlockByHash(hash *common.Hash) ( FBlock block.IFBlock, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -60,33 +60,33 @@ func (db *LevelDb) FetchSCBlockByHash(hash *common.Hash) ( scBlock block.ISCBloc
 	data, err := db.lDb.Get(key, db.ro)
 
 	if data != nil {
-		scBlock = new(block.SCBlock)
-		scBlock.UnmarshalBinary(data)
+		FBlock = new(block.FBlock)
+		FBlock.UnmarshalBinary(data)
 	}
-	return scBlock, nil
+	return FBlock, nil
 }
 
-// FetchAllSCBlocks gets all of the simplecoin blocks
-func (db *LevelDb) FetchAllSCBlocks() (scBlocks []block.ISCBlock, err error) {
+// FetchAllFBlocks gets all of the factoid blocks
+func (db *LevelDb) FetchAllFBlocks() (FBlocks []block.IFBlock, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
 	var fromkey []byte = []byte{byte(TBL_SC)}   // Table Name (1 bytes)						// Timestamp  (8 bytes)
 	var tokey []byte = []byte{byte(TBL_SC + 1)} // Table Name (1 bytes)
 
-	scBlockSlice := make([]block.ISCBlock, 0, 10)
+	FBlockSlice := make([]block.IFBlock, 0, 10)
 
 	iter := db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
 
 	for iter.Next() {
-		scBlock := new(block.SCBlock)
-		scBlock.UnmarshalBinary(iter.Value())
+		FBlock := new(block.FBlock)
+		FBlock.UnmarshalBinary(iter.Value())
 		
-		scBlockSlice = append(scBlockSlice, scBlock)
+		FBlockSlice = append(FBlockSlice, FBlock)
 
 	} 
 	iter.Release()
 	err = iter.Error()
 
-	return scBlockSlice, nil
+	return FBlockSlice, nil
 }

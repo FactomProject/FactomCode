@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"reflect"
 	"sync"
-    "github.com/FactomProject/simplecoin/block"
+    "github.com/FactomProject/factoid/block"
 )
 
 const DBlockVersion = 0
@@ -349,7 +349,7 @@ func (c *DChain) AddABlockToDBEntry(b *AdminBlock) (err error) {
 }
 
 // Add DBEntry from an SC Block
-func (c *DChain) AddSCBlockToDBEntry(b block.ISCBlock) (err error) {
+func (c *DChain) AddFBlockToDBEntry(b block.IFBlock) (err error) {
     
     dbEntry := &DBEntry{}
     dbEntry.ChainID = new(Hash)

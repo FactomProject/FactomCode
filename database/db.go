@@ -5,7 +5,7 @@
 package database
 
 import (
-    "github.com/FactomProject/simplecoin/block"
+    "github.com/FactomProject/factoid/block"
     "github.com/FactomProject/FactomCode/common"
 )
 
@@ -124,12 +124,12 @@ type Db interface {
 	FetchAllABlocks() (aBlocks []common.AdminBlock, err error)
     
     // ProcessABlockBatch inserts the AdminBlock
-    ProcessSCBlockBatch(block.ISCBlock) error
+    ProcessFBlockBatch(block.IFBlock) error
     
     // FetchABlockByHash gets an admin block by hash from the database.
-    FetchSCBlockByHash(*common.Hash) (block.ISCBlock, error)
+    FetchFBlockByHash(*common.Hash) (block.IFBlock, error)
     
     // FetchAllABlocks gets all of the admin blocks
-    FetchAllSCBlocks() ([]block.ISCBlock, error)
+    FetchAllFBlocks() ([]block.IFBlock, error)
     
 }
