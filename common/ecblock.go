@@ -280,28 +280,48 @@ func (e *ECBlockHeader) MarshalBinary() ([]byte, error) {
 
 func (e *ECBlockHeader) UnmarshalBinary(data []byte) error {
 	buf := bytes.NewBuffer(data)
+	hash := make([]byte, 32)
 	
-	if _, err := buf.Read(e.ECChainID.Bytes()); err != nil {
+	if _, err := buf.Read(hash); err != nil {
 		return err
+	} else {
+		e.ECChainID.SetBytes(hash)
 	}
-	if _, err := buf.Read(e.BodyHash.Bytes()); err != nil {
+	
+	if _, err := buf.Read(hash); err != nil {
 		return err
+	} else {
+		e.BodyHash.SetBytes(hash)
 	}
-	if _, err := buf.Read(e.PrevKeyMR.Bytes()); err != nil {
+	
+	if _, err := buf.Read(hash); err != nil {
 		return err
+	} else {
+		e.PrevKeyMR.SetBytes(hash)
 	}
-	if _, err := buf.Read(e.PrevHash3.Bytes()); err != nil {
+	
+	if _, err := buf.Read(hash); err != nil {
 		return err
+	} else {
+		e.PrevHash3.SetBytes(hash)
 	}
+	
 	if err := binary.Read(buf, binary.BigEndian, &e.DBHeight); err != nil {
 		return err
 	}
-	if _, err := buf.Read(e.SegmentsMR.Bytes()); err != nil {
+	
+	if _, err := buf.Read(hash); err != nil {
 		return err
+	} else {
+		e.SegmentsMR.SetBytes(hash)
 	}
-	if _, err := buf.Read(e.BalanceCommit.Bytes()); err != nil {
+
+	if _, err := buf.Read(hash); err != nil {
 		return err
+	} else {
+		e.BalanceCommit.SetBytes(hash)
 	}
+
 	if err := binary.Read(buf, binary.BigEndian, &e.ObjectCount); err != nil {
 		return err
 	}

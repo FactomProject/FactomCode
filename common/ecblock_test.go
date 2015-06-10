@@ -13,11 +13,6 @@ import (
 func TestECBlockMarshal(t *testing.T) {
 	fmt.Printf("---\nTestECBlockMarshal\n---\n")
 	ecb := common.NewECBlock()
-	if p, err := ecb.MarshalBinary(); err != nil {
-		t.Error(err)
-	} else if z := make([]byte, 212); string(p) != string(z) {
-		t.Errorf("Marshal failed on zeroed ECBlock")
-	}
 	
 	// build a CommitChain for testing
 	rand, _ := os.Open("/dev/random")
