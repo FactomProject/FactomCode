@@ -20,8 +20,8 @@ const (
 	ECIDEntryCommit
 	ECIDBalanceIncrease
 
-	// ecBlockHeaderSize 32+32+32+32+4+32+32+8
-	ecBlockHeaderSize = 204
+	// ecBlockHeaderSize 32+32+32+32+4+32+32+8+8
+	ecBlockHeaderSize = 212
 )
 
 // The Entry Credit Block consists of a header and a body. The body is composed
@@ -89,6 +89,9 @@ func (e *ECBlock) MarshalBinary() ([]byte, error) {
 	buf := new(bytes.Buffer)
 
 	// Header
+	if err := e.BuildHeader(); err != nil {
+		return buf.Bytes(), err
+	}
 	if p, err := e.Header.MarshalBinary(); err != nil {
 		return buf.Bytes(), err
 	} else {
@@ -323,6 +326,10 @@ func (e *ECBlockHeader) UnmarshalBinary(data []byte) error {
 	}
 
 	if err := binary.Read(buf, binary.BigEndian, &e.ObjectCount); err != nil {
+		return err
+	}
+	
+	if err := binary.Read(buf, binary.BigEndian, &e.BodySize); err != nil {
 		return err
 	}
 	
