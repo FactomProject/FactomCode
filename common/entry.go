@@ -53,7 +53,7 @@ func (e *Entry) Hash() *Hash {
 	b := sha3.Sum256(a)
 	c := append(a, b[:]...)
 	d := sha256.Sum256(c)
-	copy(h.Bytes(), d[:])
+	h.SetBytes(d[:])
 
 	return h
 }
