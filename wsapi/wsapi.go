@@ -47,8 +47,9 @@ func Start(db database.Db, inMsgQ chan wire.FtmInternalMsg) {
 	server.Get("/v1/entry-block-by-keymr/([^/]+)", handleEntryBlock)
 	server.Get("/v1/entry-by-hash/([^/]+)", handleEntry)
 	server.Get("/v1/chain-head/([^/]+)", handleChainHead)
-	server.Get("/v1/entry-credit-balance/([^/]+)", handleEntryCreditBalance)
-
+    server.Get("/v1/entry-credit-balance/([^/]+)", handleEntryCreditBalance)
+    server.Get("/v1/factoid-balance/([^/]+)", handleFactoidBalance)
+    
 	// TODO remove before production
 	server.Get("/v1/test-credit/([^/]+)", handleTestCredit)
 	
@@ -385,4 +386,29 @@ func handleEntryCreditBalance(ctx *web.Context, eckey string) {
 	}
 
 	ctx.WriteHeader(httpOK)
+}
+
+func handleFactoidBalance(ctx *web.Context, eckey string) {
+    type ecbal struct {
+        Balance uint32
+    }
+    
+    b := new(ecbal)
+    if bal, err := factomapi.FBalance(eckey); err != nil {
+        wsLog.Error(err)
+        ctx.WriteHeader(httpBad)
+        return
+    } else {
+        b.Balance = bal
+    }
+    
+    if p, err := json.Marshal(b); err != nil {
+        wsLog.Error(err)
+        ctx.WriteHeader(httpBad)
+        return
+    } else {
+        ctx.Write(p)
+    }
+    
+    ctx.WriteHeader(httpOK)
 }

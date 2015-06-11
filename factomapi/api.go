@@ -53,6 +53,13 @@ func CommitEntry(c *common.CommitEntry) error {
 	return nil
 }
 
+func FactoidTX(t ITransaction) error {
+    m := wireNewFactoidTX()
+    m.setTransaction(t)
+    inMsgQ <- m
+    return nil
+}
+
 func DBlockByKeyMR(keymr string) (*common.DirectoryBlock, error) {
 	h, err := atoh(keymr)
 	if err != nil {
