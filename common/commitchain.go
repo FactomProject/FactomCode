@@ -102,6 +102,7 @@ func (c *CommitChain) ECID() byte {
 
 func (c *CommitChain) UnmarshalBinary(data []byte) (err error) {
 	buf := bytes.NewBuffer(data)
+	hash := make([]byte, 32)
 
 	// 1 byte Version
 	if p, err := buf.ReadByte(); err != nil {
@@ -118,26 +119,26 @@ func (c *CommitChain) UnmarshalBinary(data []byte) (err error) {
 	}
 
 	// 32 byte ChainIDHash
-	if p := buf.Next(32); p == nil {
-		return fmt.Errorf("Could not read ChainIDHash")
-	} else {
-		copy(c.ChainIDHash.Bytes(), p)
+	if _, err := buf.Read(hash); err != nil {
+		return err
+	} else if err := c.ChainIDHash.SetBytes(hash); err != nil {
+		return err
 	}
 
 	// 32 byte Weld
-	if p := buf.Next(32); p == nil {
-		return fmt.Errorf("Could not read Weld")
-	} else {
-		copy(c.Weld.Bytes(), p)
+	if _, err := buf.Read(hash); err != nil {
+		return err
+	} else if err := c.Weld.SetBytes(hash); err != nil {
+		return err
 	}
 
 	// 32 byte Entry Hash
-	if p := buf.Next(32); p == nil {
-		return fmt.Errorf("Could not read EntryHash")
-	} else {
-		copy(c.EntryHash.Bytes(), p)
+	if _, err := buf.Read(hash); err != nil {
+		return err
+	} else if err := c.EntryHash.SetBytes(hash); err != nil {
+		return err
 	}
-
+	
 	// 1 byte number of Entry Credits
 	if p, err := buf.ReadByte(); err != nil {
 		return err
