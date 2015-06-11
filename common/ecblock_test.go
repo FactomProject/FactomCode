@@ -13,20 +13,18 @@ import (
 func TestECBlockMarshal(t *testing.T) {
 	fmt.Printf("---\nTestECBlockMarshal\n---\n")
 	ecb := common.NewECBlock()
-	if p, err := ecb.MarshalBinary(); err != nil {
-		t.Error(err)
-	} else if z := make([]byte, 212); string(p) != string(z) {
-		t.Errorf("Marshal failed on zeroed ECBlock")
-	}
 	
 	// build a CommitChain for testing
 	rand, _ := os.Open("/dev/random")
 	cc := common.NewCommitChain()
 	cc.Version = 0
 	cc.MilliTime = &[6]byte{1, 1, 1, 1, 1, 1}
-	cc.ChainIDHash.Bytes, _ = hex.DecodeString("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
-	cc.Weld.Bytes, _ = hex.DecodeString("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
-	cc.EntryHash.Bytes, _ = hex.DecodeString("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc")
+	p, _ := hex.DecodeString("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+	cc.ChainIDHash.SetBytes(p)
+	p, _ = hex.DecodeString("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
+	cc.Weld.SetBytes(p)
+	p, _ = hex.DecodeString("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc")
+	cc.EntryHash.SetBytes(p)
 	cc.Credits = 11
 	
 	// make a key and sign the msg
@@ -38,13 +36,19 @@ func TestECBlockMarshal(t *testing.T) {
 	}
 
 	// create a ECBlock for testing
-	ecb.Header.ECChainID.Bytes, _ = hex.DecodeString("1111111111111111111111111111111111111111111111111111111111111111")
-	ecb.Header.BodyHash.Bytes, _ = hex.DecodeString("2222222222222222222222222222222222222222222222222222222222222222")
-	ecb.Header.PrevKeyMR.Bytes, _ = hex.DecodeString("3333333333333333333333333333333333333333333333333333333333333333")
-	ecb.Header.PrevHash3.Bytes, _ = hex.DecodeString("4444444444444444444444444444444444444444444444444444444444444444")
+	p, _ = hex.DecodeString("1111111111111111111111111111111111111111111111111111111111111111")
+	ecb.Header.ECChainID.SetBytes(p)
+	p, _ = hex.DecodeString("2222222222222222222222222222222222222222222222222222222222222222")
+	ecb.Header.BodyHash.SetBytes(p)
+	p, _ = hex.DecodeString("3333333333333333333333333333333333333333333333333333333333333333")
+	ecb.Header.PrevKeyMR.SetBytes(p)
+	p, _ = hex.DecodeString("4444444444444444444444444444444444444444444444444444444444444444")
+	ecb.Header.PrevHash3.SetBytes(p)
 	ecb.Header.DBHeight = 10
-	ecb.Header.SegmentsMR.Bytes, _ = hex.DecodeString("5555555555555555555555555555555555555555555555555555555555555555")
-	ecb.Header.BalanceCommit.Bytes, _ = hex.DecodeString("6666666666666666666666666666666666666666666666666666666666666666")
+	p, _ = hex.DecodeString("5555555555555555555555555555555555555555555555555555555555555555")
+	ecb.Header.SegmentsMR.SetBytes(p)
+	p, _ = hex.DecodeString("6666666666666666666666666666666666666666666666666666666666666666")
+	ecb.Header.BalanceCommit.SetBytes(p)
 	ecb.Header.ObjectCount = 0
 	
 	// add the CommitChain to the ECBlock

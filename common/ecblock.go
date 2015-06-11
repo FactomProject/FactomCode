@@ -20,8 +20,8 @@ const (
 	ECIDEntryCommit
 	ECIDBalanceIncrease
 
-	// ecBlockHeaderSize 32+32+32+32+4+32+32+8
-	ecBlockHeaderSize = 204
+	// ecBlockHeaderSize 32+32+32+32+4+32+32+8+8
+	ecBlockHeaderSize = 212
 )
 
 // The Entry Credit Block consists of a header and a body. The body is composed
@@ -89,6 +89,9 @@ func (e *ECBlock) MarshalBinary() ([]byte, error) {
 	buf := new(bytes.Buffer)
 
 	// Header
+	if err := e.BuildHeader(); err != nil {
+		return buf.Bytes(), err
+	}
 	if p, err := e.Header.MarshalBinary(); err != nil {
 		return buf.Bytes(), err
 	} else {
@@ -280,29 +283,53 @@ func (e *ECBlockHeader) MarshalBinary() ([]byte, error) {
 
 func (e *ECBlockHeader) UnmarshalBinary(data []byte) error {
 	buf := bytes.NewBuffer(data)
+	hash := make([]byte, 32)
 	
-	if _, err := buf.Read(e.ECChainID.Bytes()); err != nil {
+	if _, err := buf.Read(hash); err != nil {
 		return err
+	} else {
+		e.ECChainID.SetBytes(hash)
 	}
-	if _, err := buf.Read(e.BodyHash.Bytes()); err != nil {
+	
+	if _, err := buf.Read(hash); err != nil {
 		return err
+	} else {
+		e.BodyHash.SetBytes(hash)
 	}
-	if _, err := buf.Read(e.PrevKeyMR.Bytes()); err != nil {
+	
+	if _, err := buf.Read(hash); err != nil {
 		return err
+	} else {
+		e.PrevKeyMR.SetBytes(hash)
 	}
-	if _, err := buf.Read(e.PrevHash3.Bytes()); err != nil {
+	
+	if _, err := buf.Read(hash); err != nil {
 		return err
+	} else {
+		e.PrevHash3.SetBytes(hash)
 	}
+	
 	if err := binary.Read(buf, binary.BigEndian, &e.DBHeight); err != nil {
 		return err
 	}
-	if _, err := buf.Read(e.SegmentsMR.Bytes()); err != nil {
+	
+	if _, err := buf.Read(hash); err != nil {
 		return err
+	} else {
+		e.SegmentsMR.SetBytes(hash)
 	}
-	if _, err := buf.Read(e.BalanceCommit.Bytes()); err != nil {
+
+	if _, err := buf.Read(hash); err != nil {
 		return err
+	} else {
+		e.BalanceCommit.SetBytes(hash)
 	}
+
 	if err := binary.Read(buf, binary.BigEndian, &e.ObjectCount); err != nil {
+		return err
+	}
+	
+	if err := binary.Read(buf, binary.BigEndian, &e.BodySize); err != nil {
 		return err
 	}
 	

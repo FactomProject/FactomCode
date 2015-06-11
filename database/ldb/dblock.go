@@ -106,6 +106,22 @@ func (db *LevelDb) ProcessDBlockBatch(dblock *common.DirectoryBlock) error {
 	return nil
 }
 
+// UpdateBlockHeightCache updates the dir block height cache in db
+func (db *LevelDb) UpdateBlockHeightCache(dirBlkHeigh uint32, dirBlkHash *common.Hash) error {
+	
+	// Update DirBlock Height cache
+	db.lastDirBlkHeight = int64(dirBlkHeigh)
+	db.lastDirBlkSha, _ = wire.NewShaHash(dirBlkHash.Bytes())
+	db.lastDirBlkShaCached = true
+	return nil
+}
+
+// FetchBlockHeightCache returns the hash and block height of the most recent
+func (db *LevelDb)	FetchBlockHeightCache() (sha *wire.ShaHash, height int64, err error) {
+	return db.lastDirBlkSha, db.lastDirBlkHeight, nil
+}
+	
+	
 // Insert the Directory Block meta data into db
 func (db *LevelDb) InsertDirBlockInfo(dirBlockInfo *common.DirBlockInfo) (err error) {
 	if dirBlockInfo.BTCTxHash == nil {

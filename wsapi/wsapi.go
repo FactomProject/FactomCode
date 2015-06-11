@@ -69,7 +69,6 @@ func handleTestCredit(ctx *web.Context, eckey string) {
 		ctx.WriteHeader(httpBad)
 		return
 	}
-	
 	factomapi.TestCredit(p, 100)
 	ctx.WriteHeader(httpOK)
 }

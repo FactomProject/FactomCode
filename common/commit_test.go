@@ -31,7 +31,8 @@ func TestCommitEntryMarshal(t *testing.T) {
 	// build a CommitEntry for testing
 	ce.Version = 0
 	ce.MilliTime = &[6]byte{1, 1, 1, 1, 1, 1}
-	ce.EntryHash.Bytes, _ = hex.DecodeString("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+	p, _ := hex.DecodeString("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+	ce.EntryHash.SetBytes(p)
 	ce.Credits = 1
 	
 	// make a key and sign the msg
@@ -73,9 +74,12 @@ func TestCommitChainMarshal(t *testing.T) {
 	// build a CommitChain for testing
 	cc.Version = 0
 	cc.MilliTime = &[6]byte{1, 1, 1, 1, 1, 1}
-	cc.ChainIDHash.Bytes, _ = hex.DecodeString("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
-	cc.Weld.Bytes, _ = hex.DecodeString("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
-	cc.EntryHash.Bytes, _ = hex.DecodeString("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc")
+	p, _ := hex.DecodeString("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+	cc.ChainIDHash.SetBytes(p)
+	p, _ = hex.DecodeString("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
+	cc.Weld.SetBytes(p)
+	p, _ = hex.DecodeString("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc")
+	cc.EntryHash.SetBytes(p)
 	cc.Credits = 11
 	
 	// make a key and sign the msg

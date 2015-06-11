@@ -10,7 +10,7 @@ import (
 )
 
 // InsertEntry inserts an entry
-func (db *LevelDb) InsertEntry(entrySha *common.Hash, binaryEntry *[]byte, entry *common.Entry, chainID *[]byte) (err error) {
+func (db *LevelDb) InsertEntry(entrySha *common.Hash, entry *common.Entry) (err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -19,9 +19,10 @@ func (db *LevelDb) InsertEntry(entrySha *common.Hash, binaryEntry *[]byte, entry
 	}
 	defer db.lbatch.Reset()
 
+	binaryEntry, _ := entry.MarshalBinary()
 	var entryKey []byte = []byte{byte(TBL_ENTRY)}
 	entryKey = append(entryKey, entrySha.Bytes()...)
-	db.lbatch.Put(entryKey, *binaryEntry)
+	db.lbatch.Put(entryKey, binaryEntry)
 
 	err = db.lDb.Write(db.lbatch, db.wo)
 	if err != nil {
