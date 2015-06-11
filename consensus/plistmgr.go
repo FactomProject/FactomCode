@@ -105,9 +105,9 @@ func (plMgr *ProcessListMgr) InitProcessListFromOrphanMap() error {
 }
 
 // Create a new process list item and add it to the MyProcessList
-func (plMgr *ProcessListMgr) AddMyProcessListItem(msg wire.FtmInternalMsg, hash *wire.ShaHash, msgType byte) error {
+func (plMgr *ProcessListMgr) AddMyProcessListItem(msg wire.FtmInternalMsg, hash *wire.ShaHash, msgType byte) (ack *wire.MsgAcknowledgement, err error) {
 
-	ack := wire.NewMsgAcknowledgement(plMgr.NextDBlockHeight, uint32(plMgr.MyProcessList.nextIndex), hash, msgType) //??
+	ack = wire.NewMsgAcknowledgement(plMgr.NextDBlockHeight, uint32(plMgr.MyProcessList.nextIndex), hash, msgType) //??
 	plMgr.MyProcessList.nextIndex++
 
 	plItem := &ProcessListItem{
@@ -117,5 +117,5 @@ func (plMgr *ProcessListMgr) AddMyProcessListItem(msg wire.FtmInternalMsg, hash 
 	}
 	plMgr.MyProcessList.AddToProcessList(plItem)
 
-	return nil
+	return ack, nil
 }
