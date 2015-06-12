@@ -54,11 +54,11 @@ func CommitEntry(c *common.CommitEntry) error {
 }
 
 func DBlockByKeyMR(keymr string) (*common.DirectoryBlock, error) {
-	h, err := atoh(keymr)
+	key, err := atoh(keymr)
 	if err != nil {
 		return nil, err
 	}
-	r, err := db.FetchDBlockByHash(h)
+	r, err := db.FetchDBlockByMR(key)
 	if err != nil {
 		return r, err
 	}
