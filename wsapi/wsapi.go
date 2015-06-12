@@ -216,7 +216,7 @@ func handleDirectoryBlockHead(ctx *web.Context) {
 		ctx.Write(p)
 	}
 
-	ctx.WriteHeader(httpOK)
+//	ctx.WriteHeader(httpOK)
 }
 
 func handleDirectoryBlock(ctx *web.Context, keymr string) {

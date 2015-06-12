@@ -66,11 +66,15 @@ func DBlockByKeyMR(keymr string) (*common.DirectoryBlock, error) {
 }
 
 func DBlockHead() (*common.DirectoryBlock, error) {
-	bs, err := db.FetchAllDBlocks()
+	_, height, err := db.FetchBlockHeightCache()
 	if err != nil {
 		return nil, err
 	}
-	return &bs[len(bs)-1], nil
+	block, err := db.FetchDBlockByHeight(uint32(height))
+	if err != nil {
+		return nil, err
+	}
+	return block, nil
 }
 
 func EBlockByKeyMR(keymr string) (*common.EBlock, error) {
