@@ -9,7 +9,9 @@ import (
 
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/FactomCode/common"
-	"github.com/FactomProject/FactomCode/database"
+    "github.com/FactomProject/FactomCode/database"
+    
+    
 )
 
 var (
@@ -53,12 +55,12 @@ func CommitEntry(c *common.CommitEntry) error {
 	return nil
 }
 
-func FactoidTX(t ITransaction) error {
-    m := wireNewFactoidTX()
-    m.setTransaction(t)
-    inMsgQ <- m
-    return nil
-}
+// func FactoidTX(t factoid.ITransaction) error {
+//     m := wire.NewFactoidTX()
+//     m.setTransaction(t)
+//     inMsgQ <- m
+//     return nil
+// }
 
 func DBlockByKeyMR(keymr string) (*common.DirectoryBlock, error) {
 	h, err := atoh(keymr)

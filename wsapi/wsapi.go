@@ -9,13 +9,15 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"strconv"
+    "fmt"
 
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/factomapi"
-	"github.com/FactomProject/FactomCode/util"
-	"github.com/hoisie/web"
+    "github.com/FactomProject/FactomCode/util"
+    "github.com/FactomProject/factoid"
+    "github.com/hoisie/web"
 )
 
 const (
@@ -206,7 +208,7 @@ func handleDirectoryBlockHead(ctx *web.Context) {
 		ctx.WriteHeader(httpBad)
 		return
 	} else {
-		h.KeyMR = block.KeyMR.String()
+        h.KeyMR = block.KeyMR.String()
 	}
 
 	if p, err := json.Marshal(h); err != nil {
@@ -388,17 +390,18 @@ func handleEntryCreditBalance(ctx *web.Context, eckey string) {
 }
 
 func handleFactoidBalance(ctx *web.Context, eckey string) {
-    type ecbal struct {
-        Balance uint32
-    }
-    
-    b := new(ecbal)
-    if bal, err := factomapi.FBalance(eckey); err != nil {
-        wsLog.Error(err)
-        ctx.WriteHeader(httpBad)
-        return
-    } else {
-        b.Balance = bal
+    type fbal struct {
+        Balance int64
+    }    
+    var b fbal
+    adr,err := hex.DecodeString(eckey)
+    if err == nil && len(adr) == common.HASH_LENGTH {
+        v := int64(common.FactoidState.GetBalance( factoid.NewAddress(adr)))
+
+        b = fbal{Balance : v,}
+        fmt.Println(" Balance... ",b.Balance)
+    }else{
+        b = fbal{ Balance : 0,}
     }
     
     if p, err := json.Marshal(b); err != nil {

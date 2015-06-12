@@ -25,6 +25,7 @@ checkout btcutil $1
 checkout btcwallet $1
 checkout btcws  $1
 checkout dynrsrc $1
+checkout factoid $1
 checkout factom $1
 checkout factom-cli  $1
 checkout FactomDocs $1
