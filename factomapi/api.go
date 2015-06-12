@@ -54,11 +54,11 @@ func CommitEntry(c *common.CommitEntry) error {
 }
 
 func DBlockByKeyMR(keymr string) (*common.DirectoryBlock, error) {
-	h, err := atoh(keymr)
+	key, err := atoh(keymr)
 	if err != nil {
 		return nil, err
 	}
-	r, err := db.FetchDBlockByHash(h)
+	r, err := db.FetchDBlockByMR(key)
 	if err != nil {
 		return r, err
 	}
@@ -66,11 +66,15 @@ func DBlockByKeyMR(keymr string) (*common.DirectoryBlock, error) {
 }
 
 func DBlockHead() (*common.DirectoryBlock, error) {
-	bs, err := db.FetchAllDBlocks()
+	_, height, err := db.FetchBlockHeightCache()
 	if err != nil {
 		return nil, err
 	}
-	return &bs[len(bs)-1], nil
+	block, err := db.FetchDBlockByHeight(uint32(height))
+	if err != nil {
+		return nil, err
+	}
+	return block, nil
 }
 
 func EBlockByKeyMR(keymr string) (*common.EBlock, error) {

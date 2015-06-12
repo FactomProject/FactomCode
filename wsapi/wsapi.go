@@ -205,7 +205,7 @@ func handleDirectoryBlockHead(ctx *web.Context) {
 		ctx.WriteHeader(httpBad)
 		return
 	} else {
-		h.KeyMR = block.KeyMR.String()
+		h.KeyMR = block.Header.BodyMR.String()
 	}
 
 	if p, err := json.Marshal(h); err != nil {
@@ -216,7 +216,7 @@ func handleDirectoryBlockHead(ctx *web.Context) {
 		ctx.Write(p)
 	}
 
-	ctx.WriteHeader(httpOK)
+//	ctx.WriteHeader(httpOK)
 }
 
 func handleDirectoryBlock(ctx *web.Context, keymr string) {
