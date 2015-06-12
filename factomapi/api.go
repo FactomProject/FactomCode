@@ -102,7 +102,10 @@ func EntryByHash(hash string) (*common.Entry, error) {
 	return r, nil
 }
 
-func RevealEntry(*common.Entry) error {
+func RevealEntry(e *common.Entry) error {
+	m := wire.NewMsgRevealEntry()
+	m.Entry = e
+	inMsgQ <- m
 	return nil
 }
 
