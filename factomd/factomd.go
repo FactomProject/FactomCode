@@ -11,6 +11,7 @@ import (
 	"runtime"
 	
 	"github.com/FactomProject/FactomCode/database"
+	"github.com/FactomProject/FactomCode/process"	
 	"github.com/FactomProject/FactomCode/database/ldb"
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/FactomCode/wsapi"
@@ -82,13 +83,13 @@ func main() {
 func factomdMain() error {
 
 	// Start the processor module
-	go btcd.Start_Processor(db, inMsgQueue, outMsgQueue, inCtlMsgQueue, outCtlMsgQueue)
+	go process.Start_Processor(db, inMsgQueue, outMsgQueue, inCtlMsgQueue, outCtlMsgQueue)
 
 	// Start the wsapi server module in a separate go-routine
 	wsapi.Start(db, inMsgQueue)
 
 	// Start the factoid (btcd) component and P2P component
-	btcd.Start_btcd()
+	btcd.Start_btcd(db, inMsgQueue, outMsgQueue, inCtlMsgQueue, outCtlMsgQueue)
 
 	return nil
 }
@@ -99,7 +100,7 @@ func loadConfigurations() {
 	cfg = util.ReadConfig()
 
 	ldbpath = cfg.App.LdbPath
-	btcd.LoadConfigurations(cfg)
+	process.LoadConfigurations(cfg)
 
 	fmt.Println("CHECK cfg= ", cfg)
 }
