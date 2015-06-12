@@ -1,12 +1,140 @@
+// Copyright 2015 FactomProject Authors. All rights reserved.
+// Use of this source code is governed by the MIT license
+// that can be found in the LICENSE file.
+
 package process
 
 import (
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/btcd/wire"
+	"github.com/FactomProject/FactomCode/util"	
+	"github.com/davecgh/go-spew/spew"
 	"strconv"
 	"time"
+	"errors"
+	"fmt"
 )
+// processDirBlock validates dir block and save it to factom db.
+// similar to blockChain.BC_ProcessBlock
+func processDirBlock(msg *wire.MsgDirBlock) error {
+	util.Trace()
+
+	// Error condiftion for Milestone 1
+	if nodeMode == common.SERVER_NODE {
+		return errors.New("Server received msg:" + msg.Command())
+	}
+
+	blk, _ := db.FetchDBlockByHeight(msg.DBlk.Header.BlockHeight)
+	if blk != nil {
+		fmt.Println("DBlock already existing for height:" + string(msg.DBlk.Header.BlockHeight))
+		return nil
+	}
+
+	msg.DBlk.IsSealed = true
+	dchain.AddDBlockToDChain(msg.DBlk)
+
+	//Add it to mem pool before saving it in db
+	fMemPool.addBlockMsg(msg, strconv.Itoa(int(msg.DBlk.Header.BlockHeight))) // store in mempool with the height as the key
+
+	fmt.Printf("PROCESSOR: MsgDirBlock=%s\n", spew.Sdump(msg.DBlk))
+	fmt.Printf("PROCESSOR: dchain=%s\n", spew.Sdump(dchain))
+
+	return nil
+}
+
+// processFBlock validates admin block and save it to factom db.
+// similar to blockChain.BC_ProcessBlock
+func processFBlock(msg *wire.MsgFBlock) error {
+
+	//Add it to mem pool before saving it in db
+	h, _ := common.CreateHash(msg.SC)     // need to change it to MR??
+	fMemPool.addBlockMsg(msg, h.String()) // stored in mem pool with the MR as the key
+
+	return nil
+
+}
+
+// processABlock validates admin block and save it to factom db.
+// similar to blockChain.BC_ProcessBlock
+func processABlock(msg *wire.MsgABlock) error {
+	util.Trace()
+
+	// Error condiftion for Milestone 1
+	if nodeMode == common.SERVER_NODE {
+		return errors.New("Server received msg:" + msg.Command())
+	}
+
+	//Add it to mem pool before saving it in db
+	msg.ABlk.BuildABHash()
+	fMemPool.addBlockMsg(msg, msg.ABlk.ABHash.String()) // store in mem pool with ABHash as key
+
+	return nil
+}
+
+// procesFBlock validates entry credit block and save it to factom db.
+// similar to blockChain.BC_ProcessBlock
+func procesECBlock(msg *wire.MsgECBlock) error {
+	util.Trace()
+
+	// Error condiftion for Milestone 1
+	if nodeMode == common.SERVER_NODE {
+		return errors.New("Server received msg:" + msg.Command())
+	}
+
+	h, _ := common.CreateHash(msg.ECBlock)
+	//Add it to mem pool before saving it in db
+	fMemPool.addBlockMsg(msg, h.String())
+
+	// for debugging??
+	fmt.Printf("PROCESSOR: MsgCBlock=%s\n", spew.Sdump(msg.ECBlock))
+
+	return nil
+}
+
+// processEBlock validates entry block and save it to factom db.
+// similar to blockChain.BC_ProcessBlock
+func processEBlock(msg *wire.MsgEBlock) error {
+	util.Trace()
+
+	// Error condiftion for Milestone 1
+	if nodeMode == common.SERVER_NODE {
+		return errors.New("Server received msg:" + msg.Command())
+	}
+
+	if msg.EBlk.Header.DBHeight >= dchain.NextBlockHeight || msg.EBlk.Header.DBHeight < 0 {
+		return errors.New("MsgEBlock has an invalid DBHeight:" + strconv.Itoa(int(msg.EBlk.Header.DBHeight)))
+	}
+
+	//Add it to mem pool before saving it in db
+	msg.EBlk.BuildMerkleRoot()
+	fMemPool.addBlockMsg(msg, msg.EBlk.MerkleRoot.String()) // store it in mem pool with MR as the key
+
+	// for debugging??
+	fmt.Printf("PROCESSOR: MsgEBlock=%s\n", spew.Sdump(msg.EBlk))
+
+	return nil
+}
+
+// processEntry validates entry and save it to factom db.
+// similar to blockChain.BC_ProcessBlock
+func processEntry(msg *wire.MsgEntry) error {
+	util.Trace()
+
+	// Error condiftion for Milestone 1
+	if nodeMode == common.SERVER_NODE {
+		return errors.New("Server received msg:" + msg.Command())
+	}
+
+	// store the entry in mem pool
+	h, _ := common.CreateHash(msg.Entry)
+	fMemPool.addBlockMsg(msg, h.String()) // store it in mem pool with hash as the key
+
+	fmt.Printf("PROCESSOR: MsgEntry=%s\n", spew.Sdump(msg.Entry))
+
+	return nil
+}
+
 
 // Validate the new blocks in mem pool and store them in db
 func validateAndStoreBlocks(fMemPool *ftmMemPool, db database.Db, dchain *common.DChain, outCtlMsgQ chan wire.FtmInternalMsg) {
