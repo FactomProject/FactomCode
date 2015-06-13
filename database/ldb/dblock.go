@@ -222,27 +222,35 @@ func (db *LevelDb) FetchDBHashByHeight(dBlockHeight uint32) (dBlockHash *common.
 }
 
 // FetchDBHashByMR gets a DBHash by MR from the database.
-func (db *LevelDb) FetchDBHashByMR(dBMR *common.Hash) (dBlockHash *common.Hash, err error) {
+func (db *LevelDb) FetchDBHashByMR(dBMR *common.Hash) (*common.Hash, error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
 	var key []byte = []byte{byte(TBL_DB_MR)}
 	key = append(key, dBMR.Bytes()...)
 	data, err := db.lDb.Get(key, db.ro)
-
-	if data != nil {
-		dBlockHash = new(common.Hash)
-		dBlockHash.UnmarshalBinary(data)
+	if err != nil {
+		return nil, err
 	}
+
+	dBlockHash := common.NewHash()
+	if err := dBlockHash.UnmarshalBinary(data); err != nil {
+		return dBlockHash, err
+	}
+
 	return dBlockHash, nil
 }
 
 // FetchDBlockByMR gets a directory block by merkle root from the database.
-func (db *LevelDb) FetchDBlockByMR(dBMR *common.Hash) (dBlock *common.DirectoryBlock, err error) {
-	dBlockHash, _ := db.FetchDBHashByMR(dBMR)
+func (db *LevelDb) FetchDBlockByMR(dBMR *common.Hash) (*common.DirectoryBlock, error) {
+	dBlockHash, err := db.FetchDBHashByMR(dBMR)
+	if err != nil {
+		return nil, err
+	}
 
-	if dBlockHash != nil {
-		dBlock, _ = db.FetchDBlockByHash(dBlockHash)
+	dBlock, err := db.FetchDBlockByHash(dBlockHash)
+	if err != nil {
+		return dBlock, err
 	}
 
 	return dBlock, nil

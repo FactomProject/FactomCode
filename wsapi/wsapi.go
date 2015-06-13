@@ -49,12 +49,12 @@ func Start(db database.Db, inMsgQ chan wire.FtmInternalMsg) {
 	server.Get("/v1/entry-block-by-keymr/([^/]+)", handleEntryBlock)
 	server.Get("/v1/entry-by-hash/([^/]+)", handleEntry)
 	server.Get("/v1/chain-head/([^/]+)", handleChainHead)
-    server.Get("/v1/entry-credit-balance/([^/]+)", handleEntryCreditBalance)
-    server.Get("/v1/factoid-balance/([^/]+)", handleFactoidBalance)
-    
+	server.Get("/v1/entry-credit-balance/([^/]+)", handleEntryCreditBalance)
+	server.Get("/v1/factoid-balance/([^/]+)", handleFactoidBalance)
+
 	// TODO remove before production
 	server.Get("/v1/test-credit/([^/]+)", handleTestCredit)
-	
+
 	wsLog.Info("Starting server")
 	go server.Run("localhost:" + strconv.Itoa(portNumber))
 }
@@ -99,7 +99,7 @@ func handleCommitChain(ctx *web.Context) {
 		ctx.WriteHeader(httpBad)
 		return
 	} else {
-		if err := commit.UnmarshalBinary(p); err != nil {		
+		if err := commit.UnmarshalBinary(p); err != nil {
 			wsLog.Error(err)
 			ctx.WriteHeader(httpBad)
 			return
@@ -142,7 +142,7 @@ func handleCommitEntry(ctx *web.Context) {
 		ctx.WriteHeader(httpBad)
 		return
 	} else {
-		if err := commit.UnmarshalBinary(p); err != nil {		
+		if err := commit.UnmarshalBinary(p); err != nil {
 			wsLog.Error(err)
 			ctx.WriteHeader(httpBad)
 			return
@@ -219,7 +219,7 @@ func handleDirectoryBlockHead(ctx *web.Context) {
 		ctx.Write(p)
 	}
 
-//	ctx.WriteHeader(httpOK)
+	//	ctx.WriteHeader(httpOK)
 }
 
 func handleDirectoryBlock(ctx *web.Context, keymr string) {
@@ -390,27 +390,27 @@ func handleEntryCreditBalance(ctx *web.Context, eckey string) {
 }
 
 func handleFactoidBalance(ctx *web.Context, eckey string) {
-    type fbal struct {
-        Balance int64
-    }    
-    var b fbal
-    adr,err := hex.DecodeString(eckey)
-    if err == nil && len(adr) == common.HASH_LENGTH {
-        v := int64(common.FactoidState.GetBalance( factoid.NewAddress(adr)))
+	type fbal struct {
+		Balance int64
+	}
+	var b fbal
+	adr, err := hex.DecodeString(eckey)
+	if err == nil && len(adr) == common.HASH_LENGTH {
+		v := int64(common.FactoidState.GetBalance(factoid.NewAddress(adr)))
 
-        b = fbal{Balance : v,}
-        fmt.Println(" Balance... ",b.Balance)
-    }else{
-        b = fbal{ Balance : 0,}
-    }
-    
-    if p, err := json.Marshal(b); err != nil {
-        wsLog.Error(err)
-        ctx.WriteHeader(httpBad)
-        return
-    } else {
-        ctx.Write(p)
-    }
-    
-    ctx.WriteHeader(httpOK)
+		b = fbal{Balance: v}
+		fmt.Println(" Balance... ", b.Balance)
+	} else {
+		b = fbal{Balance: 0}
+	}
+
+	if p, err := json.Marshal(b); err != nil {
+		wsLog.Error(err)
+		ctx.WriteHeader(httpBad)
+		return
+	} else {
+		ctx.Write(p)
+	}
+
+	ctx.WriteHeader(httpOK)
 }

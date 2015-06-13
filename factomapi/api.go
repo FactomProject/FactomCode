@@ -7,11 +7,9 @@ package factomapi
 import (
 	"encoding/hex"
 
-	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/FactomCode/common"
-    "github.com/FactomProject/FactomCode/database"
-    
-    
+	"github.com/FactomProject/FactomCode/database"
+	"github.com/FactomProject/btcd/wire"
 )
 
 var (
@@ -24,10 +22,9 @@ func TestCredit(key []byte, amt int32) {
 	msg := wire.NewMsgTestCredit()
 	copy(msg.ECKey[:], key)
 	msg.Amt = amt
-	
+
 	inMsgQ <- msg
 }
-
 
 func ChainHead(chainid string) (*common.EBlock, error) {
 	h, err := atoh(chainid)
