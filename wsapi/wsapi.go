@@ -7,17 +7,17 @@ package wsapi
 import (
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"strconv"
-    "fmt"
 
-	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/factomapi"
-    "github.com/FactomProject/FactomCode/util"
-    "github.com/FactomProject/factoid"
-    "github.com/hoisie/web"
+	"github.com/FactomProject/FactomCode/util"
+	"github.com/FactomProject/btcd/wire"
+	"github.com/FactomProject/factoid"
+	"github.com/hoisie/web"
 )
 
 const (
