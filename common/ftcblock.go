@@ -6,12 +6,17 @@ package common
 
 import (
     "github.com/FactomProject/factoid/block"
-	//"fmt"
+    "github.com/FactomProject/factoid/state/stateinit"
+    "fmt"
 	"sync"
 )
 
+var _ = fmt.Println
+
+var FactoidState = stateinit.NewFactoidState("/tmp/factoid_bolt.db")
+
 // factoid Chain
-type SCChain struct {
+type FctChain struct {
 	ChainID         *Hash
 	
 	NextBlock       block.IFBlock

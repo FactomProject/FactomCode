@@ -9,13 +9,15 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"strconv"
+    "fmt"
 
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/factomapi"
-	"github.com/FactomProject/FactomCode/util"
-	"github.com/hoisie/web"
+    "github.com/FactomProject/FactomCode/util"
+    "github.com/FactomProject/factoid"
+    "github.com/hoisie/web"
 )
 
 const (
@@ -47,8 +49,9 @@ func Start(db database.Db, inMsgQ chan wire.FtmInternalMsg) {
 	server.Get("/v1/entry-block-by-keymr/([^/]+)", handleEntryBlock)
 	server.Get("/v1/entry-by-hash/([^/]+)", handleEntry)
 	server.Get("/v1/chain-head/([^/]+)", handleChainHead)
-	server.Get("/v1/entry-credit-balance/([^/]+)", handleEntryCreditBalance)
-
+    server.Get("/v1/entry-credit-balance/([^/]+)", handleEntryCreditBalance)
+    server.Get("/v1/factoid-balance/([^/]+)", handleFactoidBalance)
+    
 	// TODO remove before production
 	server.Get("/v1/test-credit/([^/]+)", handleTestCredit)
 	
@@ -384,4 +387,30 @@ func handleEntryCreditBalance(ctx *web.Context, eckey string) {
 	}
 
 	ctx.WriteHeader(httpOK)
+}
+
+func handleFactoidBalance(ctx *web.Context, eckey string) {
+    type fbal struct {
+        Balance int64
+    }    
+    var b fbal
+    adr,err := hex.DecodeString(eckey)
+    if err == nil && len(adr) == common.HASH_LENGTH {
+        v := int64(common.FactoidState.GetBalance( factoid.NewAddress(adr)))
+
+        b = fbal{Balance : v,}
+        fmt.Println(" Balance... ",b.Balance)
+    }else{
+        b = fbal{ Balance : 0,}
+    }
+    
+    if p, err := json.Marshal(b); err != nil {
+        wsLog.Error(err)
+        ctx.WriteHeader(httpBad)
+        return
+    } else {
+        ctx.Write(p)
+    }
+    
+    ctx.WriteHeader(httpOK)
 }

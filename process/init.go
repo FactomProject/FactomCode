@@ -329,10 +329,10 @@ func initAChain() {
 
 }
 
-func initSCChain() {
+func initFctChain() {
 
 	//Initialize the Admin Chain ID
-	scchain = new(common.SCChain)
+	scchain = new(common.FctChain)
 	scchain.ChainID = new(common.Hash)
 	scchain.ChainID.SetBytes(sc.FACTOID_CHAINID)
 
@@ -361,7 +361,7 @@ func initSCChain() {
 		scchain.NextBlock = block.NewFBlock(FactoshisPerCredit, dchain.NextBlockHeight)
 	}
 
-	exportSCChain(scchain)
+	exportFctChain(scchain)
 
 }
 
