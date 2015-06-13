@@ -161,7 +161,7 @@ func validateAndStoreBlocks(fMemPool *ftmMemPool, db database.Db, dchain *common
 					exportDChain(dchain)
 					exportAChain(achain)
 					exportECChain(ecchain)
-					exportSCChain(scchain)
+					exportFctChain(scchain)
 				} else {
 					panic("error in deleteBlocksFromMemPool.")
 				}

@@ -39,7 +39,7 @@ var (
 	dchain   *common.DChain     //Directory Block Chain
 	ecchain  *common.ECChain    //Entry Credit Chain
 	achain   *common.AdminChain //Admin Chain
-	scchain  *common.SCChain    // factoid Chain
+	scchain  *common.FctChain    // factoid Chain
 	fchainID *common.Hash
 	
 	inMsgQueue  chan wire.FtmInternalMsg //incoming message queue for factom application messages
@@ -133,7 +133,8 @@ func initProcessor() {
 	initAChain()
 	fmt.Println("Loaded", achain.NextBlockHeight, "Admin blocks for chain: "+achain.ChainID.String())
 
-	initSCChain()
+	initFctChain()
+    common.FactoidState.LoadState()
 	fmt.Println("Loaded", scchain.NextBlockHeight, "factoid blocks for chain: "+scchain.ChainID.String())
 
 	anchor.InitAnchor(db)
@@ -810,7 +811,7 @@ func buildGenesisBlocks() error {
 	data, _ := FBlock.MarshalBinary()
 	fmt.Println("\n\n ", common.Sha(data).String(), "\n\n")
 	dchain.AddFBlockToDBEntry(FBlock)
-	exportSCChain(scchain)
+	exportFctChain(scchain)
 
 	// Directory Block chain
 	util.Trace("in buildGenesisBlocks")
@@ -859,7 +860,7 @@ func buildBlocks() error {
 	fBlock := newFactoidBlock(scchain)
 	//fmt.Printf("buildGenesisBlocks: aBlock=%s\n", spew.Sdump(aBlock))
 	dchain.AddFBlockToDBEntry(fBlock)
-	exportSCChain(scchain)
+	exportFctChain(scchain)
 
 	// sort the echains by chain id
 	var keys []string
@@ -1031,7 +1032,7 @@ func newAdminBlock(chain *common.AdminChain) *common.AdminBlock {
 	return block
 }
 
-func newFactoidBlock(chain *common.SCChain) block.IFBlock {
+func newFactoidBlock(chain *common.FctChain) block.IFBlock {
 
 	// acquire the last block
 	currentBlock := chain.NextBlock

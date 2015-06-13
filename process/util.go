@@ -146,7 +146,7 @@ func exportAChain(chain *common.AdminChain) {
 	}
 }
 
-func exportSCChain(chain *common.SCChain) {
+func exportFctChain(chain *common.FctChain) {
 	if procLog.Level() < factomlog.Info {
 		return
 	}
