@@ -204,7 +204,7 @@ func (db *LevelDb) FetchDBlockByHeight(dBlockHeight uint32) (dBlock *common.Dire
 }
 
 // FetchDBHashByHeight gets a dBlockHash from the database.
-func (db *LevelDb) FetchDBHashByHeight(dBlockHeight uint32) (dBlockHash *common.Hash, err error) {
+func (db *LevelDb) FetchDBHashByHeight(dBlockHeight uint32) (*common.Hash, error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -213,11 +213,15 @@ func (db *LevelDb) FetchDBHashByHeight(dBlockHeight uint32) (dBlockHash *common.
 	binary.Write(&buf, binary.BigEndian, dBlockHeight)
 	key = append(key, buf.Bytes()...)
 	data, err := db.lDb.Get(key, db.ro)
-
-	if data != nil {
-		dBlockHash = new(common.Hash)
-		dBlockHash.UnmarshalBinary(data)
+	if err != nil {
+		return nil, err
 	}
+
+	dBlockHash := common.NewHash()
+	if err := dBlockHash.UnmarshalBinary(data); err != nil {
+		return dBlockHash, err
+	}
+
 	return dBlockHash, nil
 }
 

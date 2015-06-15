@@ -115,18 +115,22 @@ func (db *LevelDb) FetchEBlockByHash(eBlockHash *common.Hash) (eBlock *common.EB
 */
 
 // FetchEBHashByMR gets an entry by hash from the database.
-func (db *LevelDb) FetchEBHashByMR(eBMR *common.Hash) (eBlockHash *common.Hash, err error) {
+func (db *LevelDb) FetchEBHashByMR(eBMR *common.Hash) (*common.Hash, error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
 	var key []byte = []byte{byte(TBL_EB_MR)}
 	key = append(key, eBMR.Bytes()...)
 	data, err := db.lDb.Get(key, db.ro)
-
-	if data != nil {
-		eBlockHash = new(common.Hash)
-		eBlockHash.UnmarshalBinary(data)
+	if err != nil {
+		return nil, err
 	}
+
+	eBlockHash := common.NewHash()
+	if err := eBlockHash.UnmarshalBinary(data); err != nil {
+		return eBlockHash, err
+	}
+
 	return eBlockHash, nil
 }
 
@@ -208,7 +212,7 @@ func (db *LevelDb) FetchAllEBlocksByChain(chainID *common.Hash) (eBlocks *[]comm
 	iter := db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
 
 	for iter.Next() {
-		eBlockHash := new(common.Hash)
+		eBlockHash := common.NewHash()
 		eBlockHash.UnmarshalBinary(iter.Value())
 
 		var key []byte = []byte{byte(TBL_EB)}
