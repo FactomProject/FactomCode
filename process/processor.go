@@ -977,7 +977,7 @@ func newEntryBlock(chain *common.EChain) *common.EBlock {
 	fmt.Println("EntryBlock.MerkleRoot:%v", block.MerkleRoot.String())
 	blkhash, _ := common.CreateHash(block)
 	block.EBHash = blkhash
-	util.Trace("blkhash:%v", blkhash.Bytes())
+	//util.Trace("blkhash:%v", blkhash.Bytes())
 
 	block.IsSealed = true
 	chain.NextBlockHeight++
