@@ -40,9 +40,7 @@ checkout goleveldb  $1
 checkout go-socks  $1
 checkout seelog  $1
 checkout snappy-go  $1
-checkout website  $1
 checkout websocket  $1
-checkout WorkItems $1
 checkout FactomCode $1
 
 cd FactomCode

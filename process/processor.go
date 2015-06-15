@@ -898,6 +898,9 @@ func buildBlocks() error {
 	commonHash := common.Sha(binary)
 	hash, _ := wire.NewShaHash(commonHash.Bytes())
 	outMsgQueue <- (&wire.MsgInt_DirBlock{hash})
+	
+	// Update dir block height cache in db
+	db.UpdateBlockHeightCache(dbBlock.Header.BlockHeight, commonHash)	
 
 	exportDChain(dchain)
 

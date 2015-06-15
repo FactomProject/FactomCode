@@ -6,18 +6,19 @@ package wsapi
 
 import (
 	"encoding/hex"
-    "encoding/json"
+	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"strconv"
-    "fmt"
 
-	"github.com/FactomProject/btcd/wire"
+
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/factomapi"
-    "github.com/FactomProject/FactomCode/util"
-    fct  "github.com/FactomProject/factoid"
-    "github.com/hoisie/web"
+	"github.com/FactomProject/FactomCode/util"
+	"github.com/FactomProject/btcd/wire"
+	"github.com/FactomProject/factoid"
+	"github.com/hoisie/web"
 )
 
 const (
@@ -46,8 +47,7 @@ func Start(db database.Db, inMsgQ chan wire.FtmInternalMsg) {
 	server.Post("/v1/commit-chain/?", handleCommitChain)
 	server.Post("/v1/reveal-chain/?", handleRevealChain)
 	server.Post("/v1/commit-entry/?", handleCommitEntry)
-    server.Post("/v1/reveal-entry/?", handleRevealEntry)
-    
+	server.Post("/v1/reveal-entry/?", handleRevealEntry)
 	server.Get("/v1/directory-block-head/?", handleDirectoryBlockHead)
 	server.Get("/v1/directory-block-by-keymr/([^/]+)", handleDirectoryBlock)
 	server.Get("/v1/entry-block-by-keymr/([^/]+)", handleEntryBlock)
@@ -60,7 +60,7 @@ func Start(db database.Db, inMsgQ chan wire.FtmInternalMsg) {
     
 	// TODO remove before production
 	server.Get("/v1/test-credit/([^/]+)", handleTestCredit)
-	
+
 	wsLog.Info("Starting server")
 	go server.Run("localhost:" + strconv.Itoa(portNumber))
 }
@@ -105,7 +105,7 @@ func handleCommitChain(ctx *web.Context) {
 		ctx.WriteHeader(httpBad)
 		return
 	} else {
-		if err := commit.UnmarshalBinary(p); err != nil {		
+		if err := commit.UnmarshalBinary(p); err != nil {
 			wsLog.Error(err)
 			ctx.WriteHeader(httpBad)
 			return
@@ -148,7 +148,7 @@ func handleCommitEntry(ctx *web.Context) {
 		ctx.WriteHeader(httpBad)
 		return
 	} else {
-		if err := commit.UnmarshalBinary(p); err != nil {		
+		if err := commit.UnmarshalBinary(p); err != nil {
 			wsLog.Error(err)
 			ctx.WriteHeader(httpBad)
 			return
@@ -396,13 +396,13 @@ func handleEntryCreditBalance(ctx *web.Context, eckey string) {
 }
 
 func handleFactoidBalance(ctx *web.Context, eckey string) {
-    type fbal struct {
-        Balance int64
-    }    
-    var b fbal
-    adr,err := hex.DecodeString(eckey)
-    if err == nil && len(adr) == common.HASH_LENGTH {
-        v := int64(common.FactoidState.GetBalance( fct.NewAddress(adr)))
+	type fbal struct {
+		Balance int64
+	}
+	var b fbal
+	adr, err := hex.DecodeString(eckey)
+	if err == nil && len(adr) == common.HASH_LENGTH {
+		v := int64(common.FactoidState.GetBalance(factoid.NewAddress(adr)))
 
         b = fbal{Balance : v,}
     }else{
