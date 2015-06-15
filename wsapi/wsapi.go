@@ -17,7 +17,7 @@ import (
 	"github.com/FactomProject/FactomCode/factomapi"
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd/wire"
-	"github.com/FactomProject/factoid"
+    fct "github.com/FactomProject/factoid"
 	"github.com/hoisie/web"
 )
 
@@ -33,6 +33,8 @@ var (
 	dataStorePath    = "/tmp/store/seed/csv"
 	refreshInSeconds = cfg.RefreshInSeconds
 )
+
+var _ = fmt.Println
 
 var server = web.NewServer()
 
@@ -402,7 +404,7 @@ func handleFactoidBalance(ctx *web.Context, eckey string) {
 	var b fbal
 	adr, err := hex.DecodeString(eckey)
 	if err == nil && len(adr) == common.HASH_LENGTH {
-		v := int64(common.FactoidState.GetBalance(factoid.NewAddress(adr)))
+		v := int64(common.FactoidState.GetBalance(fct.NewAddress(adr)))
 
         b = fbal{Balance : v,}
     }else{
