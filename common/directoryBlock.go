@@ -350,25 +350,25 @@ func (c *DChain) AddABlockToDBEntry(b *AdminBlock) (err error) {
 
 // Add DBEntry from an SC Block
 func (c *DChain) AddFBlockToDBEntry(b block.IFBlock) (err error) {
-    
+
     dbEntry := &DBEntry{}
     dbEntry.ChainID = new(Hash)
     dbEntry.ChainID.SetBytes(b.GetChainID().Bytes())
-    
+
     data,err := b.MarshalBinary()
-    
+
     dbEntry.MerkleRoot = Sha(data)
-    
+
     if len(c.NextBlock.DBEntries) < 3 {
         panic("3 DBEntries not initialized properly for block: " + string(c.NextBlockHeight))
     }
-    
+
     c.BlockMutex.Lock()
     // Ablock is always at the first entry
     // First three entries are ABlock, CBlock, FBlock
     c.NextBlock.DBEntries[2] = dbEntry
     c.BlockMutex.Unlock()
-    
+
     return nil
 }
 
