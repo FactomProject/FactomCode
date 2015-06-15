@@ -6,7 +6,7 @@ package wsapi
 
 import (
 	"encoding/hex"
-	"encoding/json"
+    "encoding/json"
 	"io/ioutil"
 	"strconv"
     "fmt"
@@ -16,7 +16,7 @@ import (
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/factomapi"
     "github.com/FactomProject/FactomCode/util"
-    "github.com/FactomProject/factoid"
+    fct  "github.com/FactomProject/factoid"
     "github.com/hoisie/web"
 )
 
@@ -35,15 +35,19 @@ var (
 
 var server = web.NewServer()
 
+var inMessageQ chan wire.FtmInternalMsg
+
 func Start(db database.Db, inMsgQ chan wire.FtmInternalMsg) {
 	factomapi.SetDB(db)
 	factomapi.SetInMsgQueue(inMsgQ)
-
+    inMessageQ = inMsgQ
+    
 	wsLog.Debug("Setting Handlers")
 	server.Post("/v1/commit-chain/?", handleCommitChain)
 	server.Post("/v1/reveal-chain/?", handleRevealChain)
 	server.Post("/v1/commit-entry/?", handleCommitEntry)
-	server.Post("/v1/reveal-entry/?", handleRevealEntry)
+    server.Post("/v1/reveal-entry/?", handleRevealEntry)
+    
 	server.Get("/v1/directory-block-head/?", handleDirectoryBlockHead)
 	server.Get("/v1/directory-block-by-keymr/([^/]+)", handleDirectoryBlock)
 	server.Get("/v1/entry-block-by-keymr/([^/]+)", handleEntryBlock)
@@ -51,6 +55,8 @@ func Start(db database.Db, inMsgQ chan wire.FtmInternalMsg) {
 	server.Get("/v1/chain-head/([^/]+)", handleChainHead)
     server.Get("/v1/entry-credit-balance/([^/]+)", handleEntryCreditBalance)
     server.Get("/v1/factoid-balance/([^/]+)", handleFactoidBalance)
+    server.Post("/v1/factoid-submit/?", handleFactoidSubmit)
+    server.Get("/v1/factoid-get-fee/",handleGetFee)
     
 	// TODO remove before production
 	server.Get("/v1/test-credit/([^/]+)", handleTestCredit)
@@ -396,10 +402,9 @@ func handleFactoidBalance(ctx *web.Context, eckey string) {
     var b fbal
     adr,err := hex.DecodeString(eckey)
     if err == nil && len(adr) == common.HASH_LENGTH {
-        v := int64(common.FactoidState.GetBalance( factoid.NewAddress(adr)))
+        v := int64(common.FactoidState.GetBalance( fct.NewAddress(adr)))
 
         b = fbal{Balance : v,}
-        fmt.Println(" Balance... ",b.Balance)
     }else{
         b = fbal{ Balance : 0,}
     }
@@ -412,5 +417,69 @@ func handleFactoidBalance(ctx *web.Context, eckey string) {
         ctx.Write(p)
     }
     
-    ctx.WriteHeader(httpOK)
+}
+
+func handleFactoidSubmit(ctx *web.Context) {
+    
+    type x struct {Transaction string }
+    t := new(x)
+   
+    var p []byte
+    var err error
+    if p, err = ioutil.ReadAll(ctx.Request.Body); err != nil {
+        wsLog.Error(err)
+        ctx.WriteHeader(httpBad)
+        return
+    } else {
+        if err := json.Unmarshal(p, t); err != nil {
+            wsLog.Error(err)
+            ctx.WriteHeader(httpBad)
+            return
+        }
+    }
+    
+    msg := new(wire.MsgFactoidTX)
+
+    if p, err = hex.DecodeString(t.Transaction); err != nil {
+        wsLog.Error(err)
+        ctx.WriteHeader(httpBad)
+        return
+    } 
+        
+    msg.Transaction = new (fct.Transaction)
+    err = msg.Transaction.UnmarshalBinary(p)
+            
+    if  err != nil {
+        wsLog.Error(err)
+        ctx.WriteHeader(httpBad)
+        return
+    }
+    
+    good := common.FactoidState.Validate(msg.Transaction)
+    if !good {
+        ctx.WriteHeader(httpBad)
+        return
+    }
+    good = common.FactoidState.GetWallet().ValidateSignatures(msg.Transaction)
+    if !good {
+        ctx.WriteHeader(httpBad)
+        return
+    }
+    
+    inMessageQ <- msg
+    
+}
+
+func handleGetFee(ctx *web.Context) {
+    type x struct { Fee int64 }
+    b := new(x) 
+    b.Fee = int64(common.FactoidState.GetFactoshisPerEC())
+    if p, err := json.Marshal(b); err != nil {
+        wsLog.Error(err)
+        ctx.WriteHeader(httpBad)
+        return
+    } else {
+        ctx.Write(p)
+    }
+    
 }

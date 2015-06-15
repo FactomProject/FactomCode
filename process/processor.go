@@ -243,7 +243,7 @@ func serveCtlMsgRequest(msg wire.FtmInternalMsg) error {
 	case wire.CmdCommitChain:
 
 	default:
-		return errors.New("Message type unsupported:" + fmt.Sprintf("%+v", msg))
+		return errors.New("1 Message type unsupported:" + fmt.Sprintf("%+v", msg))
 	}
 	return nil
 
@@ -321,6 +321,8 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 				plMgr.AddMyProcessListItem(msgEom, nil, msgEom.EOM_Type)
 			}
 		}
+		
+		common.FactoidState.SetFactoshisPerEC(FactoshisPerCredit)
 
 	case wire.CmdInt_FactoidBlock: // to be removed??
 		factoidBlock, ok := msg.(*wire.MsgInt_FactoidBlock)
@@ -342,20 +344,27 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
 		}
 
-	case wire.CmdFBlock:
-		if nodeMode == common.SERVER_NODE {
-			break
-		}
-
-		fblock, ok := msg.(*wire.MsgFBlock)
-		if ok {
-			err := processFBlock(fblock)
-			if err != nil {
-				return err
-			}
-		} else {
-			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
-		}
+    case wire.CmdFBlock:
+        if nodeMode == common.SERVER_NODE {
+            break
+        }
+        
+        fblock, ok := msg.(*wire.MsgFBlock)
+        if ok {
+            err := processFBlock(fblock)
+            if err != nil {
+                return err
+            }
+        } else {
+            return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
+        }
+        
+    case wire.CmdFactoidTX:
+        if nodeMode == common.SERVER_NODE {
+            t := (msg.(*wire.MsgFactoidTX)).Transaction
+            common.FactoidState.AddTransaction(t)
+        }
+        
 
 	case wire.CmdABlock:
 		if nodeMode == common.SERVER_NODE {
@@ -427,7 +436,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		}
 
 	default:
-		return errors.New("Message type unsupported:" + fmt.Sprintf("%+v", msg))
+		return errors.New("2 Message type unsupported:" + fmt.Sprintf("%+v", msg))
 	}
 
 	return nil
@@ -1046,7 +1055,9 @@ func newFactoidBlock(chain *common.FctChain) block.IFBlock {
 	// Create the block and add a new block for new coming entries
 	chain.BlockMutex.Lock()
 	chain.NextBlockHeight++
-	chain.NextBlock = block.NewFBlock(FactoshisPerCredit, chain.NextBlockHeight)
+	common.FactoidState.ProcessEndOfBlock()
+    common.FactoidState.SetFactoshisPerEC(FactoshisPerCredit)
+    chain.NextBlock = common.FactoidState.GetCurrentBlock()
 	chain.BlockMutex.Unlock()
 
 	//Store the block in db
