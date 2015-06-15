@@ -39,14 +39,14 @@ var (
 	dchain   *common.DChain     //Directory Block Chain
 	ecchain  *common.ECChain    //Entry Credit Chain
 	achain   *common.AdminChain //Admin Chain
-	scchain  *common.FctChain    // factoid Chain
+	scchain  *common.FctChain   // factoid Chain
 	fchainID *common.Hash
-	
+
 	inMsgQueue  chan wire.FtmInternalMsg //incoming message queue for factom application messages
 	outMsgQueue chan wire.FtmInternalMsg //outgoing message queue for factom application messages
 
 	inCtlMsgQueue  chan wire.FtmInternalMsg //incoming message queue for factom control messages
-	outCtlMsgQueue chan wire.FtmInternalMsg //outgoing message queue for factom control messages	
+	outCtlMsgQueue chan wire.FtmInternalMsg //outgoing message queue for factom control messages
 
 	creditsPerChain   int32  = 10
 	creditsPerFactoid uint64 = 1000
@@ -72,8 +72,8 @@ var (
 
 	FactoshisPerCredit uint64 // .001 / .15 * 100000000 (assuming a Factoid is .15 cents, entry credit = .1 cents
 
-	factomdUser string
-	factomdPass string
+	FactomdUser string
+	FactomdPass string
 )
 
 var (
@@ -85,7 +85,7 @@ var (
 	serverPrivKeyHex        string
 )
 
-// Get the configurations 
+// Get the configurations
 func LoadConfigurations(cfg *util.FactomdConfig) {
 	util.Trace()
 
@@ -97,8 +97,8 @@ func LoadConfigurations(cfg *util.FactomdConfig) {
 	nodeMode = cfg.App.NodeMode
 	serverPrivKeyHex = cfg.App.ServerPrivKey
 
-	factomdUser = cfg.Btc.RpcUser
-	factomdPass = cfg.Btc.RpcPass
+	FactomdUser = cfg.Btc.RpcUser
+	FactomdPass = cfg.Btc.RpcPass
 }
 
 // Initialize the processor
@@ -134,7 +134,7 @@ func initProcessor() {
 	fmt.Println("Loaded", achain.NextBlockHeight, "Admin blocks for chain: "+achain.ChainID.String())
 
 	initFctChain()
-    common.FactoidState.LoadState()
+	common.FactoidState.LoadState()
 	fmt.Println("Loaded", scchain.NextBlockHeight, "factoid blocks for chain: "+scchain.ChainID.String())
 
 	anchor.InitAnchor(db)
@@ -232,8 +232,6 @@ func Start_Processor(
 
 }
 
-
-
 // Serve the "fast lane" incoming control msg from inCtlMsgQueue
 func serveCtlMsgRequest(msg wire.FtmInternalMsg) error {
 
@@ -321,7 +319,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 				plMgr.AddMyProcessListItem(msgEom, nil, msgEom.EOM_Type)
 			}
 		}
-		
+
 		common.FactoidState.SetFactoshisPerEC(FactoshisPerCredit)
 
 	case wire.CmdInt_FactoidBlock: // to be removed??
@@ -344,27 +342,26 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
 		}
 
-    case wire.CmdFBlock:
-        if nodeMode == common.SERVER_NODE {
-            break
-        }
-        
-        fblock, ok := msg.(*wire.MsgFBlock)
-        if ok {
-            err := processFBlock(fblock)
-            if err != nil {
-                return err
-            }
-        } else {
-            return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
-        }
-        
-    case wire.CmdFactoidTX:
-        if nodeMode == common.SERVER_NODE {
-            t := (msg.(*wire.MsgFactoidTX)).Transaction
-            common.FactoidState.AddTransaction(t)
-        }
-        
+	case wire.CmdFBlock:
+		if nodeMode == common.SERVER_NODE {
+			break
+		}
+
+		fblock, ok := msg.(*wire.MsgFBlock)
+		if ok {
+			err := processFBlock(fblock)
+			if err != nil {
+				return err
+			}
+		} else {
+			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
+		}
+
+	case wire.CmdFactoidTX:
+		if nodeMode == common.SERVER_NODE {
+			t := (msg.(*wire.MsgFactoidTX)).Transaction
+			common.FactoidState.AddTransaction(t)
+		}
 
 	case wire.CmdABlock:
 		if nodeMode == common.SERVER_NODE {
@@ -453,7 +450,6 @@ func processTestCredit(msg *wire.MsgTestCredit) error {
 	eCreditMap[string(msg.ECKey[:])] += msg.Amt
 	return nil
 }
-
 
 // processAcknowledgement validates the ack and adds it to processlist
 func processAcknowledgement(msg *wire.MsgAcknowledgement) error {
@@ -898,9 +894,9 @@ func buildBlocks() error {
 	commonHash := common.Sha(binary)
 	hash, _ := wire.NewShaHash(commonHash.Bytes())
 	outMsgQueue <- (&wire.MsgInt_DirBlock{hash})
-	
+
 	// Update dir block height cache in db
-	db.UpdateBlockHeightCache(dbBlock.Header.BlockHeight, commonHash)	
+	db.UpdateBlockHeightCache(dbBlock.Header.BlockHeight, commonHash)
 
 	exportDChain(dchain)
 
@@ -921,7 +917,6 @@ func buildBlocks() error {
 
 	return nil
 }
-
 
 // build blocks from a process lists
 func buildFromProcessList(pl *consensus.ProcessList) error {
@@ -1059,8 +1054,8 @@ func newFactoidBlock(chain *common.FctChain) block.IFBlock {
 	chain.BlockMutex.Lock()
 	chain.NextBlockHeight++
 	common.FactoidState.ProcessEndOfBlock()
-    common.FactoidState.SetFactoshisPerEC(FactoshisPerCredit)
-    chain.NextBlock = common.FactoidState.GetCurrentBlock()
+	common.FactoidState.SetFactoshisPerEC(FactoshisPerCredit)
+	chain.NextBlock = common.FactoidState.GetCurrentBlock()
 	chain.BlockMutex.Unlock()
 
 	//Store the block in db
@@ -1112,7 +1107,6 @@ func newDirectoryBlock(chain *common.DChain) *common.DirectoryBlock {
 
 	return block
 }
-
 
 // Sign the directory block
 func SignDirectoryBlock() error {
