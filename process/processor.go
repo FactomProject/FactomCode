@@ -48,9 +48,6 @@ var (
 	inCtlMsgQueue  chan wire.FtmInternalMsg //incoming message queue for factom control messages
 	outCtlMsgQueue chan wire.FtmInternalMsg //outgoing message queue for factom control messages	
 
-	creditsPerChain   int32  = 10
-	creditsPerFactoid uint64 = 1000
-
 	// To be moved to ftmMemPool??
 	chainIDMap     map[string]*common.EChain // ChainIDMap with chainID string([32]byte) as key
 	commitChainMap = make(map[string]*common.CommitChain, 0)
@@ -311,7 +308,9 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 				// Pass the Entry Credit Exchange Rate into the Factoid component
 				msgEom.EC_Exchange_Rate = FactoshisPerCredit
 				plMgr.AddMyProcessListItem(msgEom, nil, wire.END_MINUTE_10)
-
+                // Set exchange rate in the Factoid State
+                common.FactoidState.SetFactoshisPerEC(FactoshisPerCredit)
+                
 				err := buildBlocks()
 				if err != nil {
 					return err
@@ -322,7 +321,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 			}
 		}
 		
-		common.FactoidState.SetFactoshisPerEC(FactoshisPerCredit)
+		
 
 	case wire.CmdInt_FactoidBlock: // to be removed??
 		factoidBlock, ok := msg.(*wire.MsgInt_FactoidBlock)
@@ -363,6 +362,17 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
         if nodeMode == common.SERVER_NODE {
             t := (msg.(*wire.MsgFactoidTX)).Transaction
             common.FactoidState.AddTransaction(t)
+            for _,ecout := range t.GetECOutputs() {
+                
+                pub     := new([32]byte); copy(pub[:],ecout.GetAddress().Bytes())
+                th      := new(common.Hash); th.SetBytes(t.GetHash().Bytes())
+                credits := int32(ecout.GetAmount()/uint64(FactoshisPerCredit))
+                processBuyEntryCredit(pub, credits, th)
+                fmt.Println("\n\nEntry Credit Purchase of ",credits," credits\n")
+                incBal := common.NewIncreaseBalance(pub,th,credits)
+                
+                ecchain.NextBlock.AddEntry(incBal)
+            }
         }
         
 
