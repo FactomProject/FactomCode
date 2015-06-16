@@ -5,16 +5,18 @@
 package process
 
 import (
-	"github.com/FactomProject/FactomCode/common"
-	"github.com/FactomProject/FactomCode/database"
-	"github.com/FactomProject/btcd/wire"
-	"github.com/FactomProject/FactomCode/util"	
-	"github.com/davecgh/go-spew/spew"
-	"strconv"
-	"time"
 	"errors"
 	"fmt"
+	"strconv"
+	"time"
+
+	"github.com/FactomProject/FactomCode/common"
+	"github.com/FactomProject/FactomCode/database"
+	"github.com/FactomProject/FactomCode/util"
+	"github.com/FactomProject/btcd/wire"
+	"github.com/davecgh/go-spew/spew"
 )
+
 // processDirBlock validates dir block and save it to factom db.
 // similar to blockChain.BC_ProcessBlock
 func processDirBlock(msg *wire.MsgDirBlock) error {
@@ -37,8 +39,8 @@ func processDirBlock(msg *wire.MsgDirBlock) error {
 	//Add it to mem pool before saving it in db
 	fMemPool.addBlockMsg(msg, strconv.Itoa(int(msg.DBlk.Header.BlockHeight))) // store in mempool with the height as the key
 
-	fmt.Printf("PROCESSOR: MsgDirBlock=%s\n", spew.Sdump(msg.DBlk))
-	fmt.Printf("PROCESSOR: dchain=%s\n", spew.Sdump(dchain))
+	fmt.Printf("SyncUp: MsgDirBlock=%s\n", spew.Sdump(msg.DBlk))
+	fmt.Printf("SyncUp: dchain=%s\n", spew.Sdump(dchain))
 
 	return nil
 }
@@ -87,7 +89,7 @@ func procesECBlock(msg *wire.MsgECBlock) error {
 	fMemPool.addBlockMsg(msg, h.String())
 
 	// for debugging??
-	fmt.Printf("PROCESSOR: MsgCBlock=%s\n", spew.Sdump(msg.ECBlock))
+	fmt.Printf("SyncUp: MsgCBlock=%s\n", spew.Sdump(msg.ECBlock))
 
 	return nil
 }
@@ -111,7 +113,7 @@ func processEBlock(msg *wire.MsgEBlock) error {
 	fMemPool.addBlockMsg(msg, msg.EBlk.MerkleRoot.String()) // store it in mem pool with MR as the key
 
 	// for debugging??
-	fmt.Printf("PROCESSOR: MsgEBlock=%s\n", spew.Sdump(msg.EBlk))
+	fmt.Printf("SyncUp: MsgEBlock=%s\n", spew.Sdump(msg.EBlk))
 
 	return nil
 }
@@ -130,11 +132,10 @@ func processEntry(msg *wire.MsgEntry) error {
 	h, _ := common.CreateHash(msg.Entry)
 	fMemPool.addBlockMsg(msg, h.String()) // store it in mem pool with hash as the key
 
-	fmt.Printf("PROCESSOR: MsgEntry=%s\n", spew.Sdump(msg.Entry))
+	fmt.Printf("SyncUp: MsgEntry=%s\n", spew.Sdump(msg.Entry))
 
 	return nil
 }
-
 
 // Validate the new blocks in mem pool and store them in db
 func validateAndStoreBlocks(fMemPool *ftmMemPool, db database.Db, dchain *common.DChain, outCtlMsgQ chan wire.FtmInternalMsg) {
@@ -146,8 +147,12 @@ func validateAndStoreBlocks(fMemPool *ftmMemPool, db database.Db, dchain *common
 		dblk = nil
 		_, myDBHeight, _ = db.FetchBlockHeightCache()
 
+		adj := (len(dchain.Blocks)-int(myDBHeight))
+		if adj <= 0 {
+			adj = 1
+		}
 		// in milliseconds
-		sleeptime = 100 + 1000/(len(dchain.Blocks)-int(myDBHeight))
+		sleeptime = 100 + 1000/adj
 
 		if len(dchain.Blocks) > int(myDBHeight+1) {
 			dblk = dchain.Blocks[myDBHeight+1]
@@ -177,6 +182,14 @@ func validateAndStoreBlocks(fMemPool *ftmMemPool, db database.Db, dchain *common
 
 // Validate the new blocks in mem pool and store them in db
 func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db database.Db) bool {
+	
+	if b.Header.BlockHeight == 0 {
+		h, _ := common.CreateHash(b)
+		if h.String() != common.GENESIS_DIR_BLOCK_HASH {
+			// panic for milestone 1
+			panic("Genesis dir block is not as expected: " + h.String())
+		}
+	}
 
 	for _, dbEntry := range b.DBEntries {
 		switch dbEntry.ChainID.String() {

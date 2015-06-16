@@ -9,7 +9,7 @@ import (
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/goleveldb/leveldb"
 	"github.com/FactomProject/goleveldb/leveldb/util"
-	"github.com/FactomProject/btcd/wire"	
+	"github.com/FactomProject/btcd/wire"
 )
 
 // FetchDBEntriesFromQueue gets all of the dbentries that have not been processed
@@ -96,7 +96,7 @@ func (db *LevelDb) ProcessDBlockBatch(dblock *common.DirectoryBlock) error {
 			log.Println("batch failed %v\n", err)
 			return err
 		}
-		
+
 		// Update DirBlock Height cache
 		db.lastDirBlkHeight = int64(dblock.Header.BlockHeight)
 		db.lastDirBlkSha, _ = wire.NewShaHash(dblock.DBHash.Bytes())
@@ -108,7 +108,7 @@ func (db *LevelDb) ProcessDBlockBatch(dblock *common.DirectoryBlock) error {
 
 // UpdateBlockHeightCache updates the dir block height cache in db
 func (db *LevelDb) UpdateBlockHeightCache(dirBlkHeigh uint32, dirBlkHash *common.Hash) error {
-	
+
 	// Update DirBlock Height cache
 	db.lastDirBlkHeight = int64(dirBlkHeigh)
 	db.lastDirBlkSha, _ = wire.NewShaHash(dirBlkHash.Bytes())
@@ -120,8 +120,8 @@ func (db *LevelDb) UpdateBlockHeightCache(dirBlkHeigh uint32, dirBlkHash *common
 func (db *LevelDb)	FetchBlockHeightCache() (sha *wire.ShaHash, height int64, err error) {
 	return db.lastDirBlkSha, db.lastDirBlkHeight, nil
 }
-	
-	
+
+
 // Insert the Directory Block meta data into db
 func (db *LevelDb) InsertDirBlockInfo(dirBlockInfo *common.DirBlockInfo) (err error) {
 	if dirBlockInfo.BTCTxHash == nil {
@@ -204,7 +204,7 @@ func (db *LevelDb) FetchDBlockByHeight(dBlockHeight uint32) (dBlock *common.Dire
 }
 
 // FetchDBHashByHeight gets a dBlockHash from the database.
-func (db *LevelDb) FetchDBHashByHeight(dBlockHeight uint32) (dBlockHash *common.Hash, err error) {
+func (db *LevelDb) FetchDBHashByHeight(dBlockHeight uint32) (*common.Hash, error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -213,11 +213,15 @@ func (db *LevelDb) FetchDBHashByHeight(dBlockHeight uint32) (dBlockHash *common.
 	binary.Write(&buf, binary.BigEndian, dBlockHeight)
 	key = append(key, buf.Bytes()...)
 	data, err := db.lDb.Get(key, db.ro)
-
-	if data != nil {
-		dBlockHash = new(common.Hash)
-		dBlockHash.UnmarshalBinary(data)
+	if err != nil {
+		return nil, err
 	}
+
+	dBlockHash := common.NewHash()
+	if err := dBlockHash.UnmarshalBinary(data); err != nil {
+		return dBlockHash, err
+	}
+
 	return dBlockHash, nil
 }
 

@@ -140,7 +140,7 @@ func initProcessor() {
 	anchor.InitAnchor(db)
 
 	// build the Genesis blocks if the current height is 0
-	if dchain.NextBlockHeight == 0 {
+	if dchain.NextBlockHeight == 0 && nodeMode == common.SERVER_NODE {
 		buildGenesisBlocks()
 	} else {
 		/*
@@ -212,14 +212,14 @@ func Start_Processor(
 	for {
 		select {
 		case msg := <-inMsgQ:
-			fmt.Printf("PROCESSOR: in inMsgQ, msg:%+v\n", msg)
+			fmt.Printf("PROCESSOR: in inMsgQ, msg:%+v\n", spew.Sdump(msg))
 
 			if err := serveMsgRequest(msg); err != nil {
 				log.Println(err)
 			}
 
 		case ctlMsg := <-inCtlMsgQueue:
-			fmt.Printf("PROCESSOR: in ctlMsg, msg:%+v\n", ctlMsg)
+			fmt.Printf("PROCESSOR: in ctlMsg, msg:%+v\n", spew.Sdump(ctlMsg))
 
 			if err := serveMsgRequest(ctlMsg); err != nil {
 				log.Println(err)
@@ -322,10 +322,10 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 
 		common.FactoidState.SetFactoshisPerEC(FactoshisPerCredit)
 
-	case wire.CmdInt_FactoidBlock: // to be removed??
-		factoidBlock, ok := msg.(*wire.MsgInt_FactoidBlock)
-		util.Trace("Factoid Block (GENERATED??) -- detected in the processor")
-		fmt.Println("factoidBlock= ", factoidBlock, " ok= ", ok)
+	//case wire.CmdInt_FactoidBlock: // to be removed??
+	//factoidBlock, ok := msg.(*wire.MsgInt_FactoidBlock)
+	//util.Trace("Factoid Block (GENERATED??) -- detected in the processor")
+	//fmt.Println("factoidBlock= ", factoidBlock, " ok= ", ok)
 
 	case wire.CmdDirBlock:
 		if nodeMode == common.SERVER_NODE {
@@ -938,10 +938,11 @@ func buildFromProcessList(pl *consensus.ProcessList) error {
 }
 
 func newEntryBlock(chain *common.EChain) *common.EBlock {
-
 	// acquire the last block
 	block := chain.NextBlock
-
+	if block == nil {
+		return nil
+	}
 	if len(block.EBEntries) < 1 {
 		//log.Println("No new entry found. No block created for chain: "  + common.EncodeChainID(chain.ChainID))
 		return nil
@@ -974,10 +975,10 @@ func newEntryBlock(chain *common.EChain) *common.EBlock {
 	hashes = append(hashes, block.Header.BodyMR)
 	merkle = common.BuildMerkleTreeStore(hashes)
 	block.MerkleRoot = merkle[len(merkle)-1] // MerkleRoot is not marshalized in Entry Block
-	fmt.Println("block.MerkleRoot:%v", block.MerkleRoot.String())
+	fmt.Println("EntryBlock.MerkleRoot:%v", block.MerkleRoot.String())
 	blkhash, _ := common.CreateHash(block)
 	block.EBHash = blkhash
-	log.Println("blkhash:%v", blkhash.Bytes())
+	//util.Trace("blkhash:%v", blkhash.Bytes())
 
 	block.IsSealed = true
 	chain.NextBlockHeight++
@@ -985,7 +986,7 @@ func newEntryBlock(chain *common.EChain) *common.EBlock {
 
 	//Store the block in db
 	db.ProcessEBlockBatch(block)
-	log.Println("EntryBlock: block" + strconv.FormatUint(uint64(block.Header.EBHeight), 10) + " created for chain: " + chain.ChainID.String())
+	util.Trace("EntryBlock: block" + strconv.FormatUint(uint64(block.Header.EBHeight), 10) + " created for chain: " + chain.ChainID.String())
 	return block
 }
 
@@ -1008,7 +1009,7 @@ func newEntryCreditBlock(chain *common.ECChain) *common.ECBlock {
 
 	//Store the block in db
 	db.ProcessECBlockBatch(block)
-	log.Println("EntryCreditBlock: block" + strconv.FormatUint(uint64(block.Header.DBHeight), 10) + " created for chain: " + chain.ChainID.String())
+	util.Trace("EntryCreditBlock: block" + strconv.FormatUint(uint64(block.Header.DBHeight), 10) + " created for chain: " + chain.ChainID.String())
 
 	return block
 }
@@ -1034,7 +1035,7 @@ func newAdminBlock(chain *common.AdminChain) *common.AdminBlock {
 
 	//Store the block in db
 	db.ProcessABlockBatch(block)
-	log.Println("Admin Block: block" + strconv.FormatUint(uint64(block.Header.DBHeight), 10) + " created for chain: " + chain.ChainID.String())
+	util.Trace("Admin Block: block" + strconv.FormatUint(uint64(block.Header.DBHeight), 10) + " created for chain: " + chain.ChainID.String())
 
 	return block
 }
@@ -1060,7 +1061,7 @@ func newFactoidBlock(chain *common.FctChain) block.IFBlock {
 
 	//Store the block in db
 	db.ProcessFBlockBatch(currentBlock)
-	log.Println("Factoid chain: block" + " created for chain: " + chain.ChainID.String())
+	util.Trace("Factoid chain: block" + " created for chain: " + chain.ChainID.String())
 
 	return currentBlock
 }
@@ -1090,6 +1091,8 @@ func newDirectoryBlock(chain *common.DChain) *common.DirectoryBlock {
 	chain.NextBlock, _ = common.CreateDBlock(chain, block, 10)
 	chain.BlockMutex.Unlock()
 
+	util.Trace("**** new Dir Block GENERATED.  ")
+
 	block.DBHash, _ = common.CreateHash(block)
 	block.BuildKeyMerkleRoot()
 
@@ -1100,7 +1103,7 @@ func newDirectoryBlock(chain *common.DChain) *common.DirectoryBlock {
 	db.InsertDirBlockInfo(common.NewDirBlockInfoFromDBlock(block))
 	anchor.UpdateDirBlockInfoMap(common.NewDirBlockInfoFromDBlock(block))
 
-	log.Println("DirectoryBlock: block" + strconv.FormatUint(uint64(block.Header.BlockHeight), 10) + " created for directory block chain: " + chain.ChainID.String())
+	util.Trace("**** new DirectoryBlock: block " + strconv.FormatUint(uint64(block.Header.BlockHeight), 10) + ", " + spew.Sdump(block))
 
 	// To be improved in milestone 2
 	SignDirectoryBlock()
