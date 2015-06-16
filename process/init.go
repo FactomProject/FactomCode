@@ -54,6 +54,10 @@ func initEChainFromDB(chain *common.EChain) {
 
 // Validate dir chain from genesis block
 func validateDChain(c *common.DChain) error {
+	
+	if nodeMode != common.SERVER_NODE && len(c.Blocks) == 0 {
+		return nil
+	}
 
 	if uint32(len(c.Blocks)) != c.NextBlockHeight {
 		return errors.New("Dir chain doesn't have an expected Next Block ID: " + strconv.Itoa(int(c.NextBlockHeight)))
