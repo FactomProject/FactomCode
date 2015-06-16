@@ -938,10 +938,11 @@ func buildFromProcessList(pl *consensus.ProcessList) error {
 }
 
 func newEntryBlock(chain *common.EChain) *common.EBlock {
-
 	// acquire the last block
 	block := chain.NextBlock
-
+	if block == nil {
+		return nil
+	}
 	if len(block.EBEntries) < 1 {
 		//log.Println("No new entry found. No block created for chain: "  + common.EncodeChainID(chain.ChainID))
 		return nil
