@@ -147,8 +147,12 @@ func validateAndStoreBlocks(fMemPool *ftmMemPool, db database.Db, dchain *common
 		dblk = nil
 		_, myDBHeight, _ = db.FetchBlockHeightCache()
 
+		adj := (len(dchain.Blocks)-int(myDBHeight))
+		if adj <= 0 {
+			adj = 1
+		}
 		// in milliseconds
-		sleeptime = 100 + 1000/(len(dchain.Blocks)-int(myDBHeight))
+		sleeptime = 100 + 1000/adj
 
 		if len(dchain.Blocks) > int(myDBHeight+1) {
 			dblk = dchain.Blocks[myDBHeight+1]
@@ -178,6 +182,14 @@ func validateAndStoreBlocks(fMemPool *ftmMemPool, db database.Db, dchain *common
 
 // Validate the new blocks in mem pool and store them in db
 func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db database.Db) bool {
+	
+	if b.Header.BlockHeight == 0 {
+		h, _ := common.CreateHash(b)
+		if h.String() != common.GENESIS_DIR_BLOCK_HASH {
+			// panic for milestone 1
+			panic("Genesis dir block is not as expected: " + h.String())
+		}
+	}
 
 	for _, dbEntry := range b.DBEntries {
 		switch dbEntry.ChainID.String() {

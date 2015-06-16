@@ -140,7 +140,7 @@ func initProcessor() {
 	anchor.InitAnchor(db)
 
 	// build the Genesis blocks if the current height is 0
-	if dchain.NextBlockHeight == 0 {
+	if dchain.NextBlockHeight == 0 && nodeMode == common.SERVER_NODE {
 		buildGenesisBlocks()
 	} else {
 		/*
