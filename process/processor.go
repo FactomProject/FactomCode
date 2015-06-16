@@ -69,8 +69,8 @@ var (
 
 	FactoshisPerCredit uint64 // .001 / .15 * 100000000 (assuming a Factoid is .15 cents, entry credit = .1 cents
 
-	factomdUser string
-	factomdPass string
+	FactomdUser string
+	FactomdPass string
 )
 
 var (
@@ -94,8 +94,8 @@ func LoadConfigurations(cfg *util.FactomdConfig) {
 	nodeMode = cfg.App.NodeMode
 	serverPrivKeyHex = cfg.App.ServerPrivKey
 
-	factomdUser = cfg.Btc.RpcUser
-	factomdPass = cfg.Btc.RpcPass
+	FactomdUser = cfg.Btc.RpcUser
+	FactomdPass = cfg.Btc.RpcPass
 }
 
 // Initialize the processor
@@ -947,10 +947,11 @@ func buildFromProcessList(pl *consensus.ProcessList) error {
 }
 
 func newEntryBlock(chain *common.EChain) *common.EBlock {
-
 	// acquire the last block
 	block := chain.NextBlock
-
+	if block == nil {
+		return nil
+	}
 	if len(block.EBEntries) < 1 {
 		//log.Println("No new entry found. No block created for chain: "  + common.EncodeChainID(chain.ChainID))
 		return nil
