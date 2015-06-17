@@ -10,6 +10,7 @@ import (
 )
 
 type IncreaseBalance struct {
+    ECBlockEntry
 	ECPubKey *[32]byte
 	Credits int32
 	FactomTxHash *Hash

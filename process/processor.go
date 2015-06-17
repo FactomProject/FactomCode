@@ -39,17 +39,14 @@ var (
 	dchain   *common.DChain     //Directory Block Chain
 	ecchain  *common.ECChain    //Entry Credit Chain
 	achain   *common.AdminChain //Admin Chain
-	scchain  *common.FctChain   // factoid Chain
+	scchain  *common.FctChain    // factoid Chain
 	fchainID *common.Hash
-
+	
 	inMsgQueue  chan wire.FtmInternalMsg //incoming message queue for factom application messages
 	outMsgQueue chan wire.FtmInternalMsg //outgoing message queue for factom application messages
 
 	inCtlMsgQueue  chan wire.FtmInternalMsg //incoming message queue for factom control messages
-	outCtlMsgQueue chan wire.FtmInternalMsg //outgoing message queue for factom control messages
-
-	creditsPerChain   int32  = 10
-	creditsPerFactoid uint64 = 1000
+	outCtlMsgQueue chan wire.FtmInternalMsg //outgoing message queue for factom control messages	
 
 	// To be moved to ftmMemPool??
 	chainIDMap     map[string]*common.EChain // ChainIDMap with chainID string([32]byte) as key
@@ -85,7 +82,7 @@ var (
 	serverPrivKeyHex        string
 )
 
-// Get the configurations
+// Get the configurations 
 func LoadConfigurations(cfg *util.FactomdConfig) {
 	util.Trace()
 
@@ -134,13 +131,13 @@ func initProcessor() {
 	fmt.Println("Loaded", achain.NextBlockHeight, "Admin blocks for chain: "+achain.ChainID.String())
 
 	initFctChain()
-	common.FactoidState.LoadState()
+    common.FactoidState.LoadState()
 	fmt.Println("Loaded", scchain.NextBlockHeight, "factoid blocks for chain: "+scchain.ChainID.String())
 
 	anchor.InitAnchor(db)
 
 	// build the Genesis blocks if the current height is 0
-	if dchain.NextBlockHeight == 0 && nodeMode == common.SERVER_NODE {
+	if dchain.NextBlockHeight == 0 {
 		buildGenesisBlocks()
 	} else {
 		/*
@@ -212,14 +209,14 @@ func Start_Processor(
 	for {
 		select {
 		case msg := <-inMsgQ:
-			fmt.Printf("PROCESSOR: in inMsgQ, msg:%+v\n", spew.Sdump(msg))
+			fmt.Printf("PROCESSOR: in inMsgQ, msg:%+v\n", msg)
 
 			if err := serveMsgRequest(msg); err != nil {
 				log.Println(err)
 			}
 
 		case ctlMsg := <-inCtlMsgQueue:
-			fmt.Printf("PROCESSOR: in ctlMsg, msg:%+v\n", spew.Sdump(ctlMsg))
+			fmt.Printf("PROCESSOR: in ctlMsg, msg:%+v\n", ctlMsg)
 
 			if err := serveMsgRequest(ctlMsg); err != nil {
 				log.Println(err)
@@ -309,7 +306,9 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 				// Pass the Entry Credit Exchange Rate into the Factoid component
 				msgEom.EC_Exchange_Rate = FactoshisPerCredit
 				plMgr.AddMyProcessListItem(msgEom, nil, wire.END_MINUTE_10)
-
+                // Set exchange rate in the Factoid State
+                common.FactoidState.SetFactoshisPerEC(FactoshisPerCredit)
+                
 				err := buildBlocks()
 				if err != nil {
 					return err
@@ -319,13 +318,10 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 				plMgr.AddMyProcessListItem(msgEom, nil, msgEom.EOM_Type)
 			}
 		}
-
-		common.FactoidState.SetFactoshisPerEC(FactoshisPerCredit)
-
-	//case wire.CmdInt_FactoidBlock: // to be removed??
-	//factoidBlock, ok := msg.(*wire.MsgInt_FactoidBlock)
-	//util.Trace("Factoid Block (GENERATED??) -- detected in the processor")
-	//fmt.Println("factoidBlock= ", factoidBlock, " ok= ", ok)
+		// wire.CmdInt_FactoidBlock: // to be removed??
+		//factoidBlock, ok := msg.(*wire.MsgInt_FactoidBlock)
+		//util.Trace("Factoid Block (GENERATED??) -- detected in the processor")
+		//fmt.Println("factoidBlock= ", factoidBlock, " ok= ", ok)
 
 	case wire.CmdDirBlock:
 		if nodeMode == common.SERVER_NODE {
@@ -342,26 +338,38 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
 		}
 
-	case wire.CmdFBlock:
-		if nodeMode == common.SERVER_NODE {
-			break
-		}
-
-		fblock, ok := msg.(*wire.MsgFBlock)
-		if ok {
-			err := processFBlock(fblock)
-			if err != nil {
-				return err
-			}
-		} else {
-			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
-		}
-
-	case wire.CmdFactoidTX:
-		if nodeMode == common.SERVER_NODE {
-			t := (msg.(*wire.MsgFactoidTX)).Transaction
-			common.FactoidState.AddTransaction(t)
-		}
+    case wire.CmdFBlock:
+        if nodeMode == common.SERVER_NODE {
+            break
+        }
+        
+        fblock, ok := msg.(*wire.MsgFBlock)
+        if ok {
+            err := processFBlock(fblock)
+            if err != nil {
+                return err
+            }
+        } else {
+            return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
+        }
+        
+    case wire.CmdFactoidTX:
+        if nodeMode == common.SERVER_NODE {
+            t := (msg.(*wire.MsgFactoidTX)).Transaction
+            common.FactoidState.AddTransaction(t)
+            for _,ecout := range t.GetECOutputs() {
+                
+                pub     := new([32]byte); copy(pub[:],ecout.GetAddress().Bytes())
+                th      := new(common.Hash); th.SetBytes(t.GetHash().Bytes())
+                credits := int32(ecout.GetAmount()/uint64(FactoshisPerCredit))
+                processBuyEntryCredit(pub, credits, th)
+                fmt.Println("\n\nEntry Credit Purchase of ",credits," credits\n")
+                incBal := common.NewIncreaseBalance(pub,th,credits)
+                
+                ecchain.NextBlock.AddEntry(incBal)
+            }
+        }
+        
 
 	case wire.CmdABlock:
 		if nodeMode == common.SERVER_NODE {
@@ -894,7 +902,7 @@ func buildBlocks() error {
 	commonHash := common.Sha(binary)
 	hash, _ := wire.NewShaHash(commonHash.Bytes())
 	outMsgQueue <- (&wire.MsgInt_DirBlock{hash})
-
+	
 	// Update dir block height cache in db
 	db.UpdateBlockHeightCache(dbBlock.Header.BlockHeight, commonHash)
 
@@ -917,6 +925,7 @@ func buildBlocks() error {
 
 	return nil
 }
+
 
 // build blocks from a process lists
 func buildFromProcessList(pl *consensus.ProcessList) error {
@@ -975,10 +984,10 @@ func newEntryBlock(chain *common.EChain) *common.EBlock {
 	hashes = append(hashes, block.Header.BodyMR)
 	merkle = common.BuildMerkleTreeStore(hashes)
 	block.MerkleRoot = merkle[len(merkle)-1] // MerkleRoot is not marshalized in Entry Block
-	fmt.Println("EntryBlock.MerkleRoot:%v", block.MerkleRoot.String())
+	fmt.Println("block.MerkleRoot:%v", block.MerkleRoot.String())
 	blkhash, _ := common.CreateHash(block)
 	block.EBHash = blkhash
-	//util.Trace("blkhash:%v", blkhash.Bytes())
+	log.Println("blkhash:%v", blkhash.Bytes())
 
 	block.IsSealed = true
 	chain.NextBlockHeight++
@@ -986,7 +995,7 @@ func newEntryBlock(chain *common.EChain) *common.EBlock {
 
 	//Store the block in db
 	db.ProcessEBlockBatch(block)
-	util.Trace("EntryBlock: block" + strconv.FormatUint(uint64(block.Header.EBHeight), 10) + " created for chain: " + chain.ChainID.String())
+	log.Println("EntryBlock: block" + strconv.FormatUint(uint64(block.Header.EBHeight), 10) + " created for chain: " + chain.ChainID.String())
 	return block
 }
 
@@ -1009,7 +1018,7 @@ func newEntryCreditBlock(chain *common.ECChain) *common.ECBlock {
 
 	//Store the block in db
 	db.ProcessECBlockBatch(block)
-	util.Trace("EntryCreditBlock: block" + strconv.FormatUint(uint64(block.Header.DBHeight), 10) + " created for chain: " + chain.ChainID.String())
+	log.Println("EntryCreditBlock: block" + strconv.FormatUint(uint64(block.Header.DBHeight), 10) + " created for chain: " + chain.ChainID.String())
 
 	return block
 }
@@ -1035,7 +1044,7 @@ func newAdminBlock(chain *common.AdminChain) *common.AdminBlock {
 
 	//Store the block in db
 	db.ProcessABlockBatch(block)
-	util.Trace("Admin Block: block" + strconv.FormatUint(uint64(block.Header.DBHeight), 10) + " created for chain: " + chain.ChainID.String())
+	log.Println("Admin Block: block" + strconv.FormatUint(uint64(block.Header.DBHeight), 10) + " created for chain: " + chain.ChainID.String())
 
 	return block
 }
@@ -1051,17 +1060,18 @@ func newFactoidBlock(chain *common.FctChain) block.IFBlock {
 
 	//block.BuildHeader()
 
-	// Create the block and add a new block for new coming entries
+	// Get the genesis block for Factoids.  We don't have to create it, as
+	// trying to load the past will create it for us if it does not exist
 	chain.BlockMutex.Lock()
 	chain.NextBlockHeight++
-	common.FactoidState.ProcessEndOfBlock()
 	common.FactoidState.SetFactoshisPerEC(FactoshisPerCredit)
-	chain.NextBlock = common.FactoidState.GetCurrentBlock()
+    common.FactoidState.ProcessEndOfBlock()
+    chain.NextBlock = common.FactoidState.GetCurrentBlock()
 	chain.BlockMutex.Unlock()
 
 	//Store the block in db
 	db.ProcessFBlockBatch(currentBlock)
-	util.Trace("Factoid chain: block" + " created for chain: " + chain.ChainID.String())
+	log.Println("Factoid chain: block" + " created for chain: " + chain.ChainID.String())
 
 	return currentBlock
 }
@@ -1091,8 +1101,6 @@ func newDirectoryBlock(chain *common.DChain) *common.DirectoryBlock {
 	chain.NextBlock, _ = common.CreateDBlock(chain, block, 10)
 	chain.BlockMutex.Unlock()
 
-	util.Trace("**** new Dir Block GENERATED.  ")
-
 	block.DBHash, _ = common.CreateHash(block)
 	block.BuildKeyMerkleRoot()
 
@@ -1103,13 +1111,14 @@ func newDirectoryBlock(chain *common.DChain) *common.DirectoryBlock {
 	db.InsertDirBlockInfo(common.NewDirBlockInfoFromDBlock(block))
 	anchor.UpdateDirBlockInfoMap(common.NewDirBlockInfoFromDBlock(block))
 
-	util.Trace("**** new DirectoryBlock: block " + strconv.FormatUint(uint64(block.Header.BlockHeight), 10) + ", " + spew.Sdump(block))
+	log.Println("DirectoryBlock: block" + strconv.FormatUint(uint64(block.Header.BlockHeight), 10) + " created for directory block chain: " + chain.ChainID.String())
 
 	// To be improved in milestone 2
 	SignDirectoryBlock()
 
 	return block
 }
+
 
 // Sign the directory block
 func SignDirectoryBlock() error {
