@@ -89,7 +89,7 @@ func factomdMain() error {
 	wsapi.Start(db, inMsgQueue)
 
 	// Start the factoid (btcd) component and P2P component
-	btcd.Start_btcd(db, inMsgQueue, outMsgQueue, inCtlMsgQueue, outCtlMsgQueue)
+	btcd.Start_btcd(db, inMsgQueue, outMsgQueue, inCtlMsgQueue, outCtlMsgQueue, process.FactomdUser, process.FactomdPass)
 
 	return nil
 }
