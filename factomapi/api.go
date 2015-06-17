@@ -7,9 +7,10 @@ package factomapi
 import (
 	"encoding/hex"
 
+	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/database"
-	"github.com/FactomProject/btcd/wire"
+	"github.com/FactomProject/FactomCode/process"
 )
 
 var (
@@ -95,9 +96,15 @@ func EBlockByKeyMR(keymr string) (*common.EBlock, error) {
 	return r, nil
 }
 
-// TODO
 func ECBalance(eckey string) (uint32, error) {
-	return uint32(0), nil
+	key := new([32]byte)
+	if p, err := hex.DecodeString(eckey); err != nil {
+		return 0, err
+	} else {
+		copy(key[:], p)
+	}
+	val, _ := process.GetEntryCreditBalance(key)
+	return uint32(val), nil
 }
 
 func EntryByHash(hash string) (*common.Entry, error) {
