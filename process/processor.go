@@ -39,14 +39,14 @@ var (
 	dchain   *common.DChain     //Directory Block Chain
 	ecchain  *common.ECChain    //Entry Credit Chain
 	achain   *common.AdminChain //Admin Chain
-	scchain  *common.FctChain    // factoid Chain
+	scchain  *common.FctChain   // factoid Chain
 	fchainID *common.Hash
-	
+
 	inMsgQueue  chan wire.FtmInternalMsg //incoming message queue for factom application messages
 	outMsgQueue chan wire.FtmInternalMsg //outgoing message queue for factom application messages
 
 	inCtlMsgQueue  chan wire.FtmInternalMsg //incoming message queue for factom control messages
-	outCtlMsgQueue chan wire.FtmInternalMsg //outgoing message queue for factom control messages	
+	outCtlMsgQueue chan wire.FtmInternalMsg //outgoing message queue for factom control messages
 
 	// To be moved to ftmMemPool??
 	chainIDMap     map[string]*common.EChain // ChainIDMap with chainID string([32]byte) as key
@@ -82,10 +82,8 @@ var (
 	serverPrivKeyHex        string
 )
 
-// Get the configurations 
+// Get the configurations
 func LoadConfigurations(cfg *util.FactomdConfig) {
-	util.Trace()
-
 	//setting the variables by the valued form the config file
 	logLevel = cfg.Log.LogLevel
 	dataStorePath = cfg.App.DataStorePath
@@ -131,7 +129,7 @@ func initProcessor() {
 	fmt.Println("Loaded", achain.NextBlockHeight, "Admin blocks for chain: "+achain.ChainID.String())
 
 	initFctChain()
-    common.FactoidState.LoadState()
+	common.FactoidState.LoadState()
 	fmt.Println("Loaded", scchain.NextBlockHeight, "factoid blocks for chain: "+scchain.ChainID.String())
 
 	anchor.InitAnchor(db)
@@ -306,9 +304,9 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 				// Pass the Entry Credit Exchange Rate into the Factoid component
 				msgEom.EC_Exchange_Rate = FactoshisPerCredit
 				plMgr.AddMyProcessListItem(msgEom, nil, wire.END_MINUTE_10)
-                // Set exchange rate in the Factoid State
-                common.FactoidState.SetFactoshisPerEC(FactoshisPerCredit)
-                
+				// Set exchange rate in the Factoid State
+				common.FactoidState.SetFactoshisPerEC(FactoshisPerCredit)
+
 				err := buildBlocks()
 				if err != nil {
 					return err
@@ -338,38 +336,39 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
 		}
 
-    case wire.CmdFBlock:
-        if nodeMode == common.SERVER_NODE {
-            break
-        }
-        
-        fblock, ok := msg.(*wire.MsgFBlock)
-        if ok {
-            err := processFBlock(fblock)
-            if err != nil {
-                return err
-            }
-        } else {
-            return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
-        }
-        
-    case wire.CmdFactoidTX:
-        if nodeMode == common.SERVER_NODE {
-            t := (msg.(*wire.MsgFactoidTX)).Transaction
-            common.FactoidState.AddTransaction(t)
-            for _,ecout := range t.GetECOutputs() {
-                
-                pub     := new([32]byte); copy(pub[:],ecout.GetAddress().Bytes())
-                th      := new(common.Hash); th.SetBytes(t.GetHash().Bytes())
-                credits := int32(ecout.GetAmount()/uint64(FactoshisPerCredit))
-                processBuyEntryCredit(pub, credits, th)
-                fmt.Println("\n\nEntry Credit Purchase of ",credits," credits\n")
-                incBal := common.NewIncreaseBalance(pub,th,credits)
-                
-                ecchain.NextBlock.AddEntry(incBal)
-            }
-        }
-        
+	case wire.CmdFBlock:
+		if nodeMode == common.SERVER_NODE {
+			break
+		}
+
+		fblock, ok := msg.(*wire.MsgFBlock)
+		if ok {
+			err := processFBlock(fblock)
+			if err != nil {
+				return err
+			}
+		} else {
+			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
+		}
+
+	case wire.CmdFactoidTX:
+		if nodeMode == common.SERVER_NODE {
+			t := (msg.(*wire.MsgFactoidTX)).Transaction
+			common.FactoidState.AddTransaction(t)
+			for _, ecout := range t.GetECOutputs() {
+
+				pub := new([32]byte)
+				copy(pub[:], ecout.GetAddress().Bytes())
+				th := new(common.Hash)
+				th.SetBytes(t.GetHash().Bytes())
+				credits := int32(ecout.GetAmount() / uint64(FactoshisPerCredit))
+				processBuyEntryCredit(pub, credits, th)
+				fmt.Println("\n\nEntry Credit Purchase of ", credits, " credits\n")
+				incBal := common.NewIncreaseBalance(pub, th, credits)
+
+				ecchain.NextBlock.AddEntry(incBal)
+			}
+		}
 
 	case wire.CmdABlock:
 		if nodeMode == common.SERVER_NODE {
@@ -902,7 +901,7 @@ func buildBlocks() error {
 	commonHash := common.Sha(binary)
 	hash, _ := wire.NewShaHash(commonHash.Bytes())
 	outMsgQueue <- (&wire.MsgInt_DirBlock{hash})
-	
+
 	// Update dir block height cache in db
 	db.UpdateBlockHeightCache(dbBlock.Header.BlockHeight, commonHash)
 
@@ -925,7 +924,6 @@ func buildBlocks() error {
 
 	return nil
 }
-
 
 // build blocks from a process lists
 func buildFromProcessList(pl *consensus.ProcessList) error {
@@ -1065,8 +1063,8 @@ func newFactoidBlock(chain *common.FctChain) block.IFBlock {
 	chain.BlockMutex.Lock()
 	chain.NextBlockHeight++
 	common.FactoidState.SetFactoshisPerEC(FactoshisPerCredit)
-    common.FactoidState.ProcessEndOfBlock()
-    chain.NextBlock = common.FactoidState.GetCurrentBlock()
+	common.FactoidState.ProcessEndOfBlock()
+	chain.NextBlock = common.FactoidState.GetCurrentBlock()
 	chain.BlockMutex.Unlock()
 
 	//Store the block in db
@@ -1118,7 +1116,6 @@ func newDirectoryBlock(chain *common.DChain) *common.DirectoryBlock {
 
 	return block
 }
-
 
 // Sign the directory block
 func SignDirectoryBlock() error {
