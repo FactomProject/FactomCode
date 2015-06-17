@@ -9,10 +9,10 @@ import (
 	"log"
 	"os"
 	"runtime"
-	
+
 	"github.com/FactomProject/FactomCode/database"
-	"github.com/FactomProject/FactomCode/process"	
 	"github.com/FactomProject/FactomCode/database/ldb"
+	"github.com/FactomProject/FactomCode/process"
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/FactomCode/wsapi"
 	"github.com/FactomProject/btcd"
@@ -89,7 +89,7 @@ func factomdMain() error {
 	wsapi.Start(db, inMsgQueue)
 
 	// Start the factoid (btcd) component and P2P component
-	btcd.Start_btcd(db, inMsgQueue, outMsgQueue, inCtlMsgQueue, outCtlMsgQueue)
+	btcd.Start_btcd(db, inMsgQueue, outMsgQueue, inCtlMsgQueue, outCtlMsgQueue, process.FactomdUser, process.FactomdPass)
 
 	return nil
 }
