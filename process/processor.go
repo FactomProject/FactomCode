@@ -1060,11 +1060,12 @@ func newFactoidBlock(chain *common.FctChain) block.IFBlock {
 
 	//block.BuildHeader()
 
-	// Create the block and add a new block for new coming entries
+	// Get the genesis block for Factoids.  We don't have to create it, as
+	// trying to load the past will create it for us if it does not exist
 	chain.BlockMutex.Lock()
 	chain.NextBlockHeight++
-	common.FactoidState.ProcessEndOfBlock()
-    common.FactoidState.SetFactoshisPerEC(FactoshisPerCredit)
+	common.FactoidState.SetFactoshisPerEC(FactoshisPerCredit)
+    common.FactoidState.ProcessEndOfBlock()
     chain.NextBlock = common.FactoidState.GetCurrentBlock()
 	chain.BlockMutex.Unlock()
 
