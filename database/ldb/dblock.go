@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
-	"log"
-
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/goleveldb/leveldb"
 	"github.com/FactomProject/goleveldb/leveldb/util"
@@ -93,7 +91,6 @@ func (db *LevelDb) ProcessDBlockBatch(dblock *common.DirectoryBlock) error {
 
 		err = db.lDb.Write(db.lbatch, db.wo)
 		if err != nil {
-			log.Println("batch failed %v\n", err)
 			return err
 		}
 
@@ -143,7 +140,6 @@ func (db *LevelDb) InsertDirBlockInfo(dirBlockInfo *common.DirBlockInfo) (err er
 
 	err = db.lDb.Write(db.lbatch, db.wo)
 	if err != nil {
-		log.Println("batch failed %v\n", err)
 		return err
 	}
 
@@ -181,12 +177,6 @@ func (db *LevelDb) FetchDBlockByHash(dBlockHash *common.Hash) (dBlock *common.Di
 	} else {
 		dBlock = new(common.DirectoryBlock)
 		dBlock.UnmarshalBinary(data)
-	}
-
-	log.Println("dBlock.Header.MerkleRoot: ", dBlock.Header.BodyMR.String())
-
-	for _, entry := range dBlock.DBEntries {
-		log.Println("entry.MerkleRoot: ", entry.MerkleRoot.String())
 	}
 
 	return dBlock, nil
