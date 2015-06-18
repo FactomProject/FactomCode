@@ -45,6 +45,11 @@ func processDirBlock(msg *wire.MsgDirBlock) error {
 // similar to blockChain.BC_ProcessBlock
 func processFBlock(msg *wire.MsgFBlock) error {
 
+	// Error condiftion for Milestone 1
+	if nodeMode == common.SERVER_NODE {
+		return errors.New("Server received msg:" + msg.Command())
+	}
+	
 	//Add it to mem pool before saving it in db
 	h, _ := common.CreateHash(msg.SC)     // need to change it to MR??
 	fMemPool.addBlockMsg(msg, h.String()) // stored in mem pool with the MR as the key
@@ -244,11 +249,11 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 				return err
 			}
 		case fchain.ChainID.String():
-			/*		fBlkMsg := fMemPool.blockpool[dbEntry.MerkleRoot.String()].(*wire.MsgFBlock)
-					err := db.ProcessFBlockBatch(fBlkMsg.SC)
-					if err != nil {
-						return err
-					}*/
+			fBlkMsg := fMemPool.blockpool[dbEntry.MerkleRoot.String()].(*wire.MsgFBlock)
+			err := db.ProcessFBlockBatch(fBlkMsg.SC)
+			if err != nil {
+				return err
+			}
 		default:
 			// handle Entry Block
 			eBlkMsg, _ := fMemPool.blockpool[dbEntry.MerkleRoot.String()].(*wire.MsgEBlock)
