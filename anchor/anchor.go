@@ -91,8 +91,32 @@ func SendRawTransactionToBTC(hash *common.Hash, blockHeight uint64) (*wire.ShaHa
 	return shaHash, nil
 }
 
-func createRawTransaction(b balance, hash []byte, blockHeight uint64) (*wire.MsgTx, error) {
+func sanityCheck(hash *common.Hash) error {
+	dirBlockInfo := dirBlockInfoMap[hash.String()]
+	if dirBlockInfo == nil {
+		s := fmt.Sprintf("Anchor Error: hash %s does not exist in dirBlockInfoMap.\n", hash.String())
+		fmt.Println(s)
+		return errors.New(s)
+	}
+	if dirBlockInfo.BTCConfirmed {
+		s := fmt.Sprintf("Anchor Warning: hash %s has already been confirmed in btc block chain.\n", hash.String())
+		fmt.Println(s)
+		return errors.New(s)
+	}
+	if !common.NewHash().IsSameAs(dirBlockInfo.BTCTxHash) {
+		s := fmt.Sprintf("Anchor Warning: hash %s has already been anchored but not confirmed. btc tx hash is %s\n", hash.String(), dirBlockInfo.BTCTxHash.String())
+		fmt.Println(s)
+		return errors.New(s)
+	}
+	if dclient == nil || wclient == nil || balances == nil {
+		s := fmt.Sprintf("\n\n$$$ WARNING: rpc clients and/or wallet are not initiated successfully. No anchoring for now.\n")
+		fmt.Println(s)
+		return errors.New(s)
+	}
+	return nil
+}
 
+func createRawTransaction(b balance, hash []byte, blockHeight uint64) (*wire.MsgTx, error) {
 	msgtx := wire.NewMsgTx()
 
 	if err := addTxOuts(msgtx, b, hash, blockHeight); err != nil {
@@ -140,7 +164,6 @@ func addTxIn(msgtx *wire.MsgTx, b balance) error {
 	msgtx.TxIn[0].SignatureScript = sigScript
 
 	return nil
-
 }
 
 func addTxOuts(msgtx *wire.MsgTx, b balance, hash []byte, blockHeight uint64) error {
@@ -202,35 +225,33 @@ func selectInputs(eligible []btcjson.ListUnspentResult, minconf int) (selected [
 }
 
 func validateMsgTx(msgtx *wire.MsgTx, inputs []btcjson.ListUnspentResult) error {
-	return errors.New("Disabled to to btcsuitereleases changes: NewScript() is no longer available, must use NewEngine() !!!")
+	flags := txscript.ScriptBip16 | txscript.ScriptStrictMultiSig //ScriptCanonicalSignatures
+	bip16 := time.Now().After(txscript.Bip16Activation)
+	if bip16 {
+		flags |= txscript.ScriptBip16
+	}
 
-	/*
-		flags := txscript.ScriptBip16 | txscript.ScriptStrictMultiSig //ScriptCanonicalSignatures
-		bip16 := time.Now().After(txscript.Bip16Activation)
-		if bip16 {
-			flags |= txscript.ScriptBip16
+	for i := range msgtx.TxIn {
+		scriptPubKey, err := hex.DecodeString(inputs[i].ScriptPubKey)
+		if err != nil {
+			return fmt.Errorf("cannot decode scriptPubKey: %s", err)
 		}
-		for i, txin := range msgtx.TxIn {
-
-			subscript, err := hex.DecodeString(inputs[i].ScriptPubKey)
-			if err != nil {
-				return fmt.Errorf("cannot decode scriptPubKey: %s", err)
-			}
-
-			engine, err := txscript.NewScript(txin.SignatureScript, subscript, i, msgtx, flags)
-			//engine, err := txscript.NewEngine([]byte(inputs[0].ScriptPubKey), msgtx, 0, flags)
-			if err != nil {
-				return fmt.Errorf("cannot create script engine: %s", err)
-			}
-			if err = engine.Execute(); err != nil {
-				return fmt.Errorf("cannot validate transaction: %s", err)
-			}
+		//engine, err := txscript.NewScript(txin.SignatureScript, scriptPubKey, i, msgtx, flags)
+		engine, err := txscript.NewEngine(scriptPubKey, msgtx, i, flags)
+		if err != nil {
+			fmt.Printf("cannot create script engine: %s\n", err)
+			return fmt.Errorf("cannot create script engine: %s", err)
 		}
-		return nil
-	*/
+		if err = engine.Execute(); err != nil {
+			fmt.Printf("cannot execute script engine: %s\n", err)
+			return fmt.Errorf("cannot validate transaction: %s", err)
+		}
+	}
+	return nil
 }
 
 func sendRawTransaction(msgtx *wire.MsgTx) (*wire.ShaHash, error) {
+	util.Trace()
 	buf := bytes.Buffer{}
 	buf.Grow(msgtx.SerializeSize())
 	if err := msgtx.BtcEncode(&buf, wire.ProtocolVersion); err != nil {
@@ -246,7 +267,7 @@ func sendRawTransaction(msgtx *wire.MsgTx) (*wire.ShaHash, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed in rpcclient.SendRawTransaction: %s", err)
 	}
-	//fmt.Println("btc txHash returned: ", shaHash) // new tx hash
+	fmt.Println("btc txHash returned: ", shaHash) // new tx hash
 	return shaHash, nil
 }
 
@@ -385,7 +406,6 @@ func unlockWallet(timeoutSecs int64) error {
 }
 
 func initWallet() error {
-	util.Trace("init wallet")
 	balances = make([]balance, 0, 100)
 	fee, _ = btcutil.NewAmount(cfg.Btc.BtcTransFee)
 	err := unlockWallet(int64(600))
@@ -425,36 +445,8 @@ func initWallet() error {
 		fmt.Printf("balance[%d]=%s", i, spew.Sdump(balances[i]))
 	}
 
-	//registerNotifications()
 	time.Sleep(1 * time.Second)
 	return nil
-}
-
-func registerNotifications() {
-	// OnBlockConnected or OnBlockDisconnected
-	err := dclient.NotifyBlocks()
-	if err != nil {
-		fmt.Println("NotifyBlocks err: ", err.Error())
-	}
-
-	// OnTxAccepted: not useful since it covers all addresses
-	err = dclient.NotifyNewTransactions(false) //verbose is false
-	if err != nil {
-		fmt.Println("NotifyNewTransactions err: ", err.Error())
-	}
-
-	// OnRecvTx
-	addresses := make([]btcutil.Address, 0, 30)
-	for _, a := range balances {
-		addresses = append(addresses, a.address)
-	}
-	err = dclient.NotifyReceived(addresses)
-	if err != nil {
-		fmt.Println("NotifyReceived err: ", err.Error())
-	}
-
-	// OnRedeemingTx
-	//err := dclient.NotifySpent(outpoints)
 }
 
 func shutdown(client *btcrpcclient.Client) {
