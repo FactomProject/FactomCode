@@ -28,7 +28,6 @@ type DChain struct {
 func NewDChain() *DChain {
 	d := new(DChain)
 	d.Blocks = make([]*DirectoryBlock, 0)
-	d.NextBlock = NewDirectoryBlock()
 	
 	return d
 }
