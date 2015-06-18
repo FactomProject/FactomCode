@@ -28,6 +28,7 @@ type DChain struct {
 func NewDChain() *DChain {
 	d := new(DChain)
 	d.Blocks = make([]*DirectoryBlock, 0)
+	d.NextBlock = NewDirectoryBlock()
 	
 	return d
 }
@@ -50,7 +51,6 @@ func NewDirectoryBlock() *DirectoryBlock {
 	d := new(DirectoryBlock)
 	d.Header = NewDBlockHeader()
 	d.DBEntries = make([]*DBEntry, 0)
-	d.Chain = NewDChain()
 	d.DBHash = NewHash()
 	d.KeyMR = NewHash()
 	
