@@ -20,7 +20,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/btcsuitereleases/btcd/btcjson/v2/btcjson"
+	"github.com/btcsuitereleases/btcd/btcjson"
 	"github.com/btcsuitereleases/btcd/chaincfg"
 	"github.com/btcsuitereleases/btcd/txscript"
 	"github.com/btcsuitereleases/btcd/wire"
@@ -202,28 +202,32 @@ func selectInputs(eligible []btcjson.ListUnspentResult, minconf int) (selected [
 }
 
 func validateMsgTx(msgtx *wire.MsgTx, inputs []btcjson.ListUnspentResult) error {
-	flags := txscript.ScriptBip16 | txscript.ScriptStrictMultiSig //ScriptCanonicalSignatures
-	bip16 := time.Now().After(txscript.Bip16Activation)
-	if bip16 {
-		flags |= txscript.ScriptBip16
-	}
-	for i, txin := range msgtx.TxIn {
+	return errors.New("Disabled to to btcsuitereleases changes: NewScript() is no longer available, must use NewEngine() !!!")
 
-		subscript, err := hex.DecodeString(inputs[i].ScriptPubKey)
-		if err != nil {
-			return fmt.Errorf("cannot decode scriptPubKey: %s", err)
+	/*
+		flags := txscript.ScriptBip16 | txscript.ScriptStrictMultiSig //ScriptCanonicalSignatures
+		bip16 := time.Now().After(txscript.Bip16Activation)
+		if bip16 {
+			flags |= txscript.ScriptBip16
 		}
+		for i, txin := range msgtx.TxIn {
 
-		engine, err := txscript.NewScript(txin.SignatureScript, subscript, i, msgtx, flags)
-		//engine, err := txscript.NewEngine([]byte(inputs[0].ScriptPubKey), msgtx, 0, flags)
-		if err != nil {
-			return fmt.Errorf("cannot create script engine: %s", err)
+			subscript, err := hex.DecodeString(inputs[i].ScriptPubKey)
+			if err != nil {
+				return fmt.Errorf("cannot decode scriptPubKey: %s", err)
+			}
+
+			engine, err := txscript.NewScript(txin.SignatureScript, subscript, i, msgtx, flags)
+			//engine, err := txscript.NewEngine([]byte(inputs[0].ScriptPubKey), msgtx, 0, flags)
+			if err != nil {
+				return fmt.Errorf("cannot create script engine: %s", err)
+			}
+			if err = engine.Execute(); err != nil {
+				return fmt.Errorf("cannot validate transaction: %s", err)
+			}
 		}
-		if err = engine.Execute(); err != nil {
-			return fmt.Errorf("cannot validate transaction: %s", err)
-		}
-	}
-	return nil
+		return nil
+	*/
 }
 
 func sendRawTransaction(msgtx *wire.MsgTx) (*wire.ShaHash, error) {
