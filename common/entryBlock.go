@@ -33,6 +33,15 @@ type EChain struct {
 	BlockMutex      sync.Mutex
 }
 
+func NewEChain() *EChain {
+	e := new(EChain)
+	e.ChainID = NewHash()
+	e.FirstEntry = NewEntry()
+	e.NextBlock = NewEBlock()
+	
+	return e
+}
+
 type EBlock struct {
 	//Marshalized
 	Header    *EBlockHeader
@@ -43,6 +52,17 @@ type EBlock struct {
 	MerkleRoot *Hash
 	Chain      *EChain
 	IsSealed   bool
+}
+
+func NewEBlock() *EBlock {
+	e := new(EBlock)
+	e.Header = NewEBlockHeader()
+	e.EBEntries = make([]*EBEntry, 0)
+	e.EBHash = NewHash()
+	e.MerkleRoot = NewHash()
+	e.Chain = NewEChain()
+	
+	return e
 }
 
 type EBlockHeader struct {
@@ -56,6 +76,16 @@ type EBlockHeader struct {
 	DBHeight   uint32
 	StartTime  uint64
 	EntryCount uint32
+}
+
+func NewEBlockHeader() *EBlockHeader {
+	e := new(EBlockHeader)
+	e.ChainID = NewHash()
+	e.BodyMR = NewHash()
+	e.PrevKeyMR = NewHash()
+	e.PrevHash = NewHash()
+
+	return e
 }
 
 type EBEntry struct {

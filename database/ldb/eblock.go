@@ -78,16 +78,19 @@ func (db *LevelDb) FetchEBlockByMR(eBMR *common.Hash) (eBlock *common.EBlock, er
 }
 
 // FetchEntryBlock gets an entry by hash from the database.
-func (db *LevelDb) FetchEBlockByHash(eBlockHash *common.Hash) (eBlock *common.EBlock, err error) {
+func (db *LevelDb) FetchEBlockByHash(eBlockHash *common.Hash) (*common.EBlock, error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
 	var key []byte = []byte{byte(TBL_EB)}
 	key = append(key, eBlockHash.Bytes()...)
 	data, err := db.lDb.Get(key, db.ro)
+	if err != nil {
+		return nil, err
+	}
 
+	eBlock := common.NewEBlock()
 	if data != nil {
-		eBlock = new(common.EBlock)
 		eBlock.UnmarshalBinary(data)
 	}
 	return eBlock, nil
@@ -95,7 +98,7 @@ func (db *LevelDb) FetchEBlockByHash(eBlockHash *common.Hash) (eBlock *common.EB
 
 // FetchEBlockByHeight gets an entry block by height from the database.
 // Need to rewrite since only the cross ref is stored in db ??
-/*func (db *LevelDb) FetchEBlockByHeight(chainID * common.Hash, eBlockHeight uint32) (eBlock *common.EBlock, err error) {
+/*func (db *LevelDb) FetchEBlockByHeight(chainID *common.Hash, eBlockHeight uint32) (*common.EBlock, error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -105,9 +108,12 @@ func (db *LevelDb) FetchEBlockByHash(eBlockHash *common.Hash) (eBlock *common.EB
 	binary.BigEndian.PutUint32(bytes, eBlockHeight)
 	key = append(key, bytes...)	
 	data, err := db.lDb.Get(key, db.ro)
-
+	if err != nil {
+		return nil, err
+	}
+	
+	eBlock := common.NewEBlock()
 	if data != nil {
-		eBlock = new(common.EBlock)
 		eBlock.UnmarshalBinary(data)
 	}
 	return eBlock, nil
@@ -161,17 +167,22 @@ func (db *LevelDb) InsertChain(chain *common.EChain) (err error) {
 }
 
 // FetchChainByHash gets a chain by chainID
-func (db *LevelDb) FetchChainByHash(chainID *common.Hash) (chain *common.EChain, err error) {
+func (db *LevelDb) FetchChainByHash(chainID *common.Hash) (*common.EChain, error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
 	var key []byte = []byte{byte(TBL_CHAIN_HASH)}
 	key = append(key, chainID.Bytes()...)
 	data, err := db.lDb.Get(key, db.ro)
+	if err != nil {
+		return nil, err
+	}
 
+	chain := common.NewEChain()
 	if data != nil {
-		chain = new(common.EChain)
-		chain.UnmarshalBinary(data)
+		if err := chain.UnmarshalBinary(data); err != nil {
+			return chain, err
+		}
 	}
 	return chain, nil
 }
@@ -219,8 +230,8 @@ func (db *LevelDb) FetchAllEBlocksByChain(chainID *common.Hash) (eBlocks *[]comm
 		key = append(key, eBlockHash.Bytes()...)
 		data, _ := db.lDb.Get(key, db.ro)
 
+		eBlock := common.NewEBlock()
 		if data != nil {
-			eBlock := new(common.EBlock)
 			eBlock.UnmarshalBinary(data)
 			eBlock.EBHash = eBlockHash
 			eBlockSlice = append(eBlockSlice, *eBlock)
