@@ -164,19 +164,24 @@ func (db *LevelDb) FetchDirBlockInfoByHash(dbHash *common.Hash) (dirBlockInfo *c
 }
 
 // FetchDBlock gets an entry by hash from the database.
-func (db *LevelDb) FetchDBlockByHash(dBlockHash *common.Hash) (dBlock *common.DirectoryBlock, err error) {
+func (db *LevelDb) FetchDBlockByHash(dBlockHash *common.Hash) (*common.DirectoryBlock, error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
 	var key []byte = []byte{byte(TBL_DB)}
 	key = append(key, dBlockHash.Bytes()...)
 	data, err := db.lDb.Get(key, db.ro)
-
+	if err != nil {
+		return nil, err
+	}
+	
+	dBlock := common.NewDBlock()
 	if data == nil {
 		return nil, errors.New("DBlock not found for Hash: " + dBlockHash.String())
 	} else {
-		dBlock = new(common.DirectoryBlock)
-		dBlock.UnmarshalBinary(data)
+		if err := dBlock.UnmarshalBinary(data); err != nil {
+			return dBlock, err
+		}
 	}
 
 	return dBlock, nil

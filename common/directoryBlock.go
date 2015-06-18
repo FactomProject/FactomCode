@@ -25,6 +25,14 @@ type DChain struct {
 	IsValidated     bool
 }
 
+func NewDChain() *DChain {
+	d := new(DChain)
+	d.Blocks = make([]*DirectoryBlock, 0)
+	d.NextBlock = NewDirectoryBlock()
+	
+	return d
+}
+
 type DirectoryBlock struct {
 	//Marshalized
 	Header    		*DBlockHeader
@@ -37,6 +45,21 @@ type DirectoryBlock struct {
 	KeyMR       	*Hash
 	IsSavedInDB 	bool
 	IsValidated     bool
+}
+
+func NewDirectoryBlock() *DirectoryBlock {
+	d := new(DirectoryBlock)
+	d.Header = NewDBlockHeader()
+	d.DBEntries = make([]*DBEntry, 0)
+	d.Chain = NewDChain()
+	d.DBHash = NewHash()
+	d.KeyMR = NewHash()
+	
+	return d
+}
+
+func NewDBlock() *DirectoryBlock {
+	return NewDirectoryBlock()
 }
 
 type DirBlockInfo struct {
@@ -77,6 +100,15 @@ type DBlockHeader struct {
 	EntryCount uint32
 }
 
+func NewDBlockHeader() *DBlockHeader {
+	d := new(DBlockHeader)
+	d.BodyMR = NewHash()
+	d.PrevKeyMR = NewHash()
+	d.PrevBlockHash = NewHash()
+	
+	return d
+}
+
 type DBEntry struct {
 	MerkleRoot *Hash // Different MR in EBlockHeader
 	ChainID    *Hash
@@ -87,7 +119,7 @@ type DBEntry struct {
 }
 
 func NewDBEntry(eb *EBlock) *DBEntry {
-	e := &DBEntry{}
+	e := new(DBEntry)
 	e.hash = eb.EBHash
 
 	e.ChainID = eb.Chain.ChainID
