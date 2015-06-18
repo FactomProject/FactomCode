@@ -9,14 +9,12 @@ import (
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/FactomCode/util"	
 	"github.com/FactomProject/FactomCode/factomlog"		
-	"github.com/davecgh/go-spew/spew"	
 	"strconv"
 	"sort"	
 	"errors"
 	"fmt"	
 	"github.com/FactomProject/FactomCode/consensus"
-
-	sc "github.com/FactomProject/factoid"
+	"github.com/FactomProject/factoid"
 	"github.com/FactomProject/factoid/block"
 )
 
@@ -131,13 +129,11 @@ func initAChain() {
 	aBlocks, _ := db.FetchAllABlocks()
 	sort.Sort(util.ByABlockIDAccending(aBlocks))
 
-	fmt.Printf("initAChain: aBlocks=%s\n", spew.Sdump(aBlocks))
-
 	// double check the block ids
 	for i := 0; i < len(aBlocks); i = i + 1 {
-		//if uint32(i) != aBlocks[i].Header.DBHeight {
-		//	panic(errors.New("BlockID does not equal index for chain:" + achain.ChainID.String() + " block:" + fmt.Sprintf("%v", aBlocks[i].Header.DBHeight)))
-		//}
+		if uint32(i) != aBlocks[i].Header.DBHeight {
+			panic(errors.New("BlockID does not equal index for chain:" + achain.ChainID.String() + " block:" + fmt.Sprintf("%v", aBlocks[i].Header.DBHeight)))
+		}
 	}
 
 	//Create an empty block and append to the chain
@@ -159,36 +155,35 @@ func initAChain() {
 func initFctChain() {
 
 	//Initialize the Admin Chain ID
-	scchain = new(common.FctChain)
-	scchain.ChainID = new(common.Hash)
-	scchain.ChainID.SetBytes(sc.FACTOID_CHAINID)
+	fchain = new(common.FctChain)
+	fchain.ChainID = new(common.Hash)
+	fchain.ChainID.SetBytes(factoid.FACTOID_CHAINID)
 
 	// get all aBlocks from db
-	FBlocks, _ := db.FetchAllFBlocks()
-	sort.Sort(util.ByFBlockIDAccending(FBlocks))
+	fBlocks, _ := db.FetchAllFBlocks()
+	sort.Sort(util.ByFBlockIDAccending(fBlocks))
 
 	// double check the block ids
-	for i := 0; i < len(FBlocks); i = i + 1 {
-		//if uint32(i) != aBlocks[i].Header.DBHeight {
-		//	panic(errors.New("BlockID does not equal index for chain:" + achain.ChainID.String() + " block:" + fmt.Sprintf("%v", aBlocks[i].Header.DBHeight)))
-		//}
+	for i := 0; i < len(fBlocks); i = i + 1 {
+		// Pls add it back ??
+	//	if uint32(i) != fBlocks[i].GetDBHeight() {
+	//		panic(errors.New("BlockID does not equal index for chain:" + fchain.ChainID.String() + " block:" + fmt.Sprintf("%v", fBlocks[i].GetDBHeight())))
+	//	}
 	}
 
 	//Create an empty block and append to the chain
-	if len(FBlocks) == 0 || dchain.NextBlockHeight == 0 {
-		scchain.NextBlockHeight = 0
+	if len(fBlocks) == 0 || dchain.NextBlockHeight == 0 {
+		fchain.NextBlockHeight = 0
 
 		// THIS IS IN TWO PLACES HERE! THEY NEED TO MATCH!
-		scchain.NextBlock = block.GetGenesisBlock(1000000, 10, 200000000000)
-		data, _ := scchain.NextBlock.MarshalBinary()
-		fmt.Println("\n\n ", common.Sha(data).String(), "\n\n")
+		fchain.NextBlock = block.GetGenesisBlock(1000000, 10, 200000000000)
 	} else {
 		// Entry Credit Chain should have the same height as the dir chain
-		scchain.NextBlockHeight = dchain.NextBlockHeight
-		scchain.NextBlock = block.NewFBlock(FactoshisPerCredit, dchain.NextBlockHeight)
+		fchain.NextBlockHeight = dchain.NextBlockHeight
+		fchain.NextBlock = block.NewFBlock(FactoshisPerCredit, dchain.NextBlockHeight)
 	}
 
-	exportFctChain(scchain)
+	exportFctChain(fchain)
 
 }
 

@@ -7,9 +7,8 @@ package process
 import (
 	"io/ioutil"
 	"os"	
-	"sort"	
 	"fmt"
-	"log"	
+	"sort"	
 	"github.com/FactomProject/FactomCode/factomlog"	
 	"github.com/FactomProject/FactomCode/common"	
 	"github.com/FactomProject/FactomCode/util"	
@@ -41,9 +40,9 @@ func exportDChain(chain *common.DChain) {
 		if fileNotExists(dataStorePath + strChainID) {
 			err := os.MkdirAll(dataStorePath+strChainID, 0777)
 			if err == nil {
-				log.Println("Created directory " + dataStorePath + strChainID)
+				procLog.Info("Created directory " + dataStorePath + strChainID)
 			} else {
-				log.Println(err)
+				procLog.Error(err)
 			}
 		}
 		err = ioutil.WriteFile(fmt.Sprintf(dataStorePath+strChainID+"/store.%09d.block", block.Header.BlockHeight), data, 0777)
@@ -72,9 +71,9 @@ func exportEChain(chain *common.EChain) {
 		if fileNotExists(dataStorePath + strChainID) {
 			err := os.MkdirAll(dataStorePath+strChainID, 0777)
 			if err == nil {
-				log.Println("Created directory " + dataStorePath + strChainID)
+				procLog.Info("Created directory " + dataStorePath + strChainID)
 			} else {
-				log.Println(err)
+				procLog.Error(err)
 			}
 		}
 
@@ -103,9 +102,9 @@ func exportECChain(chain *common.ECChain) {
 		if fileNotExists(dataStorePath + strChainID) {
 			err := os.MkdirAll(dataStorePath+strChainID, 0777)
 			if err == nil {
-				log.Println("Created directory " + dataStorePath + strChainID)
+				procLog.Info("Created directory " + dataStorePath + strChainID)
 			} else {
-				log.Println(err)
+				procLog.Error(err)
 			}
 		}
 		err = ioutil.WriteFile(fmt.Sprintf(dataStorePath+strChainID+"/store.%09d.block", block.Header.DBHeight), data, 0777)
@@ -134,9 +133,9 @@ func exportAChain(chain *common.AdminChain) {
 		if fileNotExists(dataStorePath + strChainID) {
 			err := os.MkdirAll(dataStorePath+strChainID, 0777)
 			if err == nil {
-				log.Println("Created directory " + dataStorePath + strChainID)
+				procLog.Info("Created directory " + dataStorePath + strChainID)
 			} else {
-				log.Println(err)
+				procLog.Error(err)
 			}
 		}
 		err = ioutil.WriteFile(fmt.Sprintf(dataStorePath+strChainID+"/store.%09d.block", block.Header.DBHeight), data, 0777)
@@ -165,9 +164,9 @@ func exportFctChain(chain *common.FctChain) {
 		if fileNotExists(dataStorePath + strChainID) {
 			err := os.MkdirAll(dataStorePath+strChainID, 0777)
 			if err == nil {
-				log.Println("Created directory " + dataStorePath + strChainID)
+				procLog.Info("Created directory " + dataStorePath + strChainID)
 			} else {
-				log.Println(err)
+				procLog.Error(err)
 			}
 		}
 		err = ioutil.WriteFile(fmt.Sprintf(dataStorePath+strChainID+"/store.%09d.block", block.GetDBHeight()), data, 0777)
@@ -196,7 +195,7 @@ func copyCreditMap(
 func printCreditMap() {
 	fmt.Println("eCreditMap:")
 	for key := range eCreditMap {
-		fmt.Println("Key: %x Value %d\n", key, eCreditMap[key])
+		procLog.Info("Key: %x Value %d\n", key, eCreditMap[key])
 	}
 }
 
