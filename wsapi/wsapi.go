@@ -246,6 +246,7 @@ func handleDirectoryBlock(ctx *web.Context, keymr string) {
 	}
 
 	d := new(dblock)
+	fmt.Printf("DEBUG: wsapi: factomapi.DBlockByKeyMR(%s)\n", keymr)
 	if block, err := factomapi.DBlockByKeyMR(keymr); err != nil {
 		wsLog.Error(err)
 		ctx.WriteHeader(httpBad)
