@@ -216,7 +216,7 @@ func handleDirectoryBlockHead(ctx *web.Context) {
 		ctx.WriteHeader(httpBad)
 		return
 	} else {
-		h.KeyMR = block.Header.BodyMR.String()
+		h.KeyMR = block.KeyMR.String()
 	}
 
 	if p, err := json.Marshal(h); err != nil {
@@ -246,7 +246,6 @@ func handleDirectoryBlock(ctx *web.Context, keymr string) {
 	}
 
 	d := new(dblock)
-	fmt.Printf("DEBUG: wsapi: factomapi.DBlockByKeyMR(%s)\n", keymr)
 	if block, err := factomapi.DBlockByKeyMR(keymr); err != nil {
 		wsLog.Error(err)
 		ctx.WriteHeader(httpBad)

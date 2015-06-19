@@ -5,8 +5,6 @@
 package factomapi
 
 import (
-	"fmt" // DEBUG
-
 	"encoding/hex"
 
 	"github.com/FactomProject/btcd/wire"
@@ -63,19 +61,14 @@ func CommitEntry(c *common.CommitEntry) error {
 // }
 
 func DBlockByKeyMR(keymr string) (*common.DirectoryBlock, error) {
-	fmt.Println("DEBUG: factomapi.DBlockByKeyMR")
 	key, err := atoh(keymr)
 	if err != nil {
-		fmt.Println("DEBUG: factomapi:", err)
 		return nil, err
 	}
-	fmt.Printf("DEBUG: factomapi: db.FetchDBlockByMR(%s)\n", key)
 	r, err := db.FetchDBlockByMR(key)
 	if err != nil {
-		fmt.Println("DEBUG: factomapi:", err)
 		return r, err
 	}
-	fmt.Println("DEBUG: factomapi got block:", r)
 	return r, nil
 }
 
@@ -88,6 +81,7 @@ func DBlockHead() (*common.DirectoryBlock, error) {
 	if err != nil {
 		return nil, err
 	}
+	block.BuildKeyMerkleRoot()
 	return block, nil
 }
 
