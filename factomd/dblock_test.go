@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"testing"
+	"github.com/davecgh/go-spew/spew"	
 
 )
  
@@ -29,5 +30,18 @@ func TestDblock(t *testing.T) {
 	if bytes.Compare(bytes1, bytes2) != 0 {
 		t.Errorf("Invalid output")
 	}
+}
+
+func TestDblock2(t *testing.T) {
+	fmt.Println("\nTest dblock2===========================================================================")
+	
+	list, _ := db.FetchHeightRange(0, 5)
+	fmt.Printf("TestDblock2: list=%s\n", spew.Sdump(list))	
+	
+	
+	height,_ := db.FetchBlockHeightBySha(&list[0])
+
+	fmt.Printf("height=%s\n", spew.Sdump(height))	
+	
 }
 

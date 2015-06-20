@@ -1,3 +1,7 @@
+// Copyright (c) 2013-2014 Conformal Systems LLC.
+// Use of this source code is governed by an ISC
+// license that can be found in the LICENSE file.
+
 package ldb
 
 import (
@@ -5,6 +9,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"github.com/FactomProject/FactomCode/common"
+	"github.com/FactomProject/FactomCode/database"	
 	"github.com/FactomProject/goleveldb/leveldb"
 	"github.com/FactomProject/goleveldb/leveldb/util"
 	"github.com/FactomProject/btcd/wire"
@@ -118,6 +123,53 @@ func (db *LevelDb)	FetchBlockHeightCache() (sha *wire.ShaHash, height int64, err
 	return db.lastDirBlkSha, db.lastDirBlkHeight, nil
 }
 
+// FetchHeightRange looks up a range of blocks by the start and ending
+// heights.  Fetch is inclusive of the start height and exclusive of the
+// ending height. To fetch all hashes from the start height until no
+// more are present, use the special id `AllShas'.
+func (db *LevelDb)	FetchHeightRange(startHeight, endHeight int64) (rshalist []wire.ShaHash, err error) {
+
+	var endidx int64
+	if endHeight == database.AllShas {
+		endidx = startHeight + 500
+	} else {
+		endidx = endHeight
+	}
+
+	shalist := make([]wire.ShaHash, 0, endidx-startHeight)
+	for height := startHeight; height < endidx; height++ {
+		// TODO(drahn) fix blkFile from height
+
+		dbhash, lerr := db.FetchDBHashByHeight(uint32(height))
+		if lerr != nil || dbhash == nil {
+			break
+		}	
+
+		sha := wire.FactomHashToShaHash(dbhash)
+		shalist = append(shalist, *sha)
+	}
+
+	if err != nil {
+		return
+	}
+	//log.Tracef("FetchIdxRange idx %v %v returned %v shas err %v", startHeight, endHeight, len(shalist), err)
+
+	return shalist, nil
+}
+
+// FetchBlockHeightBySha returns the block height for the given hash.  This is
+// part of the database.Db interface implementation.
+func (db *LevelDb) FetchBlockHeightBySha(sha *wire.ShaHash) (int64, error) {
+
+	dblk,_ := db.FetchDBlockByHash(sha.ToFactomHash())
+	
+	var height int64 = -1	
+	if dblk != nil {
+		height = int64(dblk.Header.BlockHeight)
+	}
+	
+	return height, nil
+}
 
 // Insert the Directory Block meta data into db
 func (db *LevelDb) InsertDirBlockInfo(dirBlockInfo *common.DirBlockInfo) (err error) {

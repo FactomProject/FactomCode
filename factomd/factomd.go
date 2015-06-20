@@ -18,7 +18,7 @@ import (
 	"github.com/FactomProject/FactomCode/wsapi"
 	"github.com/FactomProject/btcd"
 	"github.com/FactomProject/btcd/limits"
-	"github.com/FactomProject/btcd/wire"
+	"github.com/FactomProject/btcd/wire"		
 )
 
 var (
