@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"testing"
 	"github.com/davecgh/go-spew/spew"	
+	"github.com/FactomProject/FactomCode/database"	
 
 )
  
@@ -43,5 +44,14 @@ func TestDblock2(t *testing.T) {
 
 	fmt.Printf("height=%s\n", spew.Sdump(height))	
 	
+	
+	list, _ = db.FetchHeightRange(0, database.AllShas)
+	fmt.Printf("db.FetchHeightRange(0, database.AllShas): list=%s\n", spew.Sdump(list))	
+	
+	
+	height,_ = db.FetchBlockHeightBySha(&list[0])
+
+	fmt.Printf("height=%s\n", spew.Sdump(height))	
+		
 }
 
