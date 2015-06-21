@@ -790,19 +790,19 @@ func buildBlocks() error {
 	// Entry Credit Chain
 	ecBlock := newEntryCreditBlock(ecchain)
 	dchain.AddECBlockToDBEntry(ecBlock)
-	exportECChain(ecchain)
+	exportECBlock(ecBlock)
 
 	// Admin chain
 	aBlock := newAdminBlock(achain)
 	//fmt.Printf("buildGenesisBlocks: aBlock=%s\n", spew.Sdump(aBlock))
 	dchain.AddABlockToDBEntry(aBlock)
-	exportAChain(achain)
+	exportABlock(aBlock)
 
 	// Factoid chain
 	fBlock := newFactoidBlock(fchain)
 	//fmt.Printf("buildGenesisBlocks: aBlock=%s\n", spew.Sdump(aBlock))
 	dchain.AddFBlockToDBEntry(fBlock)
-	exportFctChain(fchain)
+	exportFctBlock(fBlock)
 
 	// sort the echains by chain id
 	var keys []string
@@ -818,7 +818,7 @@ func buildBlocks() error {
 		if eblock != nil {
 			dchain.AddEBlockToDBEntry(eblock)
 		}
-		exportEChain(chain)
+		exportEBlock(eblock)
 	}
 
 	// Directory Block chain
@@ -835,7 +835,7 @@ func buildBlocks() error {
 	// Update dir block height cache in db
 	db.UpdateBlockHeightCache(dbBlock.Header.BlockHeight, commonHash)
 
-	exportDChain(dchain)
+	exportDBlock(dbBlock)
 
 	// re-initialize the process lit manager
 	initProcessListMgr()

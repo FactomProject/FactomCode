@@ -49,7 +49,7 @@ func processFBlock(msg *wire.MsgFBlock) error {
 	if nodeMode == common.SERVER_NODE {
 		return errors.New("Server received msg:" + msg.Command())
 	}
-	
+
 	//Add it to mem pool before saving it in db
 	h, _ := common.CreateHash(msg.SC)     // need to change it to MR??
 	fMemPool.addBlockMsg(msg, h.String()) // stored in mem pool with the MR as the key
@@ -163,11 +163,6 @@ func validateAndStoreBlocks(fMemPool *ftmMemPool, db database.Db, dchain *common
 				err := storeBlocksFromMemPool(dblk, fMemPool, db)
 				if err == nil {
 					deleteBlocksFromMemPool(dblk, fMemPool)
-					//to be removed ?? :
-					exportDChain(dchain)
-					exportAChain(achain)
-					exportECChain(ecchain)
-					exportFctChain(fchain)
 				} else {
 					panic("error in deleteBlocksFromMemPool.")
 				}
@@ -242,18 +237,24 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 			}
 			// needs to be improved??
 			initializeECreditMap(ecBlkMsg.ECBlock)
+			// for debugging
+			exportECBlock(ecBlkMsg.ECBlock)
 		case achain.ChainID.String():
 			aBlkMsg := fMemPool.blockpool[dbEntry.MerkleRoot.String()].(*wire.MsgABlock)
 			err := db.ProcessABlockBatch(aBlkMsg.ABlk)
 			if err != nil {
 				return err
 			}
+			// for debugging
+			exportABlock(aBlkMsg.ABlk)			
 		case fchain.ChainID.String():
 			fBlkMsg := fMemPool.blockpool[dbEntry.MerkleRoot.String()].(*wire.MsgFBlock)
 			err := db.ProcessFBlockBatch(fBlkMsg.SC)
 			if err != nil {
 				return err
 			}
+			// for debugging
+			exportFctBlock(fBlkMsg.SC)			
 		default:
 			// handle Entry Block
 			eBlkMsg, _ := fMemPool.blockpool[dbEntry.MerkleRoot.String()].(*wire.MsgEBlock)
@@ -271,6 +272,9 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 			if err != nil {
 				return err
 			}
+			// for debugging
+			exportEBlock(eBlkMsg.EBlk)		
+			
 			// create a chain in db if it's not existing
 			chain := chainIDMap[eBlkMsg.EBlk.Header.ChainID.String()]
 			if chain == nil {
@@ -293,6 +297,9 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 	if err != nil {
 		return err
 	}
+	
+	// for debugging
+	exportDBlock(b)	
 
 	return nil
 }

@@ -1,8 +1,8 @@
 package util
 
 import (
-    "github.com/FactomProject/FactomCode/common"
-    "github.com/FactomProject/factoid/block"
+	"github.com/FactomProject/FactomCode/common"
+	"github.com/FactomProject/factoid/block"
 )
 
 //------------------------------------------------
@@ -52,13 +52,13 @@ func (f ByABlockIDAccending) Swap(i, j int) {
 type ByFBlockIDAccending []block.IFBlock
 
 func (f ByFBlockIDAccending) Len() int {
-    return len(f)
+	return len(f)
 }
 func (f ByFBlockIDAccending) Less(i, j int) bool {
-    return f[i].GetDBHeight() < f[j].GetDBHeight()
+	return f[i].GetDBHeight() < f[j].GetDBHeight()
 }
 func (f ByFBlockIDAccending) Swap(i, j int) {
-    f[i], f[j] = f[j], f[i]
+	f[i], f[j] = f[j], f[i]
 }
 
 //------------------------------------------------

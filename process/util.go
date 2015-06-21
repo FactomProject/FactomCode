@@ -9,6 +9,7 @@ import (
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/factomlog"
 	"github.com/FactomProject/FactomCode/util"
+	"github.com/FactomProject/factoid/block"
 	"io/ioutil"
 	"os"
 	"sort"
@@ -175,6 +176,141 @@ func exportFctChain(chain *common.FctChain) {
 		}
 	}
 }
+
+// to export individual block once at a time - for debugging ------------------------
+func exportDBlock(block *common.DirectoryBlock) {
+	if block == nil || procLog.Level() < factomlog.Info {
+		//log.Println("no blocks to save for chain: " + string (*chain.ChainID))
+		return
+	}
+
+	data, err := block.MarshalBinary()
+	if err != nil {
+		panic(err)
+	}
+
+	strChainID := dchain.ChainID.String()
+	if fileNotExists(dataStorePath + strChainID) {
+		err := os.MkdirAll(dataStorePath+strChainID, 0777)
+		if err == nil {
+			procLog.Info("Created directory " + dataStorePath + strChainID)
+		} else {
+			procLog.Error(err)
+		}
+	}
+	err = ioutil.WriteFile(fmt.Sprintf(dataStorePath+strChainID+"/store.%09d.block", block.Header.BlockHeight), data, 0777)
+	if err != nil {
+		panic(err)
+	}
+
+}
+
+func exportEBlock(block *common.EBlock) {
+	if block == nil || procLog.Level() < factomlog.Info {
+		return
+	}
+
+	data, err := block.MarshalBinary()
+	if err != nil {
+		panic(err)
+	}
+
+	strChainID := block.Header.ChainID.String()
+	if fileNotExists(dataStorePath + strChainID) {
+		err := os.MkdirAll(dataStorePath+strChainID, 0777)
+		if err == nil {
+			procLog.Info("Created directory " + dataStorePath + strChainID)
+		} else {
+			procLog.Error(err)
+		}
+	}
+
+	err = ioutil.WriteFile(fmt.Sprintf(dataStorePath+strChainID+"/store.%09d.block", block.Header.DBHeight), data, 0777)
+	if err != nil {
+		panic(err)
+	}
+
+}
+
+func exportECBlock(block *common.ECBlock) {
+	if block == nil || procLog.Level() < factomlog.Info {
+		return
+	}
+
+	data, err := block.MarshalBinary()
+	if err != nil {
+		panic(err)
+	}
+
+	strChainID := block.Header.ECChainID.String()
+	if fileNotExists(dataStorePath + strChainID) {
+		err := os.MkdirAll(dataStorePath+strChainID, 0777)
+		if err == nil {
+			procLog.Info("Created directory " + dataStorePath + strChainID)
+		} else {
+			procLog.Error(err)
+		}
+	}
+	err = ioutil.WriteFile(fmt.Sprintf(dataStorePath+strChainID+"/store.%09d.block", block.Header.DBHeight), data, 0777)
+	if err != nil {
+		panic(err)
+	}
+
+}
+
+func exportABlock(block *common.AdminBlock) {
+	if block == nil || procLog.Level() < factomlog.Info {
+		return
+	}
+
+	data, err := block.MarshalBinary()
+	if err != nil {
+		panic(err)
+	}
+
+	strChainID := block.Header.ChainID.String()
+	if fileNotExists(dataStorePath + strChainID) {
+		err := os.MkdirAll(dataStorePath+strChainID, 0777)
+		if err == nil {
+			procLog.Info("Created directory " + dataStorePath + strChainID)
+		} else {
+			procLog.Error(err)
+		}
+	}
+	err = ioutil.WriteFile(fmt.Sprintf(dataStorePath+strChainID+"/store.%09d.block", block.Header.DBHeight), data, 0777)
+	if err != nil {
+		panic(err)
+	}
+
+}
+
+func exportFctBlock(block block.IFBlock) {
+	if block == nil || procLog.Level() < factomlog.Info {
+		return
+	}
+
+	data, err := block.MarshalBinary()
+	if err != nil {
+		panic(err)
+	}
+
+	strChainID := block.GetChainID().String()
+	if fileNotExists(dataStorePath + strChainID) {
+		err := os.MkdirAll(dataStorePath+strChainID, 0777)
+		if err == nil {
+			procLog.Info("Created directory " + dataStorePath + strChainID)
+		} else {
+			procLog.Error(err)
+		}
+	}
+	err = ioutil.WriteFile(fmt.Sprintf(dataStorePath+strChainID+"/store.%09d.block", block.GetDBHeight()), data, 0777)
+	if err != nil {
+		panic(err)
+	}
+
+}
+
+//--------------------------------------
 
 func getPrePaidChainKey(entryHash *common.Hash, chainIDHash *common.Hash) string {
 	return chainIDHash.String() + entryHash.String()
