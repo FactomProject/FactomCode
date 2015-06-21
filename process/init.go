@@ -12,7 +12,7 @@ import (
 	"github.com/FactomProject/FactomCode/factomlog"
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd/wire"
-	"github.com/FactomProject/factoid"
+	fct "github.com/FactomProject/factoid"
 	"github.com/FactomProject/factoid/block"
 	"sort"
 	"strconv"
@@ -155,7 +155,7 @@ func initFctChain() {
 	//Initialize the Admin Chain ID
 	fchain = new(common.FctChain)
 	fchain.ChainID = new(common.Hash)
-	fchain.ChainID.SetBytes(factoid.FACTOID_CHAINID)
+	fchain.ChainID.SetBytes(fct.FACTOID_CHAINID)
 
 	// get all aBlocks from db
 	fBlocks, _ := db.FetchAllFBlocks()
@@ -174,7 +174,8 @@ func initFctChain() {
 		fchain.NextBlockHeight = 0
 
 		// THIS IS IN TWO PLACES HERE! THEY NEED TO MATCH!
-		fchain.NextBlock = block.GetGenesisBlock(1000000, 10, 200000000000)
+		fchain.NextBlock = block.GetGenesisBlock(
+            common.FactoidState.GetTimeNano(),1000000, 10, 200000000000)
 	} else {
 		// Entry Credit Chain should have the same height as the dir chain
 		fchain.NextBlockHeight = dchain.NextBlockHeight
@@ -206,19 +207,26 @@ func initEChains() {
 
 // Re-calculate Entry Credit Balance Map with a new Entry Credit Block
 func initializeECreditMap(block *common.ECBlock) {
+    fmt.Println("\nEC Updates!!!!\n")
 	for _, entry := range block.Body.Entries {
 		// Only process: ECIDChainCommit, ECIDEntryCommit, ECIDBalanceIncrease
 		switch entry.ECID() {
 		case common.ECIDChainCommit:
 			e := entry.(*common.CommitChain)
 			eCreditMap[string(e.ECPubKey[:])] += int32(e.Credits)
+            common.FactoidState.UpdateECBalance(fct.NewAddress(e.ECPubKey[:]), int64(e.Credits))  
 		case common.ECIDEntryCommit:
 			e := entry.(*common.CommitEntry)
 			eCreditMap[string(e.ECPubKey[:])] += int32(e.Credits)
-		case common.ECIDBalanceIncrease:
+            common.FactoidState.UpdateECBalance(fct.NewAddress(e.ECPubKey[:]), int64(e.Credits))  
+        case common.ECIDBalanceIncrease:
+            fmt.Println("\nIncreases!!!!\n")
 			e := entry.(*common.IncreaseBalance)
 			eCreditMap[string(e.ECPubKey[:])] += int32(e.Credits)
-		}
+            // Don't add the Increases to Factoid state, the Factoid processing will do that.
+        default:
+            fmt.Println("UNKNOWN\n")
+        }
 	}
 }
 
