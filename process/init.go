@@ -207,7 +207,6 @@ func initEChains() {
 
 // Re-calculate Entry Credit Balance Map with a new Entry Credit Block
 func initializeECreditMap(block *common.ECBlock) {
-    fmt.Println("\nEC Updates!!!!\n")
 	for _, entry := range block.Body.Entries {
 		// Only process: ECIDChainCommit, ECIDEntryCommit, ECIDBalanceIncrease
 		switch entry.ECID() {

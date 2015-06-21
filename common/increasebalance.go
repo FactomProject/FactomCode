@@ -7,8 +7,11 @@ package common
 import (
 	"bytes"
 	"encoding/binary"
+    "fmt"
 )
+var _ = fmt.Println
 
+var IncreaseBalanceSize int = 32+4+32
 type IncreaseBalance struct {
     ECBlockEntry
 	ECPubKey *[32]byte
@@ -29,33 +32,30 @@ func (b *IncreaseBalance) ECID() byte {
 }
 
 func (b *IncreaseBalance) MarshalBinary() ([]byte, error) {
+    fmt.Println("Marshalling IB: ", b.Credits)
 	buf := new(bytes.Buffer)
 	
 	buf.Write(b.ECPubKey[:])
-	if err := binary.Write(buf, binary.BigEndian, b.Credits); err != nil {
-		return buf.Bytes(), err
-	}
+	
+    err := binary.Write(buf, binary.BigEndian, b.Credits); 
+    if err != nil { return buf.Bytes(), err }
+    
 	buf.Write(b.FactomTxHash.Bytes())
 	
 	return buf.Bytes(), nil
 }
 
 func (b *IncreaseBalance) UnmarshalBinary(data []byte) error {
-	buf := bytes.NewBuffer(data)
-	hash := make([]byte, 32)
-
-	if _, err := buf.Read(b.ECPubKey[:]); err != nil {
-		return err
-	}
-	if err := binary.Read(buf, binary.BigEndian, &b.Credits); err != nil {
-		return err
-	}
-	if _, err := buf.Read(hash); err != nil {
-		return err
-	} else if err := b.FactomTxHash.SetBytes(hash); err != nil {
-		return err
-	}
-	
-	return nil
+    
+    b.ECPubKey = new([32]byte)
+    copy(b.ECPubKey[:],data[:32]); data = data[32:]
+    
+    b.Credits, data = int32(binary.BigEndian.Uint32(data)),data[4:]
+    
+    b.FactomTxHash = new(Hash)
+    b.FactomTxHash.SetBytes(data[:32])
+    
+    return nil
+    
 }
 

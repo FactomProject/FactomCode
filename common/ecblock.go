@@ -202,6 +202,12 @@ func (b *ECBlockBody) UnmarshalBinary(data []byte) error {
 			}
 			b.Entries = append(b.Entries, c)
 		case ECIDBalanceIncrease:
+            c := new(IncreaseBalance)
+            err := c.UnmarshalBinary(buf.Next(IncreaseBalanceSize))
+            if err != nil {
+                return err
+            }
+            b.Entries = append(b.Entries, c)
 		default:
 			return fmt.Errorf("Unsupported ECID: %x\n", id)
 		}
