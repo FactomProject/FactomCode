@@ -175,7 +175,7 @@ func initFctChain() {
 
 		// THIS IS IN TWO PLACES HERE! THEY NEED TO MATCH!
 		fchain.NextBlock = block.GetGenesisBlock(
-            common.FactoidState.GetTimeNano(),1000000, 10, 200000000000)
+            0,1000000, 10, 200000000000)
 	} else {
 		// Entry Credit Chain should have the same height as the dir chain
 		fchain.NextBlockHeight = dchain.NextBlockHeight
