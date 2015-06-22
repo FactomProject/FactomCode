@@ -506,7 +506,7 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 
 			// Add to MyPL if Server Node
 			if nodeMode == common.SERVER_NODE {
-				ack, err := plMgr.AddMyProcessListItem(msg, h, wire.ACK_REVEAL_ENTRY)
+				ack, err := plMgr.AddMyProcessListItem(msg, h, wire.ACK_REVEAL_CHAIN)
 				if err != nil {
 					return err
 				} else {
@@ -678,9 +678,10 @@ func buildFactoidObj(msg *wire.MsgInt_FactoidObj) {
 }
 */
 
-func buildRevealChain(msg *wire.MsgRevealChain) {
+func buildRevealChain(msg *wire.MsgRevealEntry) {
+	fmt.Println("DEBUG: buildRevealChain")
 
-	newChain := chainIDMap[msg.FirstEntry.ChainID.String()]
+	newChain := chainIDMap[msg.Entry.ChainID.String()]
 
 	// Store the new chain in db
 	db.InsertChain(newChain)
@@ -867,7 +868,7 @@ func buildFromProcessList(pl *consensus.ProcessList) error {
 		} else if pli.Ack.Type == wire.ACK_COMMIT_ENTRY {
 			buildCommitEntry(pli.Msg.(*wire.MsgCommitEntry))
 		} else if pli.Ack.Type == wire.ACK_REVEAL_CHAIN {
-			buildRevealChain(pli.Msg.(*wire.MsgRevealChain))
+			buildRevealChain(pli.Msg.(*wire.MsgRevealEntry))
 		} else if pli.Ack.Type == wire.ACK_REVEAL_ENTRY {
 			buildRevealEntry(pli.Msg.(*wire.MsgRevealEntry))
 		} else if wire.END_MINUTE_1 <= pli.Ack.Type && pli.Ack.Type <= wire.END_MINUTE_10 {
