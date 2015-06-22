@@ -119,7 +119,7 @@ func initProcessor() {
 	procLog.Info("Loaded", achain.NextBlockHeight, "Admin blocks for chain: "+achain.ChainID.String())
 
 	initFctChain()
-	common.FactoidState.LoadState()
+	//common.FactoidState.LoadState()
 	procLog.Info("Loaded", fchain.NextBlockHeight, "factoid blocks for chain: "+fchain.ChainID.String())
 
 	anchor.InitAnchor(db)
@@ -976,7 +976,7 @@ func newAdminBlock(chain *common.AdminChain) *common.AdminBlock {
 
 	//Store the block in db
 	db.ProcessABlockBatch(block)
-	procLog.Infof("Admin Block: block" + strconv.FormatUint(uint64(block.Header.DBHeight), 10) + " created for chain: " + chain.ChainID.String())
+	procLog.Infof("Admin Block: block " + strconv.FormatUint(uint64(block.Header.DBHeight), 10) + " created for chain: " + chain.ChainID.String())
 
 	return block
 }
@@ -991,20 +991,17 @@ func newFactoidBlock(chain *common.FctChain) block.IFBlock {
 		panic("Factoid Block height does not match Directory Block height:" + strconv.Itoa(int(dchain.NextBlockHeight)))
 	}
 
-	//block.BuildHeader()
-
-	// Get the genesis block for Factoids.  We don't have to create it, as
-	// trying to load the past will create it for us if it does not exist
 	chain.BlockMutex.Lock()
 	chain.NextBlockHeight++
 	common.FactoidState.SetFactoshisPerEC(FactoshisPerCredit)
-	common.FactoidState.ProcessEndOfBlock()
+	common.FactoidState.ProcessEndOfBlock2(chain.NextBlockHeight)
 	chain.NextBlock = common.FactoidState.GetCurrentBlock()
 	chain.BlockMutex.Unlock()
 
 	//Store the block in db
+	procLog.Debugf("processor: currentBlock=%s\n", spew.Sdump(currentBlock))
 	db.ProcessFBlockBatch(currentBlock)
-	procLog.Infof("Factoid chain: block" + " created for chain: " + chain.ChainID.String())
+	procLog.Infof("Factoid chain: block " + strconv.FormatUint(uint64(currentBlock.GetDBHeight()), 10) + " created for chain: " + chain.ChainID.String())
 
 	return currentBlock
 }
