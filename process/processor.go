@@ -339,6 +339,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 
 				ecchain.NextBlock.AddEntry(incBal)
 			}
+			fmt.Println(t)
 		}
 
 	case wire.CmdABlock:
