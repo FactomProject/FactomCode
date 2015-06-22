@@ -449,6 +449,7 @@ func processAcknowledgement(msg *wire.MsgAcknowledgement) error {
 
 // processRevealEntry validates the MsgRevealEntry and adds it to processlist
 func processRevealEntry(msg *wire.MsgRevealEntry) error {
+	fmt.Println("DEBUG: processRevealEntry")
 	e := msg.Entry
 	bin, _ := e.MarshalBinary()
 	h, _ := wire.NewShaHash(e.Hash().Bytes())
@@ -482,6 +483,7 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 		delete(commitEntryMap, e.Hash().String())
 		return nil
 	} else if c, ok := commitChainMap[e.Hash().String()]; ok {
+		fmt.Println("DEBUG: processRevealEntry: found in commitChainMap", c)
 		if chainIDMap[e.ChainID.String()] != nil {
 			fMemPool.addOrphanMsg(msg, h)
 			return fmt.Errorf("This chain is not supported: %s",
@@ -489,6 +491,7 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 		}
 
 		// add new chain to chainIDMap
+		fmt.Println("DEBUG: processRevealEntry: adding new chain to chainIDMap")
 		newChain := new(common.EChain)
 		newChain.ChainID = e.ChainID
 		newChain.FirstEntry = e
@@ -556,6 +559,7 @@ func processCommitEntry(msg *wire.MsgCommitEntry) error {
 
 // processCommitChain validates the MsgCommitChain and adds it to processlist
 func processCommitChain(msg *wire.MsgCommitChain) error {
+	fmt.Println("DEBUG: processCommitChain:", msg)
 	c := msg.CommitChain
 
 	// check that the CommitChain is fresh
