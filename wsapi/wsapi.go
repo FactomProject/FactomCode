@@ -430,7 +430,7 @@ func handleFactoidSubmit(ctx *web.Context) {
     var err error
     if p, err = ioutil.ReadAll(ctx.Request.Body); err != nil {
         wsLog.Error(err)
-        ctx.WriteHeader(httpBad)
+        ctx.Abort(400,"Unable to read the request")
         return
     } else {
         if err := json.Unmarshal(p, t); err != nil {
@@ -459,12 +459,9 @@ func handleFactoidSubmit(ctx *web.Context) {
     
     good := common.FactoidState.Validate(msg.Transaction)
     if !good {
-        ctx.WriteHeader(httpBad)
-        return
-    }
-    good = common.FactoidState.GetWallet().ValidateSignatures(msg.Transaction)
-    if !good {
-        ctx.WriteHeader(httpBad)
+        fmt.Println("Bad Transaction")
+        wsLog.Error(fmt.Errorf("Bad Transaction"))
+        ctx.Abort(400,"Invalid Transaction")
         return
     }
     
