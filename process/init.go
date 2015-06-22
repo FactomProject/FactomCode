@@ -163,10 +163,15 @@ func initFctChain() {
 
 	// double check the block ids
 	for i := 0; i < len(fBlocks); i = i + 1 {
-		// Pls add it back ??
-		//	if uint32(i) != fBlocks[i].GetDBHeight() {
-		//		panic(errors.New("BlockID does not equal index for chain:" + fchain.ChainID.String() + " block:" + fmt.Sprintf("%v", fBlocks[i].GetDBHeight())))
-		//	}
+		if uint32(i) != fBlocks[i].GetDBHeight() {
+			panic(errors.New("BlockID does not equal index for chain:" + fchain.ChainID.String() + " block:" + fmt.Sprintf("%v", fBlocks[i].GetDBHeight())))
+		}else {
+			// initialize the FactoidState in sequence
+        	err := common.FactoidState.AddTransactionBlock(fBlocks[i])	
+	        if err != nil { 
+	            panic("Failed to rebuild factoid state: " +err.Error()); 
+	        }        			
+		}
 	}
 
 	//Create an empty block and append to the chain

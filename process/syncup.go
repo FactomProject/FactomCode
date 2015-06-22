@@ -199,7 +199,7 @@ func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, d
 			}
 		case fchain.ChainID.String():
 			if _, ok := fMemPool.blockpool[dbEntry.MerkleRoot.String()]; !ok {
-				// ?? return false
+				return false
 			}
 		default:
 			if msg, ok := fMemPool.blockpool[dbEntry.MerkleRoot.String()]; !ok {
@@ -253,6 +253,12 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 			if err != nil {
 				return err
 			}
+			// Initialize the Factoid State
+        	err = common.FactoidState.AddTransactionBlock(fBlkMsg.SC)	
+	        if err != nil { 
+	            panic("Failed to rebuild factoid state: " +err.Error()); 
+	        } 		
+			
 			// for debugging
 			exportFctBlock(fBlkMsg.SC)			
 		default:
