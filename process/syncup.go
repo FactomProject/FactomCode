@@ -304,6 +304,10 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 		return err
 	}
 	
+	// Update dir block height cache in db
+	commonHash, _ := common.CreateHash(b)
+	db.UpdateBlockHeightCache(b.Header.BlockHeight, commonHash)
+		
 	// for debugging
 	exportDBlock(b)	
 
