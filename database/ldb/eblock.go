@@ -144,7 +144,7 @@ func (db *LevelDb) FetchEBHashByMR(eBMR *common.Hash) (*common.Hash, error) {
 
 // InsertChain inserts the newly created chain into db
 func (db *LevelDb) InsertChain(chain *common.EChain) (err error) {
-	fmt.Printf("DEBUG: InsertChain(%#v\n)", chain)
+	fmt.Printf("DEBUG: InsertChain(%#v)\n", chain)
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -171,6 +171,7 @@ func (db *LevelDb) InsertChain(chain *common.EChain) (err error) {
 
 // FetchChainByHash gets a chain by chainID
 func (db *LevelDb) FetchChainByHash(chainID *common.Hash) (*common.EChain, error) {
+	fmt.Printf("DEBUG: FetchChainByHash(%s)\n", chainID)
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -187,6 +188,7 @@ func (db *LevelDb) FetchChainByHash(chainID *common.Hash) (*common.EChain, error
 			return chain, err
 		}
 	}
+	fmt.Printf("DEBUG: got chain: %#v\n", chain.FirstEntry)
 	return chain, nil
 }
 

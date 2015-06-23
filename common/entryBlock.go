@@ -394,12 +394,12 @@ func (b *EChain) MarshalBinary() (data []byte, err error) {
 }
 
 func (b *EChain) UnmarshalBinary(data []byte) (err error) {
-	b.ChainID = new(Hash)
+	b.ChainID = NewHash()
 	b.ChainID.UnmarshalBinary(data[:HASH_LENGTH])
 	data = data[HASH_LENGTH:]
 
 	if len(data) > HASH_LENGTH {
-		b.FirstEntry = new(Entry)
+		b.FirstEntry = NewEntry()
 		b.FirstEntry.UnmarshalBinary(data)
 	}
 	return nil
