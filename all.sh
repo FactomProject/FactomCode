@@ -17,6 +17,14 @@ checkout() {
     cd ..
 }
 
+compile() {
+    current=`pwd`
+    cd $1
+    echo $1
+    go install
+    cd $current
+}
+
 checkout btcd $1
 checkout btcjson $1
 checkout btclog  $1
@@ -43,5 +51,10 @@ checkout snappy-go  $1
 checkout websocket  $1
 checkout FactomCode $1
 
+compile factoid/fctwallet 
+compile factom-cli  
+compile FactomCode/factomd 
+
 cd FactomCode
+
 

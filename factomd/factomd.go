@@ -18,7 +18,8 @@ import (
 	"github.com/FactomProject/FactomCode/wsapi"
 	"github.com/FactomProject/btcd"
 	"github.com/FactomProject/btcd/limits"
-	"github.com/FactomProject/btcd/wire"		
+	"github.com/FactomProject/btcd/wire"	
+	"time"	
 )
 
 var (
@@ -89,6 +90,14 @@ func factomdMain() error {
 	// Start the wsapi server module in a separate go-routine
 	wsapi.Start(db, inMsgQueue)
 
+	// wait till the initialization is complete in processor - to be improved??
+	for i:=0 ; i < 10; i++ {
+		latestDirBlockHash, _, _ := db.FetchBlockHeightCache()
+		if latestDirBlockHash == nil {
+			time.Sleep(1 * time.Second) 
+		}
+	}
+	
 	// Start the factoid (btcd) component and P2P component
 	btcd.Start_btcd(db, inMsgQueue, outMsgQueue, inCtlMsgQueue, outCtlMsgQueue, process.FactomdUser, process.FactomdPass, common.SERVER_NODE != cfg.App.NodeMode)
 

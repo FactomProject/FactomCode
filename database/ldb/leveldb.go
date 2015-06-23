@@ -95,9 +95,8 @@ type LevelDb struct {
 
 	lastDirBlkShaCached 	bool
 	lastDirBlkSha       	*wire.ShaHash
-	lastDirBlkHeight       	int64
+	lastDirBlkHeight       	int64 
 }
-
 var CurrentDBVersion int32 = 1
 
 //to be removed??
@@ -113,10 +112,12 @@ func openDB(dbpath string, create bool) (pbdb database.Db, err error) {
 	defer func() {
 		if err == nil {
 			db.lDb = tlDb
-
+			
+			// Initialize db
+			db.lastDirBlkHeight = -1
 			//			db.txUpdateMap = map[wire.ShaHash]*txUpdateObj{}
 			//			db.txSpentUpdateMap = make(map[wire.ShaHash]*spentTxUpdate)
-
+						
 			pbdb = &db
 		}
 	}()

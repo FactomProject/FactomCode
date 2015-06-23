@@ -131,7 +131,7 @@ func (db *LevelDb)	FetchHeightRange(startHeight, endHeight int64) (rshalist []wi
 
 	var endidx int64
 	if endHeight == database.AllShas {
-		endidx = startHeight + 500
+		endidx = startHeight + wire.MaxBlocksPerMsg
 	} else {
 		endidx = endHeight
 	}
@@ -235,6 +235,8 @@ func (db *LevelDb) FetchDBlockByHash(dBlockHash *common.Hash) (*common.Directory
 			return dBlock, err
 		}
 	}
+	
+	dBlock.DBHash = dBlockHash
 
 	return dBlock, nil
 }

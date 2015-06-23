@@ -159,14 +159,14 @@ func validateAndStoreBlocks(fMemPool *ftmMemPool, db database.Db, dchain *common
 			dblk = dchain.Blocks[myDBHeight+1]
 		}
 		if dblk != nil {
-			if validateBlocksFromMemPool(dblk, fMemPool, db) {
+			//if validateBlocksFromMemPool(dblk, fMemPool, db) {
 				err := storeBlocksFromMemPool(dblk, fMemPool, db)
 				if err == nil {
 					deleteBlocksFromMemPool(dblk, fMemPool)
 				} else {
 					panic("error in deleteBlocksFromMemPool.")
 				}
-			}
+			//}
 		} else {
 			//send an internal msg to sync up with peers
 		}
@@ -179,6 +179,7 @@ func validateAndStoreBlocks(fMemPool *ftmMemPool, db database.Db, dchain *common
 // Validate the new blocks in mem pool and store them in db
 func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db database.Db) bool {
 
+	// Validate the genesis block
 	if b.Header.BlockHeight == 0 {
 		h, _ := common.CreateHash(b)
 		if h.String() != common.GENESIS_DIR_BLOCK_HASH {
