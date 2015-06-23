@@ -1,6 +1,8 @@
 package ldb
 
 import (
+	"fmt" // DEBUG
+	
 	"encoding/binary"
 	"errors"
 	"github.com/FactomProject/FactomCode/common"
@@ -142,6 +144,7 @@ func (db *LevelDb) FetchEBHashByMR(eBMR *common.Hash) (*common.Hash, error) {
 
 // InsertChain inserts the newly created chain into db
 func (db *LevelDb) InsertChain(chain *common.EChain) (err error) {
+	fmt.Printf("DEBUG: InsertChain(%#v\n)", chain)
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 

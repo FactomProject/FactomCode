@@ -101,7 +101,7 @@ func initProcessor() {
 	fMemPool.init_ftmMemPool()
 
 	// init wire.FChainID
-	wire.FChainID = new(common.Hash)
+	wire.FChainID = common.NewHash()
 	wire.FChainID.SetBytes(common.FACTOID_CHAINID)
 
 	FactoshisPerCredit = 666667 // .001 / .15 * 100000000 (assuming a Factoid is .15 cents, entry credit = .1 cents
@@ -332,7 +332,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 
                     pub := new([32]byte)
                     copy(pub[:], ecout.GetAddress().Bytes())
-                    th := new(common.Hash)
+                    th := common.NewHash()
                     th.SetBytes(t.GetHash().Bytes())
                     credits := int32(ecout.GetAmount() / uint64(FactoshisPerCredit))
                     processBuyEntryCredit(pub, credits, th)
@@ -495,8 +495,9 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 		}
 
 		// add new chain to chainIDMap
-		newChain := new(common.EChain)
+		newChain := common.NewEChain()
 		newChain.ChainID = e.ChainID
+		fmt.Println("DEBUG: new chain created with first entry:", e)
 		newChain.FirstEntry = e
 		chainIDMap[e.ChainID.String()] = newChain
 
@@ -669,7 +670,7 @@ func buildCommitChain(msg *wire.MsgCommitChain) {
 
 /*
 func buildFactoidObj(msg *wire.MsgInt_FactoidObj) {
-	factoidTxHash := new(common.Hash)
+	factoidTxHash := common.NewHash()
 	factoidTxHash.SetBytes(msg.TxSha.Bytes())
 
 	for k, v := range msg.EntryCredits {
@@ -682,21 +683,21 @@ func buildFactoidObj(msg *wire.MsgInt_FactoidObj) {
 */
 
 func buildRevealChain(msg *wire.MsgRevealEntry) {
-
-	newChain := chainIDMap[msg.Entry.ChainID.String()]
+	chain := chainIDMap[msg.Entry.ChainID.String()]
 
 	// Store the new chain in db
-	db.InsertChain(newChain)
+	fmt.Println("DEBUG: buildRevealChain: db.InsertChain:", chain)
+	db.InsertChain(chain)
 
 	// Chain initialization
-	initEChainFromDB(newChain)
+	initEChainFromDB(chain)
 
 	// store the new entry in db
-	entryBinary, _ := newChain.FirstEntry.MarshalBinary()
+	entryBinary, _ := chain.FirstEntry.MarshalBinary()
 	entryHash := common.Sha(entryBinary)
-	db.InsertEntry(entryHash, newChain.FirstEntry)
+	db.InsertEntry(entryHash, chain.FirstEntry)
 
-	err := newChain.NextBlock.AddEBEntry(newChain.FirstEntry)
+	err := chain.NextBlock.AddEBEntry(chain.FirstEntry)
 
 	if err != nil {
 		panic(fmt.Sprintf(`Error while adding the First Entry to Block: %s`,
@@ -712,7 +713,8 @@ func buildEndOfMinute(pl *consensus.ProcessList, pli *consensus.ProcessListItem)
 	for i := pli.Ack.Index; i >= 0; i-- {
 		if wire.END_MINUTE_1 <= items[i].Ack.Type && items[i].Ack.Type <= wire.END_MINUTE_10 {
 			break
-		} else if items[i].Ack.Type == wire.ACK_REVEAL_ENTRY && tempChainMap[items[i].Ack.ChainID.String()] == nil {
+		} else if items[i].Ack.Type == wire.ACK_REVEAL_ENTRY || items[i].Ack.Type == wire.ACK_REVEAL_CHAIN && tempChainMap[items[i].Ack.ChainID.String()] == nil {
+			fmt.Println("DEBUG: buildEndOfMinute: adding chain to tempChainMap")
 
 			chain := chainIDMap[items[i].Ack.ChainID.String()]
 			chain.NextBlock.AddEndOfMinuteMarker(pli.Ack.Type)
