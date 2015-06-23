@@ -476,7 +476,8 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 
 		// Add to MyPL if Server Node
 		if nodeMode == common.SERVER_NODE {
-			ack, err := plMgr.AddMyProcessListItem(msg, h, wire.ACK_REVEAL_ENTRY)
+			ack, err := plMgr.AddMyProcessListItem(msg, h,
+				wire.ACK_REVEAL_ENTRY)
 			if err != nil {
 				return err
 			} else {
@@ -690,6 +691,7 @@ func buildRevealChain(msg *wire.MsgRevealEntry) {
 
 	newChain := chainIDMap[msg.Entry.ChainID.String()]
 
+	fmt.Println("DEBUG: adding chain from chainIDMap to database:", newChain)
 	// Store the new chain in db
 	db.InsertChain(newChain)
 
@@ -704,7 +706,8 @@ func buildRevealChain(msg *wire.MsgRevealEntry) {
 	err := newChain.NextBlock.AddEBEntry(newChain.FirstEntry)
 
 	if err != nil {
-		panic(fmt.Sprintf(`Error while adding the First Entry to Block: %s`, err.Error()))
+		panic(fmt.Sprintf(`Error while adding the First Entry to Block: %s`,
+			err.Error()))
 	}
 }
 

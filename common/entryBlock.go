@@ -60,7 +60,6 @@ func NewEBlock() *EBlock {
 	e.EBEntries = make([]*EBEntry, 0)
 	e.EBHash = NewHash()
 	e.MerkleRoot = NewHash()
-	e.Chain = NewEChain()
 	
 	return e
 }
