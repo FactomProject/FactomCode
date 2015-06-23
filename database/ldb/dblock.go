@@ -235,6 +235,8 @@ func (db *LevelDb) FetchDBlockByHash(dBlockHash *common.Hash) (*common.Directory
 			return dBlock, err
 		}
 	}
+	
+	dBlock.DBHash = dBlockHash
 
 	return dBlock, nil
 }
