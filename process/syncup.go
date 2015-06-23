@@ -171,7 +171,7 @@ func validateAndStoreBlocks(fMemPool *ftmMemPool, db database.Db, dchain *common
 			//send an internal msg to sync up with peers
 		}
 
-		time.Sleep(time.Duration(sleeptime * 100000)) // Nanoseconds for duration
+		time.Sleep(time.Duration(sleeptime * 1000)) // Nanoseconds for duration
 	}
 
 }
