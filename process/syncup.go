@@ -159,14 +159,14 @@ func validateAndStoreBlocks(fMemPool *ftmMemPool, db database.Db, dchain *common
 			dblk = dchain.Blocks[myDBHeight+1]
 		}
 		if dblk != nil {
-			if validateBlocksFromMemPool(dblk, fMemPool, db) {
+			//if validateBlocksFromMemPool(dblk, fMemPool, db) {
 				err := storeBlocksFromMemPool(dblk, fMemPool, db)
 				if err == nil {
 					deleteBlocksFromMemPool(dblk, fMemPool)
 				} else {
 					panic("error in deleteBlocksFromMemPool.")
 				}
-			}
+			//}
 		} else {
 			//send an internal msg to sync up with peers
 		}
@@ -226,7 +226,7 @@ func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, d
 // Validate the new blocks in mem pool and store them in db
 // Need to make a batch insert in db in milestone 2
 func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db database.Db) error {
-
+/*
 	for _, dbEntry := range b.DBEntries {
 		switch dbEntry.ChainID.String() {
 		case ecchain.ChainID.String():
@@ -296,7 +296,7 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 				db.InsertChain(chain)
 			}
 		}
-	}
+	}*/
 
 	// Store the dir block
 	err := db.ProcessDBlockBatch(b)
@@ -316,7 +316,7 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 
 // Validate the new blocks in mem pool and store them in db
 func deleteBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool) error {
-
+/*
 	for _, dbEntry := range b.DBEntries {
 		switch dbEntry.ChainID.String() {
 		case ecchain.ChainID.String():
@@ -332,7 +332,7 @@ func deleteBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool) err
 			}
 			delete(fMemPool.blockpool, dbEntry.MerkleRoot.String())
 		}
-	}
+	}*/
 	delete(fMemPool.blockpool, strconv.Itoa(int(b.Header.BlockHeight)))
 
 	return nil
