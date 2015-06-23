@@ -470,18 +470,18 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 		if int32(c.Credits) < cred {
 			fMemPool.addOrphanMsg(msg, h)
 			return fmt.Errorf("Credit needs to paid first before an entry is revealed: %s", e.Hash().String())
-			// Add the msg to the Mem pool
-			fMemPool.addMsg(msg, h)
+		}
+		// Add the msg to the Mem pool
+		fMemPool.addMsg(msg, h)
 
-			// Add to MyPL if Server Node
-			if nodeMode == common.SERVER_NODE {
-				ack, err := plMgr.AddMyProcessListItem(msg, h, wire.ACK_REVEAL_ENTRY)
-				if err != nil {
-					return err
-				} else {
-					// Broadcast the ack to the network if no errors
-					outMsgQueue <- ack
-				}
+		// Add to MyPL if Server Node
+		if nodeMode == common.SERVER_NODE {
+			ack, err := plMgr.AddMyProcessListItem(msg, h, wire.ACK_REVEAL_ENTRY)
+			if err != nil {
+				return err
+			} else {
+				// Broadcast the ack to the network if no errors
+				outMsgQueue <- ack
 			}
 		}
 
@@ -496,28 +496,30 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 		}
 
 		// add new chain to chainIDMap
-		fmt.Println("DEBUG: processRevealEntry: adding new chain to chainIDMap")
 		newChain := new(common.EChain)
 		newChain.ChainID = e.ChainID
 		newChain.FirstEntry = e
+		fmt.Println("DEBUG: processRevealEntry: adding new chain to chainIDMap", newChain)
 		chainIDMap[e.ChainID.String()] = newChain
 
 		cred := int32(binary.Size(bin)/1024 + 1 + 10)
 		if int32(c.Credits) < cred {
 			fMemPool.addOrphanMsg(msg, h)
 			return fmt.Errorf("Credit needs to paid first before an entry is revealed: %s", e.Hash().String())
-			// Add the msg to the Mem pool
-			fMemPool.addMsg(msg, h)
+		}
+		// Add the msg to the Mem pool
+		fMemPool.addMsg(msg, h)
 
-			// Add to MyPL if Server Node
-			if nodeMode == common.SERVER_NODE {
-				ack, err := plMgr.AddMyProcessListItem(msg, h, wire.ACK_REVEAL_CHAIN)
-				if err != nil {
-					return err
-				} else {
-					// Broadcast the ack to the network if no errors
-					outMsgQueue <- ack
-				}
+		// Add to MyPL if Server Node
+		if nodeMode == common.SERVER_NODE {
+			fmt.Println("DEBUG: adding to process list")
+			ack, err := plMgr.AddMyProcessListItem(msg, h,
+				wire.ACK_REVEAL_CHAIN)
+			if err != nil {
+				return err
+			} else {
+				// Broadcast the ack to the network if no errors
+				outMsgQueue <- ack
 			}
 		}
 
