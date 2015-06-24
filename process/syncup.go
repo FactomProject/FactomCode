@@ -152,7 +152,7 @@ func validateAndStoreBlocks(fMemPool *ftmMemPool, db database.Db, dchain *common
 		if adj <= 0 {
 			adj = 1
 		}
-		// in milliseconds
+		// in microseconds
 		sleeptime = 100 + 1000/adj
 
 		if len(dchain.Blocks) > int(myDBHeight+1) {
@@ -168,10 +168,12 @@ func validateAndStoreBlocks(fMemPool *ftmMemPool, db database.Db, dchain *common
 				}
 			}
 		} else {
+			time.Sleep(time.Duration(sleeptime * 1000)) // Nanoseconds for duration
+					
 			//send an internal msg to sync up with peers
+			// ??
 		}
 
-		time.Sleep(time.Duration(sleeptime * 1000000)) // Nanoseconds for duration
 	}
 
 }
