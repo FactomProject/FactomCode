@@ -29,3 +29,5 @@ func Trace(params ...string) {
 
 	fmt.Printf("TRACE: %s line %d %s file: %s\n", timestamp, line, f.Name(), file)
 }
+
+
