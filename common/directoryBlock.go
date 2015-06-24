@@ -334,7 +334,6 @@ func CreateDBlock(chain *DChain, prev *DirectoryBlock, cap uint) (b *DirectoryBl
 func (c *DChain) AddEBlockToDBEntry(eb *EBlock) (err error) {
 
 	dbEntry := NewDBEntry(eb)
-
 	c.BlockMutex.Lock()
 	c.NextBlock.DBEntries = append(c.NextBlock.DBEntries, dbEntry)
 	c.BlockMutex.Unlock()
