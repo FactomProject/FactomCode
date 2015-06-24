@@ -159,19 +159,23 @@ func validateAndStoreBlocks(fMemPool *ftmMemPool, db database.Db, dchain *common
 			dblk = dchain.Blocks[myDBHeight+1]
 		}
 		if dblk != nil {
-			//if validateBlocksFromMemPool(dblk, fMemPool, db) {
+			if validateBlocksFromMemPool(dblk, fMemPool, db) {
 				err := storeBlocksFromMemPool(dblk, fMemPool, db)
 				if err == nil {
 					deleteBlocksFromMemPool(dblk, fMemPool)
 				} else {
 					panic("error in deleteBlocksFromMemPool.")
 				}
-			//}
+			}
 		} else {
+			
+			time.Sleep(time.Duration(sleeptime * 1000)) // Nanoseconds for duration
+					
 			//send an internal msg to sync up with peers
+			// ??
 		}
+		
 
-		time.Sleep(time.Duration(sleeptime * 1000)) // Nanoseconds for duration
 	}
 
 }
