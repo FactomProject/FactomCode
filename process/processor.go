@@ -497,7 +497,6 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 		// add new chain to chainIDMap
 		newChain := common.NewEChain()
 		newChain.ChainID = e.ChainID
-		fmt.Println("DEBUG: new chain created with first entry:", e)
 		newChain.FirstEntry = e
 		chainIDMap[e.ChainID.String()] = newChain
 
@@ -686,7 +685,6 @@ func buildRevealChain(msg *wire.MsgRevealEntry) {
 	chain := chainIDMap[msg.Entry.ChainID.String()]
 
 	// Store the new chain in db
-	fmt.Println("DEBUG: buildRevealChain: db.InsertChain:", chain)
 	db.InsertChain(chain)
 
 	// Chain initialization
@@ -714,7 +712,6 @@ func buildEndOfMinute(pl *consensus.ProcessList, pli *consensus.ProcessListItem)
 		if wire.END_MINUTE_1 <= items[i].Ack.Type && items[i].Ack.Type <= wire.END_MINUTE_10 {
 			break
 		} else if items[i].Ack.Type == wire.ACK_REVEAL_ENTRY || items[i].Ack.Type == wire.ACK_REVEAL_CHAIN && tempChainMap[items[i].Ack.ChainID.String()] == nil {
-			fmt.Println("DEBUG: buildEndOfMinute: adding chain to tempChainMap")
 
 			chain := chainIDMap[items[i].Ack.ChainID.String()]
 			chain.NextBlock.AddEndOfMinuteMarker(pli.Ack.Type)
