@@ -326,12 +326,11 @@ func (b *EBlock) MarshalBinary() (data []byte, err error) {
 
 	count := uint64(len(b.EBEntries))
 	binary.Write(&buf, binary.BigEndian, count)
-	for i := uint64(0); i < count; i = i + 1 {
-		data, err := b.EBEntries[i].MarshalBinary()
+	for _, v := range b.EBEntries {
+		data, err := v.MarshalBinary()
 		if err != nil {
 			return nil, err
 		}
-
 		buf.Write(data)
 	}
 

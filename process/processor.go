@@ -282,7 +282,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 				plMgr.AddMyProcessListItem(msgEom, nil, wire.END_MINUTE_10)
 				// Set exchange rate in the Factoid State
 				common.FactoidState.SetFactoshisPerEC(FactoshisPerCredit)
-
+				
 				err := buildBlocks()
 				if err != nil {
 					return err
@@ -711,7 +711,7 @@ func buildEndOfMinute(pl *consensus.ProcessList, pli *consensus.ProcessListItem)
 	for i := pli.Ack.Index; i >= 0; i-- {
 		if wire.END_MINUTE_1 <= items[i].Ack.Type && items[i].Ack.Type <= wire.END_MINUTE_10 {
 			break
-		} else if items[i].Ack.Type == wire.ACK_REVEAL_ENTRY || items[i].Ack.Type == wire.ACK_REVEAL_CHAIN && tempChainMap[items[i].Ack.ChainID.String()] == nil {
+		} else if (items[i].Ack.Type == wire.ACK_REVEAL_ENTRY || items[i].Ack.Type == wire.ACK_REVEAL_CHAIN) && tempChainMap[items[i].Ack.ChainID.String()] == nil {
 
 			chain := chainIDMap[items[i].Ack.ChainID.String()]
 			chain.NextBlock.AddEndOfMinuteMarker(pli.Ack.Type)
@@ -737,7 +737,6 @@ func buildEndOfMinute(pl *consensus.ProcessList, pli *consensus.ProcessListItem)
 
 // build Genesis blocks
 func buildGenesisBlocks() error {
-
 	// Allocate the first two dbentries for ECBlock and Factoid block
 	dchain.AddDBEntry(&common.DBEntry{}) // AdminBlock
 	dchain.AddDBEntry(&common.DBEntry{}) // ECBlock
