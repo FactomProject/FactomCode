@@ -91,10 +91,13 @@ func factomdMain() error {
 	wsapi.Start(db, inMsgQueue)
 
 	// wait till the initialization is complete in processor - to be improved??
-	for i:=0 ; i < 10; i++ {
-		latestDirBlockHash, _, _ := db.FetchBlockHeightCache()
-		if latestDirBlockHash == nil {
-			time.Sleep(1 * time.Second) 
+	hash, _ := db.FetchDBHashByHeight(0)	
+	if hash != nil {
+		for i:=0 ; i < 10; i++ {
+			latestDirBlockHash, _, _ := db.FetchBlockHeightCache()
+			if latestDirBlockHash == nil {
+				time.Sleep(1 * time.Second) 
+			}
 		}
 	}
 	
