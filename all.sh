@@ -21,7 +21,7 @@ checkout() {
 compile() {
     current=`pwd`
     cd $1
-    echo $1
+    echo "Compiling: " $1
     go install
     cd $current
 }
