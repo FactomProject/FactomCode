@@ -391,15 +391,6 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
 		}
 
-	case wire.CmdTestCredit:
-		cred, ok := msg.(*wire.MsgTestCredit)
-		if !ok {
-			return fmt.Errorf("Error adding test entry credits")
-		}
-		if err := processTestCredit(cred); err != nil {
-			return err
-		}
-
 	case wire.CmdEntry:
 		if nodeMode == common.SERVER_NODE {
 			break
@@ -419,18 +410,6 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		return errors.New("Message type unsupported:" + fmt.Sprintf("%+v", msg))
 	}
 
-	return nil
-}
-
-// processTestCedits assignes credits to a specified publick key for testing
-// against the local node. This credit purchase should never propigate across
-// the network.
-// TODO remove this before production
-func processTestCredit(msg *wire.MsgTestCredit) error {
-	if _, exists := eCreditMap[string(msg.ECKey[:])]; !exists {
-		eCreditMap[string(msg.ECKey[:])] = 0
-	}
-	eCreditMap[string(msg.ECKey[:])] += msg.Amt
 	return nil
 }
 
