@@ -6,7 +6,7 @@ package common
 
 import (
 	"encoding/hex"
-	"github.com/agl/ed25519"
+	"github.com/FactomProject/ed25519"
 )
 
 type DetachedSignature [ed25519.SignatureSize]byte

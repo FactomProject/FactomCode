@@ -3,7 +3,7 @@ package common
 import (
 	"crypto/rand"
 	"encoding/hex"
-	"github.com/agl/ed25519"
+	"github.com/FactomProject/ed25519"
 	"errors"
 )
 
