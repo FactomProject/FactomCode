@@ -60,27 +60,12 @@ func Start(db database.Db, inMsgQ chan wire.FtmInternalMsg) {
     server.Post("/v1/factoid-submit/?", handleFactoidSubmit)
     server.Get("/v1/factoid-get-fee/",handleGetFee)
     
-	// TODO remove before production
-	server.Get("/v1/test-credit/([^/]+)", handleTestCredit)
-
 	wsLog.Info("Starting server")
 	go server.Run("localhost:" + strconv.Itoa(portNumber))
 }
 
 func Stop() {
 	server.Close()
-}
-
-// TODO remove before production
-func handleTestCredit(ctx *web.Context, eckey string) {
-	p, err := hex.DecodeString(eckey)
-	if err != nil {
-		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
-		return
-	}
-	factomapi.TestCredit(p, 100)
-	ctx.WriteHeader(httpOK)
 }
 
 func handleCommitChain(ctx *web.Context) {
@@ -376,25 +361,21 @@ func handleEntryCreditBalance(ctx *web.Context, eckey string) {
 	type ecbal struct {
 		Balance uint32
 	}
-
+    
 	b := new(ecbal)
 	if bal, err := factomapi.ECBalance(eckey); err != nil {
 		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
 		return
 	} else {
 		b.Balance = bal
 	}
-
 	if p, err := json.Marshal(b); err != nil {
 		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
 		return
 	} else {
 		ctx.Write(p)
 	}
 
-	ctx.WriteHeader(httpOK)
 }
 
 func handleFactoidBalance(ctx *web.Context, eckey string) {
@@ -413,7 +394,6 @@ func handleFactoidBalance(ctx *web.Context, eckey string) {
     
     if p, err := json.Marshal(b); err != nil {
         wsLog.Error(err)
-        ctx.WriteHeader(httpBad)
         return
     } else {
         ctx.Write(p)

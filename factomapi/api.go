@@ -10,22 +10,16 @@ import (
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/database"
-	"github.com/FactomProject/FactomCode/process"
+    "github.com/FactomProject/FactomCode/process"
+    fct "github.com/FactomProject/factoid"
+    
+    
 )
 
 var (
 	db     database.Db
 	inMsgQ chan wire.FtmInternalMsg
 )
-
-// TODO remove before production
-func TestCredit(key []byte, amt int32) {
-	msg := wire.NewMsgTestCredit()
-	copy(msg.ECKey[:], key)
-	msg.Amt = amt
-
-	inMsgQ <- msg
-}
 
 func ChainHead(chainid string) (*common.EBlock, error) {
 	h, err := atoh(chainid)
@@ -53,12 +47,12 @@ func CommitEntry(c *common.CommitEntry) error {
 	return nil
 }
 
-// func FactoidTX(t factoid.ITransaction) error {
-//     m := wire.NewFactoidTX()
-//     m.setTransaction(t)
-//     inMsgQ <- m
-//     return nil
-// }
+ func FactoidTX(t fct.ITransaction) error {
+     m := new(wire.MsgFactoidTX)
+     m.SetTransaction(t)
+     inMsgQ <- m
+     return nil
+}
 
 func DBlockByKeyMR(keymr string) (*common.DirectoryBlock, error) {
 	key, err := atoh(keymr)

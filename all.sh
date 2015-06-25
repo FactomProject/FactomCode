@@ -7,6 +7,7 @@ echo checking out $1
 #
 # In all cases we do a pull.  Something might have changed.
 checkout() {
+    current=`pwd` 
     cd $1
     echo $1
     git pull
@@ -14,7 +15,7 @@ checkout() {
     then
         git checkout $2
     fi
-    cd ..
+    cd $current
 }
 
 compile() {
