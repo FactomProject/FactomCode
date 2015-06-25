@@ -28,6 +28,11 @@ func (db *LevelDb) ProcessECBlockBatch(block *common.ECBlock) error {
 		key = append(key, block.KeyMR().Bytes()...)
 		db.lbatch.Put(key, binaryBlock)
 
+		// Update the chain head reference
+		key = []byte{byte(TBL_CHAIN_HEAD)}
+		key = append(key, block.Header.ECChainID.Bytes()...)
+		db.lbatch.Put(key, block.KeyMR().Bytes())	
+		
 		err = db.lDb.Write(db.lbatch, db.wo)
 		if err != nil {
 			log.Println("batch failed %v\n", err)

@@ -93,6 +93,11 @@ func (db *LevelDb) ProcessDBlockBatch(dblock *common.DirectoryBlock) error {
 		key = append(key, dblock.KeyMR.Bytes()...)
 		binaryDBHash, _ := dblock.DBHash.MarshalBinary()
 		db.lbatch.Put(key, binaryDBHash)
+		
+		// Update the chain head reference
+		key = []byte{byte(TBL_CHAIN_HEAD)}
+		key = append(key, common.D_CHAINID ...)
+		db.lbatch.Put(key, dblock.KeyMR.Bytes())		
 
 		err = db.lDb.Write(db.lbatch, db.wo)
 		if err != nil {
@@ -307,6 +312,30 @@ func (db *LevelDb) FetchDBlockByMR(dBMR *common.Hash) (*common.DirectoryBlock, e
 	}
 
 	return dBlock, nil
+}
+
+// FetchHeadMRByChainID gets a MR of the highest block from the database.
+func (db *LevelDb) FetchHeadMRByChainID(chainID *common.Hash) (blkMR *common.Hash, err error) {
+	if chainID == nil {
+		return nil, nil
+	}
+		
+	db.dbLock.Lock()
+	defer db.dbLock.Unlock()
+
+	var key []byte = []byte{byte(TBL_CHAIN_HEAD)}
+	key = append(key, chainID.Bytes() ...)
+	data, err := db.lDb.Get(key, db.ro)
+	if err != nil {
+		return nil, err
+	}
+
+	blkMR = common.NewHash()
+	if err = blkMR.UnmarshalBinary(data); err != nil {
+		return blkMR, err
+	}
+
+	return blkMR, nil
 }
 
 // FetchAllDBlocks gets all of the fbInfo

@@ -152,5 +152,6 @@ type Db interface {
 	// FetchBlockHeightCache returns the hash and block height of the most recent dir block
 	FetchBlockHeightCache() ( sha *wire.ShaHash, height int64, err error)	
     
-    
+	// FtchHeadMRByChainID gets a MR of the highest block from the database.
+	FetchHeadMRByChainID(chainID *common.Hash) (blkMR *common.Hash, err error)   
 }

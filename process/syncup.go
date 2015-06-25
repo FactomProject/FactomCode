@@ -281,8 +281,6 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 			if err != nil {
 				return err
 			}
-			// for debugging
-			exportEBlock(eBlkMsg.EBlk)		
 			
 			// create a chain in db if it's not existing
 			chain := chainIDMap[eBlkMsg.EBlk.Header.ChainID.String()]
@@ -298,6 +296,9 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 				chain.FirstEntry, _ = db.FetchEntryByHash(eBlkMsg.EBlk.EBEntries[0].EntryHash)
 				db.InsertChain(chain)
 			}
+			
+			// for debugging
+			exportEBlock(eBlkMsg.EBlk)					
 		}
 	}
 

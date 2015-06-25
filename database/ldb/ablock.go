@@ -41,6 +41,11 @@ func (db *LevelDb) ProcessABlockBatch(block *common.AdminBlock) error {
 		key = append(key, bytes...)
 		db.lbatch.Put(key, block.ABHash.Bytes())		
 
+		// Update the chain head reference
+		key = []byte{byte(TBL_CHAIN_HEAD)}
+		key = append(key, block.Header.ChainID.Bytes()...)
+		db.lbatch.Put(key, block.ABHash.Bytes())
+
 		err = db.lDb.Write(db.lbatch, db.wo)
 		if err != nil {
 			log.Println("batch failed %v\n", err)

@@ -39,6 +39,11 @@ func (db *LevelDb) ProcessFBlockBatch(block block.IFBlock) error {
         binary.BigEndian.PutUint32(bytes, block.GetDBHeight())
 		key = append(key, bytes...)
         db.lbatch.Put(key, scHash.Bytes())		
+        
+		// Update the chain head reference
+		key = []byte{byte(TBL_CHAIN_HEAD)}
+		key = append(key, block.GetChainID().Bytes()...)
+		db.lbatch.Put(key,scHash.Bytes())	        
 
 		err = db.lDb.Write(db.lbatch, db.wo)
 		if err != nil {

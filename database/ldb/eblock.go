@@ -56,6 +56,11 @@ func (db *LevelDb) ProcessEBlockBatch(eblock *common.EBlock) error {
 		key = append(key, bytes...)
 		db.lbatch.Put(key, binaryEBHash)
 
+		// Update the chain head reference
+		key = []byte{byte(TBL_CHAIN_HEAD)}
+		key = append(key, eblock.Header.ChainID.Bytes()...)
+		db.lbatch.Put(key, eblock.MerkleRoot.Bytes())
+
 		err = db.lDb.Write(db.lbatch, db.wo)
 		if err != nil {
 			log.Println("batch failed %v\n", err)

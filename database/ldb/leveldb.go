@@ -45,15 +45,16 @@ const (
 	// Entry Credit Block
 	TBL_CB //6
 	TBL_CB_NUM
-	TBL_CB_MR
-
-	
+	TBL_CB_MR	
 
 	// Entry Chain
 	TBL_CHAIN_HASH //9
 	
+	// The latest Block MR for chains including special chains
+	TBL_CHAIN_HEAD
+	
 	// Entry Block
-	TBL_EB //10
+	TBL_EB //11
 	TBL_EB_CHAIN_NUM
 	TBL_EB_MR
 	
