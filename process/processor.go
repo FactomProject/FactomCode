@@ -822,7 +822,6 @@ func buildBlocks() error {
 		chain := chainIDMap[k]
 		eblock := newEntryBlock(chain)
 		if eblock != nil {
-			fmt.Println("DEBUG: adding eblock:", eblock)
 			dchain.AddEBlockToDBEntry(eblock)
 		}
 		exportEBlock(eblock)
