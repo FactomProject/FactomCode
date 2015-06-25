@@ -93,10 +93,13 @@ func factomdMain() error {
 	// wait till the initialization is complete in processor - to be improved??
 	hash, _ := db.FetchDBHashByHeight(0)	
 	if hash != nil {
-		for i:=0 ; i < 10; i++ {
+		for true {
 			latestDirBlockHash, _, _ := db.FetchBlockHeightCache()
 			if latestDirBlockHash == nil {
-				time.Sleep(1 * time.Second) 
+				fmt.Println("Waiting for the processor to be initialized...")				
+				time.Sleep(3 * time.Second) 
+			} else {
+				break
 			}
 		}
 	}
