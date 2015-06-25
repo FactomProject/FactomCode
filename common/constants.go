@@ -37,17 +37,6 @@ const (
 )
 
 //---------------------------------------------------------------
-// Types of entries (transactions) for Entry Credit Block
-//---------------------------------------------------------------
-const (
-	TYPE_SERVER_INDEX uint8 = iota
-	TYPE_MINUTE_NUMBER
-	TYPE_PAY_CHAIN
-	TYPE_PAY_ENTRY
-	TYPE_BUY
-)
-
-//---------------------------------------------------------------
 // Types of entries (transactions) for Admin Block
 // https://github.com/FactomProject/FactomDocs/blob/master/factomDataStructureDetails.md#adminid-bytes
 //---------------------------------------------------------------
