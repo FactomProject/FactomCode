@@ -43,7 +43,7 @@ func (db *LevelDb) ProcessABlockBatch(block *common.AdminBlock) error {
 
 		// Update the chain head reference
 		key = []byte{byte(TBL_CHAIN_HEAD)}
-		key = append(key, block.Header.ChainID.Bytes()...)
+		key = append(key, common.ADMIN_CHAINID ...)
 		db.lbatch.Put(key, block.ABHash.Bytes())
 
 		err = db.lDb.Write(db.lbatch, db.wo)
