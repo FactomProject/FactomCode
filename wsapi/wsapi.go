@@ -337,12 +337,12 @@ func handleChainHead(ctx *web.Context, chainid string) {
 	}
 
 	c := new(chead)
-	if block, err := factomapi.ChainHead(chainid); err != nil {
+	if mr, err := factomapi.ChainHead(chainid); err != nil {
 		wsLog.Error(err)
 		ctx.WriteHeader(httpBad)
 		return
 	} else {
-		c.EntryBlockKeyMR = block.MerkleRoot.String()
+		c.EntryBlockKeyMR = mr.String()
 	}
 
 	if p, err := json.Marshal(c); err != nil {
