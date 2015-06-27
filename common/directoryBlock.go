@@ -9,9 +9,9 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/FactomProject/factoid/block"
 	"reflect"
 	"sync"
-    "github.com/FactomProject/factoid/block"
 )
 
 const DBlockVersion = 0
@@ -29,22 +29,22 @@ func NewDChain() *DChain {
 	d := new(DChain)
 	d.Blocks = make([]*DirectoryBlock, 0)
 	d.NextBlock = NewDirectoryBlock()
-	
+
 	return d
 }
 
 type DirectoryBlock struct {
 	//Marshalized
-	Header    		*DBlockHeader
-	DBEntries 		[]*DBEntry
+	Header    *DBlockHeader
+	DBEntries []*DBEntry
 
 	//Not Marshalized
-	Chain       	*DChain
-	IsSealed    	bool
-	DBHash      	*Hash
-	KeyMR       	*Hash
-	IsSavedInDB 	bool
-	IsValidated     bool
+	Chain       *DChain
+	IsSealed    bool
+	DBHash      *Hash
+	KeyMR       *Hash
+	IsSavedInDB bool
+	IsValidated bool
 }
 
 func NewDirectoryBlock() *DirectoryBlock {
@@ -53,7 +53,7 @@ func NewDirectoryBlock() *DirectoryBlock {
 	d.DBEntries = make([]*DBEntry, 0)
 	d.DBHash = NewHash()
 	d.KeyMR = NewHash()
-	
+
 	return d
 }
 
@@ -104,7 +104,7 @@ func NewDBlockHeader() *DBlockHeader {
 	d.BodyMR = NewHash()
 	d.PrevKeyMR = NewHash()
 	d.PrevBlockHash = NewHash()
-	
+
 	return d
 }
 
@@ -230,7 +230,10 @@ func (b *DBlockHeader) MarshalBinary() (data []byte, err error) {
 	buf.Write([]byte{b.Version})
 	binary.Write(&buf, binary.BigEndian, b.NetworkID)
 
-    if b.BodyMR == nil { b.BodyMR = new(Hash); b.BodyMR.SetBytes(new([32]byte)[:]) }
+	if b.BodyMR == nil {
+		b.BodyMR = new(Hash)
+		b.BodyMR.SetBytes(new([32]byte)[:])
+	}
 	data, err = b.BodyMR.MarshalBinary()
 	if err != nil {
 		return
@@ -381,25 +384,25 @@ func (c *DChain) AddABlockToDBEntry(b *AdminBlock) (err error) {
 // Add DBEntry from an SC Block
 func (c *DChain) AddFBlockToDBEntry(b block.IFBlock) (err error) {
 
-    dbEntry := &DBEntry{}
-    dbEntry.ChainID = new(Hash)
-    dbEntry.ChainID.SetBytes(b.GetChainID().Bytes())
+	dbEntry := &DBEntry{}
+	dbEntry.ChainID = new(Hash)
+	dbEntry.ChainID.SetBytes(b.GetChainID().Bytes())
 
-    data,err := b.MarshalBinary()
+	data, err := b.MarshalBinary()
 
-    dbEntry.MerkleRoot = Sha(data)
+	dbEntry.MerkleRoot = Sha(data)
 
-    if len(c.NextBlock.DBEntries) < 3 {
-        panic("3 DBEntries not initialized properly for block: " + string(c.NextBlockHeight))
-    }
+	if len(c.NextBlock.DBEntries) < 3 {
+		panic("3 DBEntries not initialized properly for block: " + string(c.NextBlockHeight))
+	}
 
-    c.BlockMutex.Lock()
-    // Ablock is always at the first entry
-    // First three entries are ABlock, CBlock, FBlock
-    c.NextBlock.DBEntries[2] = dbEntry
-    c.BlockMutex.Unlock()
+	c.BlockMutex.Lock()
+	// Ablock is always at the first entry
+	// First three entries are ABlock, CBlock, FBlock
+	c.NextBlock.DBEntries[2] = dbEntry
+	c.BlockMutex.Unlock()
 
-    return nil
+	return nil
 }
 
 // Add DBEntry
@@ -548,12 +551,12 @@ func (b *DirBlockInfo) MarshalBinary() (data []byte, err error) {
 	binary.Write(&buf, binary.BigEndian, b.BTCTxOffset)
 	binary.Write(&buf, binary.BigEndian, b.BTCBlockHeight)
 
-/*	data, err = b.BTCBlockHash.MarshalBinary()
-	if err != nil {
-		return
-	}
-	buf.Write(data)
-*/
+	/*	data, err = b.BTCBlockHash.MarshalBinary()
+		if err != nil {
+			return
+		}
+		buf.Write(data)
+	*/
 	data, err = b.DBMerkleRoot.MarshalBinary()
 	if err != nil {
 		return
@@ -582,10 +585,10 @@ func (b *DirBlockInfo) UnmarshalBinary(data []byte) (err error) {
 
 	b.BTCBlockHeight = int32(binary.BigEndian.Uint32(data[:4]))
 	data = data[4:]
-/*
-	b.BTCBlockHash = new(Hash)
-	b.BTCBlockHash.UnmarshalBinary(data[:HASH_LENGTH])
-*/
+	/*
+		b.BTCBlockHash = new(Hash)
+		b.BTCBlockHash.UnmarshalBinary(data[:HASH_LENGTH])
+	*/
 	b.DBMerkleRoot = new(Hash)
 	b.DBMerkleRoot.UnmarshalBinary(data[:HASH_LENGTH])
 

@@ -282,7 +282,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 				plMgr.AddMyProcessListItem(msgEom, nil, wire.END_MINUTE_10)
 				// Set exchange rate in the Factoid State
 				common.FactoidState.SetFactoshisPerEC(FactoshisPerCredit)
-				
+
 				err := buildBlocks()
 				if err != nil {
 					return err
@@ -327,22 +327,22 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		if nodeMode == common.SERVER_NODE {
 			t := (msg.(*wire.MsgFactoidTX)).Transaction
 			if common.FactoidState.AddTransaction(t) {
-                fmt.Println("Recorded:")
-                for _, ecout := range t.GetECOutputs() {
+				fmt.Println("Recorded:")
+				for _, ecout := range t.GetECOutputs() {
 
-                    pub := new([32]byte)
-                    copy(pub[:], ecout.GetAddress().Bytes())
-                    th := common.NewHash()
-                    th.SetBytes(t.GetHash().Bytes())
-                    credits := int32(ecout.GetAmount() / uint64(FactoshisPerCredit))
-                    processBuyEntryCredit(pub, credits, th)
-                    incBal := common.NewIncreaseBalance(pub, th, credits)
+					pub := new([32]byte)
+					copy(pub[:], ecout.GetAddress().Bytes())
+					th := common.NewHash()
+					th.SetBytes(t.GetHash().Bytes())
+					credits := int32(ecout.GetAmount() / uint64(FactoshisPerCredit))
+					processBuyEntryCredit(pub, credits, th)
+					incBal := common.NewIncreaseBalance(pub, th, credits)
 
-                    ecchain.NextBlock.AddEntry(incBal)
-                }
-            }else{
-                fmt.Println("Failed:")
-            }
+					ecchain.NextBlock.AddEntry(incBal)
+				}
+			} else {
+				fmt.Println("Failed:")
+			}
 			fmt.Println(t)
 		}
 

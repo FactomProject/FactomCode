@@ -138,7 +138,7 @@ func (c *CommitChain) UnmarshalBinary(data []byte) (err error) {
 	} else if err := c.EntryHash.SetBytes(hash); err != nil {
 		return err
 	}
-	
+
 	// 1 byte number of Entry Credits
 	if p, err := buf.ReadByte(); err != nil {
 		return err

@@ -38,7 +38,7 @@ func NewEChain() *EChain {
 	e.ChainID = NewHash()
 	e.FirstEntry = NewEntry()
 	e.NextBlock = NewEBlock()
-	
+
 	return e
 }
 
@@ -60,7 +60,7 @@ func NewEBlock() *EBlock {
 	e.EBEntries = make([]*EBEntry, 0)
 	e.EBHash = NewHash()
 	e.MerkleRoot = NewHash()
-	
+
 	return e
 }
 

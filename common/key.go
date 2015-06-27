@@ -3,8 +3,8 @@ package common
 import (
 	"crypto/rand"
 	"encoding/hex"
-	"github.com/FactomProject/ed25519"
 	"errors"
+	"github.com/FactomProject/ed25519"
 )
 
 // Verifyer objects can Verify signed messages
@@ -34,14 +34,14 @@ func (pk *PrivateKey) AllocateNew() {
 
 // Create a new private key from a hex string
 func NewPrivateKeyFromHex(s string) (pk PrivateKey, err error) {
-	privKeybytes, err := hex.DecodeString(s)	
-	if privKeybytes== nil || len(privKeybytes) != ed25519.PrivateKeySize {
+	privKeybytes, err := hex.DecodeString(s)
+	if privKeybytes == nil || len(privKeybytes) != ed25519.PrivateKeySize {
 		return pk, errors.New("Invalid private key input string!")
 	}
 	pk.AllocateNew()
 	copy(pk.Key[:], privKeybytes)
 	copy(pk.Pub.Key[:], privKeybytes[32:])
-	return 
+	return
 }
 
 // PublicKey contains only Public part of Public/Private key pair

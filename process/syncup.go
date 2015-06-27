@@ -169,7 +169,7 @@ func validateAndStoreBlocks(fMemPool *ftmMemPool, db database.Db, dchain *common
 			}
 		} else {
 			time.Sleep(time.Duration(sleeptime * 1000000)) // Nanoseconds for duration
-					
+
 			//send an internal msg to sync up with peers
 			// ??
 		}
@@ -197,8 +197,14 @@ func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, d
 				return false
 			}
 		case achain.ChainID.String():
-			if _, ok := fMemPool.blockpool[dbEntry.MerkleRoot.String()]; !ok {
+			if msg, ok := fMemPool.blockpool[dbEntry.MerkleRoot.String()]; !ok {
 				return false
+			} else {
+				// validate signature of the previous dir block
+				aBlkMsg, _ := msg.(*wire.MsgABlock)
+				if !validateDBSignature(aBlkMsg.ABlk, dchain) {
+					return false
+				}
 			}
 		case fchain.ChainID.String():
 			if _, ok := fMemPool.blockpool[dbEntry.MerkleRoot.String()]; !ok {
@@ -249,7 +255,7 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 				return err
 			}
 			// for debugging
-			exportABlock(aBlkMsg.ABlk)			
+			exportABlock(aBlkMsg.ABlk)
 		case fchain.ChainID.String():
 			fBlkMsg := fMemPool.blockpool[dbEntry.MerkleRoot.String()].(*wire.MsgFBlock)
 			err := db.ProcessFBlockBatch(fBlkMsg.SC)
@@ -257,13 +263,13 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 				return err
 			}
 			// Initialize the Factoid State
-        	err = common.FactoidState.AddTransactionBlock(fBlkMsg.SC)	
-	        if err != nil { 
-	            panic("Failed to rebuild factoid state: " +err.Error()); 
-	        } 		
-			
+			err = common.FactoidState.AddTransactionBlock(fBlkMsg.SC)
+			if err != nil {
+				panic("Failed to rebuild factoid state: " + err.Error())
+			}
+
 			// for debugging
-			exportFctBlock(fBlkMsg.SC)			
+			exportFctBlock(fBlkMsg.SC)
 		default:
 			// handle Entry Block
 			eBlkMsg, _ := fMemPool.blockpool[dbEntry.MerkleRoot.String()].(*wire.MsgEBlock)
@@ -281,7 +287,7 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 			if err != nil {
 				return err
 			}
-			
+
 			// create a chain in db if it's not existing
 			chain := chainIDMap[eBlkMsg.EBlk.Header.ChainID.String()]
 			if chain == nil {
@@ -296,9 +302,9 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 				chain.FirstEntry, _ = db.FetchEntryByHash(eBlkMsg.EBlk.EBEntries[0].EntryHash)
 				db.InsertChain(chain)
 			}
-			
+
 			// for debugging
-			exportEBlock(eBlkMsg.EBlk)					
+			exportEBlock(eBlkMsg.EBlk)
 		}
 	}
 
@@ -307,13 +313,13 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 	if err != nil {
 		return err
 	}
-	
+
 	// Update dir block height cache in db
 	commonHash, _ := common.CreateHash(b)
 	db.UpdateBlockHeightCache(b.Header.BlockHeight, commonHash)
-		
+
 	// for debugging
-	exportDBlock(b)	
+	exportDBlock(b)
 
 	return nil
 }
@@ -340,4 +346,36 @@ func deleteBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool) err
 	delete(fMemPool.blockpool, strconv.Itoa(int(b.Header.BlockHeight)))
 
 	return nil
+}
+
+func validateDBSignature(aBlock *common.AdminBlock, dchain *common.DChain) bool {
+
+	dbSigEntry := aBlock.GetDBSignature()
+	if dbSigEntry == nil {
+		if aBlock.Header.DBHeight == 0 {
+			return true
+		} else {
+			return false
+		}
+	} else {
+		dbSig := dbSigEntry.(*common.DBSignatureEntry)
+		if serverPubKey.String() != dbSig.PubKey.String() {
+			return false
+		} else {
+			// obtain the previous directory block
+			dblk := dchain.Blocks[aBlock.Header.DBHeight-1]
+			if dblk == nil {
+				return false
+			} else {
+				// validatet the signature
+				bHeader, _ := dblk.Header.MarshalBinary()
+				if !serverPubKey.Verify(bHeader, dbSig.PrevDBSig) {
+					procLog.Infof("No valid signature found in Admin Block = %s\n", spew.Sdump(aBlock))
+					return false
+				}
+			}
+		}
+	}
+	
+	return true
 }

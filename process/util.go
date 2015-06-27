@@ -10,7 +10,7 @@ import (
 	"github.com/FactomProject/FactomCode/factomlog"
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/factoid/block"
-	"github.com/davecgh/go-spew/spew"	
+	"github.com/davecgh/go-spew/spew"
 	"io/ioutil"
 	"os"
 	"sort"
@@ -351,16 +351,16 @@ func fileNotExists(name string) bool {
 // This function is NOT safe for concurrent access.
 func HaveBlockInDB(hash *common.Hash) (bool, error) {
 	util.Trace(spew.Sdump(hash))
-	
-	if hash==nil || dchain.Blocks == nil || len(dchain.Blocks) == 0 {
+
+	if hash == nil || dchain.Blocks == nil || len(dchain.Blocks) == 0 {
 		return false, nil
 	}
-	
+
 	// double check the block ids
 	for i := 0; i < len(dchain.Blocks); i = i + 1 {
 		if dchain.Blocks[i] == nil {
 			continue
-		} 
+		}
 		if dchain.Blocks[i].DBHash == nil {
 			dchain.Blocks[i].DBHash, _ = common.CreateHash(dchain.Blocks[i])
 		}
@@ -368,6 +368,6 @@ func HaveBlockInDB(hash *common.Hash) (bool, error) {
 			return true, nil
 		}
 	}
-	
+
 	return false, nil
 }

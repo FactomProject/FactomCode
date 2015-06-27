@@ -48,13 +48,13 @@ func (c *ECChain) MarshalBinary() ([]byte, error) {
 func (c *ECChain) UnmarshalBinary(data []byte) error {
 	buf := bytes.NewBuffer(data)
 	hash := make([]byte, 32)
-	
+
 	if _, err := buf.Read(hash); err != nil {
 		return err
 	} else if err := c.ChainID.SetBytes(hash); err != nil {
 		return err
 	}
-	
+
 	count := uint64(0)
 	if err := binary.Read(buf, binary.BigEndian, count); err != nil {
 		return err

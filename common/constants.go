@@ -24,16 +24,16 @@ const (
 
 	//For Factom TestNet
 	NETWORK_ID_TEST = uint32(0) //0x0
-    
-    //Server running mode
-    FULL_NODE   = "FULL"
-    SERVER_NODE = "SERVER"
-    LIGHT_NODE  = "LIGHT"
-    
-    //Server public key for milestone 1
-    SERVER_PUB_KEY = "8cee85c62a9e48039d4ac294da97943c2001be1539809ea5f54721f0c5477a0a"
-    // GENESIS_DIR_BLOCK_HASH = "43f308adb91984ce340f626e39c3707db31343eff0563a4dfe5dd8d31ed95488"
-    GENESIS_DIR_BLOCK_HASH = "9ab29a09440fc14fe73f1c825042282d3f2353d21d1037c7c5284b1c4dddcca2"
+
+	//Server running mode
+	FULL_NODE   = "FULL"
+	SERVER_NODE = "SERVER"
+	LIGHT_NODE  = "LIGHT"
+
+	//Server public key for milestone 1
+	SERVER_PUB_KEY = "8cee85c62a9e48039d4ac294da97943c2001be1539809ea5f54721f0c5477a0a"
+	// GENESIS_DIR_BLOCK_HASH = "43f308adb91984ce340f626e39c3707db31343eff0563a4dfe5dd8d31ed95488"
+	GENESIS_DIR_BLOCK_HASH = "9ab29a09440fc14fe73f1c825042282d3f2353d21d1037c7c5284b1c4dddcca2"
 )
 
 //---------------------------------------------------------------
@@ -66,5 +66,5 @@ var ADMIN_CHAINID = []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x0a}
 
 // Factoid chain
-var FACTOID_CHAINID	= []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+var FACTOID_CHAINID = []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x0f}

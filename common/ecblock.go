@@ -9,7 +9,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
-	
+
 	"golang.org/x/crypto/sha3"
 )
 
@@ -55,12 +55,12 @@ func (e *ECBlock) AddEntry(entries ...ECBlockEntry) {
 // the Header to the end of the Body
 func (e *ECBlock) Hash3() *Hash {
 	r := NewHash()
-	
+
 	p, err := e.MarshalBinary()
 	if err != nil {
 		return r
 	}
-	
+
 	sum := sha3.Sum256(p)
 	r.SetBytes(sum[:])
 	return r
@@ -70,7 +70,7 @@ func (e *ECBlock) Hash3() *Hash {
 func (e *ECBlock) KeyMR() *Hash {
 	r := NewHash()
 	p := make([]byte, 0)
-	
+
 	head, err := e.Header.MarshalBinary()
 	if err != nil {
 		return r
@@ -81,7 +81,7 @@ func (e *ECBlock) KeyMR() *Hash {
 		return r
 	}
 	p = append(p, body...)
-	
+
 	return Sha(p)
 }
 
@@ -114,17 +114,17 @@ func (e *ECBlock) BuildHeader() error {
 	if err != nil {
 		return err
 	}
-	
+
 	e.Header.BodyHash = Sha(p)
 	e.Header.ObjectCount = uint64(len(e.Body.Entries))
 	e.Header.BodySize = uint64(len(p))
-	
+
 	return nil
 }
 
 func (e *ECBlock) UnmarshalBinary(data []byte) error {
 	buf := bytes.NewBuffer(data)
-	
+
 	// Unmarshal Header
 	if p := buf.Next(ecBlockHeaderSize); len(p) != ecBlockHeaderSize {
 		return fmt.Errorf("Entry Block is smaller than ecBlockHeaderSize")
@@ -133,12 +133,12 @@ func (e *ECBlock) UnmarshalBinary(data []byte) error {
 			return err
 		}
 	}
-	
+
 	// Unmarshal Body
 	if err := e.Body.UnmarshalBinary(buf.Bytes()); err != nil {
 		return err
 	}
-	
+
 	return nil
 }
 
@@ -154,7 +154,7 @@ func NewECBlockBody() *ECBlockBody {
 
 func (b *ECBlockBody) MarshalBinary() ([]byte, error) {
 	buf := new(bytes.Buffer)
-	
+
 	for _, v := range b.Entries {
 		p, err := v.MarshalBinary()
 		if err != nil {
@@ -163,13 +163,13 @@ func (b *ECBlockBody) MarshalBinary() ([]byte, error) {
 		buf.WriteByte(v.ECID())
 		buf.Write(p)
 	}
-	
+
 	return buf.Bytes(), nil
 }
 
 func (b *ECBlockBody) UnmarshalBinary(data []byte) error {
 	buf := bytes.NewBuffer(data)
-	
+
 	for {
 		id, err := buf.ReadByte()
 		if err != nil {
@@ -202,12 +202,12 @@ func (b *ECBlockBody) UnmarshalBinary(data []byte) error {
 			}
 			b.Entries = append(b.Entries, c)
 		case ECIDBalanceIncrease:
-            c := new(IncreaseBalance)
-            err := c.UnmarshalBinary(buf.Next(IncreaseBalanceSize))
-            if err != nil {
-                return err
-            }
-            b.Entries = append(b.Entries, c)
+			c := new(IncreaseBalance)
+			err := c.UnmarshalBinary(buf.Next(IncreaseBalanceSize))
+			if err != nil {
+				return err
+			}
+			b.Entries = append(b.Entries, c)
 		default:
 			return fmt.Errorf("Unsupported ECID: %x\n", id)
 		}
@@ -237,7 +237,7 @@ type ECBlockHeader struct {
 func NewECBlockHeader() *ECBlockHeader {
 	h := new(ECBlockHeader)
 	h.ECChainID = NewHash()
-	h.ECChainID.SetBytes(EC_CHAINID)	
+	h.ECChainID.SetBytes(EC_CHAINID)
 	h.BodyHash = NewHash()
 	h.PrevKeyMR = NewHash()
 	h.PrevHash3 = NewHash()
@@ -253,32 +253,32 @@ func (e *ECBlockHeader) MarshalBinary() ([]byte, error) {
 
 	// 32 byte ECChainID
 	buf.Write(e.ECChainID.Bytes())
-	
+
 	// 32 byte BodyHash
 	buf.Write(e.BodyHash.Bytes())
-	
+
 	// 32 byte Previous KeyMR
 	buf.Write(e.PrevKeyMR.Bytes())
-	
+
 	// 32 byte Previous Hash
 	buf.Write(e.PrevHash3.Bytes())
-	
+
 	// 4 byte Directory Block Height
 	if err := binary.Write(buf, binary.BigEndian, e.DBHeight); err != nil {
 		return buf.Bytes(), err
 	}
-	
+
 	// 32 byte SegmentsMR
 	buf.Write(e.SegmentsMR.Bytes())
-	
+
 	// 32 byte Balance Commit
 	buf.Write(e.BalanceCommit.Bytes())
-	
+
 	// 8 byte Object Count
 	if err := binary.Write(buf, binary.BigEndian, e.ObjectCount); err != nil {
 		return buf.Bytes(), err
 	}
-	
+
 	// 8 byte size of the Body
 	if err := binary.Write(buf, binary.BigEndian, e.BodySize); err != nil {
 		return buf.Bytes(), err
@@ -290,35 +290,35 @@ func (e *ECBlockHeader) MarshalBinary() ([]byte, error) {
 func (e *ECBlockHeader) UnmarshalBinary(data []byte) error {
 	buf := bytes.NewBuffer(data)
 	hash := make([]byte, 32)
-	
+
 	if _, err := buf.Read(hash); err != nil {
 		return err
 	} else {
 		e.ECChainID.SetBytes(hash)
 	}
-	
+
 	if _, err := buf.Read(hash); err != nil {
 		return err
 	} else {
 		e.BodyHash.SetBytes(hash)
 	}
-	
+
 	if _, err := buf.Read(hash); err != nil {
 		return err
 	} else {
 		e.PrevKeyMR.SetBytes(hash)
 	}
-	
+
 	if _, err := buf.Read(hash); err != nil {
 		return err
 	} else {
 		e.PrevHash3.SetBytes(hash)
 	}
-	
+
 	if err := binary.Read(buf, binary.BigEndian, &e.DBHeight); err != nil {
 		return err
 	}
-	
+
 	if _, err := buf.Read(hash); err != nil {
 		return err
 	} else {
@@ -334,10 +334,10 @@ func (e *ECBlockHeader) UnmarshalBinary(data []byte) error {
 	if err := binary.Read(buf, binary.BigEndian, &e.ObjectCount); err != nil {
 		return err
 	}
-	
+
 	if err := binary.Read(buf, binary.BigEndian, &e.BodySize); err != nil {
 		return err
 	}
-	
+
 	return nil
 }
