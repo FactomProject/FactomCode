@@ -9,13 +9,21 @@ echo checking out $1
 checkout() {
     current=`pwd` 
     cd $1
-    echo $1 
-    if [[ `git branch --list $2` ]]
-    then
-        git checkout $2
-    fi
-    git pull
-    cd $current
+    if [ $? -eq 0 ]; then
+        echo $1 
+        git checkout -q $2 
+        if [ $? -eq 0 ]; then
+            echo "Now " $1 " is on the " $2 " branch" 
+        else 
+             if [[ ! -z $2 ]]
+             then
+                git checkout master
+                echo "Now " $1 " is on the master branch" 
+             fi    
+        fi
+        git pull
+        cd $current
+   fi
 }
 
 compile() {
