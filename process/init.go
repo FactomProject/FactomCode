@@ -239,13 +239,14 @@ func initializeECreditMap(block *common.ECBlock) {
 func initServerKeys() {
 	if nodeMode == common.SERVER_NODE {
 		var err error
-		serverPrivKey, err = common.NewPrivateKeyFromHex(serverPrivKeyHex)
+		serverPrivKey, err = common.NewPrivateKeyFromHex(serverPrivKeyHex)	
 		if err != nil {
 			panic("Cannot parse Server Private Key from configuration file: " + err.Error())
 		}
-	} else {
-		serverPubKey = common.PubKeyFromString(common.SERVER_PUB_KEY)
-	}
+	} 
+	
+	serverPubKey = common.PubKeyFromString(common.SERVER_PUB_KEY)
+
 }
 
 // Initialize the process list manager with the proper dir block height
