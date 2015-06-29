@@ -262,6 +262,19 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		}
 		// Broadcast the msg to the network if no errors
 		outMsgQueue <- msg
+		
+	case wire.CmdAcknowledgement:
+		msgAck, ok := msg.(*wire.MsgAcknowledgement)
+		if ok {
+			err := processAcknowledgement(msgAck)
+			if err != nil {
+				return err
+			}
+		} else {
+			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
+		}
+		// Broadcast the msg to the network if no errors
+		outMsgQueue <- msg
 
 	case wire.CmdInt_EOM:
 
@@ -291,7 +304,10 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 				ack, err := plMgr.AddMyProcessListItem(msgEom, nil, msgEom.EOM_Type)
 				if err != nil {
 					return err
-				}				
+				}			
+				if ack.ChainID == nil {
+					ack.ChainID = dchain.ChainID
+				}	
 				// Broadcast the ack to the network if no errors
 				outMsgQueue <- ack				
 				
