@@ -421,11 +421,22 @@ func processAcknowledgement(msg *wire.MsgAcknowledgement) error {
 	}
 
 	// Validate the signiture
-	// To be added ??
+	bytes, err := msg.GetBinaryForSignature()
+	if err != nil {
+		return err
+	}
+	if !serverPubKey.Verify(bytes, &msg.Signature) {
+		return errors.New(fmt.Sprintf("Invalid signature in Ack = %s\n", spew.Sdump(msg)))		
+	}	
 
 	// Update the next block height in dchain
 	if msg.Height > dchain.NextBlockHeight {
 		dchain.NextBlockHeight = msg.Height
+	}
+	
+	// Update the next block height in db
+	if int64(msg.Height) > db.FetchNextBlockHeightCache() {
+		db.UpdateNextBlockHeightCache(msg.Height)
 	}
 
 	return nil
@@ -819,6 +830,7 @@ func buildBlocks() error {
 
 	// Update dir block height cache in db
 	db.UpdateBlockHeightCache(dbBlock.Header.BlockHeight, commonHash)
+	db.UpdateNextBlockHeightCache(dchain.NextBlockHeight)
 
 	exportDBlock(dbBlock)
 
@@ -1042,7 +1054,6 @@ func SignDirectoryBlock() error {
 		sig := serverPrivKey.Sign(dbHeaderBytes)
 		achain.NextBlock.AddABEntry(common.NewDBSignatureEntry(identityChainID, sig))
 	}
-
 	return nil
 }
 

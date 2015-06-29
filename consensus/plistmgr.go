@@ -2,6 +2,7 @@ package consensus
 
 import (
 	"github.com/FactomProject/btcd/wire"
+	"github.com/FactomProject/FactomCode/common"	
 	"sync"
 )
 
@@ -13,6 +14,8 @@ type ProcessListMgr struct {
 	OtherProcessLists []*ProcessList
 
 	NextDBlockHeight uint32
+	//Server Private key and Public key for milestone 1
+	serverPrivKey common.PrivateKey	
 
 	// Orphan process list map to hold our of order confirmation messages
 	// key: MsgAcknowledgement.MsgHash.String()
@@ -20,7 +23,7 @@ type ProcessListMgr struct {
 }
 
 // create a new process list
-func NewProcessListMgr(height uint32, otherPLSize int, plSizeHint uint) *ProcessListMgr {
+func NewProcessListMgr(height uint32, otherPLSize int, plSizeHint uint, privKey common.PrivateKey) *ProcessListMgr {
 
 	plMgr := new(ProcessListMgr)
 	plMgr.MyProcessList = NewProcessList(plSizeHint)
@@ -29,6 +32,7 @@ func NewProcessListMgr(height uint32, otherPLSize int, plSizeHint uint) *Process
 		plMgr.OtherProcessLists[i] = NewProcessList(plSizeHint)
 	}
 	plMgr.NextDBlockHeight = height
+	plMgr.serverPrivKey = privKey
 
 	return plMgr
 }
@@ -108,6 +112,10 @@ func (plMgr *ProcessListMgr) InitProcessListFromOrphanMap() error {
 func (plMgr *ProcessListMgr) AddMyProcessListItem(msg wire.FtmInternalMsg, hash *wire.ShaHash, msgType byte) (ack *wire.MsgAcknowledgement, err error) {
 
 	ack = wire.NewMsgAcknowledgement(plMgr.NextDBlockHeight, uint32(plMgr.MyProcessList.nextIndex), hash, msgType) //??
+	// Sign the ack using server private keys
+	bytes, _ := ack.GetBinaryForSignature()
+	ack.Signature = *plMgr.SignAck(bytes).Sig
+
 	plMgr.MyProcessList.nextIndex++
 
 	plItem := &ProcessListItem{
@@ -118,4 +126,10 @@ func (plMgr *ProcessListMgr) AddMyProcessListItem(msg wire.FtmInternalMsg, hash 
 	plMgr.MyProcessList.AddToProcessList(plItem)
 
 	return ack, nil
+}
+
+// Sign the Ack -- to do??: to be moved into util package
+func (plMgr *ProcessListMgr) SignAck(bytes []byte) (sig common.Signature) {
+	sig = plMgr.serverPrivKey.Sign(bytes)
+	return sig
 }

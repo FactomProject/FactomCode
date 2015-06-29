@@ -151,7 +151,13 @@ type Db interface {
 	
 	// FetchBlockHeightCache returns the hash and block height of the most recent dir block
 	FetchBlockHeightCache() ( sha *wire.ShaHash, height int64, err error)	
+	
+	// UpdateNextBlockHeightCache updates the next dir block height cache (from server) in db
+	UpdateNextBlockHeightCache(dirBlkHeigh uint32) error 
     
+	// FetchNextBlockHeightCache returns the next block height from server
+	FetchNextBlockHeightCache() (height int64) 
+   
 	// FtchHeadMRByChainID gets a MR of the highest block from the database.
 	FetchHeadMRByChainID(chainID *common.Hash) (blkMR *common.Hash, err error)   
 }

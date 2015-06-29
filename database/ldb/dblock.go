@@ -128,6 +128,19 @@ func (db *LevelDb)	FetchBlockHeightCache() (sha *wire.ShaHash, height int64, err
 	return db.lastDirBlkSha, db.lastDirBlkHeight, nil
 }
 
+// UpdateNextBlockHeightCache updates the next dir block height cache (from server) in db
+func (db *LevelDb) UpdateNextBlockHeightCache(dirBlkHeigh uint32) error {
+
+	// Update DirBlock Height cache
+	db.nextDirBlockHeight = int64(dirBlkHeigh)
+	return nil
+}
+
+// FetchNextBlockHeightCache returns the next block height from server
+func (db *LevelDb)	FetchNextBlockHeightCache() (height int64) {
+	return db.nextDirBlockHeight
+}
+
 // FetchHeightRange looks up a range of blocks by the start and ending
 // heights.  Fetch is inclusive of the start height and exclusive of the
 // ending height. To fetch all hashes from the start height until no
