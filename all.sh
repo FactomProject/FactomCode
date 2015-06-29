@@ -40,8 +40,9 @@ checkout btclog  $1
 checkout btcrpcclient $1
 checkout btcutil $1
 checkout btcwallet $1
-checkout btcws  $1
+checkout btcws $1
 checkout dynrsrc $1
+checkout ed25519 $1
 checkout factoid $1
 checkout factom $1
 checkout factom-cli  $1
