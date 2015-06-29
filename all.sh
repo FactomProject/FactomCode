@@ -9,12 +9,12 @@ echo checking out $1
 checkout() {
     current=`pwd` 
     cd $1
-    echo $1
-    git pull
+    echo $1 
     if [[ `git branch --list $2` ]]
     then
         git checkout $2
     fi
+    git pull
     cd $current
 }
 
@@ -59,3 +59,4 @@ compile FactomCode/factomd
 cd FactomCode
 
 
+   
