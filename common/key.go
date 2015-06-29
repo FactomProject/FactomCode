@@ -75,7 +75,7 @@ func (pk PrivateKey) MarshalSign(msg BinaryMarshallable) (sig Signature) {
 
 // Verify returns true iff sig is a valid signature of msg by PublicKey.
 func (sig Signature) Verify(msg []byte) bool {
-	return ed25519.Verify(sig.Pub.Key, msg, sig.Sig)
+	return ed25519.VerifyCanonical(sig.Pub.Key, msg, sig.Sig)
 }
 
 //Generate creates new PrivateKey / PublciKey pair or returns error
@@ -85,12 +85,12 @@ func (pk *PrivateKey) GenerateKey() (err error) {
 }
 
 func (k PublicKey) Verify(msg []byte, sig *[ed25519.SignatureSize]byte) bool {
-	return ed25519.Verify(k.Key, msg, sig)
+	return ed25519.VerifyCanonical(k.Key, msg, sig)
 }
 
 // Verify returns true iff sig is a valid signature of message by publicKey.
 func Verify(publicKey *[ed25519.PublicKeySize]byte, message []byte, sig *[ed25519.SignatureSize]byte) bool {
-	return ed25519.Verify(publicKey, message, sig)
+	return ed25519.VerifyCanonical(publicKey, message, sig)
 }
 
 // Verify returns true iff sig is a valid signature of message by publicKey.

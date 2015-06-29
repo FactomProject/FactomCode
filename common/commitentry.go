@@ -55,7 +55,7 @@ func (c *CommitEntry) InTime() bool {
 }
 
 func (c *CommitEntry) IsValid() bool {
-	return ed.Verify(c.ECPubKey, c.CommitMsg(), c.Sig)
+	return ed.VerifyCanonical(c.ECPubKey, c.CommitMsg(), c.Sig)
 }
 
 func (c *CommitEntry) MarshalBinary() ([]byte, error) {
