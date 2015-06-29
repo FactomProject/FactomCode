@@ -74,8 +74,7 @@ func (e *Entry) MarshalBinary() ([]byte, error) {
 		return buf.Bytes(), err
 	} else {
 		// 2 byte size of ExtIDs
-		if err := binary.Write(buf, binary.BigEndian, int16(len(ext)));
-			err != nil {
+		if err := binary.Write(buf, binary.BigEndian, int16(len(ext))); err != nil {
 			return buf.Bytes(), err
 		}
 
@@ -96,8 +95,7 @@ func (e *Entry) MarshalExtIDsBinary() ([]byte, error) {
 
 	for _, x := range e.ExtIDs {
 		// 2 byte size of the ExtID
-		if err := binary.Write(buf, binary.BigEndian, uint16(len(x)));
-			err != nil {
+		if err := binary.Write(buf, binary.BigEndian, uint16(len(x))); err != nil {
 			return buf.Bytes(), err
 		}
 

@@ -12,11 +12,11 @@ import (
 )
 
 type Hash struct {
-    bytes [HASH_LENGTH]byte `json:"bytes"`
+	bytes [HASH_LENGTH]byte `json:"bytes"`
 }
 
 func (h *Hash) Bytes() []byte {
-    return h.GetBytes()
+	return h.GetBytes()
 }
 
 func NewHash() *Hash {
@@ -34,7 +34,7 @@ func CreateHash(entities ...BinaryMarshallable) (h *Hash, err error) {
 		}
 		sha.Write(data)
 	}
-	copy(h.bytes[:],sha.Sum(nil))
+	copy(h.bytes[:], sha.Sum(nil))
 	return
 }
 
@@ -85,7 +85,7 @@ func Sha(p []byte) (h *Hash) {
 	sha.Write(p)
 
 	h = new(Hash)
-	copy(h.bytes[:],sha.Sum(nil))
+	copy(h.bytes[:], sha.Sum(nil))
 	return h
 }
 
@@ -105,7 +105,7 @@ func (h *Hash) ByteString() string {
 func HexToHash(hexStr string) (h *Hash, err error) {
 	h = new(Hash)
 	v, err := hex.DecodeString(hexStr)
-    err = h.SetBytes(v)
+	err = h.SetBytes(v)
 	return h, err
 }
 

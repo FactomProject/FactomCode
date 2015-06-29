@@ -21,16 +21,16 @@ var (
 	inMsgQ chan wire.FtmInternalMsg
 )
 
-func ChainHead(chainid string) (*common.EBlock, error) {
+func ChainHead(chainid string) (*common.Hash, error) {
 	h, err := atoh(chainid)
 	if err != nil {
 		return nil, err
 	}
-	c, err := db.FetchChainByHash(h)
+	c, err := db.FetchHeadMRByChainID(h)
 	if err != nil {
 		return nil, err
 	}
-	return c.NextBlock, nil
+	return c, nil
 }
 
 func CommitChain(c *common.CommitChain) error {

@@ -14,6 +14,7 @@ import (
 	"github.com/FactomProject/btcd/wire"
 	fct "github.com/FactomProject/factoid"
 	"github.com/FactomProject/factoid/block"
+	"github.com/davecgh/go-spew/spew"	
 	"sort"
 	"strconv"
 )
@@ -129,6 +130,9 @@ func initAChain() {
 		if uint32(i) != aBlocks[i].Header.DBHeight {
 			panic(errors.New("BlockID does not equal index for chain:" + achain.ChainID.String() + " block:" + fmt.Sprintf("%v", aBlocks[i].Header.DBHeight)))
 		}
+		if !validateDBSignature(&aBlocks[i], dchain){
+			panic(errors.New("No valid signature found in Admin Block = " +  fmt.Sprintf("%s\n", spew.Sdump(aBlocks[i]))))			
+		}
 	}
 
 	//Create an empty block and append to the chain
@@ -162,12 +166,12 @@ func initFctChain() {
 	for i := 0; i < len(fBlocks); i = i + 1 {
 		if uint32(i) != fBlocks[i].GetDBHeight() {
 			panic(errors.New("BlockID does not equal index for chain:" + fchain.ChainID.String() + " block:" + fmt.Sprintf("%v", fBlocks[i].GetDBHeight())))
-		}else {
+		} else {
 			// initialize the FactoidState in sequence
-        	err := common.FactoidState.AddTransactionBlock(fBlocks[i])	
-	        if err != nil { 
-	            panic("Failed to rebuild factoid state: " +err.Error()); 
-	        }        			
+			err := common.FactoidState.AddTransactionBlock(fBlocks[i])
+			if err != nil {
+				panic("Failed to rebuild factoid state: " + err.Error())
+			}
 		}
 	}
 
@@ -177,7 +181,7 @@ func initFctChain() {
 
 		// THIS IS IN TWO PLACES HERE! THEY NEED TO MATCH!
 		fchain.NextBlock = block.GetGenesisBlock(
-            0,1000000, 10, 200000000000)
+			0, 1000000, 10, 200000000000)
 	} else {
 		// Entry Credit Chain should have the same height as the dir chain
 		fchain.NextBlockHeight = dchain.NextBlockHeight
@@ -215,19 +219,19 @@ func initializeECreditMap(block *common.ECBlock) {
 		case common.ECIDChainCommit:
 			e := entry.(*common.CommitChain)
 			eCreditMap[string(e.ECPubKey[:])] += int32(e.Credits)
-            common.FactoidState.UpdateECBalance(fct.NewAddress(e.ECPubKey[:]), int64(e.Credits))  
+			common.FactoidState.UpdateECBalance(fct.NewAddress(e.ECPubKey[:]), int64(e.Credits))
 		case common.ECIDEntryCommit:
 			e := entry.(*common.CommitEntry)
 			eCreditMap[string(e.ECPubKey[:])] += int32(e.Credits)
-            common.FactoidState.UpdateECBalance(fct.NewAddress(e.ECPubKey[:]), int64(e.Credits))  
-        case common.ECIDBalanceIncrease:
-            fmt.Println("\nIncreases!!!!\n")
+			common.FactoidState.UpdateECBalance(fct.NewAddress(e.ECPubKey[:]), int64(e.Credits))
+		case common.ECIDBalanceIncrease:
+			fmt.Println("\nIncreases!!!!\n")
 			e := entry.(*common.IncreaseBalance)
 			eCreditMap[string(e.ECPubKey[:])] += int32(e.Credits)
-            // Don't add the Increases to Factoid state, the Factoid processing will do that.
-        default:
-            fmt.Println("UNKNOWN\n")
-        }
+			// Don't add the Increases to Factoid state, the Factoid processing will do that.
+		default:
+			fmt.Println("UNKNOWN\n")
+		}
 	}
 }
 

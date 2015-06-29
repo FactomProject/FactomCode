@@ -18,8 +18,8 @@ import (
 	"github.com/FactomProject/FactomCode/wsapi"
 	"github.com/FactomProject/btcd"
 	"github.com/FactomProject/btcd/limits"
-	"github.com/FactomProject/btcd/wire"	
-	"time"	
+	"github.com/FactomProject/btcd/wire"
+	"time"
 )
 
 var (
@@ -91,19 +91,19 @@ func factomdMain() error {
 	wsapi.Start(db, inMsgQueue)
 
 	// wait till the initialization is complete in processor - to be improved??
-	hash, _ := db.FetchDBHashByHeight(0)	
+	hash, _ := db.FetchDBHashByHeight(0)
 	if hash != nil {
 		for true {
 			latestDirBlockHash, _, _ := db.FetchBlockHeightCache()
 			if latestDirBlockHash == nil {
-				fmt.Println("Waiting for the processor to be initialized...")				
-				time.Sleep(3 * time.Second) 
+				fmt.Println("Waiting for the processor to be initialized...")
+				time.Sleep(3 * time.Second)
 			} else {
 				break
 			}
 		}
 	}
-	
+
 	// Start the factoid (btcd) component and P2P component
 	btcd.Start_btcd(db, inMsgQueue, outMsgQueue, inCtlMsgQueue, outCtlMsgQueue, process.FactomdUser, process.FactomdPass, common.SERVER_NODE != cfg.App.NodeMode)
 

@@ -143,6 +143,18 @@ func (b *AdminBlock) UnmarshalBinary(data []byte) (err error) {
 	return nil
 }
 
+// Read in the binary into the Admin block.
+func (b *AdminBlock) GetDBSignature() ABEntry {
+
+	for i := uint32(0); i < b.Header.EntryCount; i++ {
+		if b.ABEntries[i].Type() == TYPE_DB_SIGNATURE {
+			return b.ABEntries[i]
+		}
+	}
+
+	return nil
+}
+
 // Admin Block Header
 type ABlockHeader struct {
 	ChainID    *Hash
@@ -223,7 +235,7 @@ type DBSignatureEntry struct {
 	entryType       byte
 	IdentityChainID *Hash
 	PubKey          PublicKey
-	PrevDBSig       []byte
+	PrevDBSig       *[64]byte
 }
 
 // Create a new DB Signature Entry
@@ -232,8 +244,8 @@ func NewDBSignatureEntry(identityChainID *Hash, sig Signature) (e *DBSignatureEn
 	e.entryType = TYPE_DB_SIGNATURE
 	e.IdentityChainID = identityChainID
 	e.PubKey = sig.Pub
-	e.PrevDBSig = sig.Sig[:]
-	return 
+	e.PrevDBSig = sig.Sig
+	return
 }
 
 func (e *DBSignatureEntry) Type() byte {
@@ -256,7 +268,7 @@ func (e *DBSignatureEntry) MarshalBinary() (data []byte, err error) {
 		return nil, err
 	}
 
-	_, err = buf.Write(e.PrevDBSig)
+	_, err = buf.Write(e.PrevDBSig[:])
 	if err != nil {
 		return nil, err
 	}
@@ -285,14 +297,15 @@ func (e *DBSignatureEntry) UnmarshalBinary(data []byte) (err error) {
 	copy(e.PubKey.Key[:], data[:HASH_LENGTH])
 	data = data[HASH_LENGTH:]
 
-	e.PrevDBSig = data[:SIG_LENGTH]
+	e.PrevDBSig = new([SIG_LENGTH]byte)
+	copy(e.PrevDBSig[:], data[:SIG_LENGTH])
 
 	return nil
 }
 
 type EndOfMinuteEntry struct {
 	entryType byte
-	EOM_Type byte
+	EOM_Type  byte
 }
 
 func (m *EndOfMinuteEntry) Type() byte {
