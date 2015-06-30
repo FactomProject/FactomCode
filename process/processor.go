@@ -262,9 +262,21 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		}
 		// Broadcast the msg to the network if no errors
 		outMsgQueue <- msg
+		
+	case wire.CmdAcknowledgement:
+		msgAck, ok := msg.(*wire.MsgAcknowledgement)
+		if ok {
+			err := processAcknowledgement(msgAck)
+			if err != nil {
+				return err
+			}
+		} else {
+			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
+		}
+		// Broadcast the msg to the network if no errors
+		outMsgQueue <- msg
 
 	case wire.CmdInt_EOM:
-		util.Trace("CmdInt_EOM")
 
 		if nodeMode == common.SERVER_NODE {
 			msgEom, ok := msg.(*wire.MsgInt_EOM)
@@ -289,7 +301,16 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 				}
 
 			} else if msgEom.EOM_Type >= wire.END_MINUTE_1 && msgEom.EOM_Type < wire.END_MINUTE_10 {
-				plMgr.AddMyProcessListItem(msgEom, nil, msgEom.EOM_Type)
+				ack, err := plMgr.AddMyProcessListItem(msgEom, nil, msgEom.EOM_Type)
+				if err != nil {
+					return err
+				}			
+				if ack.ChainID == nil {
+					ack.ChainID = dchain.ChainID
+				}	
+				// Broadcast the ack to the network if no errors
+				outMsgQueue <- ack				
+				
 			}
 		}
 
@@ -760,6 +781,7 @@ func buildGenesisBlocks() error {
 	data, _ := FBlock.MarshalBinary()
 	procLog.Debugf("\n\n ", common.Sha(data).String(), "\n\n")
 	dchain.AddFBlockToDBEntry(FBlock)
+    common.FactoidState.AddTransactionBlock(FBlock)
 	exportFctChain(fchain)
 
 	// Directory Block chain
