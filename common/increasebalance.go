@@ -50,7 +50,7 @@ func (b *IncreaseBalance) MarshalBinary() ([]byte, error) {
 }
 
 func (b *IncreaseBalance) UnmarshalBinary(data []byte) error {
-
+    fmt.Println("Unmarshalling IB: ", b.Credits)
 	b.ECPubKey = new([32]byte)
 	copy(b.ECPubKey[:], data[:32])
 	data = data[32:]
