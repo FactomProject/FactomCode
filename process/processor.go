@@ -754,6 +754,7 @@ func buildGenesisBlocks() error {
 	data, _ := FBlock.MarshalBinary()
 	procLog.Debugf("\n\n ", common.Sha(data).String(), "\n\n")
 	dchain.AddFBlockToDBEntry(FBlock)
+    common.FactoidState.AddTransactionBlock(FBlock)
 	exportFctChain(fchain)
 
 	// Directory Block chain
