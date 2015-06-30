@@ -376,6 +376,6 @@ func validateDBSignature(aBlock *common.AdminBlock, dchain *common.DChain) bool 
 			}
 		}
 	}
-	
+
 	return true
 }

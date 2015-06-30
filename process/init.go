@@ -14,7 +14,7 @@ import (
 	"github.com/FactomProject/btcd/wire"
 	fct "github.com/FactomProject/factoid"
 	"github.com/FactomProject/factoid/block"
-	"github.com/davecgh/go-spew/spew"	
+	"github.com/davecgh/go-spew/spew"
 	"sort"
 	"strconv"
 )
@@ -130,8 +130,8 @@ func initAChain() {
 		if uint32(i) != aBlocks[i].Header.DBHeight {
 			panic(errors.New("BlockID does not equal index for chain:" + achain.ChainID.String() + " block:" + fmt.Sprintf("%v", aBlocks[i].Header.DBHeight)))
 		}
-		if !validateDBSignature(&aBlocks[i], dchain){
-			panic(errors.New("No valid signature found in Admin Block = " +  fmt.Sprintf("%s\n", spew.Sdump(aBlocks[i]))))			
+		if !validateDBSignature(&aBlocks[i], dchain) {
+			panic(errors.New("No valid signature found in Admin Block = " + fmt.Sprintf("%s\n", spew.Sdump(aBlocks[i]))))
 		}
 	}
 
@@ -239,12 +239,12 @@ func initializeECreditMap(block *common.ECBlock) {
 func initServerKeys() {
 	if nodeMode == common.SERVER_NODE {
 		var err error
-		serverPrivKey, err = common.NewPrivateKeyFromHex(serverPrivKeyHex)	
+		serverPrivKey, err = common.NewPrivateKeyFromHex(serverPrivKeyHex)
 		if err != nil {
 			panic("Cannot parse Server Private Key from configuration file: " + err.Error())
 		}
-	} 
-	
+	}
+
 	serverPubKey = common.PubKeyFromString(common.SERVER_PUB_KEY)
 
 }

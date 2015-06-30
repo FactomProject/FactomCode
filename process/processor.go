@@ -291,13 +291,13 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 				ack, err := plMgr.AddMyProcessListItem(msgEom, nil, msgEom.EOM_Type)
 				if err != nil {
 					return err
-				}			
+				}
 				if ack.ChainID == nil {
 					ack.ChainID = dchain.ChainID
-				}	
+				}
 				// Broadcast the ack to the network if no errors
-				//outMsgQueue <- ack				
-				
+				//outMsgQueue <- ack
+
 				plMgr.AddMyProcessListItem(msgEom, nil, msgEom.EOM_Type)
 			}
 		}
