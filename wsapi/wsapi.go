@@ -60,6 +60,7 @@ func Start(db database.Db, inMsgQ chan wire.FtmInternalMsg) {
     server.Get("/v1/factoid-get-fee/",handleGetFee)
     
 	wsLog.Info("Starting server")
+	fmt.Println("DEBUG: Starting wsapi")
 	go server.Run("localhost:" + strconv.Itoa(portNumber))
 }
 
@@ -68,6 +69,7 @@ func Stop() {
 }
 
 func handleCommitChain(ctx *web.Context) {
+	fmt.Println("DEBUG: handleCommitChain")
 	type commitchain struct {
 		CommitChainMsg string
 	}
@@ -150,6 +152,7 @@ func handleCommitEntry(ctx *web.Context) {
 }
 
 func handleRevealEntry(ctx *web.Context) {
+	fmt.Println("DEBUG: handleRevealEntry")
 	type revealentry struct {
 		Entry string
 	}
@@ -401,7 +404,7 @@ func handleFactoidBalance(ctx *web.Context, eckey string) {
 }
 
 func handleFactoidSubmit(ctx *web.Context) {
-    
+	fmt.Println("DEBUG: handleFactoidSubmit")
     type x struct {Transaction string }
     t := new(x)
    
@@ -412,6 +415,7 @@ func handleFactoidSubmit(ctx *web.Context) {
         ctx.Abort(400,"Unable to read the request")
         return
     } else {
+    	
         if err := json.Unmarshal(p, t); err != nil {
             wsLog.Error(err)
             ctx.WriteHeader(httpBad)
@@ -426,24 +430,25 @@ func handleFactoidSubmit(ctx *web.Context) {
         ctx.WriteHeader(httpBad)
         return
     } 
-        
-    msg.Transaction = new (fct.Transaction)
+
+    msg.Transaction = new(fct.Transaction)
     err = msg.Transaction.UnmarshalBinary(p)
-            
     if  err != nil {
         wsLog.Error(err)
         ctx.WriteHeader(httpBad)
         return
     }
-    
+
     good := common.FactoidState.Validate(msg.Transaction)
+	fmt.Println("DEBUG: runtime error fixed!")
     if !good {
         fmt.Println("Bad Transaction")
         wsLog.Error(fmt.Errorf("Bad Transaction"))
         ctx.Abort(400,"Invalid Transaction")
         return
     }
-    
+   
+    fmt.Println("DEBUG: Sending factoid tx msg", msg)
     inMessageQ <- msg
     
 }

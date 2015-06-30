@@ -324,6 +324,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		}
 
 	case wire.CmdFactoidTX:
+		fmt.Println("DEBUG: got wire.CmdFactoidTX")
 		if nodeMode == common.SERVER_NODE {
 			t := (msg.(*wire.MsgFactoidTX)).Transaction
 			if common.FactoidState.AddTransaction(t) {
@@ -553,6 +554,7 @@ func processCommitEntry(msg *wire.MsgCommitEntry) error {
 
 // processCommitChain validates the MsgCommitChain and adds it to processlist
 func processCommitChain(msg *wire.MsgCommitChain) error {
+	fmt.Println("DEBUG: processCommitChain", msg)
 	c := msg.CommitChain
 
 	// check that the CommitChain is fresh
@@ -564,19 +566,24 @@ func processCommitChain(msg *wire.MsgCommitChain) error {
 	if _, exist := commitChainMap[c.EntryHash.String()]; exist {
 		return fmt.Errorf("Cannot commit chain, first entry for chain already exists")
 	}
+	fmt.Println("DEBUG: chain did not already exist")
 
 	// deduct the entry credits from the eCreditMap
+	fmt.Println("DEBUG: paying for chain out of ec map", string(c.ECPubKey[:]), eCreditMap[string(c.ECPubKey[:])])
+	fmt.Printf("DEBUG: pubkey %x\n", c.ECPubKey)
 	if eCreditMap[string(c.ECPubKey[:])] < int32(c.Credits) {
 		return fmt.Errorf("Not enough credits for CommitChain")
 	}
 	eCreditMap[string(c.ECPubKey[:])] -= int32(c.Credits)
 
 	// add to the commitChainMap
+	fmt.Println("DEBUG: adding to commitChainMap", c.EntryHash.String())
 	commitChainMap[c.EntryHash.String()] = c
 
 	// Server: add to MyPL
 	if nodeMode == common.SERVER_NODE {
 		h, _ := msg.Sha()
+		fmt.Println("DEBUG: adding to the process list", msg, &h)
 		ack, err := plMgr.AddMyProcessListItem(msg, &h, wire.ACK_COMMIT_CHAIN)
 		if err != nil {
 			return err
@@ -591,10 +598,14 @@ func processCommitChain(msg *wire.MsgCommitChain) error {
 
 // processBuyEntryCredit validates the MsgCommitChain and adds it to processlist
 func processBuyEntryCredit(pubKey *[32]byte, credits int32, factoidTxHash *common.Hash) error {
+	fmt.Println("DEBUG: processBuyEntryCredit", pubKey, credits)
 
 	// Update the credit balance in memory
 	balance, _ := eCreditMap[string(pubKey[:])]
 	eCreditMap[string(pubKey[:])] = balance + credits
+	
+	fmt.Printf("DEBUG: pubkey %x\n", pubKey)
+	fmt.Println("DEBUG: eCreditMap", string(pubKey[:]), eCreditMap[string(pubKey[:])])
 
 	return nil
 }

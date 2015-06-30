@@ -5,15 +5,15 @@
 package factomapi
 
 import (
+	"fmt" // DEBUG
+
 	"encoding/hex"
 
-	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/database"
-    "github.com/FactomProject/FactomCode/process"
-    fct "github.com/FactomProject/factoid"
-    
-    
+	"github.com/FactomProject/FactomCode/process"
+	"github.com/FactomProject/btcd/wire"
+	fct "github.com/FactomProject/factoid"
 )
 
 var (
@@ -34,6 +34,7 @@ func ChainHead(chainid string) (*common.Hash, error) {
 }
 
 func CommitChain(c *common.CommitChain) error {
+	fmt.Println("DEBUG: sending commitchain to process:", c)
 	m := wire.NewMsgCommitChain()
 	m.CommitChain = c
 	inMsgQ <- m
