@@ -309,7 +309,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 					ack.ChainID = dchain.ChainID
 				}	
 				// Broadcast the ack to the network if no errors
-				outMsgQueue <- ack				
+				//outMsgQueue <- ack				
 				
 			}
 		}
