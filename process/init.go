@@ -179,7 +179,6 @@ func initFctChain() {
 	if len(fBlocks) == 0 || dchain.NextBlockHeight == 0 {
 		fchain.NextBlockHeight = 0
 
-		// THIS IS IN TWO PLACES HERE! THEY NEED TO MATCH!
 		fchain.NextBlock = block.GetGenesisBlock(
 			0, 1000000, 10, 200000000000)
 	} else {
