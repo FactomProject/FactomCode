@@ -207,7 +207,6 @@ func Start_Processor(
 
 // Serve the "fast lane" incoming control msg from inCtlMsgQueue
 func serveCtlMsgRequest(msg wire.FtmInternalMsg) error {
-
 	util.Trace()
 
 	switch msg.Command() {
@@ -289,6 +288,16 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 				}
 
 			} else if msgEom.EOM_Type >= wire.END_MINUTE_1 && msgEom.EOM_Type < wire.END_MINUTE_10 {
+				ack, err := plMgr.AddMyProcessListItem(msgEom, nil, msgEom.EOM_Type)
+				if err != nil {
+					return err
+				}
+				if ack.ChainID == nil {
+					ack.ChainID = dchain.ChainID
+				}
+				// Broadcast the ack to the network if no errors
+				//outMsgQueue <- ack
+
 				plMgr.AddMyProcessListItem(msgEom, nil, msgEom.EOM_Type)
 			}
 		}
@@ -324,7 +333,10 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		}
 
 	case wire.CmdFactoidTX:
+		util.Trace("some mode: CmdFactoidTX")
+
 		if nodeMode == common.SERVER_NODE {
+			util.Trace("server mode; TODO")
 			t := (msg.(*wire.MsgFactoidTX)).Transaction
 			if common.FactoidState.AddTransaction(t) {
 				fmt.Println("Recorded:")
@@ -344,6 +356,11 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 				fmt.Println("Failed:")
 			}
 			fmt.Println(t)
+		} else {
+			// client-mode, milestone 1 - transmit to the server node
+			util.Trace("client mode; TODO")
+			// TODO: test ...
+			outMsgQueue <- msg
 		}
 
 	case wire.CmdABlock:
