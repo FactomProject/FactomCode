@@ -5,8 +5,6 @@
 package factomapi
 
 import (
-	"fmt" // DEBUG
-
 	"encoding/hex"
 
 	"github.com/FactomProject/FactomCode/common"
@@ -34,7 +32,6 @@ func ChainHead(chainid string) (*common.Hash, error) {
 }
 
 func CommitChain(c *common.CommitChain) error {
-	fmt.Println("DEBUG: sending commitchain to process:", c)
 	m := wire.NewMsgCommitChain()
 	m.CommitChain = c
 	inMsgQ <- m
@@ -48,11 +45,11 @@ func CommitEntry(c *common.CommitEntry) error {
 	return nil
 }
 
- func FactoidTX(t fct.ITransaction) error {
-     m := new(wire.MsgFactoidTX)
-     m.SetTransaction(t)
-     inMsgQ <- m
-     return nil
+func FactoidTX(t fct.ITransaction) error {
+	m := new(wire.MsgFactoidTX)
+	m.SetTransaction(t)
+	inMsgQ <- m
+	return nil
 }
 
 func DBlockByKeyMR(keymr string) (*common.DirectoryBlock, error) {

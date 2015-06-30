@@ -262,21 +262,9 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		}
 		// Broadcast the msg to the network if no errors
 		outMsgQueue <- msg
-		
-	case wire.CmdAcknowledgement:
-		msgAck, ok := msg.(*wire.MsgAcknowledgement)
-		if ok {
-			err := processAcknowledgement(msgAck)
-			if err != nil {
-				return err
-			}
-		} else {
-			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
-		}
-		// Broadcast the msg to the network if no errors
-		outMsgQueue <- msg
 
 	case wire.CmdInt_EOM:
+		util.Trace("CmdInt_EOM")
 
 		if nodeMode == common.SERVER_NODE {
 			msgEom, ok := msg.(*wire.MsgInt_EOM)
@@ -301,16 +289,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 				}
 
 			} else if msgEom.EOM_Type >= wire.END_MINUTE_1 && msgEom.EOM_Type < wire.END_MINUTE_10 {
-				ack, err := plMgr.AddMyProcessListItem(msgEom, nil, msgEom.EOM_Type)
-				if err != nil {
-					return err
-				}			
-				if ack.ChainID == nil {
-					ack.ChainID = dchain.ChainID
-				}	
-				// Broadcast the ack to the network if no errors
-				outMsgQueue <- ack				
-				
+				plMgr.AddMyProcessListItem(msgEom, nil, msgEom.EOM_Type)
 			}
 		}
 
@@ -345,7 +324,6 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		}
 
 	case wire.CmdFactoidTX:
-		fmt.Println("DEBUG: got wire.CmdFactoidTX")
 		if nodeMode == common.SERVER_NODE {
 			t := (msg.(*wire.MsgFactoidTX)).Transaction
 			if common.FactoidState.AddTransaction(t) {
@@ -448,14 +426,14 @@ func processAcknowledgement(msg *wire.MsgAcknowledgement) error {
 		return err
 	}
 	if !serverPubKey.Verify(bytes, &msg.Signature) {
-		return errors.New(fmt.Sprintf("Invalid signature in Ack = %s\n", spew.Sdump(msg)))		
-	}	
+		return errors.New(fmt.Sprintf("Invalid signature in Ack = %s\n", spew.Sdump(msg)))
+	}
 
 	// Update the next block height in dchain
 	if msg.Height > dchain.NextBlockHeight {
 		dchain.NextBlockHeight = msg.Height
 	}
-	
+
 	// Update the next block height in db
 	if int64(msg.Height) > db.FetchNextBlockHeightCache() {
 		db.UpdateNextBlockHeightCache(msg.Height)
@@ -575,7 +553,6 @@ func processCommitEntry(msg *wire.MsgCommitEntry) error {
 
 // processCommitChain validates the MsgCommitChain and adds it to processlist
 func processCommitChain(msg *wire.MsgCommitChain) error {
-	fmt.Println("DEBUG: processCommitChain", msg)
 	c := msg.CommitChain
 
 	// check that the CommitChain is fresh
@@ -587,24 +564,19 @@ func processCommitChain(msg *wire.MsgCommitChain) error {
 	if _, exist := commitChainMap[c.EntryHash.String()]; exist {
 		return fmt.Errorf("Cannot commit chain, first entry for chain already exists")
 	}
-	fmt.Println("DEBUG: chain did not already exist")
 
 	// deduct the entry credits from the eCreditMap
-	fmt.Println("DEBUG: paying for chain out of ec map", string(c.ECPubKey[:]), eCreditMap[string(c.ECPubKey[:])])
-	fmt.Printf("DEBUG: pubkey %x\n", c.ECPubKey)
 	if eCreditMap[string(c.ECPubKey[:])] < int32(c.Credits) {
 		return fmt.Errorf("Not enough credits for CommitChain")
 	}
 	eCreditMap[string(c.ECPubKey[:])] -= int32(c.Credits)
 
 	// add to the commitChainMap
-	fmt.Println("DEBUG: adding to commitChainMap", c.EntryHash.String())
 	commitChainMap[c.EntryHash.String()] = c
 
 	// Server: add to MyPL
 	if nodeMode == common.SERVER_NODE {
 		h, _ := msg.Sha()
-		fmt.Println("DEBUG: adding to the process list", msg, &h)
 		ack, err := plMgr.AddMyProcessListItem(msg, &h, wire.ACK_COMMIT_CHAIN)
 		if err != nil {
 			return err
@@ -619,14 +591,10 @@ func processCommitChain(msg *wire.MsgCommitChain) error {
 
 // processBuyEntryCredit validates the MsgCommitChain and adds it to processlist
 func processBuyEntryCredit(pubKey *[32]byte, credits int32, factoidTxHash *common.Hash) error {
-	fmt.Println("DEBUG: processBuyEntryCredit", pubKey, credits)
 
 	// Update the credit balance in memory
 	balance, _ := eCreditMap[string(pubKey[:])]
 	eCreditMap[string(pubKey[:])] = balance + credits
-	
-	fmt.Printf("DEBUG: pubkey %x\n", pubKey)
-	fmt.Println("DEBUG: eCreditMap", string(pubKey[:]), eCreditMap[string(pubKey[:])])
 
 	return nil
 }
@@ -781,7 +749,6 @@ func buildGenesisBlocks() error {
 	data, _ := FBlock.MarshalBinary()
 	procLog.Debugf("\n\n ", common.Sha(data).String(), "\n\n")
 	dchain.AddFBlockToDBEntry(FBlock)
-    common.FactoidState.AddTransactionBlock(FBlock)
 	exportFctChain(fchain)
 
 	// Directory Block chain
