@@ -7,13 +7,11 @@ package factomapi
 import (
 	"encoding/hex"
 
-	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/database"
-    "github.com/FactomProject/FactomCode/process"
-    fct "github.com/FactomProject/factoid"
-    
-    
+	"github.com/FactomProject/FactomCode/process"
+	"github.com/FactomProject/btcd/wire"
+	fct "github.com/FactomProject/factoid"
 )
 
 var (
@@ -47,11 +45,11 @@ func CommitEntry(c *common.CommitEntry) error {
 	return nil
 }
 
- func FactoidTX(t fct.ITransaction) error {
-     m := new(wire.MsgFactoidTX)
-     m.SetTransaction(t)
-     inMsgQ <- m
-     return nil
+func FactoidTX(t fct.ITransaction) error {
+	m := new(wire.MsgFactoidTX)
+	m.SetTransaction(t)
+	inMsgQ <- m
+	return nil
 }
 
 func DBlockByKeyMR(keymr string) (*common.DirectoryBlock, error) {

@@ -262,21 +262,9 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		}
 		// Broadcast the msg to the network if no errors
 		outMsgQueue <- msg
-		
-	case wire.CmdAcknowledgement:
-		msgAck, ok := msg.(*wire.MsgAcknowledgement)
-		if ok {
-			err := processAcknowledgement(msgAck)
-			if err != nil {
-				return err
-			}
-		} else {
-			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
-		}
-		// Broadcast the msg to the network if no errors
-		outMsgQueue <- msg
 
 	case wire.CmdInt_EOM:
+		util.Trace("CmdInt_EOM")
 
 		if nodeMode == common.SERVER_NODE {
 			msgEom, ok := msg.(*wire.MsgInt_EOM)
@@ -311,6 +299,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 				// Broadcast the ack to the network if no errors
 				//outMsgQueue <- ack				
 				
+				plMgr.AddMyProcessListItem(msgEom, nil, msgEom.EOM_Type)
 			}
 		}
 
@@ -447,14 +436,14 @@ func processAcknowledgement(msg *wire.MsgAcknowledgement) error {
 		return err
 	}
 	if !serverPubKey.Verify(bytes, &msg.Signature) {
-		return errors.New(fmt.Sprintf("Invalid signature in Ack = %s\n", spew.Sdump(msg)))		
-	}	
+		return errors.New(fmt.Sprintf("Invalid signature in Ack = %s\n", spew.Sdump(msg)))
+	}
 
 	// Update the next block height in dchain
 	if msg.Height > dchain.NextBlockHeight {
 		dchain.NextBlockHeight = msg.Height
 	}
-	
+
 	// Update the next block height in db
 	if int64(msg.Height) > db.FetchNextBlockHeightCache() {
 		db.UpdateNextBlockHeightCache(msg.Height)
