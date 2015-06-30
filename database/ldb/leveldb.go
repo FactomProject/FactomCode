@@ -1,63 +1,77 @@
+// Copyright (c) 2013-2014 Conformal Systems LLC.
+// Use of this source code is governed by an ISC
+// license that can be found in the LICENSE file.
+
 package ldb
 
 import (
 	"encoding/binary"
 	"fmt"
+	"log"
 	"os"
 	"strconv"
 	"sync"
-	"log"
 
 	"github.com/FactomProject/FactomCode/database"
 
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/goleveldb/leveldb"
-	"github.com/FactomProject/goleveldb/leveldb/cache"
+	//	"github.com/FactomProject/goleveldb/leveldb/cache"
 	"github.com/FactomProject/goleveldb/leveldb/opt"
 )
 
 const (
-	dbVersion     int = 2 
+	dbVersion     int = 2
 	dbMaxTransCnt     = 20000
 	dbMaxTransMem     = 64 * 1024 * 1024 // 64 MB
 )
 
 // the "table" prefix
 const (
-	TBL_ENTRY     uint8 = iota
-	TBL_ENTRY_QUEUE
-	TBL_ENTRY_INFO
 
-	TBL_EB 				//3
-	TBL_EB_QUEUE		//4	
-	TBL_EB_INFO			//5
-	TBL_EB_CHAIN_NUM
-	TBL_EB_MR		
-
-	TBL_DB				//8
+	// Directory Block
+	TBL_DB  uint8 = iota
 	TBL_DB_NUM
-	TBL_DBATCH
-	TBL_DB_BATCH
-	
-	TBL_CHAIN_HASH		//12
-	TBL_CHAIN_NAME
+	TBL_DB_MR
+	TBL_DB_INFO
 
-	TBL_CB				//14
+	// Admin Block
+	TBL_AB //4
+	TBL_AB_NUM 
+
+	TBL_SC
+	TBL_SC_NUM
+	
+	// Entry Credit Block
+	TBL_CB //6
 	TBL_CB_NUM
-	TBL_CB_INFO	
+	TBL_CB_MR	
+
+	// Entry Chain
+	TBL_CHAIN_HASH //9
+	
+	// The latest Block MR for chains including special chains
+	TBL_CHAIN_HEAD
+	
+	// Entry Block
+	TBL_EB //11
+	TBL_EB_CHAIN_NUM
+	TBL_EB_MR
+	
+	//Entry
+	TBL_ENTRY	
 )
 
 // the process status in db
 const (
-	STATUS_IN_QUEUE     uint8 = iota
+	STATUS_IN_QUEUE uint8 = iota
 	STATUS_PROCESSED
 )
 
 // chain type key prefix ??
-var currentChainType uint32 = 1 
+var currentChainType uint32 = 1
 
-var isLookupDB bool = true // to be put in property file 
-
+var isLookupDB bool = true // to be put in property file
 
 type tTxInsertData struct {
 	txsha   *wire.ShaHash
@@ -78,26 +92,18 @@ type LevelDb struct {
 
 	lbatch *leveldb.Batch
 
-	nextBlock int64
+	nextDirBlockHeight 		int64
 
-	lastBlkShaCached bool
-	lastBlkSha       wire.ShaHash
-	lastBlkIdx       int64
-
-//	txUpdateMap      map[wire.ShaHash]*txUpdateObj
-//	txSpentUpdateMap map[wire.ShaHash]*spentTxUpdate
+	lastDirBlkShaCached 	bool
+	lastDirBlkSha       	*wire.ShaHash
+	lastDirBlkHeight       	int64 
 }
-
-
-
 var CurrentDBVersion int32 = 1
-
 
 //to be removed??
 func OpenLevelDB(dbpath string, create bool) (pbdb database.Db, err error) {
-	return openDB(dbpath , create )
+	return openDB(dbpath, create)
 }
-
 
 func openDB(dbpath string, create bool) (pbdb database.Db, err error) {
 	var db LevelDb
@@ -107,10 +113,12 @@ func openDB(dbpath string, create bool) (pbdb database.Db, err error) {
 	defer func() {
 		if err == nil {
 			db.lDb = tlDb
-
-//			db.txUpdateMap = map[wire.ShaHash]*txUpdateObj{}
-//			db.txSpentUpdateMap = make(map[wire.ShaHash]*spentTxUpdate)
-
+			
+			// Initialize db
+			db.lastDirBlkHeight = -1
+			//			db.txUpdateMap = map[wire.ShaHash]*txUpdateObj{}
+			//			db.txSpentUpdateMap = make(map[wire.ShaHash]*spentTxUpdate)
+						
 			pbdb = &db
 		}
 	}()
@@ -145,11 +153,11 @@ func openDB(dbpath string, create bool) (pbdb database.Db, err error) {
 		}
 	}
 
-	myCache := cache.NewEmptyCache()
+	//myCache := cache.NewEmptyCache()
 	opts := &opt.Options{
-		BlockCache:   myCache,
-		MaxOpenFiles: 256,
-		Compression:  opt.NoCompression,
+		//		BlockCacher: opt.DefaultBlockCacher,
+		Compression: opt.NoCompression,
+		//		OpenFilesCacher: opt.DefaultOpenFilesCacher,
 	}
 
 	switch dbversion {
@@ -186,7 +194,6 @@ func openDB(dbpath string, create bool) (pbdb database.Db, err error) {
 	return
 }
 
-
 func (db *LevelDb) close() error {
 	return db.lDb.Close()
 }
@@ -209,7 +216,6 @@ func (db *LevelDb) Close() error {
 
 	return db.close()
 }
-
 
 func int64ToKey(keyint int64) []byte {
 	key := strconv.FormatInt(keyint, 10)
@@ -239,8 +245,6 @@ func (db *LevelDb) lBatch() *leveldb.Batch {
 	}
 	return db.lbatch
 }
-
-
 
 func (db *LevelDb) RollbackClose() error {
 	db.dbLock.Lock()
