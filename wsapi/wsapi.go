@@ -42,8 +42,8 @@ var inMessageQ chan wire.FtmInternalMsg
 func Start(db database.Db, inMsgQ chan wire.FtmInternalMsg) {
 	factomapi.SetDB(db)
 	factomapi.SetInMsgQueue(inMsgQ)
-    inMessageQ = inMsgQ
-    
+	inMessageQ = inMsgQ
+
 	wsLog.Debug("Setting Handlers")
 	server.Post("/v1/commit-chain/?", handleCommitChain)
 	server.Post("/v1/reveal-chain/?", handleRevealChain)
@@ -54,11 +54,11 @@ func Start(db database.Db, inMsgQ chan wire.FtmInternalMsg) {
 	server.Get("/v1/entry-block-by-keymr/([^/]+)", handleEntryBlock)
 	server.Get("/v1/entry-by-hash/([^/]+)", handleEntry)
 	server.Get("/v1/chain-head/([^/]+)", handleChainHead)
-    server.Get("/v1/entry-credit-balance/([^/]+)", handleEntryCreditBalance)
-    server.Get("/v1/factoid-balance/([^/]+)", handleFactoidBalance)
-    server.Post("/v1/factoid-submit/?", handleFactoidSubmit)
-    server.Get("/v1/factoid-get-fee/",handleGetFee)
-    
+	server.Get("/v1/entry-credit-balance/([^/]+)", handleEntryCreditBalance)
+	server.Get("/v1/factoid-balance/([^/]+)", handleFactoidBalance)
+	server.Post("/v1/factoid-submit/?", handleFactoidSubmit)
+	server.Get("/v1/factoid-get-fee/", handleGetFee)
+
 	wsLog.Info("Starting server")
 	go server.Run("localhost:" + strconv.Itoa(portNumber))
 }
@@ -211,7 +211,7 @@ func handleDirectoryBlockHead(ctx *web.Context) {
 		ctx.Write(p)
 	}
 
-//	ctx.WriteHeader(httpOK)
+	//	ctx.WriteHeader(httpOK)
 }
 
 func handleDirectoryBlock(ctx *web.Context, keymr string) {
@@ -360,7 +360,7 @@ func handleEntryCreditBalance(ctx *web.Context, eckey string) {
 	type ecbal struct {
 		Balance uint32
 	}
-    
+
 	b := new(ecbal)
 	if bal, err := factomapi.ECBalance(eckey); err != nil {
 		wsLog.Error(err)
@@ -386,78 +386,77 @@ func handleFactoidBalance(ctx *web.Context, eckey string) {
 	if err == nil && len(adr) == common.HASH_LENGTH {
 		v := int64(common.FactoidState.GetBalance(fct.NewAddress(adr)))
 
-        b = fbal{Balance : v,}
-    }else{
-        b = fbal{ Balance : 0,}
-    }
-    
-    if p, err := json.Marshal(b); err != nil {
-        wsLog.Error(err)
-        return
-    } else {
-        ctx.Write(p)
-    }
-    
+		b = fbal{Balance: v}
+	} else {
+		b = fbal{Balance: 0}
+	}
+
+	if p, err := json.Marshal(b); err != nil {
+		wsLog.Error(err)
+		return
+	} else {
+		ctx.Write(p)
+	}
+
 }
 
 func handleFactoidSubmit(ctx *web.Context) {
-    
-    type x struct {Transaction string }
-    t := new(x)
-   
-    var p []byte
-    var err error
-    if p, err = ioutil.ReadAll(ctx.Request.Body); err != nil {
-        wsLog.Error(err)
-        ctx.Abort(400,"Unable to read the request")
-        return
-    } else {
-        if err := json.Unmarshal(p, t); err != nil {
-            wsLog.Error(err)
-            ctx.WriteHeader(httpBad)
-            return
-        }
-    }
-    
-    msg := new(wire.MsgFactoidTX)
+	type x struct{ Transaction string }
+	t := new(x)
 
-    if p, err = hex.DecodeString(t.Transaction); err != nil {
-        wsLog.Error(err)
-        ctx.WriteHeader(httpBad)
-        return
-    } 
-        
-    msg.Transaction = new (fct.Transaction)
-    err = msg.Transaction.UnmarshalBinary(p)
-            
-    if  err != nil {
-        wsLog.Error(err)
-        ctx.WriteHeader(httpBad)
-        return
-    }
-    
-    good := common.FactoidState.Validate(msg.Transaction)
-    if !good {
-        fmt.Println("Bad Transaction")
-        wsLog.Error(fmt.Errorf("Bad Transaction"))
-        ctx.Abort(400,"Invalid Transaction")
-        return
-    }
-    
-    inMessageQ <- msg
-    
+	var p []byte
+	var err error
+	if p, err = ioutil.ReadAll(ctx.Request.Body); err != nil {
+		wsLog.Error(err)
+		ctx.Abort(400, "Unable to read the request")
+		return
+	} else {
+
+		if err := json.Unmarshal(p, t); err != nil {
+			wsLog.Error(err)
+			ctx.WriteHeader(httpBad)
+			return
+		}
+	}
+
+	msg := new(wire.MsgFactoidTX)
+
+	if p, err = hex.DecodeString(t.Transaction); err != nil {
+		wsLog.Error(err)
+		ctx.WriteHeader(httpBad)
+		return
+	}
+
+	msg.Transaction = new(fct.Transaction)
+	err = msg.Transaction.UnmarshalBinary(p)
+	if err != nil {
+		wsLog.Error(err)
+		ctx.WriteHeader(httpBad)
+		return
+	}
+
+	good := common.FactoidState.Validate(msg.Transaction)
+	if !good {
+		fmt.Println("Bad Transaction")
+		wsLog.Error(fmt.Errorf("Bad Transaction"))
+		ctx.Abort(400, "Invalid Transaction")
+		return
+	}
+
+	inMessageQ <- msg
+
 }
 
 func handleGetFee(ctx *web.Context) {
-    type x struct { Fee int64 }
-    b := new(x) 
-    b.Fee = int64(common.FactoidState.GetFactoshisPerEC())
-    if p, err := json.Marshal(b); err != nil {
-        wsLog.Error(err)
-        ctx.WriteHeader(httpBad)
-        return
-    } else {
-        ctx.Write(p)
-    }
-    
+	type x struct{ Fee int64 }
+	b := new(x)
+	b.Fee = int64(common.FactoidState.GetFactoshisPerEC())
+	if p, err := json.Marshal(b); err != nil {
+		wsLog.Error(err)
+		ctx.WriteHeader(httpBad)
+		return
+	} else {
+		ctx.Write(p)
+	}
+
 }

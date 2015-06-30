@@ -11,7 +11,7 @@ checkout() {
     cd $1
     if [ $? -eq 0 ]; then
         echo $1 
-        git checkout -q $2 
+        git checkout -q $2 > /dev/null 2>&1
         if [ $? -eq 0 ]; then
             echo "Now " $1 " is on the " $2 " branch" 
         else 
@@ -30,6 +30,7 @@ compile() {
     current=`pwd`
     cd $1
     echo "Compiling: " $1
+    go clean
     go install
     cd $current
 }

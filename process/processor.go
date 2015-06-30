@@ -288,6 +288,16 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 				}
 
 			} else if msgEom.EOM_Type >= wire.END_MINUTE_1 && msgEom.EOM_Type < wire.END_MINUTE_10 {
+				ack, err := plMgr.AddMyProcessListItem(msgEom, nil, msgEom.EOM_Type)
+				if err != nil {
+					return err
+				}			
+				if ack.ChainID == nil {
+					ack.ChainID = dchain.ChainID
+				}	
+				// Broadcast the ack to the network if no errors
+				//outMsgQueue <- ack				
+				
 				plMgr.AddMyProcessListItem(msgEom, nil, msgEom.EOM_Type)
 			}
 		}
