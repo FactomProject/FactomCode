@@ -207,7 +207,6 @@ func Start_Processor(
 
 // Serve the "fast lane" incoming control msg from inCtlMsgQueue
 func serveCtlMsgRequest(msg wire.FtmInternalMsg) error {
-
 	util.Trace()
 
 	switch msg.Command() {
@@ -324,7 +323,10 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		}
 
 	case wire.CmdFactoidTX:
+		util.Trace("some mode: CmdFactoidTX")
+
 		if nodeMode == common.SERVER_NODE {
+			util.Trace("server mode; TODO")
 			t := (msg.(*wire.MsgFactoidTX)).Transaction
 			if common.FactoidState.AddTransaction(t) {
 				fmt.Println("Recorded:")
@@ -344,6 +346,11 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 				fmt.Println("Failed:")
 			}
 			fmt.Println(t)
+		} else {
+			// client-mode, milestone 1 - transmit to the server node
+			util.Trace("client mode; TODO")
+			// TODO: test ...
+			outMsgQueue <- msg
 		}
 
 	case wire.CmdABlock:
@@ -426,14 +433,14 @@ func processAcknowledgement(msg *wire.MsgAcknowledgement) error {
 		return err
 	}
 	if !serverPubKey.Verify(bytes, &msg.Signature) {
-		return errors.New(fmt.Sprintf("Invalid signature in Ack = %s\n", spew.Sdump(msg)))		
-	}	
+		return errors.New(fmt.Sprintf("Invalid signature in Ack = %s\n", spew.Sdump(msg)))
+	}
 
 	// Update the next block height in dchain
 	if msg.Height > dchain.NextBlockHeight {
 		dchain.NextBlockHeight = msg.Height
 	}
-	
+
 	// Update the next block height in db
 	if int64(msg.Height) > db.FetchNextBlockHeightCache() {
 		db.UpdateNextBlockHeightCache(msg.Height)
