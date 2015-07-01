@@ -766,8 +766,10 @@ func buildGenesisBlocks() error {
 	data, _ := FBlock.MarshalBinary()
 	procLog.Debugf("\n\n ", common.Sha(data).String(), "\n\n")
 	dchain.AddFBlockToDBEntry(FBlock)
+	fmt.Println("Factoid genesis block hash:", FBlock.GetHash())
 	exportFctChain(fchain)
-    common.FactoidState.AddTransactionBlock(FBlock)
+	// Add transactions from genesis block to factoid balances
+    common.FactoidState.AddTransactionBlock(FBlock) 
 
 	// Directory Block chain
 	procLog.Debug("in buildGenesisBlocks")
@@ -1010,7 +1012,7 @@ func newFactoidBlock(chain *common.FctChain) block.IFBlock {
 	chain.BlockMutex.Unlock()
 
 	//Store the block in db
-	procLog.Debugf("processor: currentBlock=%s\n", spew.Sdump(currentBlock))
+	fmt.Printf("processor: currentBlock=%s\n", currentBlock)
 	db.ProcessFBlockBatch(currentBlock)
 	procLog.Infof("Factoid chain: block " + strconv.FormatUint(uint64(currentBlock.GetDBHeight()), 10) + " created for chain: " + chain.ChainID.String())
 
