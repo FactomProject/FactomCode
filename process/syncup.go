@@ -50,9 +50,9 @@ func processFBlock(msg *wire.MsgFBlock) error {
 		return errors.New("Server received msg:" + msg.Command())
 	}
 
+	key, _ := msg.SC.GetHash().MarshalText()
 	//Add it to mem pool before saving it in db
-	h, _ := common.CreateHash(msg.SC)     // need to change it to MR??
-	fMemPool.addBlockMsg(msg, h.String()) // stored in mem pool with the MR as the key
+	fMemPool.addBlockMsg(msg, string(key)) // stored in mem pool with the MR as the key
 
 	return nil
 
@@ -85,9 +85,8 @@ func procesECBlock(msg *wire.MsgECBlock) error {
 		return errors.New("Server received msg:" + msg.Command())
 	}
 
-	h, _ := common.CreateHash(msg.ECBlock)
 	//Add it to mem pool before saving it in db
-	fMemPool.addBlockMsg(msg, h.String())
+	fMemPool.addBlockMsg(msg, msg.ECBlock.KeyMR().String())
 
 	// for debugging??
 	procLog.Debugf("SyncUp: MsgCBlock=%s\n", spew.Sdump(msg.ECBlock))
