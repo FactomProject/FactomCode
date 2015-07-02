@@ -68,6 +68,7 @@ func (e *ECBlock) Hash3() *Hash {
 
 // KeyMR returns a hash of the serialized Block Header + the serialized Body.
 func (e *ECBlock) KeyMR() *Hash {
+/*??for debugging
 	r := NewHash()
 	p := make([]byte, 0)
 
@@ -83,6 +84,10 @@ func (e *ECBlock) KeyMR() *Hash {
 	p = append(p, body...)
 
 	return Sha(p)
+	*/
+	
+	h, _ := CreateHash(e)
+	return h
 }
 
 func (e *ECBlock) MarshalBinary() ([]byte, error) {
