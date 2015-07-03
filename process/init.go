@@ -14,7 +14,7 @@ import (
 	"github.com/FactomProject/btcd/wire"
 	fct "github.com/FactomProject/factoid"
 	"github.com/FactomProject/factoid/block"
-	"github.com/davecgh/go-spew/spew"	
+	"github.com/davecgh/go-spew/spew"
 	"sort"
 	"strconv"
 )
@@ -130,8 +130,8 @@ func initAChain() {
 		if uint32(i) != aBlocks[i].Header.DBHeight {
 			panic(errors.New("BlockID does not equal index for chain:" + achain.ChainID.String() + " block:" + fmt.Sprintf("%v", aBlocks[i].Header.DBHeight)))
 		}
-		if !validateDBSignature(&aBlocks[i], dchain){
-			panic(errors.New("No valid signature found in Admin Block = " +  fmt.Sprintf("%s\n", spew.Sdump(aBlocks[i]))))			
+		if !validateDBSignature(&aBlocks[i], dchain) {
+			panic(errors.New("No valid signature found in Admin Block = " + fmt.Sprintf("%s\n", spew.Sdump(aBlocks[i]))))
 		}
 	}
 
@@ -179,13 +179,12 @@ func initFctChain() {
 	if len(fBlocks) == 0 || dchain.NextBlockHeight == 0 {
 		fchain.NextBlockHeight = 0
 
-		// THIS IS IN TWO PLACES HERE! THEY NEED TO MATCH!
 		fchain.NextBlock = block.GetGenesisBlock(
 			0, 1000000, 10, 200000000000)
 	} else {
-		// Entry Credit Chain should have the same height as the dir chain
-		fchain.NextBlockHeight = dchain.NextBlockHeight
-		fchain.NextBlock = block.NewFBlock(FactoshisPerCredit, dchain.NextBlockHeight)
+        fchain.NextBlockHeight = dchain.NextBlockHeight
+        common.FactoidState.ProcessEndOfBlock2(dchain.NextBlockHeight)
+        fchain.NextBlock = common.FactoidState.GetCurrentBlock()
 	}
 
 	exportFctChain(fchain)
@@ -225,7 +224,6 @@ func initializeECreditMap(block *common.ECBlock) {
 			eCreditMap[string(e.ECPubKey[:])] += int32(e.Credits)
 			common.FactoidState.UpdateECBalance(fct.NewAddress(e.ECPubKey[:]), int64(e.Credits))
 		case common.ECIDBalanceIncrease:
-			fmt.Println("\nIncreases!!!!\n")
 			e := entry.(*common.IncreaseBalance)
 			eCreditMap[string(e.ECPubKey[:])] += int32(e.Credits)
 			// Don't add the Increases to Factoid state, the Factoid processing will do that.
@@ -239,12 +237,12 @@ func initializeECreditMap(block *common.ECBlock) {
 func initServerKeys() {
 	if nodeMode == common.SERVER_NODE {
 		var err error
-		serverPrivKey, err = common.NewPrivateKeyFromHex(serverPrivKeyHex)	
+		serverPrivKey, err = common.NewPrivateKeyFromHex(serverPrivKeyHex)
 		if err != nil {
 			panic("Cannot parse Server Private Key from configuration file: " + err.Error())
 		}
-	} 
-	
+	}
+
 	serverPubKey = common.PubKeyFromString(common.SERVER_PUB_KEY)
 
 }

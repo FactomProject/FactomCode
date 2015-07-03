@@ -25,7 +25,7 @@ func (db *LevelDb) ProcessFBlockBatch(block block.IFBlock) error {
 			return err
 		}
 
-        scHash := common.Sha(binaryBlock)
+        scHash := block.GetHash()
 		
 		// Insert the binary factom block
 		var key []byte = []byte{byte(TBL_SC)}

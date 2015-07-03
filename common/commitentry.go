@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"time"
 
 	ed "github.com/FactomProject/ed25519"
 )
@@ -49,9 +50,17 @@ func (c *CommitEntry) CommitMsg() []byte {
 
 // InTime checks the CommitEntry.MilliTime and returns true if the timestamp is
 // whitin +/- 24 hours of the current time.
-// TODO
 func (c *CommitEntry) InTime() bool {
-	return true
+	now := time.Now()
+	a := make([]byte, 2, 8)
+	a = append(a, c.MilliTime[:]...)
+	buf := bytes.NewBuffer(a)
+	var sec int64
+	binary.Read(buf, binary.BigEndian, &sec)
+	sec = sec / 1000
+	t := time.Unix(sec, 0)
+	
+	return t.After(now.Add(-24 * time.Hour)) && t.Before(now.Add(24 * time.Hour))
 }
 
 func (c *CommitEntry) IsValid() bool {

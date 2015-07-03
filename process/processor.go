@@ -207,7 +207,6 @@ func Start_Processor(
 
 // Serve the "fast lane" incoming control msg from inCtlMsgQueue
 func serveCtlMsgRequest(msg wire.FtmInternalMsg) error {
-
 	util.Trace()
 
 	switch msg.Command() {
@@ -292,13 +291,13 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 				ack, err := plMgr.AddMyProcessListItem(msgEom, nil, msgEom.EOM_Type)
 				if err != nil {
 					return err
-				}			
+				}
 				if ack.ChainID == nil {
 					ack.ChainID = dchain.ChainID
-				}	
+				}
 				// Broadcast the ack to the network if no errors
-				//outMsgQueue <- ack				
-				
+				//outMsgQueue <- ack
+
 				plMgr.AddMyProcessListItem(msgEom, nil, msgEom.EOM_Type)
 			}
 		}
@@ -334,7 +333,10 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		}
 
 	case wire.CmdFactoidTX:
+		util.Trace("some mode: CmdFactoidTX")
+
 		if nodeMode == common.SERVER_NODE {
+			util.Trace("server mode; TODO")
 			t := (msg.(*wire.MsgFactoidTX)).Transaction
 			if common.FactoidState.AddTransaction(t) {
 				fmt.Println("Recorded:")
@@ -354,6 +356,11 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 				fmt.Println("Failed:")
 			}
 			fmt.Println(t)
+		} else {
+			// client-mode, milestone 1 - transmit to the server node
+			util.Trace("client mode; TODO")
+			// TODO: test ...
+			outMsgQueue <- msg
 		}
 
 	case wire.CmdABlock:
@@ -759,7 +766,10 @@ func buildGenesisBlocks() error {
 	data, _ := FBlock.MarshalBinary()
 	procLog.Debugf("\n\n ", common.Sha(data).String(), "\n\n")
 	dchain.AddFBlockToDBEntry(FBlock)
+	fmt.Println("Factoid genesis block hash:", FBlock.GetHash())
 	exportFctChain(fchain)
+	// Add transactions from genesis block to factoid balances
+    common.FactoidState.AddTransactionBlock(FBlock) 
 
 	// Directory Block chain
 	procLog.Debug("in buildGenesisBlocks")
@@ -1002,7 +1012,7 @@ func newFactoidBlock(chain *common.FctChain) block.IFBlock {
 	chain.BlockMutex.Unlock()
 
 	//Store the block in db
-	procLog.Debugf("processor: currentBlock=%s\n", spew.Sdump(currentBlock))
+	fmt.Printf("processor: currentBlock=%s\n", currentBlock)
 	db.ProcessFBlockBatch(currentBlock)
 	procLog.Infof("Factoid chain: block " + strconv.FormatUint(uint64(currentBlock.GetDBHeight()), 10) + " created for chain: " + chain.ChainID.String())
 

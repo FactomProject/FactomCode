@@ -8,7 +8,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
-	"fmt"
+//	"fmt"
 	"github.com/FactomProject/factoid/block"
 	"reflect"
 	"sync"
@@ -132,7 +132,7 @@ func NewDBEntryFromECBlock(cb *ECBlock) *DBEntry {
 	e.hash = cb.Header.BodyHash
 
 	e.ChainID = cb.Header.ECChainID
-	e.MerkleRoot = cb.KeyMR() //To use MerkleRoot??
+	e.MerkleRoot = cb.KeyMR() 
 
 	return e
 }
@@ -388,9 +388,8 @@ func (c *DChain) AddFBlockToDBEntry(b block.IFBlock) (err error) {
 	dbEntry.ChainID = new(Hash)
 	dbEntry.ChainID.SetBytes(b.GetChainID().Bytes())
 
-	data, err := b.MarshalBinary()
-
-	dbEntry.MerkleRoot = Sha(data)
+	dbEntry.MerkleRoot = new(Hash)
+	dbEntry.MerkleRoot.SetBytes(b.GetHash().Bytes())
 
 	if len(c.NextBlock.DBEntries) < 3 {
 		panic("3 DBEntries not initialized properly for block: " + string(c.NextBlockHeight))
@@ -414,7 +413,7 @@ func (c *DChain) AddDBEntry(dbEntry *DBEntry) (err error) {
 
 	return nil
 }
-
+/*
 // Add DBEntry from a Factoid Block
 func (c *DChain) AddFBlockMRToDBEntry(dbEntry *DBEntry) (err error) {
 
@@ -431,7 +430,7 @@ func (c *DChain) AddFBlockMRToDBEntry(dbEntry *DBEntry) (err error) {
 
 	return nil
 }
-
+*/
 // Add DBlock to the chain in memory
 func (c *DChain) AddDBlockToDChain(b *DirectoryBlock) (err error) {
 

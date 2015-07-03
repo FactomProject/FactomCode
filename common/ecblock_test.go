@@ -6,6 +6,7 @@ import (
 	"os"
 	"testing"
 	
+	"github.com/davecgh/go-spew/spew"
 	"github.com/FactomProject/FactomCode/common"
 	ed "github.com/FactomProject/ed25519"
 )
@@ -34,6 +35,15 @@ func TestECBlockMarshal(t *testing.T) {
 		cc.ECPubKey = pub
 		cc.Sig = ed.Sign(privkey, cc.CommitMsg())
 	}
+	
+	// create an IncreaseBalance for testing
+	pub := new([32]byte)
+	p, _ = hex.DecodeString("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+	copy(pub[:], p)
+	facTX := common.NewHash()
+	p, _ = hex.DecodeString("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
+	facTX.SetBytes(p)
+	ib := common.NewIncreaseBalance(pub, facTX, 12)
 
 	// create a ECBlock for testing
 	p, _ = hex.DecodeString("1111111111111111111111111111111111111111111111111111111111111111")
@@ -54,6 +64,16 @@ func TestECBlockMarshal(t *testing.T) {
 	// add the CommitChain to the ECBlock
 	ecb.AddEntry(cc)
 	
+	// add the IncreaseBalance
+	ecb.AddEntry(ib)
+	
+	// add the MinuteNumber
+	min := common.NewMinuteNumber()
+	min.Number = 3
+	ecb.AddEntry(min)
+	
+	fmt.Println(spew.Sdump(ecb))
+	
 	ecb2 := common.NewECBlock()
 	if p, err := ecb.MarshalBinary(); err != nil {
 		t.Error(err)
@@ -67,5 +87,6 @@ func TestECBlockMarshal(t *testing.T) {
 		} else if string(p) != string(q) {
 			t.Errorf("ecb = %x\necb2 = %x\n", p, q)
 		}
+		fmt.Println(spew.Sdump(ecb2))
 	}
 }

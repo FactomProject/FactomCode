@@ -26,16 +26,12 @@ func (m *MinuteNumber) ECID() byte {
 
 func (m *MinuteNumber) MarshalBinary() ([]byte, error) {
 	buf := new(bytes.Buffer)
-	buf.WriteByte(m.ECID())
 	buf.WriteByte(m.Number)
 	return buf.Bytes(), nil
 }
 
 func (m *MinuteNumber) UnmarshalBinary(data []byte) error {
 	buf := bytes.NewBuffer(data)
-	if _, err := buf.ReadByte(); err != nil {
-		return err
-	}
 	if c, err := buf.ReadByte(); err != nil {
 		return err
 	} else {
