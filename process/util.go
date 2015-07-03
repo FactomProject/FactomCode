@@ -79,7 +79,7 @@ func exportEChain(chain *common.EChain) {
 			}
 		}
 
-		err = ioutil.WriteFile(fmt.Sprintf(dataStorePath+strChainID+"/store.%09d.block", block.Header.DBHeight), data, 0777)
+		err = ioutil.WriteFile(fmt.Sprintf(dataStorePath+strChainID+"/store.%09d.block", block.Header.EBHeight), data, 0777)
 		if err != nil {
 			panic(err)
 		}

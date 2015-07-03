@@ -107,11 +107,11 @@ func processEBlock(msg *wire.MsgEBlock) error {
 	if nodeMode == common.SERVER_NODE {
 		return errors.New("Server received msg:" + msg.Command())
 	}
-
+/*
 	if msg.EBlk.Header.DBHeight >= dchain.NextBlockHeight || msg.EBlk.Header.DBHeight < 0 {
 		return errors.New("MsgEBlock has an invalid DBHeight:" + strconv.Itoa(int(msg.EBlk.Header.DBHeight)))
 	}
-
+*/
 	//Add it to mem pool before saving it in db
 	msg.EBlk.BuildMerkleRoot()
 	fMemPool.addBlockMsg(msg, msg.EBlk.MerkleRoot.String()) // store it in mem pool with MR as the key
