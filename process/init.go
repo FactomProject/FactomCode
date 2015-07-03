@@ -182,9 +182,9 @@ func initFctChain() {
 		fchain.NextBlock = block.GetGenesisBlock(
 			0, 1000000, 10, 200000000000)
 	} else {
-		// Entry Credit Chain should have the same height as the dir chain
-		fchain.NextBlockHeight = dchain.NextBlockHeight
-		fchain.NextBlock = block.NewFBlock(FactoshisPerCredit, dchain.NextBlockHeight)
+        fchain.NextBlockHeight = dchain.NextBlockHeight
+        common.FactoidState.ProcessEndOfBlock2(dchain.NextBlockHeight)
+        fchain.NextBlock = common.FactoidState.GetCurrentBlock()
 	}
 
 	exportFctChain(fchain)
@@ -224,7 +224,6 @@ func initializeECreditMap(block *common.ECBlock) {
 			eCreditMap[string(e.ECPubKey[:])] += int32(e.Credits)
 			common.FactoidState.UpdateECBalance(fct.NewAddress(e.ECPubKey[:]), int64(e.Credits))
 		case common.ECIDBalanceIncrease:
-			fmt.Println("\nIncreases!!!!\n")
 			e := entry.(*common.IncreaseBalance)
 			eCreditMap[string(e.ECPubKey[:])] += int32(e.Credits)
 			// Don't add the Increases to Factoid state, the Factoid processing will do that.
