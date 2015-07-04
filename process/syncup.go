@@ -54,6 +54,8 @@ func processFBlock(msg *wire.MsgFBlock) error {
 	key, _ := msg.SC.GetHash().MarshalText()
 	//Add it to mem pool before saving it in db
 	fMemPool.addBlockMsg(msg, string(key)) // stored in mem pool with the MR as the key
+	
+	procLog.Debugf("SyncUp: MsgFBlock=%s\n", spew.Sdump(msg.SC))	
 
 	return nil
 
@@ -360,7 +362,7 @@ func deleteBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool) err
 }
 
 func validateDBSignature(aBlock *common.AdminBlock, dchain *common.DChain) bool {
-/*
+
 	dbSigEntry := aBlock.GetDBSignature()
 	if dbSigEntry == nil {
 		if aBlock.Header.DBHeight == 0 {
@@ -386,7 +388,7 @@ func validateDBSignature(aBlock *common.AdminBlock, dchain *common.DChain) bool 
 				}
 			}
 		}
-	}*/
+	}
 
 	return true
 }
