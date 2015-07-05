@@ -400,6 +400,21 @@ func handleFactoidBalance(ctx *web.Context, eckey string) {
 
 }
 
+func returnMsg (ctx *web.Context, msg string, success bool) {
+    type rtn struct {
+        Response string
+        Success bool
+    }
+    r := rtn{Response: msg, Success: success,}
+    
+    if p, err := json.Marshal(r); err != nil {
+        wsLog.Error(err)
+        return
+    } else {
+        ctx.Write(p)
+    }
+}
+
 func handleFactoidSubmit(ctx *web.Context) {
 	type x struct{ Transaction string }
 	t := new(x)
@@ -408,43 +423,39 @@ func handleFactoidSubmit(ctx *web.Context) {
 	var err error
 	if p, err = ioutil.ReadAll(ctx.Request.Body); err != nil {
 		wsLog.Error(err)
-		ctx.Abort(400, "Unable to read the request")
+		returnMsg(ctx,"Unable to read the request",false)
 		return
 	} else {
-
 		if err := json.Unmarshal(p, t); err != nil {
-			wsLog.Error(err)
-			ctx.WriteHeader(httpBad)
-			return
+            returnMsg(ctx,"Unable to Unmarshal the request",false)
+            return
 		}
 	}
 
 	msg := new(wire.MsgFactoidTX)
 
 	if p, err = hex.DecodeString(t.Transaction); err != nil {
-		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
-		return
+        returnMsg(ctx,"Unable to decode the transaction",false)
+        return
 	}
 
 	msg.Transaction = new(fct.Transaction)
 	err = msg.Transaction.UnmarshalBinary(p)
 	if err != nil {
-		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
-		return
+        returnMsg(ctx,"Unable to unmarshal the transaction",false)
+        return
 	}
 
 	good := common.FactoidState.Validate(msg.Transaction)
 	if !good {
-		fmt.Println("Bad Transaction")
-		wsLog.Error(fmt.Errorf("Bad Transaction"))
-		ctx.Abort(400, "Invalid Transaction")
-		return
+        returnMsg(ctx,"The transaction did not validate",false)
+        return
 	}
 
 	inMessageQ <- msg
-
+	
+	returnMsg(ctx,"Successfully submitted the transaction",true)
+    
 }
 
 func handleGetFee(ctx *web.Context) {
