@@ -201,29 +201,24 @@ func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, d
 		switch dbEntry.ChainID.String() {
 		case ecchain.ChainID.String():
 			if _, ok := fMemPool.blockpool[dbEntry.MerkleRoot.String()]; !ok {
-				fmt.Println("ecchain not found:", dbEntry.MerkleRoot.String())
 				return false
 			}
 		case achain.ChainID.String():
-			if msg, ok := fMemPool.blockpool[dbEntry.MerkleRoot.String()]; !ok {
-				fmt.Println("achain not found:", dbEntry.MerkleRoot.String())				
+			if msg, ok := fMemPool.blockpool[dbEntry.MerkleRoot.String()]; !ok {			
 				return false
 			} else {
 				// validate signature of the previous dir block
 				aBlkMsg, _ := msg.(*wire.MsgABlock)
-				if !validateDBSignature(aBlkMsg.ABlk, dchain) {
-					fmt.Println("dbsignature not valid:", dbEntry.MerkleRoot.String())						
+				if !validateDBSignature(aBlkMsg.ABlk, dchain) {				
 					return false
 				}
 			}
 		case fchain.ChainID.String():
-			if _, ok := fMemPool.blockpool[dbEntry.MerkleRoot.String()]; !ok {
-				fmt.Println("fchain not found:", dbEntry.MerkleRoot.String())					
+			if _, ok := fMemPool.blockpool[dbEntry.MerkleRoot.String()]; !ok {				
 				return false
 			}
 		default:
-			if msg, ok := fMemPool.blockpool[dbEntry.MerkleRoot.String()]; !ok {
-				fmt.Println("entry block not found:", dbEntry.MerkleRoot.String())					
+			if msg, ok := fMemPool.blockpool[dbEntry.MerkleRoot.String()]; !ok {				
 				return false
 			} else {
 				eBlkMsg, _ := msg.(*wire.MsgEBlock)
@@ -232,8 +227,7 @@ func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, d
 					if _, foundInMemPool := fMemPool.blockpool[ebEntry.EntryHash.String()]; !foundInMemPool {
 						// continue if the entry arleady exists in db
 						entry, _ := db.FetchEntryByHash(ebEntry.EntryHash)
-						if entry == nil {
-							fmt.Println("entry not found:", ebEntry.EntryHash.String())								
+						if entry == nil {					
 							return false
 						}
 					}
