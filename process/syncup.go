@@ -13,7 +13,6 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"strconv"
 	"time"
-	"fmt"
 )
 
 // processDirBlock validates dir block and save it to factom db.

@@ -16,6 +16,11 @@ const (
 	MAX_ENTRY_SIZE = uint16(10240) //Maximum size for Entry External IDs and the Data
 	HASH_LENGTH    = int(32)       //Length of a Hash
 	SIG_LENGTH     = int(64)       //Length of a signature
+	MAX_ORPHAN_SIZE = int(5000)		//Prphan mem pool size
+	MAX_TX_POOL_SIZE = int(50000)	//Transaction mem pool size
+	MAX_BLK_POOL_SIZE = int(500000) //Block mem bool size
+	
+	
 	//Common constants
 	VERSION_0     = byte(0)
 	NETWORK_ID_DB = uint32(4203931041) //0xFA92E5A1

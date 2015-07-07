@@ -86,6 +86,7 @@ func LoadConfigurations(cfg *util.FactomdConfig) {
 
 	FactomdUser = cfg.Btc.RpcUser
 	FactomdPass = cfg.Btc.RpcPass
+	
 }
 
 // Initialize the processor
