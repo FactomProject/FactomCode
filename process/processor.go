@@ -657,10 +657,7 @@ func buildRevealEntry(msg *wire.MsgRevealEntry) {
 	chain := chainIDMap[msg.Entry.ChainID.String()]
 
 	// store the new entry in db
-	entryBinary, _ := msg.Entry.MarshalBinary()
-	entryHash := common.Sha(entryBinary)
-
-	db.InsertEntry(entryHash, msg.Entry)
+	db.InsertEntry(msg.Entry)
 
 	err := chain.NextBlock.AddEBEntry(msg.Entry)
 
@@ -702,9 +699,7 @@ func buildRevealChain(msg *wire.MsgRevealEntry) {
 	initEChainFromDB(chain)
 
 	// store the new entry in db
-	entryBinary, _ := chain.FirstEntry.MarshalBinary()
-	entryHash := common.Sha(entryBinary)
-	db.InsertEntry(entryHash, chain.FirstEntry)
+	db.InsertEntry(chain.FirstEntry)
 
 	err := chain.NextBlock.AddEBEntry(chain.FirstEntry)
 

@@ -134,7 +134,7 @@ func processEntry(msg *wire.MsgEntry) error {
 	}
 
 	// store the entry in mem pool
-	h, _ := common.CreateHash(msg.Entry)
+	h := msg.Entry.Hash()
 	fMemPool.addBlockMsg(msg, h.String()) // store it in mem pool with hash as the key
 
 	procLog.Debugf("SyncUp: MsgEntry=%s\n", spew.Sdump(msg.Entry))
@@ -282,7 +282,7 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 			// store entry in db first
 			for _, ebEntry := range eBlkMsg.EBlk.EBEntries {
 				if msg, foundInMemPool := fMemPool.blockpool[ebEntry.EntryHash.String()]; foundInMemPool {
-					err := db.InsertEntry(ebEntry.EntryHash, msg.(*wire.MsgEntry).Entry)
+					err := db.InsertEntry(msg.(*wire.MsgEntry).Entry)
 					if err != nil {
 						return err
 					}
