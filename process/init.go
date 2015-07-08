@@ -182,9 +182,9 @@ func initFctChain() {
 		fchain.NextBlock = block.GetGenesisBlock(
 			0, 1000000, 10, 200000000000)
 	} else {
-        fchain.NextBlockHeight = dchain.NextBlockHeight
-        common.FactoidState.ProcessEndOfBlock2(dchain.NextBlockHeight)
-        fchain.NextBlock = common.FactoidState.GetCurrentBlock()
+		fchain.NextBlockHeight = dchain.NextBlockHeight
+		common.FactoidState.ProcessEndOfBlock2(dchain.NextBlockHeight)
+		fchain.NextBlock = common.FactoidState.GetCurrentBlock()
 	}
 
 	exportFctChain(fchain)
@@ -229,6 +229,7 @@ func initializeECreditMap(block *common.ECBlock) {
 			// Don't add the Increases to Factoid state, the Factoid processing will do that.
 		default:
 			fmt.Println("UNKNOWN\n")
+			//			panic("UNKNOWN - doesn't sound good, Jack please check...")
 		}
 	}
 }
