@@ -49,6 +49,7 @@ func Start(db database.Db, inMsgQ chan wire.FtmInternalMsg) {
 	server.Post("/v1/reveal-chain/?", handleRevealChain)
 	server.Post("/v1/commit-entry/?", handleCommitEntry)
 	server.Post("/v1/reveal-entry/?", handleRevealEntry)
+	server.Post("/v1/factoid-submit/?", handleFactoidSubmit)
 	server.Get("/v1/directory-block-head/?", handleDirectoryBlockHead)
 	server.Get("/v1/directory-block-by-keymr/([^/]+)", handleDirectoryBlock)
 	server.Get("/v1/entry-block-by-keymr/([^/]+)", handleEntryBlock)
@@ -56,7 +57,6 @@ func Start(db database.Db, inMsgQ chan wire.FtmInternalMsg) {
 	server.Get("/v1/chain-head/([^/]+)", handleChainHead)
 	server.Get("/v1/entry-credit-balance/([^/]+)", handleEntryCreditBalance)
 	server.Get("/v1/factoid-balance/([^/]+)", handleFactoidBalance)
-	server.Post("/v1/factoid-submit/?", handleFactoidSubmit)
 	server.Get("/v1/factoid-get-fee/", handleGetFee)
 
 	wsLog.Info("Starting server")
@@ -88,15 +88,14 @@ func handleCommitChain(ctx *web.Context) {
 	commit := common.NewCommitChain()
 	if p, err := hex.DecodeString(c.CommitChainMsg); err != nil {
 		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
 		return
-	} else {
-		if err := commit.UnmarshalBinary(p); err != nil {
-			wsLog.Error(err)
-			ctx.WriteHeader(httpBad)
-			return
-		}
-	}
+	}else {
+        if err := commit.UnmarshalBinary(p); err != nil {
+            wsLog.Error(err)
+            ctx.WriteHeader(httpBad)
+            return
+        }
+    }
 	if err := factomapi.CommitChain(commit); err != nil {
 		wsLog.Error(err)
 		ctx.WriteHeader(httpBad)
@@ -118,12 +117,10 @@ func handleCommitEntry(ctx *web.Context) {
 	c := new(commitentry)
 	if p, err := ioutil.ReadAll(ctx.Request.Body); err != nil {
 		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
 		return
 	} else {
 		if err := json.Unmarshal(p, c); err != nil {
 			wsLog.Error(err)
-			ctx.WriteHeader(httpBad)
 			return
 		}
 	}
@@ -131,22 +128,18 @@ func handleCommitEntry(ctx *web.Context) {
 	commit := common.NewCommitEntry()
 	if p, err := hex.DecodeString(c.CommitEntryMsg); err != nil {
 		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
 		return
 	} else {
 		if err := commit.UnmarshalBinary(p); err != nil {
 			wsLog.Error(err)
-			ctx.WriteHeader(httpBad)
 			return
 		}
 	}
 	if err := factomapi.CommitEntry(commit); err != nil {
 		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
 		return
 	}
 
-	ctx.WriteHeader(httpOK)
 }
 
 func handleRevealEntry(ctx *web.Context) {
@@ -310,7 +303,6 @@ func handleEntry(ctx *web.Context, hash string) {
 	e := new(entry)
 	if entry, err := factomapi.EntryByHash(hash); err != nil {
 		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
 		return
 	} else {
 		e.ChainID = entry.ChainID.String()
@@ -322,13 +314,11 @@ func handleEntry(ctx *web.Context, hash string) {
 
 	if p, err := json.Marshal(e); err != nil {
 		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
 		return
 	} else {
 		ctx.Write(p)
 	}
 
-	ctx.WriteHeader(httpOK)
 }
 
 func handleChainHead(ctx *web.Context, chainid string) {
@@ -339,7 +329,6 @@ func handleChainHead(ctx *web.Context, chainid string) {
 	c := new(chead)
 	if mr, err := factomapi.ChainHead(chainid); err != nil {
 		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
 		return
 	} else {
 		c.EntryBlockKeyMR = mr.String()
@@ -347,13 +336,11 @@ func handleChainHead(ctx *web.Context, chainid string) {
 
 	if p, err := json.Marshal(c); err != nil {
 		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
 		return
 	} else {
 		ctx.Write(p)
 	}
 
-	ctx.WriteHeader(httpOK)
 }
 
 func handleEntryCreditBalance(ctx *web.Context, eckey string) {
@@ -400,6 +387,21 @@ func handleFactoidBalance(ctx *web.Context, eckey string) {
 
 }
 
+func returnMsg (ctx *web.Context, msg string, success bool) {
+    type rtn struct {
+        Response string
+        Success bool
+    }
+    r := rtn{Response: msg, Success: success,}
+    
+    if p, err := json.Marshal(r); err != nil {
+        wsLog.Error(err)
+        return
+    } else {
+        ctx.Write(p)
+    }
+}
+
 func handleFactoidSubmit(ctx *web.Context) {
 	type x struct{ Transaction string }
 	t := new(x)
@@ -408,43 +410,39 @@ func handleFactoidSubmit(ctx *web.Context) {
 	var err error
 	if p, err = ioutil.ReadAll(ctx.Request.Body); err != nil {
 		wsLog.Error(err)
-		ctx.Abort(400, "Unable to read the request")
+		returnMsg(ctx,"Unable to read the request",false)
 		return
 	} else {
-
 		if err := json.Unmarshal(p, t); err != nil {
-			wsLog.Error(err)
-			ctx.WriteHeader(httpBad)
-			return
+            returnMsg(ctx,"Unable to Unmarshal the request",false)
+            return
 		}
 	}
 
 	msg := new(wire.MsgFactoidTX)
 
 	if p, err = hex.DecodeString(t.Transaction); err != nil {
-		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
-		return
+        returnMsg(ctx,"Unable to decode the transaction",false)
+        return
 	}
 
 	msg.Transaction = new(fct.Transaction)
 	err = msg.Transaction.UnmarshalBinary(p)
 	if err != nil {
-		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
-		return
+        returnMsg(ctx,"Unable to unmarshal the transaction",false)
+        return
 	}
 
 	good := common.FactoidState.Validate(msg.Transaction)
 	if !good {
-		fmt.Println("Bad Transaction")
-		wsLog.Error(fmt.Errorf("Bad Transaction"))
-		ctx.Abort(400, "Invalid Transaction")
-		return
+        returnMsg(ctx,"The transaction did not validate",false)
+        return
 	}
 
 	inMessageQ <- msg
-
+	
+	returnMsg(ctx,"Successfully submitted the transaction",true)
+    
 }
 
 func handleGetFee(ctx *web.Context) {
