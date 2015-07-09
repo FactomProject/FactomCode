@@ -53,8 +53,8 @@ func processFBlock(msg *wire.MsgFBlock) error {
 	key, _ := msg.SC.GetHash().MarshalText()
 	//Add it to mem pool before saving it in db
 	fMemPool.addBlockMsg(msg, string(key)) // stored in mem pool with the MR as the key
-	
-	procLog.Debugf("SyncUp: MsgFBlock=%s\n", spew.Sdump(msg.SC))	
+
+	procLog.Debugf("SyncUp: MsgFBlock=%s\n", spew.Sdump(msg.SC))
 
 	return nil
 
@@ -89,11 +89,9 @@ func procesECBlock(msg *wire.MsgECBlock) error {
 
 	//Add it to mem pool before saving it in db
 	fMemPool.addBlockMsg(msg, msg.ECBlock.KeyMR().String())
-	
-	
 
 	// for debugging??
-	procLog.Debugf("SyncUp: msg.ECBlock.KeyMR().String()=%s\n", msg.ECBlock.KeyMR().String())	
+	procLog.Debugf("SyncUp: msg.ECBlock.KeyMR().String()=%s\n", msg.ECBlock.KeyMR().String())
 	procLog.Debugf("SyncUp: MsgCBlock=%s\n", spew.Sdump(msg.ECBlock))
 
 	return nil
@@ -108,11 +106,11 @@ func processEBlock(msg *wire.MsgEBlock) error {
 	if nodeMode == common.SERVER_NODE {
 		return errors.New("Server received msg:" + msg.Command())
 	}
-/*
-	if msg.EBlk.Header.DBHeight >= dchain.NextBlockHeight || msg.EBlk.Header.DBHeight < 0 {
-		return errors.New("MsgEBlock has an invalid DBHeight:" + strconv.Itoa(int(msg.EBlk.Header.DBHeight)))
-	}
-*/
+	/*
+		if msg.EBlk.Header.DBHeight >= dchain.NextBlockHeight || msg.EBlk.Header.DBHeight < 0 {
+			return errors.New("MsgEBlock has an invalid DBHeight:" + strconv.Itoa(int(msg.EBlk.Header.DBHeight)))
+		}
+	*/
 	//Add it to mem pool before saving it in db
 	msg.EBlk.BuildMerkleRoot()
 	fMemPool.addBlockMsg(msg, msg.EBlk.MerkleRoot.String()) // store it in mem pool with MR as the key
@@ -203,21 +201,21 @@ func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, d
 				return false
 			}
 		case achain.ChainID.String():
-			if msg, ok := fMemPool.blockpool[dbEntry.MerkleRoot.String()]; !ok {			
+			if msg, ok := fMemPool.blockpool[dbEntry.MerkleRoot.String()]; !ok {
 				return false
 			} else {
 				// validate signature of the previous dir block
 				aBlkMsg, _ := msg.(*wire.MsgABlock)
-				if !validateDBSignature(aBlkMsg.ABlk, dchain) {				
+				if !validateDBSignature(aBlkMsg.ABlk, dchain) {
 					return false
 				}
 			}
 		case fchain.ChainID.String():
-			if _, ok := fMemPool.blockpool[dbEntry.MerkleRoot.String()]; !ok {				
+			if _, ok := fMemPool.blockpool[dbEntry.MerkleRoot.String()]; !ok {
 				return false
 			}
 		default:
-			if msg, ok := fMemPool.blockpool[dbEntry.MerkleRoot.String()]; !ok {				
+			if msg, ok := fMemPool.blockpool[dbEntry.MerkleRoot.String()]; !ok {
 				return false
 			} else {
 				eBlkMsg, _ := msg.(*wire.MsgEBlock)
@@ -226,7 +224,7 @@ func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, d
 					if _, foundInMemPool := fMemPool.blockpool[ebEntry.EntryHash.String()]; !foundInMemPool {
 						// continue if the entry arleady exists in db
 						entry, _ := db.FetchEntryByHash(ebEntry.EntryHash)
-						if entry == nil {					
+						if entry == nil {
 							return false
 						}
 					}

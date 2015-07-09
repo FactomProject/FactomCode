@@ -637,7 +637,7 @@ func processFromOrphanPool() error {
 				continue
 			}
 			delete(fMemPool.orphans, k)
-			
+
 		case wire.CmdCommitEntry:
 			msgCommitEntry, _ := msg.(*wire.MsgCommitEntry)
 			err := processCommitEntry(msgCommitEntry)
