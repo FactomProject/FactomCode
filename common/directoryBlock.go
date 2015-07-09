@@ -451,6 +451,18 @@ func (c *DChain) AddDBlockToDChain(b *DirectoryBlock) (err error) {
 	return nil
 }
 
+// Check if the block with the input block height is existing in chain
+func (c *DChain) IsBlockExisting(height uint32) bool {
+
+	if height >= uint32(len(c.Blocks)) {
+		return false
+	} else if c.Blocks[height] != nil{
+		return true
+	}
+
+	return false
+}
+
 func (b *DirectoryBlock) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
 

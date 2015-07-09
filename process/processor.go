@@ -76,6 +76,8 @@ var (
 
 // Get the configurations
 func LoadConfigurations(cfg *util.FactomdConfig) {
+	util.Trace("LoadConf")
+
 	//setting the variables by the valued form the config file
 	logLevel = cfg.Log.LogLevel
 	dataStorePath = cfg.App.DataStorePath
@@ -86,6 +88,13 @@ func LoadConfigurations(cfg *util.FactomdConfig) {
 
 	FactomdUser = cfg.Btc.RpcUser
 	FactomdPass = cfg.Btc.RpcPass
+
+	util.Trace(logLevel)
+	util.Trace(ldbpath)
+	util.Trace(FactomdUser)
+	util.Trace(FactomdPass)
+
+	util.Trace(cfg.Btc.WalletPassphrase)
 }
 
 // Initialize the processor
@@ -624,7 +633,8 @@ func processFromOrphanPool() error {
 			msgCommitChain, _ := msg.(*wire.MsgCommitChain)
 			err := processCommitChain(msgCommitChain)
 			if err != nil {
-				return err
+				procLog.Info("Error in processing orphan msgCommitChain:" + err.Error())
+				continue
 			}
 			delete(fMemPool.orphans, k)
 
@@ -632,7 +642,8 @@ func processFromOrphanPool() error {
 			msgCommitEntry, _ := msg.(*wire.MsgCommitEntry)
 			err := processCommitEntry(msgCommitEntry)
 			if err != nil {
-				return err
+				procLog.Info("Error in processing orphan msgCommitEntry:" + err.Error())
+				continue
 			}
 			delete(fMemPool.orphans, k)
 
@@ -640,7 +651,8 @@ func processFromOrphanPool() error {
 			msgRevealEntry, _ := msg.(*wire.MsgRevealEntry)
 			err := processRevealEntry(msgRevealEntry)
 			if err != nil {
-				return err
+				procLog.Info("Error in processing orphan msgRevealEntry:" + err.Error())
+				continue
 			}
 			delete(fMemPool.orphans, k)
 		}
@@ -769,7 +781,7 @@ func buildGenesisBlocks() error {
 	fmt.Println("Factoid genesis block hash:", FBlock.GetHash())
 	exportFctChain(fchain)
 	// Add transactions from genesis block to factoid balances
-    common.FactoidState.AddTransactionBlock(FBlock) 
+	common.FactoidState.AddTransactionBlock(FBlock)
 
 	// Directory Block chain
 	procLog.Debug("in buildGenesisBlocks")
