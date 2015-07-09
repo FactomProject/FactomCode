@@ -88,10 +88,10 @@ func procesECBlock(msg *wire.MsgECBlock) error {
 	}
 
 	//Add it to mem pool before saving it in db
-	fMemPool.addBlockMsg(msg, msg.ECBlock.Header.KeyMR().String())
+	fMemPool.addBlockMsg(msg, msg.ECBlock.Header.Hash().String())
 
 	// for debugging??
-	procLog.Debugf("SyncUp: msg.ECBlock.Header.KeyMR().String()=%s\n", msg.ECBlock.Header.KeyMR().String())
+	procLog.Debugf("SyncUp: msg.ECBlock.Header.Hash().String()=%s\n", msg.ECBlock.Header.Hash().String())
 	procLog.Debugf("SyncUp: MsgCBlock=%s\n", spew.Sdump(msg.ECBlock))
 
 	return nil
