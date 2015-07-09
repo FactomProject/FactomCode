@@ -86,7 +86,7 @@ func LoadConfigurations(cfg *util.FactomdConfig) {
 
 	FactomdUser = cfg.Btc.RpcUser
 	FactomdPass = cfg.Btc.RpcPass
-	
+
 }
 
 // Initialize the processor
@@ -109,7 +109,7 @@ func initProcessor() {
 
 	// init Directory Block Chain
 	initDChain()
-	procLog.Info("Loaded", dchain.NextBlockHeight, "Directory blocks for chain: "+dchain.ChainID.String())
+	procLog.Info("Loaded", dchain.NextDBHeight, "Directory blocks for chain: "+dchain.ChainID.String())
 
 	// init Entry Credit Chain
 	initECChain()
@@ -126,7 +126,7 @@ func initProcessor() {
 	anchor.InitAnchor(db)
 
 	// build the Genesis blocks if the current height is 0
-	if dchain.NextBlockHeight == 0 && nodeMode == common.SERVER_NODE {
+	if dchain.NextDBHeight == 0 && nodeMode == common.SERVER_NODE {
 		buildGenesisBlocks()
 	} else {
 		// To be improved in milestone 2
@@ -175,7 +175,7 @@ func Start_Processor(
 	// Initialize timer for the open dblock before processing messages
 	if nodeMode == common.SERVER_NODE {
 		timer := &BlockTimer{
-			nextDBlockHeight: dchain.NextBlockHeight,
+			nextDBlockHeight: dchain.NextDBHeight,
 			inCtlMsgQueue:    inCtlMsgQueue,
 		}
 		go timer.StartBlockTimer()
@@ -448,8 +448,8 @@ func processAcknowledgement(msg *wire.MsgAcknowledgement) error {
 	}
 
 	// Update the next block height in dchain
-	if msg.Height > dchain.NextBlockHeight {
-		dchain.NextBlockHeight = msg.Height
+	if msg.Height > dchain.NextDBHeight {
+		dchain.NextDBHeight = msg.Height
 	}
 
 	// Update the next block height in db
@@ -629,7 +629,7 @@ func processFromOrphanPool() error {
 				continue
 			}
 			delete(fMemPool.orphans, k)
-			
+
 		case wire.CmdCommitEntry:
 			msgCommitEntry, _ := msg.(*wire.MsgCommitEntry)
 			err := processCommitEntry(msgCommitEntry)
@@ -768,7 +768,7 @@ func buildGenesisBlocks() error {
 	fmt.Println("Factoid genesis block hash:", FBlock.GetHash())
 	exportFctChain(fchain)
 	// Add transactions from genesis block to factoid balances
-    common.FactoidState.AddTransactionBlock(FBlock) 
+	common.FactoidState.AddTransactionBlock(FBlock)
 
 	// Directory Block chain
 	procLog.Debug("in buildGenesisBlocks")
@@ -848,8 +848,8 @@ func buildBlocks() error {
 	outMsgQueue <- (&wire.MsgInt_DirBlock{hash})
 
 	// Update dir block height cache in db
-	db.UpdateBlockHeightCache(dbBlock.Header.BlockHeight, commonHash)
-	db.UpdateNextBlockHeightCache(dchain.NextBlockHeight)
+	db.UpdateBlockHeightCache(dbBlock.Header.DBHeight, commonHash)
+	db.UpdateNextBlockHeightCache(dchain.NextDBHeight)
 
 	exportDBlock(dbBlock)
 
@@ -859,7 +859,7 @@ func buildBlocks() error {
 	// Initialize timer for the new dblock
 	if nodeMode == common.SERVER_NODE {
 		timer := &BlockTimer{
-			nextDBlockHeight: dchain.NextBlockHeight,
+			nextDBlockHeight: dchain.NextDBHeight,
 			inCtlMsgQueue:    inCtlMsgQueue,
 		}
 		go timer.StartBlockTimer()
@@ -903,9 +903,9 @@ func newEntryBlock(chain *common.EChain) *common.EBlock {
 	}
 
 	// Create the block and add a new block for new coming entries
-	block.Header.DBHeight = dchain.NextBlockHeight
+	block.Header.DBHeight = dchain.NextDBHeight
 	block.Header.EntryCount = uint32(len(block.EBEntries))
-	block.Header.StartTime = dchain.NextBlock.Header.StartTime
+	block.Header.StartTime = uint64(dchain.NextBlock.Header.Timestamp)
 
 	if devNet {
 		block.Header.NetworkID = common.NETWORK_ID_TEST
@@ -947,8 +947,8 @@ func newEntryCreditBlock(chain *common.ECChain) *common.ECBlock {
 	// acquire the last block
 	block := chain.NextBlock
 
-	if chain.NextBlockHeight != dchain.NextBlockHeight {
-		panic("Entry Credit Block height does not match Directory Block height:" + string(dchain.NextBlockHeight))
+	if chain.NextBlockHeight != dchain.NextDBHeight {
+		panic("Entry Credit Block height does not match Directory Block height:" + string(dchain.NextDBHeight))
 	}
 
 	block.BuildHeader()
@@ -972,8 +972,8 @@ func newAdminBlock(chain *common.AdminChain) *common.AdminBlock {
 	// acquire the last block
 	block := chain.NextBlock
 
-	if chain.NextBlockHeight != dchain.NextBlockHeight {
-		panic("Admin Block height does not match Directory Block height:" + string(dchain.NextBlockHeight))
+	if chain.NextBlockHeight != dchain.NextDBHeight {
+		panic("Admin Block height does not match Directory Block height:" + string(dchain.NextDBHeight))
 	}
 
 	block.Header.EntryCount = uint32(len(block.ABEntries))
@@ -999,8 +999,8 @@ func newFactoidBlock(chain *common.FctChain) block.IFBlock {
 	// acquire the last block
 	currentBlock := chain.NextBlock
 
-	if chain.NextBlockHeight != dchain.NextBlockHeight {
-		panic("Factoid Block height does not match Directory Block height:" + strconv.Itoa(int(dchain.NextBlockHeight)))
+	if chain.NextBlockHeight != dchain.NextDBHeight {
+		panic("Factoid Block height does not match Directory Block height:" + strconv.Itoa(int(dchain.NextDBHeight)))
 	}
 
 	chain.BlockMutex.Lock()
@@ -1032,7 +1032,7 @@ func newDirectoryBlock(chain *common.DChain) *common.DirectoryBlock {
 
 	// Create the block add a new block for new coming entries
 	chain.BlockMutex.Lock()
-	block.Header.EntryCount = uint32(len(block.DBEntries))
+	block.Header.BlockCount = uint32(len(block.DBEntries))
 	// Calculate Merkle Root for FBlock and store it in header
 	if block.Header.BodyMR == nil {
 		block.Header.BodyMR, _ = block.BuildBodyMR()
@@ -1040,7 +1040,7 @@ func newDirectoryBlock(chain *common.DChain) *common.DirectoryBlock {
 	}
 	block.IsSealed = true
 	chain.AddDBlockToDChain(block)
-	chain.NextBlockHeight++
+	chain.NextDBHeight++
 	chain.NextBlock, _ = common.CreateDBlock(chain, block, 10)
 	chain.BlockMutex.Unlock()
 
@@ -1054,7 +1054,7 @@ func newDirectoryBlock(chain *common.DChain) *common.DirectoryBlock {
 	db.InsertDirBlockInfo(common.NewDirBlockInfoFromDBlock(block))
 	anchor.UpdateDirBlockInfoMap(common.NewDirBlockInfoFromDBlock(block))
 
-	procLog.Info("DirectoryBlock: block" + strconv.FormatUint(uint64(block.Header.BlockHeight), 10) + " created for directory block chain: " + chain.ChainID.String())
+	procLog.Info("DirectoryBlock: block" + strconv.FormatUint(uint64(block.Header.DBHeight), 10) + " created for directory block chain: " + chain.ChainID.String())
 
 	// To be improved in milestone 2
 	SignDirectoryBlock()
@@ -1065,9 +1065,9 @@ func newDirectoryBlock(chain *common.DChain) *common.DirectoryBlock {
 // Sign the directory block
 func SignDirectoryBlock() error {
 	// Only Servers can write the anchor to Bitcoin network
-	if nodeMode == common.SERVER_NODE && dchain.NextBlockHeight > 0 {
+	if nodeMode == common.SERVER_NODE && dchain.NextDBHeight > 0 {
 		// get the previous directory block from db
-		dbBlock, _ := db.FetchDBlockByHeight(dchain.NextBlockHeight - 1)
+		dbBlock, _ := db.FetchDBlockByHeight(dchain.NextDBHeight - 1)
 		dbHeaderBytes, _ := dbBlock.Header.MarshalBinary()
 		identityChainID := common.NewHash() // 0 ID for milestone 1
 		sig := serverPrivKey.Sign(dbHeaderBytes)
@@ -1082,7 +1082,7 @@ func placeAnchor(dbBlock *common.DirectoryBlock) error {
 	if nodeMode == common.SERVER_NODE && dbBlock != nil {
 		// todo: need to make anchor as a go routine, independent of factomd
 		// same as blockmanager to btcd
-		go anchor.SendRawTransactionToBTC(dbBlock.KeyMR, uint64(dbBlock.Header.BlockHeight))
+		go anchor.SendRawTransactionToBTC(dbBlock.KeyMR, uint64(dbBlock.Header.DBHeight))
 	}
 	return nil
 }

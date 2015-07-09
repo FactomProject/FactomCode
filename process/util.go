@@ -47,7 +47,7 @@ func exportDChain(chain *common.DChain) {
 				procLog.Error(err)
 			}
 		}
-		err = ioutil.WriteFile(fmt.Sprintf(dataStorePath+strChainID+"/store.%09d.block", block.Header.BlockHeight), data, 0777)
+		err = ioutil.WriteFile(fmt.Sprintf(dataStorePath+strChainID+"/store.%09d.block", block.Header.DBHeight), data, 0777)
 		if err != nil {
 			panic(err)
 		}
@@ -199,7 +199,7 @@ func exportDBlock(block *common.DirectoryBlock) {
 			procLog.Error(err)
 		}
 	}
-	err = ioutil.WriteFile(fmt.Sprintf(dataStorePath+strChainID+"/store.%09d.block", block.Header.BlockHeight), data, 0777)
+	err = ioutil.WriteFile(fmt.Sprintf(dataStorePath+strChainID+"/store.%09d.block", block.Header.DBHeight), data, 0777)
 	if err != nil {
 		panic(err)
 	}

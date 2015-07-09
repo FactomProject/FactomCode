@@ -89,13 +89,13 @@ func handleCommitChain(ctx *web.Context) {
 	if p, err := hex.DecodeString(c.CommitChainMsg); err != nil {
 		wsLog.Error(err)
 		return
-	}else {
-        if err := commit.UnmarshalBinary(p); err != nil {
-            wsLog.Error(err)
-            ctx.WriteHeader(httpBad)
-            return
-        }
-    }
+	} else {
+		if err := commit.UnmarshalBinary(p); err != nil {
+			wsLog.Error(err)
+			ctx.WriteHeader(httpBad)
+			return
+		}
+	}
 	if err := factomapi.CommitChain(commit); err != nil {
 		wsLog.Error(err)
 		ctx.WriteHeader(httpBad)
@@ -229,12 +229,12 @@ func handleDirectoryBlock(ctx *web.Context, keymr string) {
 		return
 	} else {
 		d.Header.PrevBlockKeyMR = block.Header.PrevKeyMR.String()
-		d.Header.SequenceNumber = block.Header.BlockHeight
-		d.Header.TimeStamp = block.Header.StartTime
+		d.Header.SequenceNumber = block.Header.DBHeight
+		d.Header.TimeStamp = uint64(block.Header.Timestamp)
 		for _, v := range block.DBEntries {
 			l := new(eblockaddr)
 			l.ChainID = v.ChainID.String()
-			l.KeyMR = v.MerkleRoot.String()
+			l.KeyMR = v.KeyMR.String()
 			d.EntryBlockList = append(d.EntryBlockList, *l)
 		}
 	}
@@ -387,19 +387,19 @@ func handleFactoidBalance(ctx *web.Context, eckey string) {
 
 }
 
-func returnMsg (ctx *web.Context, msg string, success bool) {
-    type rtn struct {
-        Response string
-        Success bool
-    }
-    r := rtn{Response: msg, Success: success,}
-    
-    if p, err := json.Marshal(r); err != nil {
-        wsLog.Error(err)
-        return
-    } else {
-        ctx.Write(p)
-    }
+func returnMsg(ctx *web.Context, msg string, success bool) {
+	type rtn struct {
+		Response string
+		Success  bool
+	}
+	r := rtn{Response: msg, Success: success}
+
+	if p, err := json.Marshal(r); err != nil {
+		wsLog.Error(err)
+		return
+	} else {
+		ctx.Write(p)
+	}
 }
 
 func handleFactoidSubmit(ctx *web.Context) {
@@ -410,39 +410,39 @@ func handleFactoidSubmit(ctx *web.Context) {
 	var err error
 	if p, err = ioutil.ReadAll(ctx.Request.Body); err != nil {
 		wsLog.Error(err)
-		returnMsg(ctx,"Unable to read the request",false)
+		returnMsg(ctx, "Unable to read the request", false)
 		return
 	} else {
 		if err := json.Unmarshal(p, t); err != nil {
-            returnMsg(ctx,"Unable to Unmarshal the request",false)
-            return
+			returnMsg(ctx, "Unable to Unmarshal the request", false)
+			return
 		}
 	}
 
 	msg := new(wire.MsgFactoidTX)
 
 	if p, err = hex.DecodeString(t.Transaction); err != nil {
-        returnMsg(ctx,"Unable to decode the transaction",false)
-        return
+		returnMsg(ctx, "Unable to decode the transaction", false)
+		return
 	}
 
 	msg.Transaction = new(fct.Transaction)
 	err = msg.Transaction.UnmarshalBinary(p)
 	if err != nil {
-        returnMsg(ctx,"Unable to unmarshal the transaction",false)
-        return
+		returnMsg(ctx, "Unable to unmarshal the transaction", false)
+		return
 	}
 
 	good := common.FactoidState.Validate(msg.Transaction)
 	if !good {
-        returnMsg(ctx,"The transaction did not validate",false)
-        return
+		returnMsg(ctx, "The transaction did not validate", false)
+		return
 	}
 
 	inMessageQ <- msg
-	
-	returnMsg(ctx,"Successfully submitted the transaction",true)
-    
+
+	returnMsg(ctx, "Successfully submitted the transaction", true)
+
 }
 
 func handleGetFee(ctx *web.Context) {
