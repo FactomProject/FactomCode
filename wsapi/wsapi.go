@@ -343,39 +343,57 @@ func handleChainHead(ctx *web.Context, chainid string) {
 
 }
 
-func handleEntryCreditBalance(ctx *web.Context, eckey string) {
-	type ecbal struct {
-		Balance uint32
-	}
+type ecbal struct {
+    Balance uint32
+}
 
-	b := new(ecbal)
-	if bal, err := factomapi.ECBalance(eckey); err != nil {
-		wsLog.Error(err)
-		return
-	} else {
-		b.Balance = bal
-	}
-	if p, err := json.Marshal(b); err != nil {
-		wsLog.Error(err)
-		return
-	} else {
-		ctx.Write(p)
-	}
+func handleEntryCreditBalance(ctx *web.Context, eckey string) {
+    type ecbal struct {
+        Response string
+        Success  bool
+    }
+    var b ecbal
+    adr, err := hex.DecodeString(eckey)
+    if err == nil && len(adr) != common.HASH_LENGTH {
+        b = ecbal{Response: "Invalid Address", Success: false,}
+    }
+    if err == nil {
+        if bal, err := factomapi.ECBalance(eckey); err != nil {
+            wsLog.Error(err)
+            return
+        } else {
+            str := fmt.Sprintf("%d",bal)
+            b = ecbal{Response: str, Success: true,}
+        }
+    } else {
+        b = ecbal{Response: err.Error(), Success: false,}
+    }
+    
+    if p, err := json.Marshal(b); err != nil {
+        wsLog.Error(err)
+        return
+    } else {
+        ctx.Write(p)
+    }
 
 }
 
 func handleFactoidBalance(ctx *web.Context, eckey string) {
 	type fbal struct {
-		Balance int64
+		Response string
+		Success  bool
 	}
 	var b fbal
 	adr, err := hex.DecodeString(eckey)
-	if err == nil && len(adr) == common.HASH_LENGTH {
+    if err == nil && len(adr) != common.HASH_LENGTH {
+        b = fbal{Response: "Invalid Address", Success: false,}
+    }
+	if err == nil {
 		v := int64(common.FactoidState.GetBalance(fct.NewAddress(adr)))
-
-		b = fbal{Balance: v}
+        str := fmt.Sprintf("%d",v)
+		b = fbal{Response: str, Success: true,}
 	} else {
-		b = fbal{Balance: 0}
+		b = fbal{Response: err.Error(), Success: false}
 	}
 
 	if p, err := json.Marshal(b); err != nil {

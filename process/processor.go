@@ -76,6 +76,8 @@ var (
 
 // Get the configurations
 func LoadConfigurations(cfg *util.FactomdConfig) {
+	util.Trace("LoadConf")
+
 	//setting the variables by the valued form the config file
 	logLevel = cfg.Log.LogLevel
 	dataStorePath = cfg.App.DataStorePath
@@ -87,6 +89,12 @@ func LoadConfigurations(cfg *util.FactomdConfig) {
 	FactomdUser = cfg.Btc.RpcUser
 	FactomdPass = cfg.Btc.RpcPass
 
+	util.Trace(logLevel)
+	util.Trace(ldbpath)
+	util.Trace(FactomdUser)
+	util.Trace(FactomdPass)
+
+	util.Trace(cfg.Btc.WalletPassphrase)
 }
 
 // Initialize the processor

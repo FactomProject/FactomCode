@@ -227,8 +227,10 @@ func initializeECreditMap(block *common.ECBlock) {
 			e := entry.(*common.IncreaseBalance)
 			eCreditMap[string(e.ECPubKey[:])] += int32(e.Credits)
 			// Don't add the Increases to Factoid state, the Factoid processing will do that.
+		case common.ECIDServerIndexNumber:
+		case common.ECIDMinuteNumber:
 		default:
-			fmt.Println("UNKNOWN\n")
+			panic("Unknow entry type:" + string(entry.ECID()) + " for ECBlock:" + strconv.FormatUint(uint64(block.Header.DBHeight), 10))
 		}
 	}
 }
