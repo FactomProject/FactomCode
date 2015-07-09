@@ -5,11 +5,11 @@
 package process
 
 import (
+	"errors"
+	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/btcd/wire"
-	"github.com/FactomProject/FactomCode/common"	
 	"sync"
 	"time"
-	"errors"	
 )
 
 // ftmMemPool is used as a source of factom transactions
@@ -38,7 +38,7 @@ func (mp *ftmMemPool) addMsg(msg wire.Message, hash *wire.ShaHash) error {
 	if len(mp.pool) > common.MAX_TX_POOL_SIZE {
 		return errors.New("Transaction mem pool exceeds the limit.")
 	}
-	
+
 	mp.pool[*hash] = msg
 
 	return nil
@@ -48,9 +48,9 @@ func (mp *ftmMemPool) addMsg(msg wire.Message, hash *wire.ShaHash) error {
 func (mp *ftmMemPool) addOrphanMsg(msg wire.Message, hash *wire.ShaHash) error {
 
 	if len(mp.orphans) > common.MAX_ORPHAN_SIZE {
-		errors.New ("Ophan mem pool exceeds the limit.")
+		errors.New("Ophan mem pool exceeds the limit.")
 	}
-	
+
 	mp.orphans[*hash] = msg
 
 	return nil
@@ -58,9 +58,9 @@ func (mp *ftmMemPool) addOrphanMsg(msg wire.Message, hash *wire.ShaHash) error {
 
 // Add a factom block message to the  Mem pool
 func (mp *ftmMemPool) addBlockMsg(msg wire.Message, hash string) error {
-	
+
 	if len(mp.blockpool) > common.MAX_BLK_POOL_SIZE {
-		errors.New  ("Block mem pool exceeds the limit. Please restart.")
+		errors.New("Block mem pool exceeds the limit. Please restart.")
 	}
 
 	mp.blockpool[hash] = msg

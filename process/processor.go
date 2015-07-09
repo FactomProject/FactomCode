@@ -76,6 +76,8 @@ var (
 
 // Get the configurations
 func LoadConfigurations(cfg *util.FactomdConfig) {
+	util.Trace("LoadConf")
+
 	//setting the variables by the valued form the config file
 	logLevel = cfg.Log.LogLevel
 	dataStorePath = cfg.App.DataStorePath
@@ -86,7 +88,13 @@ func LoadConfigurations(cfg *util.FactomdConfig) {
 
 	FactomdUser = cfg.Btc.RpcUser
 	FactomdPass = cfg.Btc.RpcPass
-	
+
+	util.Trace(logLevel)
+	util.Trace(ldbpath)
+	util.Trace(FactomdUser)
+	util.Trace(FactomdPass)
+
+	util.Trace(cfg.Btc.WalletPassphrase)
 }
 
 // Initialize the processor
@@ -629,7 +637,7 @@ func processFromOrphanPool() error {
 				continue
 			}
 			delete(fMemPool.orphans, k)
-			
+
 		case wire.CmdCommitEntry:
 			msgCommitEntry, _ := msg.(*wire.MsgCommitEntry)
 			err := processCommitEntry(msgCommitEntry)
@@ -768,7 +776,7 @@ func buildGenesisBlocks() error {
 	fmt.Println("Factoid genesis block hash:", FBlock.GetHash())
 	exportFctChain(fchain)
 	// Add transactions from genesis block to factoid balances
-    common.FactoidState.AddTransactionBlock(FBlock) 
+	common.FactoidState.AddTransactionBlock(FBlock)
 
 	// Directory Block chain
 	procLog.Debug("in buildGenesisBlocks")
