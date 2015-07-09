@@ -633,15 +633,17 @@ func processFromOrphanPool() error {
 			msgCommitChain, _ := msg.(*wire.MsgCommitChain)
 			err := processCommitChain(msgCommitChain)
 			if err != nil {
-				return err
+				procLog.Info("Error in processing orphan msgCommitChain:" + err.Error())
+				continue
 			}
 			delete(fMemPool.orphans, k)
-
+			
 		case wire.CmdCommitEntry:
 			msgCommitEntry, _ := msg.(*wire.MsgCommitEntry)
 			err := processCommitEntry(msgCommitEntry)
 			if err != nil {
-				return err
+				procLog.Info("Error in processing orphan msgCommitEntry:" + err.Error())
+				continue
 			}
 			delete(fMemPool.orphans, k)
 
@@ -649,7 +651,8 @@ func processFromOrphanPool() error {
 			msgRevealEntry, _ := msg.(*wire.MsgRevealEntry)
 			err := processRevealEntry(msgRevealEntry)
 			if err != nil {
-				return err
+				procLog.Info("Error in processing orphan msgRevealEntry:" + err.Error())
+				continue
 			}
 			delete(fMemPool.orphans, k)
 		}

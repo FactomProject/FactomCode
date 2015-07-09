@@ -73,7 +73,10 @@ func SendRawTransactionToBTC(hash *common.Hash, blockHeight uint64) (*wire.ShaHa
 		fmt.Println(s)
 		return nil, errors.New(s)
 	}
+	return doTransaction(hash, blockHeight, dirBlockInfo)
+}
 
+func doTransaction(hash *common.Hash, blockHeight uint64, dirBlockInfo *common.DirBlockInfo) (*wire.ShaHash, error) {
 	b := balances[0]
 	i := copy(balances, balances[1:])
 	balances[i] = b
@@ -87,7 +90,10 @@ func SendRawTransactionToBTC(hash *common.Hash, blockHeight uint64) (*wire.ShaHa
 	if err != nil {
 		return nil, fmt.Errorf("cannot send Raw Transaction: %s", err)
 	}
-	dirBlockInfo.BTCTxHash = toHash(shaHash)
+	// for test purpose
+	if dirBlockInfo != nil {
+		dirBlockInfo.BTCTxHash = toHash(shaHash)
+	}
 	return shaHash, nil
 }
 

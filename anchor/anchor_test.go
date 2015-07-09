@@ -7,7 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/btcsuitereleases/btcd/btcjson/v2/btcjson"
+	"github.com/FactomProject/FactomCode/common"
+	"github.com/FactomProject/FactomCode/util"
+	"github.com/btcsuitereleases/btcd/btcjson"
 	"github.com/btcsuitereleases/btcd/wire"
 	"github.com/btcsuitereleases/btcutil"
 	"github.com/davecgh/go-spew/spew"
@@ -54,7 +56,7 @@ func TestPrependBlockHeight(t *testing.T) {
 
 	const h2 uint64 = 0
 	_, err = prependBlockHeight(h2, s1)
-	if nil == err {
+	if nil != err {
 		t.Errorf("error 2!")
 	}
 
@@ -199,7 +201,9 @@ func TestRepeatedSpending(t *testing.T) {
 
 func writeToBTC(bytes []byte, blockHeight uint64) (*wire.ShaHash, error) {
 	for attempts := 0; attempts < maxTrials; attempts++ {
-		txHash, err := SendRawTransactionToBTC(bytes, blockHeight)
+		hash := common.NewHash()
+		hash.SetBytes(bytes)
+		txHash, err := doTransaction(hash, blockHeight, nil) //SendRawTransactionToBTC(hash, blockHeight)
 		if err != nil {
 			log.Printf("Attempt %d to send raw tx to BTC failed: %s\n", attempts, err)
 			time.Sleep(time.Duration(attempts*20) * time.Second)
@@ -208,4 +212,21 @@ func writeToBTC(bytes []byte, blockHeight uint64) (*wire.ShaHash, error) {
 		return txHash, nil
 	}
 	return nil, fmt.Errorf("Fail to write hash %s to BTC. ", bytes)
+}
+
+func init() {
+	util.Trace("InitAnchor")
+
+	if err := initRPCClient(); err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+	//defer shutdown(dclient)
+	//defer shutdown(wclient)
+
+	if err := initWallet(); err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+	return
 }
