@@ -51,14 +51,12 @@ func TestECBlockMarshal(t *testing.T) {
 	p, _ = hex.DecodeString("2222222222222222222222222222222222222222222222222222222222222222")
 	ecb.Header.BodyHash.SetBytes(p)
 	p, _ = hex.DecodeString("3333333333333333333333333333333333333333333333333333333333333333")
-	ecb.Header.PrevKeyMR.SetBytes(p)
+	ecb.Header.PrevHeaderHash.SetBytes(p)
 	p, _ = hex.DecodeString("4444444444444444444444444444444444444444444444444444444444444444")
-	ecb.Header.PrevHash3.SetBytes(p)
+	ecb.Header.PrevFullHash.SetBytes(p)
 	ecb.Header.DBHeight = 10
-	p, _ = hex.DecodeString("5555555555555555555555555555555555555555555555555555555555555555")
-	ecb.Header.SegmentsMR.SetBytes(p)
+	ecb.Header.HeaderExpansionArea, _ = hex.DecodeString("5555555555555555555555555555555555555555555555555555555555555555")
 	p, _ = hex.DecodeString("6666666666666666666666666666666666666666666666666666666666666666")
-	ecb.Header.BalanceCommit.SetBytes(p)
 	ecb.Header.ObjectCount = 0
 	
 	// add the CommitChain to the ECBlock
