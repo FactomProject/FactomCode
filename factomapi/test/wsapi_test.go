@@ -2,7 +2,7 @@ package factomapi
 
 import (
 	"bytes"
-//	"encoding/hex"
+	//	"encoding/hex"
 	"fmt"
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/gocoding"
@@ -10,7 +10,7 @@ import (
 	"net/url"
 	"testing"
 	//	"encoding/base64"
-		"io/ioutil"
+	"io/ioutil"
 	//"os"
 )
 
@@ -66,13 +66,13 @@ func TestAddChain(t *testing.T) {
 	entry.ExtIDs = make([][]byte, 0, 5)
 	entry.ExtIDs = append(entry.ExtIDs, []byte("myCompany"))
 	entry.ExtIDs = append(entry.ExtIDs, []byte("bookkeeping5"))
-	entry.ChainID, _  = entry.GenerateIDFromName()	
+	entry.ChainID, _ = entry.GenerateIDFromName()
 	entry.Data = []byte("First entry for chain:\"2FrgD2+vPP3yz5zLVaE5Tc2ViVv9fwZeR3/adzITjJc=\"Rules:\"asl;djfasldkfjasldfjlksouiewopurw\"")
 
 	buf := new(bytes.Buffer)
 	err := SafeMarshal(buf, entry)
 
-	fmt.Println("firstentry:%v", string(buf.Bytes()))
+	t.Log("firstentry:%v", string(buf.Bytes()))
 	jsonstr := string(buf.Bytes())
 
 	// Unmarshal the json string locally to compare
@@ -89,9 +89,8 @@ func TestAddChain(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error:%v", err)
 	} else {
-		fmt.Println("Chain successfully submitted to factomclient.")
+		t.Log("Chain successfully submitted to factomclient.")
 	}
-
 
 	if err != nil {
 		t.Errorf("Error:%v", err)
@@ -107,7 +106,7 @@ func TestAddEntry(t *testing.T) {
 	entry0.ExtIDs = make([][]byte, 0, 5)
 	entry0.ExtIDs = append(entry0.ExtIDs, []byte("myCompany"))
 	entry0.ExtIDs = append(entry0.ExtIDs, []byte("bookkeeping5"))
-	entry0.ChainID, _  = entry0.GenerateIDFromName()
+	entry0.ChainID, _ = entry0.GenerateIDFromName()
 
 	entry := new(common.Entry)
 	entry.ChainID = entry0.ChainID
@@ -120,7 +119,7 @@ func TestAddEntry(t *testing.T) {
 	buf := new(bytes.Buffer)
 	err := SafeMarshal(buf, entry)
 
-	fmt.Println("entry:%v", string(buf.Bytes()))
+	t.Log("entry:%v", string(buf.Bytes()))
 	jsonstr := string(buf.Bytes())
 
 	//jsonstr := "{\"ChainID\":\"2FrgD2+vPP3yz5zLVaE5Tc2ViVv9fwZeR3/adzITjJc=\",\"ExtIDs\":[\"MTAwMQ==\",\"NTcwYjllM2ZiMmY1YWU4MjM2ODVlYjQ0MjJkNGZkODNmM2YwZDllN2NlMDdkOTg4YmQxN2U2NjUzOTQ2NjhjNg==\",\"bXZSSnFNVE1mclkzS3RIMkE0cWRQZnEzUTZMNEt3OUNrNA==\"],\"Data\":\"RW50cnkgZGF0YTogYXNsO2RqZmFzbGRrZmphc2xkZmpsa3NvdWlld29wdXJ3Ig==\"}"
@@ -136,7 +135,7 @@ func TestAddEntry(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error:%v", err)
 	} else {
-		fmt.Println("Entry successfully submitted to factomclient.")
+		t.Log("Entry successfully submitted to factomclient.")
 	}
 	// JSON ws test done ----------------------------------------------------------------------------
 
@@ -145,8 +144,8 @@ func TestAddEntry(t *testing.T) {
 	err = SafeUnmarshal(reader, entry2)
 
 	//	fmt.Println("chainid:%v", base64.URLEncoding.EncodeToString(entry2.ChainID.Bytes))
-	fmt.Println("ExtIDs0:%v", string(entry2.ExtIDs[0]))
-	fmt.Println("entrydata:%v", string(entry2.Data))
+	t.Log("ExtIDs0:%v", string(entry2.ExtIDs[0]))
+	t.Log("entrydata:%v", string(entry2.Data))
 
 	if err != nil {
 		t.Errorf("Error:%v", err)
@@ -154,14 +153,14 @@ func TestAddEntry(t *testing.T) {
 }
 
 func TestAddEntry2(t *testing.T) {
-	fmt.Println("\nTestAddEntry===========================================================================")
+	t.Log("\nTestAddEntry===========================================================================")
 
 	entry0 := new(common.Entry)
 
 	entry0.ExtIDs = make([][]byte, 0, 5)
 	entry0.ExtIDs = append(entry0.ExtIDs, []byte("myCompany"))
 	entry0.ExtIDs = append(entry0.ExtIDs, []byte("bookkeeping4"))
-	entry0.ChainID, _  = entry0.GenerateIDFromName()
+	entry0.ChainID, _ = entry0.GenerateIDFromName()
 
 	entry := new(common.Entry)
 	entry.ChainID = entry0.ChainID
@@ -190,7 +189,7 @@ func TestAddEntry2(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error:%v", err)
 	} else {
-		fmt.Println("Entry successfully submitted to factomclient.")
+		t.Log("Entry successfully submitted to factomclient.")
 	}
 	// JSON ws test done ----------------------------------------------------------------------------
 
@@ -199,13 +198,14 @@ func TestAddEntry2(t *testing.T) {
 	err = SafeUnmarshal(reader, entry2)
 
 	//	fmt.Println("chainid:%v", base64.URLEncoding.EncodeToString(entry2.ChainID.Bytes))
-	fmt.Println("ExtIDs0:%v", string(entry2.ExtIDs[0]))
-	fmt.Println("entrydata:%v", string(entry2.Data))
+	t.Log("ExtIDs0:%v", string(entry2.ExtIDs[0]))
+	t.Log("entrydata:%v", string(entry2.Data))
 
 	if err != nil {
 		t.Errorf("Error:%v", err)
 	}
 }
+
 /*
 func TestBuyCredit(t *testing.T) {
 	fmt.Println("\nTestBuyCredit===========================================================================")
@@ -258,7 +258,7 @@ func TestGetCreditWalletBalance(t *testing.T) {
 	data := url.Values{}
 	barray := (make([]byte, 32))
 	barray[0] = 2
-	pubKey := new (common.Hash)
+	pubKey := new(common.Hash)
 	pubKey.SetBytes(barray)
 	data.Set("pubkey", "wallet")
 	data.Set("password", "opensesame")
@@ -266,12 +266,12 @@ func TestGetCreditWalletBalance(t *testing.T) {
 	resp, err := http.PostForm("http://localhost:8088/v1/creditbalance", data)
 	contents, err := ioutil.ReadAll(resp.Body)
 
-	fmt.Printf("Http Resp Body:%s\n", string(contents))
-	fmt.Println("status code:%v", resp.StatusCode)
+	t.Logf("Http Resp Body:%s\n", string(contents))
+	t.Log("status code:%v", resp.StatusCode)
 	if err != nil {
 		t.Errorf("Error:%v", err)
-	} else{
-		fmt.Println("Get Credit Balance request successfully submitted to factomclient.")
+	} else {
+		t.Log("Get Credit Balance request successfully submitted to factomclient.")
 	}
 }
 

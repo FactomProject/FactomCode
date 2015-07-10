@@ -7,7 +7,6 @@ package factomapi
 import (
 	"bytes"
 	"encoding/hex"
-	"fmt"
 	"testing"
 )
 
@@ -17,48 +16,48 @@ func TestReadVarint(t *testing.T) {
 		num2 uint64 = 5
 		num3 uint64 = 1099511627775
 	)
-	
+
 	buf := new(bytes.Buffer)
 
 	n, err := WriteVarint(buf, num1)
 	if err != nil {
 		t.Errorf(err.Error())
 	}
-	fmt.Println("n =", n)
-	fmt.Println("buf =", hex.EncodeToString(buf.Bytes()))
+	t.Log("n =", n)
+	t.Log("buf =", hex.EncodeToString(buf.Bytes()))
 
 	n, err = WriteVarint(buf, num2)
 	if err != nil {
 		t.Errorf(err.Error())
 	}
-	fmt.Println("n =", n)
-	fmt.Println("buf =", hex.EncodeToString(buf.Bytes()))
-	
+	t.Log("n =", n)
+	t.Log("buf =", hex.EncodeToString(buf.Bytes()))
+
 	n, err = WriteVarint(buf, num3)
 	if err != nil {
 		t.Errorf(err.Error())
 	}
-	fmt.Println("n =", n)
-	fmt.Println("buf =", hex.EncodeToString(buf.Bytes()))
-	
+	t.Log("n =", n)
+	t.Log("buf =", hex.EncodeToString(buf.Bytes()))
+
 	x, err := ReadVarint(buf)
 	if err != nil {
 		t.Errorf(err.Error())
 	}
-	fmt.Println("x =", x)
-	fmt.Println("buf =", hex.EncodeToString(buf.Bytes()))
+	t.Log("x =", x)
+	t.Log("buf =", hex.EncodeToString(buf.Bytes()))
 
 	x, err = ReadVarint(buf)
 	if err != nil {
 		t.Errorf(err.Error())
 	}
-	fmt.Println("x =", x)
-	fmt.Println("buf =", hex.EncodeToString(buf.Bytes()))
+	t.Log("x =", x)
+	t.Log("buf =", hex.EncodeToString(buf.Bytes()))
 
 	x, err = ReadVarint(buf)
 	if err != nil {
 		t.Errorf(err.Error())
 	}
-	fmt.Println("x =", x)
-	fmt.Println("buf =", hex.EncodeToString(buf.Bytes()))
+	t.Log("x =", x)
+	t.Log("buf =", hex.EncodeToString(buf.Bytes()))
 }

@@ -22,7 +22,7 @@ func TestDblock(t *testing.T) {
 
 	dblk, _ := db.FetchDBlockByMR(dbMR)
 
-	fmt.Printf("dblk=%s\n", spew.Sdump(dblk))
+	t.Logf("dblk=%s\n", spew.Sdump(dblk))
 
 	// admin block ------------------------
 	achainid := new(common.Hash)
@@ -32,7 +32,7 @@ func TestDblock(t *testing.T) {
 
 	ablk, _ := db.FetchABlockByHash(abMR)
 
-	fmt.Printf("ablk=%s\n", spew.Sdump(ablk))
+	t.Logf("ablk=%s\n", spew.Sdump(ablk))
 
 	//EC block ------------------------------------
 	ecchainid := new(common.Hash)
@@ -42,7 +42,7 @@ func TestDblock(t *testing.T) {
 
 	ecblk, _ := db.FetchECBlockByHash(ecbMR)
 
-	fmt.Printf("ecblk=%s\n", spew.Sdump(ecblk))
+	t.Logf("ecblk=%s\n", spew.Sdump(ecblk))
 
 	//factoid block ------------------------------------
 	fchainid := new(common.Hash)
@@ -52,6 +52,6 @@ func TestDblock(t *testing.T) {
 
 	fblk, _ := db.FetchFBlockByHash(fbMR)
 
-	fmt.Printf("fblk=%s\n", spew.Sdump(fblk))
+	t.Logf("fblk=%s\n", spew.Sdump(fblk))
 
 }

@@ -69,13 +69,13 @@ func TestECBlockMarshal(t *testing.T) {
 	min.Number = 3
 	ecb.AddEntry(min)
 
-	fmt.Println(spew.Sdump(ecb))
+	t.Log(spew.Sdump(ecb))
 
 	ecb2 := common.NewECBlock()
 	if p, err := ecb.MarshalBinary(); err != nil {
 		t.Error(err)
 	} else {
-		fmt.Printf("%x\n", p)
+		t.Logf("%x\n", p)
 		if err := ecb2.UnmarshalBinary(p); err != nil {
 			t.Error(err)
 		}
@@ -84,6 +84,6 @@ func TestECBlockMarshal(t *testing.T) {
 		} else if string(p) != string(q) {
 			t.Errorf("ecb = %x\necb2 = %x\n", p, q)
 		}
-		fmt.Println(spew.Sdump(ecb2))
+		t.Log(spew.Sdump(ecb2))
 	}
 }

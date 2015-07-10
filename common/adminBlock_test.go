@@ -18,38 +18,38 @@ func TestAdminBlockMarshalUnmarshal(t *testing.T) {
 	for b, block := range blocks {
 		binary, err := block.MarshalBinary()
 		if err != nil {
-			fmt.Printf("Block %d", b)
+			t.Logf("Block %d", b)
 			t.Error(err)
 			t.FailNow()
 		}
 		block2 := new(AdminBlock)
 		err = block2.UnmarshalBinary(binary)
 		if err != nil {
-			fmt.Printf("Block %d", b)
+			t.Logf("Block %d", b)
 			t.Error(err)
 			t.FailNow()
 		}
 		if len(block2.ABEntries) != len(block.ABEntries) {
-			fmt.Printf("Block %d", b)
+			t.Logf("Block %d", b)
 			t.Error("Invalid amount of ABEntries")
 			t.FailNow()
 		}
 		for i := range block2.ABEntries {
 			entryOne, err := block.ABEntries[i].MarshalBinary()
 			if err != nil {
-				fmt.Printf("Block %d", b)
+				t.Logf("Block %d", b)
 				t.Error(err)
 				t.FailNow()
 			}
 			entryTwo, err := block2.ABEntries[i].MarshalBinary()
 			if err != nil {
-				fmt.Printf("Block %d", b)
+				t.Logf("Block %d", b)
 				t.Error(err)
 				t.FailNow()
 			}
 
 			if bytes.Compare(entryOne, entryTwo) != 0 {
-				fmt.Printf("Block %d", b)
+				t.Logf("Block %d", b)
 				t.Error("ABEntries are not identical")
 			}
 		}

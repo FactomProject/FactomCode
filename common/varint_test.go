@@ -8,16 +8,16 @@ import (
 )
 
 func mix(v []uint64) {
-    for i:= 0 ; i < 100; i++ {
-        v1 := rand.Int()%len(v)
-        v2 := rand.Int()%len(v)
-        t := v[v1]
-        v[v1]=v[v2]
-        v[v2]=t
-    }
+	for i := 0; i < 100; i++ {
+		v1 := rand.Int() % len(v)
+		v2 := rand.Int() % len(v)
+		t := v[v1]
+		v[v1] = v[v2]
+		v[v2] = t
+	}
 }
 
-func TestVarInt(test *testing.T) {
+func TestVarInt(t *testing.T) {
 	fmt.Printf("---\nTestVarInt\n---\n")
 
 	for i := 0; i < 1000; i++ {
@@ -46,18 +46,18 @@ func TestVarInt(test *testing.T) {
 		for j := 0; j < len(v); j++ {
 			n, err := WriteVarInt(&out2, v[j])
 			if err != nil {
-				fmt.Println(n, err)
-				test.Fail()
+				t.Log(n, err)
+				t.Fail()
 				return
 			}
 			//            fmt.Printf("%x ",v[j])
 		}
-		
+
 		for j := 0; j < len(v); j++ {
 			err := EncodeVarInt(&out, v[j])
 			if err != nil {
-				fmt.Println(err)
-				test.Fail()
+				t.Log(err)
+				t.Fail()
 				return
 			}
 			//            fmt.Printf("%x ",v[j])
@@ -65,7 +65,7 @@ func TestVarInt(test *testing.T) {
 		//        fmt.Println( "Length: ",out.Len())
 
 		data := out.Bytes()
-		
+
 		//        PrtData(data)
 		//        fmt.Println()
 
@@ -73,20 +73,20 @@ func TestVarInt(test *testing.T) {
 		for j := 0; j < len(v); j++ {
 			dv, data = DecodeVarInt(data)
 			if dv != v[j] {
-				fmt.Printf("Values don't match: %x %x (%d)\n", dv, v[j], j)
-				test.Fail()
+				t.Logf("Values don't match: %x %x (%d)\n", dv, v[j], j)
+				t.Fail()
 				return
 			}
 		}
-		
+
 		//        PrtData(data)
 		//        fmt.Println()
 
 		for j := 0; j < len(v); j++ {
 			dv = ReadVarInt(&out2)
 			if dv != v[j] {
-				fmt.Printf("Values don't match: %x %x (%d)\n", dv, v[j], j)
-				test.Fail()
+				t.Logf("Values don't match: %x %x (%d)\n", dv, v[j], j)
+				t.Fail()
 				return
 			}
 		}

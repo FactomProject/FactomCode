@@ -22,11 +22,11 @@ func TestHash(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error: %v", err)
 	}
-	fmt.Printf("bytes1: %v\n", bytes1)
+	t.Logf("bytes1: %v\n", bytes1)
 
 	h2 := new(Hash)
 	err = h2.UnmarshalBinary(bytes1)
-	fmt.Printf("h2.bytes: %v\n", h2.Bytes)
+	t.Logf("h2.bytes: %v\n", h2.Bytes)
 	if err != nil {
 		t.Errorf("Error: %v", err)
 	}
@@ -35,7 +35,7 @@ func TestHash(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error: %v", err)
 	}
-	fmt.Printf("bytes2: %v\n", bytes2)
+	t.Logf("bytes2: %v\n", bytes2)
 
 	if bytes.Compare(bytes1, bytes2) != 0 {
 		t.Errorf("Invalid output")

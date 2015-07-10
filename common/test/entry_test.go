@@ -22,7 +22,7 @@ func TestUnmarshal(t *testing.T) {
 		t.Error(err)
 	}
 
-	fmt.Println(e)
+	t.Log(e)
 }
 
 func TestFirstEntry(t *testing.T) {
@@ -43,13 +43,13 @@ func TestFirstEntry(t *testing.T) {
 	entry.Content = []byte("1asdf asfas dfsg\"08908098(*)*^*&%&%&$^#%##%$$@$@#$!$#!$#@!~@!#@!%#@^$#^&$*%())_+_*^*&^&\"\"?>?<<>/./,")
 
 	bytes1, err := entry.MarshalBinary()
-	fmt.Printf("bytes1:%v\n", bytes1)
+	t.Logf("bytes1:%v\n", bytes1)
 
 	entry2 := new(Entry)
 	entry2.UnmarshalBinary(bytes1)
 
 	bytes2, _ := entry2.MarshalBinary()
-	fmt.Printf("bytes2:%v\n", bytes2)
+	t.Logf("bytes2:%v\n", bytes2)
 
 	if bytes.Compare(bytes1, bytes2) != 0 {
 		t.Errorf("Invalid output")
@@ -78,13 +78,13 @@ func TestEntry(t *testing.T) {
 	entry.Content = []byte("1asdf asfas fasfadfasdfasfdfff12345")
 
 	bytes1, err := entry.MarshalBinary()
-	fmt.Printf("bytes1:%v\n", bytes1)
+	t.Logf("bytes1:%v\n", bytes1)
 
 	entry2 := new(Entry)
 	entry2.UnmarshalBinary(bytes1)
 
 	bytes2, _ := entry2.MarshalBinary()
-	fmt.Printf("bytes2:%v\n", bytes2)
+	t.Logf("bytes2:%v\n", bytes2)
 
 	if bytes.Compare(bytes1, bytes2) != 0 {
 		t.Errorf("Invalid output")
