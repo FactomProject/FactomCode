@@ -7,6 +7,7 @@ package common
 import (
 	"bytes"
 	"crypto/sha256"
+	"crypto/sha512"
 	"encoding/hex"
 	"fmt"
 )
@@ -86,6 +87,16 @@ func Sha(p []byte) (h *Hash) {
 
 	h = new(Hash)
 	copy(h.bytes[:], sha.Sum(nil))
+	return h
+}
+
+// Create a Sha512[:256] Hash from a byte array
+func Sha512Half(p []byte) (h *Hash) {
+	sha := sha512.New()
+	sha.Write(p)
+
+	h = new(Hash)
+	copy(h.bytes[:], sha.Sum(nil)[:32])
 	return h
 }
 

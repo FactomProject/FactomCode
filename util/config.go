@@ -8,6 +8,8 @@ import (
 	"code.google.com/p/gcfg"
 )
 
+var cfg *FactomdConfig
+
 type FactomdConfig struct {
 	App struct {
 		PortNumber              int
@@ -100,6 +102,13 @@ LogPath					= /tmp/factomd.log
 // GetConfig reads the default factomd.conf file and returns a FactomConfig
 // object corresponding to the state of the file.
 func ReadConfig() *FactomdConfig {
+	if cfg == nil {
+		cfg = readConfig()
+	}
+	return cfg
+}
+
+func readConfig() *FactomdConfig {
 	cfg := new(FactomdConfig)
 	filename := getHomeDir() + "/.factom/factomd.conf"
 	log.Println("read factom config file: ", filename)

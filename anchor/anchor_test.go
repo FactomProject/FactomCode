@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/FactomProject/FactomCode/common"
+	"github.com/FactomProject/FactomCode/database"
+	"github.com/FactomProject/FactomCode/database/ldb"
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/btcsuitereleases/btcd/btcjson"
 	"github.com/btcsuitereleases/btcd/wire"
@@ -216,17 +218,29 @@ func writeToBTC(bytes []byte, blockHeight uint64) (*wire.ShaHash, error) {
 
 func init() {
 	util.Trace("InitAnchor")
+	db := initDB()
+	InitAnchor(db)
+}
 
-	if err := initRPCClient(); err != nil {
-		fmt.Println(err.Error())
-		return
-	}
-	//defer shutdown(dclient)
-	//defer shutdown(wclient)
+// Initialize the level db and share it with other components
+func initDB() database.Db {
+	
+	var ldbpath = "/tmp/test/ldb9"
+	var err error
+	db, err = ldb.OpenLevelDB(ldbpath, false)
+	if err != nil {
+		fmt.Printf("err opening db: %v\n", err)
 
-	if err := initWallet(); err != nil {
-		fmt.Println(err.Error())
-		return
 	}
-	return
+
+	if db == nil {
+		fmt.Println("Creating new db ...")
+		db, err = ldb.OpenLevelDB(ldbpath, true)
+
+		if err != nil {
+			panic(err)
+		}
+	}
+	fmt.Println("Database started from: " + ldbpath)
+	return db
 }

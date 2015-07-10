@@ -25,7 +25,7 @@ type AdminChain struct {
 // Administrative Block
 // This is a special block which accompanies this Directory Block.
 // It contains the signatures and organizational data needed to validate previous and future Directory Blocks.
-// This block is included in the DB body. It appears there with a pair of the Admin ChainID:SHA256 of the block.
+// This block is included in the DB body. It appears there with a pair of the Admin AdminChainID:SHA256 of the block.
 // For more details, please go to:
 // https://github.com/FactomProject/FactomDocs/blob/master/factomDataStructureDetails.md#administrative-block
 type AdminBlock struct {
@@ -48,16 +48,16 @@ func CreateAdminBlock(chain *AdminChain, prev *AdminBlock, cap uint) (b *AdminBl
 	b = new(AdminBlock)
 
 	b.Header = new(ABlockHeader)
-	b.Header.ChainID = chain.ChainID
+	b.Header.AdminChainID = chain.ChainID
 
 	if prev == nil {
-		b.Header.PrevHash = NewHash()
+		b.Header.PrevFullHash = NewHash()
 	} else {
 
 		if prev.ABHash == nil {
 			prev.BuildABHash()
 		}
-		b.Header.PrevHash = prev.ABHash
+		b.Header.PrevFullHash = prev.ABHash
 	}
 
 	b.Header.DBHeight = chain.NextBlockHeight
@@ -70,7 +70,7 @@ func CreateAdminBlock(chain *AdminChain, prev *AdminBlock, cap uint) (b *AdminBl
 func (b *AdminBlock) BuildABHash() (err error) {
 
 	binaryAB, _ := b.MarshalBinary()
-	b.ABHash = Sha(binaryAB)
+	b.ABHash = Sha512Half(binaryAB)
 
 	return
 }
@@ -99,7 +99,7 @@ func (b *AdminBlock) MarshalBinary() (data []byte, err error) {
 	data, _ = b.Header.MarshalBinary()
 	buf.Write(data)
 
-	for i := uint32(0); i < b.Header.EntryCount; i++ {
+	for i := uint32(0); i < b.Header.MessageCount; i++ {
 		data, _ := b.ABEntries[i].MarshalBinary()
 		buf.Write(data)
 	}
@@ -126,8 +126,8 @@ func (b *AdminBlock) UnmarshalBinary(data []byte) (err error) {
 	b.Header = h
 
 	data = data[h.MarshalledSize():]
-	b.ABEntries = make([]ABEntry, b.Header.EntryCount)
-	for i := uint32(0); i < b.Header.EntryCount; i++ {
+	b.ABEntries = make([]ABEntry, b.Header.MessageCount)
+	for i := uint32(0); i < b.Header.MessageCount; i++ {
 		if data[0] == TYPE_DB_SIGNATURE {
 			b.ABEntries[i] = new(DBSignatureEntry)
 		} else if data[0] == TYPE_MINUTE_NUM {
@@ -146,7 +146,7 @@ func (b *AdminBlock) UnmarshalBinary(data []byte) (err error) {
 // Read in the binary into the Admin block.
 func (b *AdminBlock) GetDBSignature() ABEntry {
 
-	for i := uint32(0); i < b.Header.EntryCount; i++ {
+	for i := uint32(0); i < b.Header.MessageCount; i++ {
 		if b.ABEntries[i].Type() == TYPE_DB_SIGNATURE {
 			return b.ABEntries[i]
 		}
@@ -157,24 +157,28 @@ func (b *AdminBlock) GetDBSignature() ABEntry {
 
 // Admin Block Header
 type ABlockHeader struct {
-	ChainID    *Hash
-	PrevHash   *Hash
-	DBHeight   uint32
-	EntryCount uint32
-	BodySize   uint32
+	AdminChainID *Hash
+	PrevFullHash *Hash
+	DBHeight     uint32
+
+	HeaderExpansionSize uint64
+	HeaderExpansionArea []byte
+
+	MessageCount uint32
+	BodySize     uint32
 }
 
 // Write out the ABlockHeader to binary.
 func (b *ABlockHeader) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
 
-	data, err = b.ChainID.MarshalBinary()
+	data, err = b.AdminChainID.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
 	buf.Write(data)
 
-	data, err = b.PrevHash.MarshalBinary()
+	data, err = b.PrevFullHash.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
@@ -182,8 +186,10 @@ func (b *ABlockHeader) MarshalBinary() (data []byte, err error) {
 
 	binary.Write(&buf, binary.BigEndian, b.DBHeight)
 
-	binary.Write(&buf, binary.BigEndian, b.EntryCount)
+	EncodeVarInt(&buf, b.HeaderExpansionSize)
+	buf.Write(b.HeaderExpansionArea)
 
+	binary.Write(&buf, binary.BigEndian, b.MessageCount)
 	binary.Write(&buf, binary.BigEndian, b.BodySize)
 
 	return buf.Bytes(), err
@@ -192,11 +198,13 @@ func (b *ABlockHeader) MarshalBinary() (data []byte, err error) {
 func (b *ABlockHeader) MarshalledSize() uint64 {
 	var size uint64 = 0
 
-	size += uint64(HASH_LENGTH)
-	size += uint64(HASH_LENGTH)
-	size += 4 // DB Height
-	size += 4 // Entry count
-	size += 4 // Body Size
+	size += uint64(HASH_LENGTH)                         //AdminChainID
+	size += uint64(HASH_LENGTH)                         //PrevFullHash
+	size += 4                                           //DBHeight
+	size += uint64(VarIntLength(b.HeaderExpansionSize)) //HeaderExpansionSize
+	size += b.HeaderExpansionSize                       //HeadderExpansionArea
+	size += 4                                           //MessageCount
+	size += 4                                           //BodySize
 
 	return size
 }
@@ -204,18 +212,20 @@ func (b *ABlockHeader) MarshalledSize() uint64 {
 // Read in the binary into the ABlockHeader.
 func (b *ABlockHeader) UnmarshalBinary(data []byte) (err error) {
 
-	b.ChainID = new(Hash)
-	b.ChainID.UnmarshalBinary(data)
+	b.AdminChainID = new(Hash)
+	b.AdminChainID.UnmarshalBinary(data)
 	data = data[HASH_LENGTH:]
 
-	b.PrevHash = new(Hash)
-	b.PrevHash.UnmarshalBinary(data)
+	b.PrevFullHash = new(Hash)
+	b.PrevFullHash.UnmarshalBinary(data)
 	data = data[HASH_LENGTH:]
 
 	b.DBHeight, data = binary.BigEndian.Uint32(data[0:4]), data[4:]
 
-	b.EntryCount, data = binary.BigEndian.Uint32(data[0:4]), data[4:]
+	b.HeaderExpansionSize, data = DecodeVarInt(data)
+	b.HeaderExpansionArea, data = data[:b.HeaderExpansionSize], data[b.HeaderExpansionSize:]
 
+	b.MessageCount, data = binary.BigEndian.Uint32(data[0:4]), data[4:]
 	b.BodySize, data = binary.BigEndian.Uint32(data[0:4]), data[4:]
 
 	return nil
@@ -231,18 +241,18 @@ type ABEntry interface {
 
 // DB Signature Entry -------------------------
 type DBSignatureEntry struct {
-	ABEntry         //interface
-	entryType       byte
-	IdentityChainID *Hash
-	PubKey          PublicKey
-	PrevDBSig       *[64]byte
+	ABEntry              //interface
+	entryType            byte
+	IdentityAdminChainID *Hash
+	PubKey               PublicKey
+	PrevDBSig            *[64]byte
 }
 
 // Create a new DB Signature Entry
-func NewDBSignatureEntry(identityChainID *Hash, sig Signature) (e *DBSignatureEntry) {
+func NewDBSignatureEntry(identityAdminChainID *Hash, sig Signature) (e *DBSignatureEntry) {
 	e = new(DBSignatureEntry)
 	e.entryType = TYPE_DB_SIGNATURE
-	e.IdentityChainID = identityChainID
+	e.IdentityAdminChainID = identityAdminChainID
 	e.PubKey = sig.Pub
 	e.PrevDBSig = sig.Sig
 	return
@@ -257,7 +267,7 @@ func (e *DBSignatureEntry) MarshalBinary() (data []byte, err error) {
 
 	buf.Write([]byte{e.entryType})
 
-	data, err = e.IdentityChainID.MarshalBinary()
+	data, err = e.IdentityAdminChainID.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
@@ -289,8 +299,8 @@ func (e *DBSignatureEntry) MarshalledSize() uint64 {
 func (e *DBSignatureEntry) UnmarshalBinary(data []byte) (err error) {
 	e.entryType, data = data[0], data[1:]
 
-	e.IdentityChainID = new(Hash)
-	e.IdentityChainID.UnmarshalBinary(data)
+	e.IdentityAdminChainID = new(Hash)
+	e.IdentityAdminChainID.UnmarshalBinary(data)
 	data = data[HASH_LENGTH:]
 
 	e.PubKey.Key = new([HASH_LENGTH]byte)

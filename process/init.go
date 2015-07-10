@@ -35,7 +35,7 @@ func initDChain() {
 	dchain.Blocks = make([]*common.DirectoryBlock, len(dBlocks), len(dBlocks)+1)
 
 	for i := 0; i < len(dBlocks); i = i + 1 {
-		if dBlocks[i].Header.BlockHeight != uint32(i) {
+		if dBlocks[i].Header.DBHeight != uint32(i) {
 			panic("Error in initializing dChain:" + dchain.ChainID.String())
 		}
 		dBlocks[i].Chain = dchain
@@ -46,20 +46,20 @@ func initDChain() {
 
 	// double check the block ids
 	for i := 0; i < len(dchain.Blocks); i = i + 1 {
-		if uint32(i) != dchain.Blocks[i].Header.BlockHeight {
-			panic(errors.New("BlockID does not equal index for chain:" + dchain.ChainID.String() + " block:" + fmt.Sprintf("%v", dchain.Blocks[i].Header.BlockHeight)))
+		if uint32(i) != dchain.Blocks[i].Header.DBHeight {
+			panic(errors.New("BlockID does not equal index for chain:" + dchain.ChainID.String() + " block:" + fmt.Sprintf("%v", dchain.Blocks[i].Header.DBHeight)))
 		}
 	}
 
 	//Create an empty block and append to the chain
 	if len(dchain.Blocks) == 0 {
-		dchain.NextBlockHeight = 0
+		dchain.NextDBHeight = 0
 		dchain.NextBlock, _ = common.CreateDBlock(dchain, nil, 10)
 	} else {
-		dchain.NextBlockHeight = uint32(len(dchain.Blocks))
+		dchain.NextDBHeight = uint32(len(dchain.Blocks))
 		dchain.NextBlock, _ = common.CreateDBlock(dchain, dchain.Blocks[len(dchain.Blocks)-1], 10)
 		// Update dir block height cache in db
-		db.UpdateBlockHeightCache(dchain.NextBlockHeight-1, dchain.NextBlock.Header.PrevBlockHash)
+		db.UpdateBlockHeightCache(dchain.NextDBHeight-1, dchain.NextBlock.Header.PrevFullHash)
 	}
 
 	exportDChain(dchain)
@@ -93,12 +93,12 @@ func initECChain() {
 	}
 
 	//Create an empty block and append to the chain
-	if len(ecBlocks) == 0 || dchain.NextBlockHeight == 0 {
+	if len(ecBlocks) == 0 || dchain.NextDBHeight == 0 {
 		ecchain.NextBlockHeight = 0
 		ecchain.NextBlock = common.NewECBlock()
 	} else {
 		// Entry Credit Chain should have the same height as the dir chain
-		ecchain.NextBlockHeight = dchain.NextBlockHeight
+		ecchain.NextBlockHeight = dchain.NextDBHeight
 		ecchain.NextBlock = common.NextECBlock(&ecBlocks[ecchain.NextBlockHeight-1])
 	}
 
@@ -136,13 +136,13 @@ func initAChain() {
 	}
 
 	//Create an empty block and append to the chain
-	if len(aBlocks) == 0 || dchain.NextBlockHeight == 0 {
+	if len(aBlocks) == 0 || dchain.NextDBHeight == 0 {
 		achain.NextBlockHeight = 0
 		achain.NextBlock, _ = common.CreateAdminBlock(achain, nil, 10)
 
 	} else {
 		// Entry Credit Chain should have the same height as the dir chain
-		achain.NextBlockHeight = dchain.NextBlockHeight
+		achain.NextBlockHeight = dchain.NextDBHeight
 		achain.NextBlock, _ = common.CreateAdminBlock(achain, &aBlocks[achain.NextBlockHeight-1], 10)
 	}
 
@@ -176,14 +176,14 @@ func initFctChain() {
 	}
 
 	//Create an empty block and append to the chain
-	if len(fBlocks) == 0 || dchain.NextBlockHeight == 0 {
+	if len(fBlocks) == 0 || dchain.NextDBHeight == 0 {
 		fchain.NextBlockHeight = 0
 
 		fchain.NextBlock = block.GetGenesisBlock(
 			0, 1000000, 10, 200000000000)
 	} else {
-		fchain.NextBlockHeight = dchain.NextBlockHeight
-		common.FactoidState.ProcessEndOfBlock2(dchain.NextBlockHeight)
+		fchain.NextBlockHeight = dchain.NextDBHeight
+		common.FactoidState.ProcessEndOfBlock2(dchain.NextDBHeight)
 		fchain.NextBlock = common.FactoidState.GetCurrentBlock()
 	}
 
@@ -228,9 +228,9 @@ func initializeECreditMap(block *common.ECBlock) {
 			eCreditMap[string(e.ECPubKey[:])] += int32(e.Credits)
 			// Don't add the Increases to Factoid state, the Factoid processing will do that.
 		case common.ECIDServerIndexNumber:
-		case common.ECIDMinuteNumber:			
+		case common.ECIDMinuteNumber:
 		default:
-			panic ("Unknow entry type:" + string(entry.ECID()) + " for ECBlock:" + strconv.FormatUint(uint64(block.Header.DBHeight), 10) )
+			panic("Unknow entry type:" + string(entry.ECID()) + " for ECBlock:" + strconv.FormatUint(uint64(block.Header.DBHeight), 10))
 		}
 	}
 }
@@ -251,7 +251,7 @@ func initServerKeys() {
 
 // Initialize the process list manager with the proper dir block height
 func initProcessListMgr() {
-	plMgr = consensus.NewProcessListMgr(dchain.NextBlockHeight, 1, 10, serverPrivKey)
+	plMgr = consensus.NewProcessListMgr(dchain.NextDBHeight, 1, 10, serverPrivKey)
 
 }
 
@@ -295,8 +295,8 @@ func validateDChain(c *common.DChain) error {
 		return nil
 	}
 
-	if uint32(len(c.Blocks)) != c.NextBlockHeight {
-		return errors.New("Dir chain has an un-expected Next Block ID: " + strconv.Itoa(int(c.NextBlockHeight)))
+	if uint32(len(c.Blocks)) != c.NextDBHeight {
+		return errors.New("Dir chain has an un-expected Next Block ID: " + strconv.Itoa(int(c.NextDBHeight)))
 	}
 
 	//prevMR and prevBlkHash are used to validate against the block next in the chain
@@ -312,7 +312,7 @@ func validateDChain(c *common.DChain) error {
 	}
 
 	for i := 1; i < len(c.Blocks); i++ {
-		if !prevBlkHash.IsSameAs(c.Blocks[i].Header.PrevBlockHash) {
+		if !prevBlkHash.IsSameAs(c.Blocks[i].Header.PrevFullHash) {
 			return errors.New("Previous block hash not matching for Dir block: " + strconv.Itoa(i))
 		}
 		if !prevMR.IsSameAs(c.Blocks[i].Header.PrevKeyMR) {
@@ -341,28 +341,28 @@ func validateDBlock(c *common.DChain, b *common.DirectoryBlock) (merkleRoot *com
 	}
 
 	if !b.Header.BodyMR.IsSameAs(bodyMR) {
-		return nil, nil, errors.New("Invalid body MR for dir block: " + string(b.Header.BlockHeight))
+		return nil, nil, errors.New("Invalid body MR for dir block: " + string(b.Header.DBHeight))
 	}
 
 	for _, dbEntry := range b.DBEntries {
 		switch dbEntry.ChainID.String() {
 		case ecchain.ChainID.String():
-			err := validateCBlockByMR(dbEntry.MerkleRoot)
+			err := validateCBlockByMR(dbEntry.KeyMR)
 			if err != nil {
 				return nil, nil, err
 			}
 		case achain.ChainID.String():
-			err := validateABlockByMR(dbEntry.MerkleRoot)
+			err := validateABlockByMR(dbEntry.KeyMR)
 			if err != nil {
 				return nil, nil, err
 			}
 		case wire.FChainID.String():
-			err := validateFBlockByMR(dbEntry.MerkleRoot)
+			err := validateFBlockByMR(dbEntry.KeyMR)
 			if err != nil {
 				return nil, nil, err
 			}
 		default:
-			err := validateEBlockByMR(dbEntry.ChainID, dbEntry.MerkleRoot)
+			err := validateEBlockByMR(dbEntry.ChainID, dbEntry.KeyMR)
 			if err != nil {
 				return nil, nil, err
 			}
