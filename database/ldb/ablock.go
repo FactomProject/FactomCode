@@ -1,11 +1,11 @@
 package ldb
 
 import (
-//	"errors"
+	//	"errors"
+	"encoding/binary"
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/goleveldb/leveldb"
 	"github.com/FactomProject/goleveldb/leveldb/util"
-	"encoding/binary"	
 	"log"
 )
 
@@ -27,23 +27,23 @@ func (db *LevelDb) ProcessABlockBatch(block *common.AdminBlock) error {
 		if block.ABHash == nil {
 			block.ABHash = common.Sha(binaryBlock)
 		}
-		
+
 		// Insert the binary factom block
 		var key []byte = []byte{byte(TBL_AB)}
 		key = append(key, block.ABHash.Bytes()...)
 		db.lbatch.Put(key, binaryBlock)
-		
+
 		// Insert the admin block number cross reference
 		key = []byte{byte(TBL_AB_NUM)}
-		key = append(key, block.Header.ChainID.Bytes()...)
+		key = append(key, block.Header.AdminChainID.Bytes()...)
 		bytes := make([]byte, 4)
 		binary.BigEndian.PutUint32(bytes, block.Header.DBHeight)
 		key = append(key, bytes...)
-		db.lbatch.Put(key, block.ABHash.Bytes())		
+		db.lbatch.Put(key, block.ABHash.Bytes())
 
 		// Update the chain head reference
 		key = []byte{byte(TBL_CHAIN_HEAD)}
-		key = append(key, common.ADMIN_CHAINID ...)
+		key = append(key, common.ADMIN_CHAINID...)
 		db.lbatch.Put(key, block.ABHash.Bytes())
 
 		err = db.lDb.Write(db.lbatch, db.wo)
@@ -91,7 +91,7 @@ func (db *LevelDb) FetchAllABlocks() (aBlocks []common.AdminBlock, err error) {
 
 		aBlockSlice = append(aBlockSlice, aBlock)
 
-	} 
+	}
 	iter.Release()
 	err = iter.Error()
 

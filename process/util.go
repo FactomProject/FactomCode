@@ -269,7 +269,7 @@ func exportABlock(block *common.AdminBlock) {
 		panic(err)
 	}
 
-	strChainID := block.Header.ChainID.String()
+	strChainID := block.Header.AdminChainID.String()
 	if fileNotExists(dataStorePath + strChainID) {
 		err := os.MkdirAll(dataStorePath+strChainID, 0777)
 		if err == nil {

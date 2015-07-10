@@ -37,6 +37,20 @@ func DecodeVarInt(data []byte) (uint64, []byte) {
 	return v, data[9:]
 }
 
+func VarIntLength(v uint64) int {
+	switch {
+	case v < 0xfd:
+		return 1
+	case v <= 0xFFFF:
+		return 3
+	case v <= 0xFFFFFFFF:
+		return 5
+	default:
+		return 9
+	}
+	return -1
+}
+
 // Encode an integer as a variable int into the given data buffer.
 func EncodeVarInt(out *bytes.Buffer, v uint64) error {
 	var err error
@@ -88,7 +102,7 @@ func ReadVarInt(buf *bytes.Buffer) uint64 {
 	}
 
 	var v uint64
-	
+
 	if p := buf.Next(2); p != nil {
 		v = (uint64(p[0]) << 8) | uint64(p[1])
 	}

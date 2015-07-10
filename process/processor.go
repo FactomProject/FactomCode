@@ -984,7 +984,7 @@ func newAdminBlock(chain *common.AdminChain) *common.AdminBlock {
 		panic("Admin Block height does not match Directory Block height:" + string(dchain.NextDBHeight))
 	}
 
-	block.Header.EntryCount = uint32(len(block.ABEntries))
+	block.Header.MessageCount = uint32(len(block.ABEntries))
 	block.Header.BodySize = uint32(block.MarshalledSize() - block.Header.MarshalledSize())
 	block.BuildABHash()
 
