@@ -76,11 +76,13 @@ func handleCommitChain(ctx *web.Context) {
 	if p, err := ioutil.ReadAll(ctx.Request.Body); err != nil {
 		wsLog.Error(err)
 		ctx.WriteHeader(httpBad)
+		ctx.Write([]byte(err.Error()))
 		return
 	} else {
 		if err := json.Unmarshal(p, c); err != nil {
 			wsLog.Error(err)
 			ctx.WriteHeader(httpBad)
+			ctx.Write([]byte(err.Error()))
 			return
 		}
 	}
@@ -88,21 +90,25 @@ func handleCommitChain(ctx *web.Context) {
 	commit := common.NewCommitChain()
 	if p, err := hex.DecodeString(c.CommitChainMsg); err != nil {
 		wsLog.Error(err)
+		ctx.WriteHeader(httpBad)
+		ctx.Write([]byte(err.Error()))
 		return
 	}else {
         if err := commit.UnmarshalBinary(p); err != nil {
             wsLog.Error(err)
-            ctx.WriteHeader(httpBad)
+			ctx.WriteHeader(httpBad)
+			ctx.Write([]byte(err.Error()))
             return
         }
     }
 	if err := factomapi.CommitChain(commit); err != nil {
 		wsLog.Error(err)
 		ctx.WriteHeader(httpBad)
+		ctx.Write([]byte(err.Error()))
 		return
 	}
 
-	ctx.WriteHeader(httpOK)
+//	ctx.WriteHeader(httpOK)
 }
 
 func handleRevealChain(ctx *web.Context) {
@@ -117,10 +123,14 @@ func handleCommitEntry(ctx *web.Context) {
 	c := new(commitentry)
 	if p, err := ioutil.ReadAll(ctx.Request.Body); err != nil {
 		wsLog.Error(err)
+		ctx.WriteHeader(httpBad)
+		ctx.Write([]byte(err.Error()))
 		return
 	} else {
 		if err := json.Unmarshal(p, c); err != nil {
 			wsLog.Error(err)
+			ctx.WriteHeader(httpBad)
+			ctx.Write([]byte(err.Error()))
 			return
 		}
 	}
@@ -128,15 +138,21 @@ func handleCommitEntry(ctx *web.Context) {
 	commit := common.NewCommitEntry()
 	if p, err := hex.DecodeString(c.CommitEntryMsg); err != nil {
 		wsLog.Error(err)
+		ctx.WriteHeader(httpBad)
+		ctx.Write([]byte(err.Error()))
 		return
 	} else {
 		if err := commit.UnmarshalBinary(p); err != nil {
 			wsLog.Error(err)
+			ctx.WriteHeader(httpBad)
+			ctx.Write([]byte(err.Error()))
 			return
 		}
 	}
 	if err := factomapi.CommitEntry(commit); err != nil {
 		wsLog.Error(err)
+		ctx.WriteHeader(httpBad)
+		ctx.Write([]byte(err.Error()))
 		return
 	}
 
@@ -151,11 +167,13 @@ func handleRevealEntry(ctx *web.Context) {
 	if p, err := ioutil.ReadAll(ctx.Request.Body); err != nil {
 		wsLog.Error(err)
 		ctx.WriteHeader(httpBad)
+		ctx.Write([]byte(err.Error()))
 		return
 	} else {
 		if err := json.Unmarshal(p, e); err != nil {
 			wsLog.Error(err)
 			ctx.WriteHeader(httpBad)
+			ctx.Write([]byte(err.Error()))
 			return
 		}
 	}
@@ -164,11 +182,13 @@ func handleRevealEntry(ctx *web.Context) {
 	if p, err := hex.DecodeString(e.Entry); err != nil {
 		wsLog.Error(err)
 		ctx.WriteHeader(httpBad)
+		ctx.Write([]byte(err.Error()))
 		return
 	} else {
 		if err := entry.UnmarshalBinary(p); err != nil {
 			wsLog.Error(err)
 			ctx.WriteHeader(httpBad)
+			ctx.Write([]byte(err.Error()))
 			return
 		}
 	}
@@ -176,10 +196,11 @@ func handleRevealEntry(ctx *web.Context) {
 	if err := factomapi.RevealEntry(entry); err != nil {
 		wsLog.Error(err)
 		ctx.WriteHeader(httpBad)
+		ctx.Write([]byte(err.Error()))
 		return
 	}
 
-	ctx.WriteHeader(httpOK)
+//	ctx.WriteHeader(httpOK)
 }
 
 func handleDirectoryBlockHead(ctx *web.Context) {
@@ -191,6 +212,7 @@ func handleDirectoryBlockHead(ctx *web.Context) {
 	if block, err := factomapi.DBlockHead(); err != nil {
 		wsLog.Error(err)
 		ctx.WriteHeader(httpBad)
+		ctx.Write([]byte(err.Error()))
 		return
 	} else {
 		h.KeyMR = block.KeyMR.String()
@@ -199,6 +221,7 @@ func handleDirectoryBlockHead(ctx *web.Context) {
 	if p, err := json.Marshal(h); err != nil {
 		wsLog.Error(err)
 		ctx.WriteHeader(httpBad)
+		ctx.Write([]byte(err.Error()))
 		return
 	} else {
 		ctx.Write(p)
@@ -226,6 +249,7 @@ func handleDirectoryBlock(ctx *web.Context, keymr string) {
 	if block, err := factomapi.DBlockByKeyMR(keymr); err != nil {
 		wsLog.Error(err)
 		ctx.WriteHeader(httpBad)
+		ctx.Write([]byte(err.Error()))
 		return
 	} else {
 		d.Header.PrevBlockKeyMR = block.Header.PrevKeyMR.String()
@@ -242,12 +266,13 @@ func handleDirectoryBlock(ctx *web.Context, keymr string) {
 	if p, err := json.Marshal(d); err != nil {
 		wsLog.Error(err)
 		ctx.WriteHeader(httpBad)
+		ctx.Write([]byte(err.Error()))
 		return
 	} else {
 		ctx.Write(p)
 	}
 
-	ctx.WriteHeader(httpOK)
+//	ctx.WriteHeader(httpOK)
 }
 
 func handleEntryBlock(ctx *web.Context, keymr string) {
@@ -269,6 +294,7 @@ func handleEntryBlock(ctx *web.Context, keymr string) {
 	if block, err := factomapi.EBlockByKeyMR(keymr); err != nil {
 		wsLog.Error(err)
 		ctx.WriteHeader(httpBad)
+		ctx.Write([]byte(err.Error()))
 		return
 	} else {
 		e.Header.BlockSequenceNumber = block.Header.EBHeight
@@ -285,12 +311,13 @@ func handleEntryBlock(ctx *web.Context, keymr string) {
 	if p, err := json.Marshal(e); err != nil {
 		wsLog.Error(err)
 		ctx.WriteHeader(httpBad)
+		ctx.Write([]byte(err.Error()))
 		return
 	} else {
 		ctx.Write(p)
 	}
 
-	ctx.WriteHeader(httpOK)
+//	ctx.WriteHeader(httpOK)
 }
 
 func handleEntry(ctx *web.Context, hash string) {
@@ -303,6 +330,8 @@ func handleEntry(ctx *web.Context, hash string) {
 	e := new(entry)
 	if entry, err := factomapi.EntryByHash(hash); err != nil {
 		wsLog.Error(err)
+		ctx.WriteHeader(httpBad)
+		ctx.Write([]byte(err.Error()))
 		return
 	} else {
 		e.ChainID = entry.ChainID.String()
@@ -314,6 +343,8 @@ func handleEntry(ctx *web.Context, hash string) {
 
 	if p, err := json.Marshal(e); err != nil {
 		wsLog.Error(err)
+		ctx.WriteHeader(httpBad)
+		ctx.Write([]byte(err.Error()))
 		return
 	} else {
 		ctx.Write(p)
@@ -327,8 +358,11 @@ func handleChainHead(ctx *web.Context, chainid string) {
 	}
 
 	c := new(chead)
+	fmt.Println("DEBUG:", c)
 	if mr, err := factomapi.ChainHead(chainid); err != nil {
 		wsLog.Error(err)
+		ctx.WriteHeader(httpBad)
+		ctx.Write([]byte(err.Error()))
 		return
 	} else {
 		c.EntryBlockKeyMR = mr.String()
@@ -336,6 +370,8 @@ func handleChainHead(ctx *web.Context, chainid string) {
 
 	if p, err := json.Marshal(c); err != nil {
 		wsLog.Error(err)
+		ctx.WriteHeader(httpBad)
+		ctx.Write([]byte(err.Error()))
 		return
 	} else {
 		ctx.Write(p)
@@ -474,5 +510,4 @@ func handleGetFee(ctx *web.Context) {
 	} else {
 		ctx.Write(p)
 	}
-
 }
