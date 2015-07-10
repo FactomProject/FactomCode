@@ -330,9 +330,9 @@ func copyCreditMap(
 }
 
 func printCreditMap() {
-	fmt.Println("eCreditMap:")
+	procLog.Debug("eCreditMap:")
 	for key := range eCreditMap {
-		procLog.Info("Key: %x Value %d\n", key, eCreditMap[key])
+		procLog.Debugf("Key: %x Value %d\n", key, eCreditMap[key])
 	}
 }
 

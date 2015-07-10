@@ -76,7 +76,6 @@ var (
 
 // Get the configurations
 func LoadConfigurations(cfg *util.FactomdConfig) {
-	util.Trace("LoadConf")
 
 	//setting the variables by the valued form the config file
 	logLevel = cfg.Log.LogLevel
@@ -88,13 +87,6 @@ func LoadConfigurations(cfg *util.FactomdConfig) {
 
 	FactomdUser = cfg.Btc.RpcUser
 	FactomdPass = cfg.Btc.RpcPass
-
-	util.Trace(logLevel)
-	util.Trace(ldbpath)
-	util.Trace(FactomdUser)
-	util.Trace(FactomdPass)
-
-	util.Trace(cfg.Btc.WalletPassphrase)
 }
 
 // Initialize the processor
@@ -117,19 +109,19 @@ func initProcessor() {
 
 	// init Directory Block Chain
 	initDChain()
-	procLog.Info("Loaded", dchain.NextBlockHeight, "Directory blocks for chain: "+dchain.ChainID.String())
+	procLog.Info("Loaded ", dchain.NextBlockHeight, " Directory blocks for chain: "+dchain.ChainID.String())
 
 	// init Entry Credit Chain
 	initECChain()
-	procLog.Info("Loaded", ecchain.NextBlockHeight, "Entry Credit blocks for chain: "+ecchain.ChainID.String())
+	procLog.Info("Loaded ", ecchain.NextBlockHeight, " Entry Credit blocks for chain: "+ecchain.ChainID.String())
 
 	// init Admin Chain
 	initAChain()
-	procLog.Info("Loaded", achain.NextBlockHeight, "Admin blocks for chain: "+achain.ChainID.String())
+	procLog.Info("Loaded ", achain.NextBlockHeight, " Admin blocks for chain: "+achain.ChainID.String())
 
 	initFctChain()
 	//common.FactoidState.LoadState()
-	procLog.Info("Loaded", fchain.NextBlockHeight, "factoid blocks for chain: "+fchain.ChainID.String())
+	procLog.Info("Loaded ", fchain.NextBlockHeight, " factoid blocks for chain: "+fchain.ChainID.String())
 
 	anchor.InitAnchor(db)
 
@@ -149,7 +141,7 @@ func initProcessor() {
 	for _, chain := range chainIDMap {
 		initEChainFromDB(chain)
 
-		procLog.Info("Loaded", chain.NextBlockHeight, "blocks for chain: "+chain.ChainID.String())
+		procLog.Info("Loaded ", chain.NextBlockHeight, " blocks for chain: "+chain.ChainID.String())
 	}
 
 	// Validate all dir blocks
