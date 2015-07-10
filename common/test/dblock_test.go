@@ -1,9 +1,11 @@
-package common
+package common_test
 
 import (
 	"bytes"
 	"fmt"
 	"testing"
+
+	. "github.com/FactomProject/FactomCode/common"
 )
 
 func TestDblock(t *testing.T) {
@@ -12,19 +14,19 @@ func TestDblock(t *testing.T) {
 	dblock := new(DirectoryBlock)
 
 	dblock.Header = new(DBlockHeader)
-	dblock.Header.BlockHeight = 1
+	dblock.Header.DBHeight = 1
 	dblock.Header.BodyMR = NewHash()
-	dblock.Header.EntryCount =0
+	dblock.Header.BlockCount = 0
 	dblock.Header.NetworkID = 9
-	dblock.Header.PrevBlockHash = NewHash()
+	dblock.Header.PrevFullHash = NewHash()
 	dblock.Header.PrevKeyMR = NewHash()
-	dblock.Header.StartTime = 1234
+	dblock.Header.Timestamp = 1234
 	dblock.Header.Version = 1
-	
+
 	de := new(DBEntry)
 	de.ChainID = NewHash()
-	de.MerkleRoot = NewHash()
-	
+	de.KeyMR = NewHash()
+
 	dblock.DBEntries = make([]*DBEntry, 0, 5)
 	dblock.DBEntries = append(dblock.DBEntries, de)
 

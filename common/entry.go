@@ -49,7 +49,7 @@ func (e *Entry) Hash() *Hash {
 	if err != nil {
 		return h
 	}
-	
+
 	h1 := sha512.Sum512(entry)
 	h2 := sha256.Sum256(append(h1[:], entry[:]...))
 	h.SetBytes(h2[:])
