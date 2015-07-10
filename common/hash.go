@@ -96,7 +96,7 @@ func Sha512Half(p []byte) (h *Hash) {
 	sha.Write(p)
 
 	h = new(Hash)
-	copy(h.bytes[:], sha.Sum(nil)[:256])
+	copy(h.bytes[:], sha.Sum(nil)[:32])
 	return h
 }
 
