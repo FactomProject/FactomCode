@@ -93,3 +93,33 @@ func TestVarInt(test *testing.T) {
 
 	}
 }
+
+func TestVarIntLength(t *testing.T) {
+	if VarIntLength(0) != 1 {
+		t.Error("Wrong length for 0")
+	}
+	if VarIntLength(1) != 1 {
+		t.Error("Wrong length for 1")
+	}
+	if VarIntLength(0xfc) != 1 {
+		t.Error("Wrong length for 0xfc")
+	}
+	if VarIntLength(0xfd) != 3 {
+		t.Error("Wrong length for 0xfd")
+	}
+	if VarIntLength(0xFFFF) != 3 {
+		t.Error("Wrong length for 0xFFFF")
+	}
+	if VarIntLength(0x010000) != 5 {
+		t.Error("Wrong length for 0x010000")
+	}
+	if VarIntLength(0xFFFFFFFF) != 5 {
+		t.Error("Wrong length for 0xFFFFFFFF")
+	}
+	if VarIntLength(0x0100000000) != 9 {
+		t.Error("Wrong length for 0x0100000000")
+	}
+	if VarIntLength(0xFFFFFFFFFF) != 9 {
+		t.Error("Wrong length for 0xFFFFFFFFFF")
+	}
+}

@@ -230,7 +230,7 @@ func handleDirectoryBlock(ctx *web.Context, keymr string) {
 	} else {
 		d.Header.PrevBlockKeyMR = block.Header.PrevKeyMR.String()
 		d.Header.SequenceNumber = block.Header.DBHeight
-		d.Header.TimeStamp = uint64(block.Header.Timestamp)
+		d.Header.TimeStamp = uint64(block.Header.Timestamp) * 60 //Converting from minutes to seconds
 		for _, v := range block.DBEntries {
 			l := new(eblockaddr)
 			l.ChainID = v.ChainID.String()
