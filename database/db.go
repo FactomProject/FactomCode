@@ -28,7 +28,7 @@ type Db interface {
 	Sync() (err error)
 
 	// InsertEntry inserts an entry
-	InsertEntry(entrySha *common.Hash, entry *common.Entry) (err error)
+	InsertEntry(entry *common.Entry) (err error)
 
 	// FetchEntry gets an entry by hash from the database.
 	FetchEntryByHash(entrySha *common.Hash) (entry *common.Entry, err error)

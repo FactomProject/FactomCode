@@ -24,9 +24,9 @@ func processDirBlock(msg *wire.MsgDirBlock) error {
 		return errors.New("Server received msg:" + msg.Command())
 	}
 
-	blk, _ := db.FetchDBlockByHeight(msg.DBlk.Header.BlockHeight)
+	blk, _ := db.FetchDBlockByHeight(msg.DBlk.Header.DBHeight)
 	if blk != nil {
-		procLog.Info("DBlock already existing for height:" + string(msg.DBlk.Header.BlockHeight))
+		procLog.Info("DBlock already existing for height:" + string(msg.DBlk.Header.DBHeight))
 		return nil
 	}
 
@@ -34,7 +34,7 @@ func processDirBlock(msg *wire.MsgDirBlock) error {
 	dchain.AddDBlockToDChain(msg.DBlk)
 
 	//Add it to mem pool before saving it in db
-	fMemPool.addBlockMsg(msg, strconv.Itoa(int(msg.DBlk.Header.BlockHeight))) // store in mempool with the height as the key
+	fMemPool.addBlockMsg(msg, strconv.Itoa(int(msg.DBlk.Header.DBHeight))) // store in mempool with the height as the key
 
 	procLog.Debugf("SyncUp: MsgDirBlock=%s\n", spew.Sdump(msg.DBlk))
 
@@ -88,10 +88,10 @@ func procesECBlock(msg *wire.MsgECBlock) error {
 	}
 
 	//Add it to mem pool before saving it in db
-	fMemPool.addBlockMsg(msg, msg.ECBlock.KeyMR().String())
+	fMemPool.addBlockMsg(msg, msg.ECBlock.Header.Hash().String())
 
 	// for debugging??
-	procLog.Debugf("SyncUp: msg.ECBlock.KeyMR().String()=%s\n", msg.ECBlock.KeyMR().String())
+	procLog.Debugf("SyncUp: msg.ECBlock.Header.Hash().String()=%s\n", msg.ECBlock.Header.Hash().String())
 	procLog.Debugf("SyncUp: MsgCBlock=%s\n", spew.Sdump(msg.ECBlock))
 
 	return nil
@@ -132,7 +132,7 @@ func processEntry(msg *wire.MsgEntry) error {
 	}
 
 	// store the entry in mem pool
-	h, _ := common.CreateHash(msg.Entry)
+	h := msg.Entry.Hash()
 	fMemPool.addBlockMsg(msg, h.String()) // store it in mem pool with hash as the key
 
 	procLog.Debugf("SyncUp: MsgEntry=%s\n", spew.Sdump(msg.Entry))
@@ -186,7 +186,7 @@ func validateAndStoreBlocks(fMemPool *ftmMemPool, db database.Db, dchain *common
 func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db database.Db) bool {
 
 	// Validate the genesis block
-	if b.Header.BlockHeight == 0 {
+	if b.Header.DBHeight == 0 {
 		h, _ := common.CreateHash(b)
 		if h.String() != common.GENESIS_DIR_BLOCK_HASH {
 			// panic for milestone 1
@@ -197,11 +197,11 @@ func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, d
 	for _, dbEntry := range b.DBEntries {
 		switch dbEntry.ChainID.String() {
 		case ecchain.ChainID.String():
-			if _, ok := fMemPool.blockpool[dbEntry.MerkleRoot.String()]; !ok {
+			if _, ok := fMemPool.blockpool[dbEntry.KeyMR.String()]; !ok {
 				return false
 			}
 		case achain.ChainID.String():
-			if msg, ok := fMemPool.blockpool[dbEntry.MerkleRoot.String()]; !ok {
+			if msg, ok := fMemPool.blockpool[dbEntry.KeyMR.String()]; !ok {
 				return false
 			} else {
 				// validate signature of the previous dir block
@@ -211,11 +211,11 @@ func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, d
 				}
 			}
 		case fchain.ChainID.String():
-			if _, ok := fMemPool.blockpool[dbEntry.MerkleRoot.String()]; !ok {
+			if _, ok := fMemPool.blockpool[dbEntry.KeyMR.String()]; !ok {
 				return false
 			}
 		default:
-			if msg, ok := fMemPool.blockpool[dbEntry.MerkleRoot.String()]; !ok {
+			if msg, ok := fMemPool.blockpool[dbEntry.KeyMR.String()]; !ok {
 				return false
 			} else {
 				eBlkMsg, _ := msg.(*wire.MsgEBlock)
@@ -243,7 +243,7 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 	for _, dbEntry := range b.DBEntries {
 		switch dbEntry.ChainID.String() {
 		case ecchain.ChainID.String():
-			ecBlkMsg := fMemPool.blockpool[dbEntry.MerkleRoot.String()].(*wire.MsgECBlock)
+			ecBlkMsg := fMemPool.blockpool[dbEntry.KeyMR.String()].(*wire.MsgECBlock)
 			err := db.ProcessECBlockBatch(ecBlkMsg.ECBlock)
 			if err != nil {
 				return err
@@ -253,7 +253,7 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 			// for debugging
 			exportECBlock(ecBlkMsg.ECBlock)
 		case achain.ChainID.String():
-			aBlkMsg := fMemPool.blockpool[dbEntry.MerkleRoot.String()].(*wire.MsgABlock)
+			aBlkMsg := fMemPool.blockpool[dbEntry.KeyMR.String()].(*wire.MsgABlock)
 			err := db.ProcessABlockBatch(aBlkMsg.ABlk)
 			if err != nil {
 				return err
@@ -261,7 +261,7 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 			// for debugging
 			exportABlock(aBlkMsg.ABlk)
 		case fchain.ChainID.String():
-			fBlkMsg := fMemPool.blockpool[dbEntry.MerkleRoot.String()].(*wire.MsgFBlock)
+			fBlkMsg := fMemPool.blockpool[dbEntry.KeyMR.String()].(*wire.MsgFBlock)
 			err := db.ProcessFBlockBatch(fBlkMsg.SC)
 			if err != nil {
 				return err
@@ -276,11 +276,11 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 			exportFctBlock(fBlkMsg.SC)
 		default:
 			// handle Entry Block
-			eBlkMsg, _ := fMemPool.blockpool[dbEntry.MerkleRoot.String()].(*wire.MsgEBlock)
+			eBlkMsg, _ := fMemPool.blockpool[dbEntry.KeyMR.String()].(*wire.MsgEBlock)
 			// store entry in db first
 			for _, ebEntry := range eBlkMsg.EBlk.EBEntries {
 				if msg, foundInMemPool := fMemPool.blockpool[ebEntry.EntryHash.String()]; foundInMemPool {
-					err := db.InsertEntry(ebEntry.EntryHash, msg.(*wire.MsgEntry).Entry)
+					err := db.InsertEntry(msg.(*wire.MsgEntry).Entry)
 					if err != nil {
 						return err
 					}
@@ -320,7 +320,7 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 
 	// Update dir block height cache in db
 	commonHash, _ := common.CreateHash(b)
-	db.UpdateBlockHeightCache(b.Header.BlockHeight, commonHash)
+	db.UpdateBlockHeightCache(b.Header.DBHeight, commonHash)
 
 	// for debugging
 	exportDBlock(b)
@@ -334,20 +334,20 @@ func deleteBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool) err
 	for _, dbEntry := range b.DBEntries {
 		switch dbEntry.ChainID.String() {
 		case ecchain.ChainID.String():
-			delete(fMemPool.blockpool, dbEntry.MerkleRoot.String())
+			delete(fMemPool.blockpool, dbEntry.KeyMR.String())
 		case achain.ChainID.String():
-			delete(fMemPool.blockpool, dbEntry.MerkleRoot.String())
+			delete(fMemPool.blockpool, dbEntry.KeyMR.String())
 		case fchain.ChainID.String():
-			delete(fMemPool.blockpool, dbEntry.MerkleRoot.String())
+			delete(fMemPool.blockpool, dbEntry.KeyMR.String())
 		default:
-			eBlkMsg, _ := fMemPool.blockpool[dbEntry.MerkleRoot.String()].(*wire.MsgEBlock)
+			eBlkMsg, _ := fMemPool.blockpool[dbEntry.KeyMR.String()].(*wire.MsgEBlock)
 			for _, ebEntry := range eBlkMsg.EBlk.EBEntries {
 				delete(fMemPool.blockpool, ebEntry.EntryHash.String())
 			}
-			delete(fMemPool.blockpool, dbEntry.MerkleRoot.String())
+			delete(fMemPool.blockpool, dbEntry.KeyMR.String())
 		}
 	}
-	delete(fMemPool.blockpool, strconv.Itoa(int(b.Header.BlockHeight)))
+	delete(fMemPool.blockpool, strconv.Itoa(int(b.Header.DBHeight)))
 
 	return nil
 }

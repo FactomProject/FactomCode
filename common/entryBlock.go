@@ -259,12 +259,7 @@ func CreateBlock(chain *EChain, prev *EBlock, capacity uint) (b *EBlock, err err
 }
 
 func (b *EBlock) AddEBEntry(e *Entry) (err error) {
-	h, err := CreateHash(e)
-	if err != nil {
-		return
-	}
-
-	ebEntry := NewEBEntry(h)
+	ebEntry := NewEBEntry(e.Hash())
 
 	b.EBEntries = append(b.EBEntries, ebEntry)
 

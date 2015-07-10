@@ -1,16 +1,16 @@
 package ldb
 
 import (
+	"log"
+	"strings"
 
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/goleveldb/leveldb"
 	"github.com/FactomProject/goleveldb/leveldb/util"
-	"log"
-	"strings"
 )
 
 // InsertEntry inserts an entry
-func (db *LevelDb) InsertEntry(entrySha *common.Hash, entry *common.Entry) (err error) {
+func (db *LevelDb) InsertEntry(entry *common.Entry) error {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -19,9 +19,12 @@ func (db *LevelDb) InsertEntry(entrySha *common.Hash, entry *common.Entry) (err 
 	}
 	defer db.lbatch.Reset()
 
-	binaryEntry, _ := entry.MarshalBinary()
+	binaryEntry, err := entry.MarshalBinary()
+	if err != nil {
+		return err
+	}
 	var entryKey []byte = []byte{byte(TBL_ENTRY)}
-	entryKey = append(entryKey, entrySha.Bytes()...)
+	entryKey = append(entryKey, entry.Hash().Bytes()...)
 	db.lbatch.Put(entryKey, binaryEntry)
 
 	err = db.lDb.Write(db.lbatch, db.wo)
