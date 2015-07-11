@@ -1,6 +1,18 @@
 cd ..
-echo checking out $1
 
+if [[ -z $1 ]]; then
+echo "
+*********************************************************
+*           Defaulting... Checking out Master
+*********************************************************"
+branch=master
+else
+echo "
+*********************************************************
+*           Checking out the branch '" $1 "'
+*********************************************************"
+branch=$1
+fi
 # We cd to the given directory, look and see if the branch exists...
 # If it does, we make sure we are in that branch.
 # Then we go back to the previous directory.
@@ -10,18 +22,20 @@ checkout() {
     current=`pwd` 
     cd $1
     if [ $? -eq 0 ]; then
-        echo $1 
+        echo -n "Updating: " $1 
         git checkout -q $2 > /dev/null 2>&1
         if [ $? -eq 0 ]; then
-            echo "Now " $1 " is on the " $2 " branch" 
+            echo " ===>  now on " $2
+            echo ""
         else 
              if [[ ! -z $2 ]]
              then
-                git checkout master
-                echo "Now " $1 " is on the master branch" 
+                git checkout -q master 
+                echo " ===>  now on " master
+                echo ""
              fi    
         fi
-        git pull
+        git pull | awk '$1!="Already" {print}'
         cd $current
    fi
 }
@@ -35,37 +49,39 @@ compile() {
     cd $current
 }
 
-checkout btcd $1
-checkout btcjson $1
-checkout btclog  $1
-checkout btcrpcclient $1
-checkout btcutil $1
-checkout btcwallet $1
-checkout btcws $1
-checkout dynrsrc $1
-checkout ed25519 $1
-checkout factoid $1
-checkout factom $1
-checkout factom-cli  $1
-checkout FactomDocs $1
-checkout factomexplorer  $1
-checkout fastsha256  $1
-checkout gobundle  $1
-cd gocoding 
-git pull
-cd ..
-checkout go-flags  $1
-checkout goleveldb  $1
-checkout go-socks  $1
-checkout seelog  $1
-checkout snappy-go  $1
-checkout websocket  $1
-checkout FactomCode $1
+checkout FactomCode $branch
+checkout btcd $branch
+checkout factoid $branch
+checkout btcrpcclient $branch
+checkout btcutil $branch
+checkout btcws $branch
+checkout factom $branch
+checkout factom-cli  $branch
+checkout gobundle  $branch
+checkout goleveldb  $branch
 
+checkout btcjson $branch
+checkout btclog  $branch
+checkout dynrsrc $branch
+checkout ed25519 $branch
+checkout fastsha256  $branch
+checkout gocoding master
+checkout go-flags  $branch
+checkout go-socks  $branch
+checkout seelog  $branch
+checkout snappy-go  $branch
+checkout websocket  $branch
+
+echo "
+************************************************************** 
+*         Compiling fctwallet, the cli, and factomd
+************************************************************** 
+"
 compile factoid/fctwallet 
 compile factom-cli  
 compile FactomCode/factomd 
-
+echo ""
+echo ""
 cd FactomCode
 
 
