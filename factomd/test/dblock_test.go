@@ -3,24 +3,21 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"github.com/FactomProject/FactomCode/database"
+	"github.com/davecgh/go-spew/spew"
 	"testing"
-	"github.com/davecgh/go-spew/spew"	
-	"github.com/FactomProject/FactomCode/database"	
-
 )
- 
 
 func TestDblock(t *testing.T) {
 	fmt.Println("\nTest dblock===========================================================================")
-	
-	initDB()
-	
-	dblock, _ := db.FetchDBlockByHeight(0)
-	
-	dblock.BuildKeyMerkleRoot()
-	
-	dblock2, _ := db.FetchDBlockByMR(dblock.KeyMR)
 
+	initDB()
+
+	dblock, _ := db.FetchDBlockByHeight(0)
+
+	dblock.BuildKeyMerkleRoot()
+
+	dblock2, _ := db.FetchDBlockByMR(dblock.KeyMR)
 
 	if dblock2 == nil {
 		t.Errorf("Invalid output: dblock2 not found")
@@ -35,23 +32,19 @@ func TestDblock(t *testing.T) {
 
 func TestDblock2(t *testing.T) {
 	fmt.Println("\nTest dblock2===========================================================================")
-	
+
 	list, _ := db.FetchHeightRange(0, 5)
-	fmt.Printf("TestDblock2: list=%s\n", spew.Sdump(list))	
-	
-	
-	height,_ := db.FetchBlockHeightBySha(&list[0])
+	t.Logf("TestDblock2: list=%s\n", spew.Sdump(list))
 
-	fmt.Printf("height=%s\n", spew.Sdump(height))	
-	
-	
+	height, _ := db.FetchBlockHeightBySha(&list[0])
+
+	t.Logf("height=%s\n", spew.Sdump(height))
+
 	list, _ = db.FetchHeightRange(0, database.AllShas)
-	fmt.Printf("db.FetchHeightRange(0, database.AllShas): list=%s\n", spew.Sdump(list))	
-	
-	
-	height,_ = db.FetchBlockHeightBySha(&list[0])
+	t.Logf("db.FetchHeightRange(0, database.AllShas): list=%s\n", spew.Sdump(list))
 
-	fmt.Printf("height=%s\n", spew.Sdump(height))	
-		
+	height, _ = db.FetchBlockHeightBySha(&list[0])
+
+	t.Logf("height=%s\n", spew.Sdump(height))
+
 }
-

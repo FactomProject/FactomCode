@@ -7,4 +7,4 @@
 #
 # mkdir ~/logs/ 2> /dev/null
 # factomd --debuglevel=debug 2>&1 | tee -a ~/logs/factomd_${RANDOM}_${RANDOM}.log
-factomd 2>&1 | tee -a ~/.factom/logs/factom-d.log
+factomd >> ~/.factom/logs/factom-d.log
