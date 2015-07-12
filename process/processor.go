@@ -76,6 +76,7 @@ var (
 
 // Get the configurations
 func LoadConfigurations(cfg *util.FactomdConfig) {
+	util.Trace("LoadConf")
 
 	//setting the variables by the valued form the config file
 	logLevel = cfg.Log.LogLevel
@@ -87,6 +88,10 @@ func LoadConfigurations(cfg *util.FactomdConfig) {
 
 	FactomdUser = cfg.Btc.RpcUser
 	FactomdPass = cfg.Btc.RpcPass
+
+	util.Trace(logLevel)
+	util.Trace(ldbpath)
+	util.Trace(FactomdUser)
 }
 
 // Initialize the processor
@@ -336,8 +341,10 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		}
 
 	case wire.CmdFactoidTX:
+		//		util.Trace("some mode: CmdFactoidTX")
 
 		if nodeMode == common.SERVER_NODE {
+			//			util.Trace("server mode")
 			t := (msg.(*wire.MsgFactoidTX)).Transaction
 			if common.FactoidState.AddTransaction(t) {
 				for _, ecout := range t.GetECOutputs() {
@@ -355,6 +362,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 			}
 		} else {
 			// client-mode, milestone 1 - transmit to the server node
+			//			util.Trace("client mode; TODO")
 			outMsgQueue <- msg
 		}
 
