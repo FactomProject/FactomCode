@@ -43,8 +43,8 @@ echo "
 *       ./all.sh <branch> <default>
 *
 *       Will try to check out <branch>, will default
-*       to <default>, and if neither exists, will 
-*       checkout the master branch.
+*       to <default>, and if neither exists, or are  
+*       missing, will checkout the master branch.
 *
 *********************************************************"
 branch=$1
@@ -56,7 +56,7 @@ fi
 fi
 checkout() {
     current=`pwd` 
-    cd $1
+    cd $1 $2 > /dev/null 2>&1 
     if [ $? -eq 0 ]; then
         echo $1 | awk "{printf(\"%15s\",\"$1\")}"
         git checkout -q $2 > /dev/null 2>&1
@@ -77,6 +77,9 @@ checkout() {
         fi
         git pull | awk '$1!="Already" {print}'
         cd $current
+   else
+        echo $1 | awk "{printf(\"%15s\",\"$1\")}"
+        echo " not found"
    fi
 }
 
@@ -99,8 +102,8 @@ checkout btcutil      $branch $default
 checkout btcws        $branch $default
 checkout gobundle     $branch $default
 checkout goleveldb    $branch $default
-
-checkout gocoding     master  $default
+checkout FactomDocs   master  master
+checkout gocoding     master  master
 
 checkout btcjson      $branch $default
 checkout btclog       $branch $default
