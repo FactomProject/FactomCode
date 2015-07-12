@@ -4,11 +4,10 @@ import (
 	"log"
 	"os"
 	"os/user"
+	"sync"
 
 	"code.google.com/p/gcfg"
 )
-
-var cfg *FactomdConfig
 
 type FactomdConfig struct {
 	App struct {
@@ -99,12 +98,15 @@ LogLevel 				= warning
 LogPath					= /tmp/factomd.log
 `
 
+var cfg *FactomdConfig
+var once sync.Once
+
 // GetConfig reads the default factomd.conf file and returns a FactomConfig
 // object corresponding to the state of the file.
 func ReadConfig() *FactomdConfig {
-	if cfg == nil {
+	once.Do(func() {
 		cfg = readConfig()
-	}
+	})
 	return cfg
 }
 
