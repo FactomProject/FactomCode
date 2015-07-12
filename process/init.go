@@ -308,7 +308,9 @@ func validateDChain(c *common.DChain) error {
 	//validate the genesis block
 	//prevBlkHash is the block hash for c.Blocks[0]
 	if prevBlkHash == nil || prevBlkHash.String() != common.GENESIS_DIR_BLOCK_HASH {
-		panic("Genesis dir block is not as expected: " + prevBlkHash.String())
+		panic("\n\nGenesis dir block is not as expected.\n" + 
+        "\n    Expected: "+common.GENESIS_DIR_BLOCK_HASH+
+        "\n    Found:    "+prevBlkHash.String()+"\n\n")
 	}
 
 	for i := 1; i < len(c.Blocks); i++ {
