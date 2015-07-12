@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/FactomProject/FactomCode/common"
+	"github.com/FactomProject/FactomCode/database"
+	"github.com/FactomProject/FactomCode/database/ldb"
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/btcsuitereleases/btcd/btcjson"
 	"github.com/btcsuitereleases/btcd/wire"
@@ -44,7 +46,7 @@ func TestPrependBlockHeight(t *testing.T) {
 		t.Skip("skipping test in short mode.")
 	}
 
-	fmt.Println("testing...")
+	t.Log("testing...")
 
 	s1 := []byte{0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF}
 	const h1 uint64 = 0x123456789ABC // temp block height
@@ -77,8 +79,8 @@ func TestPrependBlockHeight(t *testing.T) {
 
 	if !reflect.DeepEqual(r4, desired4) {
 		t.Errorf("deep equal 4!")
-		fmt.Printf("%x\n", desired4)
-		fmt.Printf("%x\n", r4)
+		t.Logf("%x\n", desired4)
+		t.Logf("%x\n", r4)
 	}
 
 	s5 := []byte{0x11, 0x22, 0x33}
@@ -91,8 +93,8 @@ func TestPrependBlockHeight(t *testing.T) {
 
 	if !reflect.DeepEqual(r5, desired5) {
 		t.Errorf("deep equal 5!")
-		fmt.Printf("%x\n", desired5)
-		fmt.Printf("%x\n", r5)
+		t.Logf("%x\n", desired5)
+		t.Logf("%x\n", r5)
 	}
 }
 
@@ -101,19 +103,19 @@ func TestWallet(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	fmt.Println("account & balance: ", spew.Sdump(accountMap))
-	fmt.Println("wallet account map len = ", len(accountMap))
+	t.Log("account & balance: ", spew.Sdump(accountMap))
+	t.Log("wallet account map len = ", len(accountMap))
 
 	allAddr := make([]btcutil.Address, 0, 1000)
 	for key := range accountMap {
 		addresses, err := wclient.GetAddressesByAccount(key)
-		fmt.Println("account name=", key, ", addr=", addresses)
+		t.Log("account name=", key, ", addr=", addresses)
 		if err != nil {
 			t.Fatal(err)
 		}
 		allAddr = append(allAddr, addresses...)
 	}
-	fmt.Println("allAddr.len=", len(allAddr))
+	t.Log("allAddr.len=", len(allAddr))
 
 	var i int
 	ca := make([]btcutil.Address, 1)
@@ -132,7 +134,7 @@ func TestWallet(t *testing.T) {
 			i++
 		}
 	}
-	fmt.Println("num of addresses with balance=", i)
+	t.Log("num of addresses with balance=", i)
 }
 
 func TestListUnspent(t *testing.T) {
@@ -140,7 +142,7 @@ func TestListUnspent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	fmt.Printf("test.listunspent.len==%d\n", len(balance))
+	t.Logf("test.listunspent.len==%d\n", len(balance))
 
 	var i int
 	for _, b := range balance {
@@ -149,7 +151,7 @@ func TestListUnspent(t *testing.T) {
 			i++
 		}
 	}
-	fmt.Printf("qualified unspent len==%d\n", i)
+	t.Logf("qualified unspent len==%d\n", i)
 
 	var included bool
 	for _, b := range balance {
@@ -160,7 +162,7 @@ func TestListUnspent(t *testing.T) {
 	}
 
 	if !included {
-		fmt.Println("qualified unspent does NOT include the bug")
+		t.Log("qualified unspent does NOT include the bug")
 	}
 }
 
@@ -179,13 +181,13 @@ func TestUnconfirmedSpent(t *testing.T) {
 			b2 = append(b2[:i], b2[(i+1):]...)
 		}
 	}
-	fmt.Println("Unconfirmed unspent len=", len(b2))
+	t.Log("Unconfirmed unspent len=", len(b2))
 
 	var sum float64
 	for i := 0; i < len(b2); i++ {
 		sum += b2[i].Amount
 	}
-	fmt.Println("Unconfirmed unspent sum = ", sum)
+	t.Log("Unconfirmed unspent sum = ", sum)
 }
 
 func TestRepeatedSpending(t *testing.T) {
@@ -194,7 +196,7 @@ func TestRepeatedSpending(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		fmt.Printf("repeating=%d, hash=%s\n", i, hash)
+		t.Logf("repeating=%d, hash=%s\n", i, hash)
 		time.Sleep(30 * time.Second)
 	}
 }
@@ -216,17 +218,29 @@ func writeToBTC(bytes []byte, blockHeight uint64) (*wire.ShaHash, error) {
 
 func init() {
 	util.Trace("InitAnchor")
+	db := initDB()
+	InitAnchor(db)
+}
 
-	if err := initRPCClient(); err != nil {
-		fmt.Println(err.Error())
-		return
-	}
-	//defer shutdown(dclient)
-	//defer shutdown(wclient)
+// Initialize the level db and share it with other components
+func initDB() database.Db {
 
-	if err := initWallet(); err != nil {
-		fmt.Println(err.Error())
-		return
+	var ldbpath = "/tmp/test/ldb9"
+	var err error
+	db, err = ldb.OpenLevelDB(ldbpath, false)
+	if err != nil {
+		fmt.Printf("err opening db: %v\n", err)
+
 	}
-	return
+
+	if db == nil {
+		fmt.Println("Creating new db ...")
+		db, err = ldb.OpenLevelDB(ldbpath, true)
+
+		if err != nil {
+			panic(err)
+		}
+	}
+	fmt.Println("Database started from: " + ldbpath)
+	return db
 }

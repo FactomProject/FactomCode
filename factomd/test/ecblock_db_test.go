@@ -1,26 +1,25 @@
 package main
 
 import (
-	"fmt"
-	"testing"
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/davecgh/go-spew/spew"
+	"testing"
 )
 
 func TestECBlock(t *testing.T) {
 	initDB()
-	
+
 	hash, err := common.HexToHash("7bd665cf5d69645b4e1cd6ed2dfd50af824a233aa71d272f4e6e453b24ee3b6b")
 	if err != nil {
 		t.Error(err)
 	}
-	
+
 	ecblock, err := db.FetchECBlockByHash(hash)
 	if err != nil {
 		t.Error(err)
 	}
 
-	fmt.Println(spew.Sdump(ecblock))
+	t.Log(spew.Sdump(ecblock))
 	bin, err := ecblock.MarshalBinary()
 	if err != nil {
 		t.Error(err)
@@ -31,23 +30,23 @@ func TestECBlock(t *testing.T) {
 		t.Error(err)
 	}
 
-	fmt.Println(spew.Sdump(after))
-	
-//	ecblocks, err := db.FetchAllECBlocks()
-//	if err != nil {
-//		t.Error(err)
-//	}
-//
-//	for i, block := range ecblocks {
-//		fmt.Println("Block", i)
-//		fmt.Println(spew.Sdump(block))
-//		fmt.Println("===")
-//	}
+	t.Log(spew.Sdump(after))
 
-//	dblock, err := db.FetchDBlockByHeight(2)
-//	if err != nil {
-//		t.Error(err)
-//	}
-//	fmt.Println(spew.Sdump(dblock))
-	
-}	
+	//	ecblocks, err := db.FetchAllECBlocks()
+	//	if err != nil {
+	//		t.Error(err)
+	//	}
+	//
+	//	for i, block := range ecblocks {
+	//		fmt.Println("Block", i)
+	//		fmt.Println(spew.Sdump(block))
+	//		fmt.Println("===")
+	//	}
+
+	//	dblock, err := db.FetchDBlockByHeight(2)
+	//	if err != nil {
+	//		t.Error(err)
+	//	}
+	//	fmt.Println(spew.Sdump(dblock))
+
+}

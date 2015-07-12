@@ -9,10 +9,10 @@ import (
 	"encoding/binary"
 	"errors"
 	"github.com/FactomProject/FactomCode/common"
-	"github.com/FactomProject/FactomCode/database"	
+	"github.com/FactomProject/FactomCode/database"
+	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/goleveldb/leveldb"
 	"github.com/FactomProject/goleveldb/leveldb/util"
-	"github.com/FactomProject/btcd/wire"
 )
 
 // FetchDBEntriesFromQueue gets all of the dbentries that have not been processed
@@ -84,7 +84,7 @@ func (db *LevelDb) ProcessDBlockBatch(dblock *common.DirectoryBlock) error {
 		// Insert block height cross reference
 		var dbNumkey []byte = []byte{byte(TBL_DB_NUM)}
 		var buf bytes.Buffer
-		binary.Write(&buf, binary.BigEndian, dblock.Header.BlockHeight)
+		binary.Write(&buf, binary.BigEndian, dblock.Header.DBHeight)
 		dbNumkey = append(dbNumkey, buf.Bytes()...)
 		db.lbatch.Put(dbNumkey, dblock.DBHash.Bytes())
 
@@ -93,11 +93,11 @@ func (db *LevelDb) ProcessDBlockBatch(dblock *common.DirectoryBlock) error {
 		key = append(key, dblock.KeyMR.Bytes()...)
 		binaryDBHash, _ := dblock.DBHash.MarshalBinary()
 		db.lbatch.Put(key, binaryDBHash)
-		
+
 		// Update the chain head reference
 		key = []byte{byte(TBL_CHAIN_HEAD)}
-		key = append(key, common.D_CHAINID ...)
-		db.lbatch.Put(key, dblock.KeyMR.Bytes())		
+		key = append(key, common.D_CHAINID...)
+		db.lbatch.Put(key, dblock.KeyMR.Bytes())
 
 		err = db.lDb.Write(db.lbatch, db.wo)
 		if err != nil {
@@ -105,7 +105,7 @@ func (db *LevelDb) ProcessDBlockBatch(dblock *common.DirectoryBlock) error {
 		}
 
 		// Update DirBlock Height cache
-		db.lastDirBlkHeight = int64(dblock.Header.BlockHeight)
+		db.lastDirBlkHeight = int64(dblock.Header.DBHeight)
 		db.lastDirBlkSha, _ = wire.NewShaHash(dblock.DBHash.Bytes())
 		db.lastDirBlkShaCached = true
 
@@ -124,7 +124,7 @@ func (db *LevelDb) UpdateBlockHeightCache(dirBlkHeigh uint32, dirBlkHash *common
 }
 
 // FetchBlockHeightCache returns the hash and block height of the most recent
-func (db *LevelDb)	FetchBlockHeightCache() (sha *wire.ShaHash, height int64, err error) {
+func (db *LevelDb) FetchBlockHeightCache() (sha *wire.ShaHash, height int64, err error) {
 	return db.lastDirBlkSha, db.lastDirBlkHeight, nil
 }
 
@@ -137,7 +137,7 @@ func (db *LevelDb) UpdateNextBlockHeightCache(dirBlkHeigh uint32) error {
 }
 
 // FetchNextBlockHeightCache returns the next block height from server
-func (db *LevelDb)	FetchNextBlockHeightCache() (height int64) {
+func (db *LevelDb) FetchNextBlockHeightCache() (height int64) {
 	return db.nextDirBlockHeight
 }
 
@@ -145,7 +145,7 @@ func (db *LevelDb)	FetchNextBlockHeightCache() (height int64) {
 // heights.  Fetch is inclusive of the start height and exclusive of the
 // ending height. To fetch all hashes from the start height until no
 // more are present, use the special id `AllShas'.
-func (db *LevelDb)	FetchHeightRange(startHeight, endHeight int64) (rshalist []wire.ShaHash, err error) {
+func (db *LevelDb) FetchHeightRange(startHeight, endHeight int64) (rshalist []wire.ShaHash, err error) {
 
 	var endidx int64
 	if endHeight == database.AllShas {
@@ -161,7 +161,7 @@ func (db *LevelDb)	FetchHeightRange(startHeight, endHeight int64) (rshalist []wi
 		dbhash, lerr := db.FetchDBHashByHeight(uint32(height))
 		if lerr != nil || dbhash == nil {
 			break
-		}	
+		}
 
 		sha := wire.FactomHashToShaHash(dbhash)
 		shalist = append(shalist, *sha)
@@ -179,13 +179,13 @@ func (db *LevelDb)	FetchHeightRange(startHeight, endHeight int64) (rshalist []wi
 // part of the database.Db interface implementation.
 func (db *LevelDb) FetchBlockHeightBySha(sha *wire.ShaHash) (int64, error) {
 
-	dblk,_ := db.FetchDBlockByHash(sha.ToFactomHash())
-	
-	var height int64 = -1	
+	dblk, _ := db.FetchDBlockByHash(sha.ToFactomHash())
+
+	var height int64 = -1
 	if dblk != nil {
-		height = int64(dblk.Header.BlockHeight)
+		height = int64(dblk.Header.DBHeight)
 	}
-	
+
 	return height, nil
 }
 
@@ -244,7 +244,7 @@ func (db *LevelDb) FetchDBlockByHash(dBlockHash *common.Hash) (*common.Directory
 	if err != nil {
 		return nil, err
 	}
-	
+
 	dBlock := common.NewDBlock()
 	if data == nil {
 		return nil, errors.New("DBlock not found for Hash: " + dBlockHash.String())
@@ -253,7 +253,7 @@ func (db *LevelDb) FetchDBlockByHash(dBlockHash *common.Hash) (*common.Directory
 			return dBlock, err
 		}
 	}
-	
+
 	dBlock.DBHash = dBlockHash
 
 	return dBlock, nil
@@ -332,12 +332,12 @@ func (db *LevelDb) FetchHeadMRByChainID(chainID *common.Hash) (blkMR *common.Has
 	if chainID == nil {
 		return nil, nil
 	}
-		
+
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
 	var key []byte = []byte{byte(TBL_CHAIN_HEAD)}
-	key = append(key, chainID.Bytes() ...)
+	key = append(key, chainID.Bytes()...)
 	data, err := db.lDb.Get(key, db.ro)
 	if err != nil {
 		return nil, err

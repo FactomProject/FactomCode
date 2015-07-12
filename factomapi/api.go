@@ -6,6 +6,7 @@ package factomapi
 
 import (
 	"encoding/hex"
+	"fmt"
 
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/database"
@@ -26,7 +27,7 @@ func ChainHead(chainid string) (*common.Hash, error) {
 	}
 	c, err := db.FetchHeadMRByChainID(h)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Chain not found")
 	}
 	return c, nil
 }
@@ -59,7 +60,7 @@ func DBlockByKeyMR(keymr string) (*common.DirectoryBlock, error) {
 	}
 	r, err := db.FetchDBlockByMR(key)
 	if err != nil {
-		return r, err
+		return r, fmt.Errorf("DBlock not found")
 	}
 	return r, nil
 }
@@ -84,7 +85,7 @@ func EBlockByKeyMR(keymr string) (*common.EBlock, error) {
 	}
 	r, err := db.FetchEBlockByMR(h)
 	if err != nil {
-		return r, err
+		return r, fmt.Errorf("EBlock not found")
 	}
 	return r, nil
 }
@@ -107,7 +108,7 @@ func EntryByHash(hash string) (*common.Entry, error) {
 	}
 	r, err := db.FetchEntryByHash(h)
 	if err != nil {
-		return r, err
+		return r, fmt.Errorf("Entry not found")
 	}
 	return r, nil
 }

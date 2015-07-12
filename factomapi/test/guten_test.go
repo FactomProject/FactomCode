@@ -1,8 +1,8 @@
 package factomapi
 
 import (
-	"bytes"
 	"bufio"
+	"bytes"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -18,9 +18,9 @@ import (
 )
 
 var (
-	_ bytes.Buffer
+	_    bytes.Buffer
 	_, _ = hex.DecodeString("abcd")
-	_ gocoding.Marshaller
+	_    gocoding.Marshaller
 )
 
 func UnmarshalJSON(b []byte) (*notaryapi.Entry, error) {
@@ -29,21 +29,21 @@ func UnmarshalJSON(b []byte) (*notaryapi.Entry, error) {
 		ExtIDs  []string
 		Data    string
 	}
-	
+
 	var je entry
 	e := new(notaryapi.Entry)
-	
+
 	err := json.Unmarshal(b, &je)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	bytes, err := hex.DecodeString(je.ChainID)
 	if err != nil {
 		return nil, err
 	}
 	e.ChainID.Bytes = bytes
-	
+
 	for _, v := range je.ExtIDs {
 		e.ExtIDs = append(e.ExtIDs, []byte(v))
 	}
@@ -52,7 +52,7 @@ func UnmarshalJSON(b []byte) (*notaryapi.Entry, error) {
 		return nil, err
 	}
 	e.Data = bytes
-	
+
 	return e, nil
 }
 
@@ -72,7 +72,7 @@ func TestBuyCreditWallet(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error:%v", err)
 	} else {
-		fmt.Println("Buy credit request successfully submitted to factomclient.")
+		t.Log("Buy credit request successfully submitted to factomclient.")
 	}
 
 }
@@ -100,7 +100,7 @@ func TestAddChain(t *testing.T) {
 	buf := new(bytes.Buffer)
 	err := SafeMarshal(buf, chain)
 
-	fmt.Println("chain:%v", string(buf.Bytes()))
+	t.Log("chain:%v", string(buf.Bytes()))
 	jsonstr := string(buf.Bytes())
 
 	// Post the chain JSON to FactomClient web server	------------------------
@@ -113,7 +113,7 @@ func TestAddChain(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error:%v", err)
 	} else {
-		fmt.Println("Chain successfully submitted to factomclient.")
+		t.Log("Chain successfully submitted to factomclient.")
 	}
 
 	// JSON ws test done ----------------------------------------------------------------------------
@@ -139,23 +139,23 @@ func TestAddEntry(t *testing.T) {
 			t.Errorf("Error: %v", err)
 		}
 		e.ChainID = *chain.ChainID
-	
+
 		buf := new(bytes.Buffer)
 		err = SafeMarshal(buf, e)
-	
+
 		jsonstr := string(buf.Bytes())
-	
+
 		// Post the entry JSON to FactomClient web server
 		data := url.Values{}
 		data.Set("entry", jsonstr)
 		data.Set("format", "json")
 		data.Set("password", "opensesame")
-	
+
 		resp, err := http.PostForm("http://localhost:8088/v1/submitentry", data)
 		if err != nil {
 			t.Errorf("Error:%v", err)
 		} else {
-			fmt.Println(n)
+			t.Log(n)
 		}
 		resp.Body.Close()
 	}

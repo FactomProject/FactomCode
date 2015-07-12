@@ -1,8 +1,10 @@
-package common
+package common_test
 
 import (
-	"testing"
 	"encoding/hex"
+	"testing"
+
+	. "github.com/FactomProject/FactomCode/common"
 )
 
 func TestGenerateKey(t *testing.T) {
@@ -18,8 +20,8 @@ func TestGenerateKey(t *testing.T) {
 	}
 	t.Logf("PrivateKey: %v", priv.Key)
 
-	t.Logf("PrivateKey-Hex: %v", 	hex.EncodeToString((*priv.Key)[:]))
-	
+	t.Logf("PrivateKey-Hex: %v", hex.EncodeToString((*priv.Key)[:]))
+
 	if priv.Pub.Key == nil {
 		t.Fatalf("bad Pub.Key")
 	}

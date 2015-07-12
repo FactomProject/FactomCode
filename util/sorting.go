@@ -13,7 +13,7 @@ func (f ByDBlockIDAccending) Len() int {
 	return len(f)
 }
 func (f ByDBlockIDAccending) Less(i, j int) bool {
-	return f[i].Header.BlockHeight < f[j].Header.BlockHeight
+	return f[i].Header.DBHeight < f[j].Header.DBHeight
 }
 func (f ByDBlockIDAccending) Swap(i, j int) {
 	f[i], f[j] = f[j], f[i]
