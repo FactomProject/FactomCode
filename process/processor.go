@@ -92,9 +92,6 @@ func LoadConfigurations(cfg *util.FactomdConfig) {
 	util.Trace(logLevel)
 	util.Trace(ldbpath)
 	util.Trace(FactomdUser)
-	util.Trace(FactomdPass)
-
-	util.Trace(cfg.Btc.WalletPassphrase)
 }
 
 // Initialize the processor
@@ -216,7 +213,7 @@ func Start_Processor(
 
 // Serve the "fast lane" incoming control msg from inCtlMsgQueue
 func serveCtlMsgRequest(msg wire.FtmInternalMsg) error {
-	util.Trace()
+	//	util.Trace()
 
 	switch msg.Command() {
 	case wire.CmdCommitChain:
@@ -272,7 +269,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		outMsgQueue <- msg
 
 	case wire.CmdInt_EOM:
-		util.Trace("CmdInt_EOM")
+		//		util.Trace("CmdInt_EOM")
 
 		if nodeMode == common.SERVER_NODE {
 			msgEom, ok := msg.(*wire.MsgInt_EOM)
@@ -342,10 +339,10 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		}
 
 	case wire.CmdFactoidTX:
-		util.Trace("some mode: CmdFactoidTX")
+		//		util.Trace("some mode: CmdFactoidTX")
 
 		if nodeMode == common.SERVER_NODE {
-			util.Trace("server mode; TODO")
+			//			util.Trace("server mode")
 			t := (msg.(*wire.MsgFactoidTX)).Transaction
 			if common.FactoidState.AddTransaction(t) {
 				fmt.Println("Recorded:")
@@ -367,8 +364,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 			fmt.Println(t)
 		} else {
 			// client-mode, milestone 1 - transmit to the server node
-			util.Trace("client mode; TODO")
-			// TODO: test ...
+			//			util.Trace("client mode; TODO")
 			outMsgQueue <- msg
 		}
 
@@ -804,7 +800,7 @@ func buildGenesisBlocks() error {
 
 // build blocks from all process lists
 func buildBlocks() error {
-	util.Trace()
+	//	util.Trace()
 
 	// Allocate the first three dbentries for Admin block, ECBlock and Factoid block
 	dchain.AddDBEntry(&common.DBEntry{}) // AdminBlock
