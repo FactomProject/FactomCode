@@ -209,7 +209,6 @@ func Start_Processor(
 
 // Serve the "fast lane" incoming control msg from inCtlMsgQueue
 func serveCtlMsgRequest(msg wire.FtmInternalMsg) error {
-	util.Trace()
 
 	switch msg.Command() {
 	case wire.CmdCommitChain:
@@ -265,7 +264,6 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		outMsgQueue <- msg
 
 	case wire.CmdInt_EOM:
-		util.Trace("CmdInt_EOM")
 
 		if nodeMode == common.SERVER_NODE {
 			msgEom, ok := msg.(*wire.MsgInt_EOM)
@@ -273,9 +271,12 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 				return errors.New("Error in build blocks:" + fmt.Sprintf("%+v", msg))
 			}
 			procLog.Infof("PROCESSOR: End of minute msg - wire.CmdInt_EOM:%+v\n", msg)
-
+            
+            fmt.Print(" EOM_",msgEom.EOM_Type," ")
+            
 			if msgEom.EOM_Type == wire.END_MINUTE_10 {
-				// Process from Orphan pool before the end of process list
+                fmt.Println()
+                // Process from Orphan pool before the end of process list
 				processFromOrphanPool()
 
 				// Pass the Entry Credit Exchange Rate into the Factoid component
@@ -290,7 +291,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 				}
 
 			} else if msgEom.EOM_Type >= wire.END_MINUTE_1 && msgEom.EOM_Type < wire.END_MINUTE_10 {
-				ack, err := plMgr.AddMyProcessListItem(msgEom, nil, msgEom.EOM_Type)
+                ack, err := plMgr.AddMyProcessListItem(msgEom, nil, msgEom.EOM_Type)
 				if err != nil {
 					return err
 				}
@@ -335,13 +336,10 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		}
 
 	case wire.CmdFactoidTX:
-		util.Trace("some mode: CmdFactoidTX")
 
 		if nodeMode == common.SERVER_NODE {
-			util.Trace("server mode; TODO")
 			t := (msg.(*wire.MsgFactoidTX)).Transaction
 			if common.FactoidState.AddTransaction(t) {
-				fmt.Println("Recorded:")
 				for _, ecout := range t.GetECOutputs() {
 
 					pub := new([32]byte)
@@ -354,14 +352,9 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 
 					ecchain.NextBlock.AddEntry(incBal)
 				}
-			} else {
-				fmt.Println("Failed:")
 			}
-			fmt.Println(t)
 		} else {
 			// client-mode, milestone 1 - transmit to the server node
-			util.Trace("client mode; TODO")
-			// TODO: test ...
 			outMsgQueue <- msg
 		}
 
@@ -766,7 +759,7 @@ func buildGenesisBlocks() error {
 	data, _ := FBlock.MarshalBinary()
 	procLog.Debugf("\n\n ", common.Sha(data).String(), "\n\n")
 	dchain.AddFBlockToDBEntry(FBlock)
-	fmt.Println("Factoid genesis block hash:", FBlock.GetHash())
+    procLog.Debugf("Factoid genesis block hash: %v\n", FBlock.GetHash())
 	exportFctChain(fchain)
 	// Add transactions from genesis block to factoid balances
 	common.FactoidState.AddTransactionBlock(FBlock)
@@ -792,8 +785,7 @@ func buildGenesisBlocks() error {
 
 // build blocks from all process lists
 func buildBlocks() error {
-	util.Trace()
-
+	
 	// Allocate the first three dbentries for Admin block, ECBlock and Factoid block
 	dchain.AddDBEntry(&common.DBEntry{}) // AdminBlock
 	dchain.AddDBEntry(&common.DBEntry{}) // ECBlock
@@ -810,13 +802,13 @@ func buildBlocks() error {
 
 	// Admin chain
 	aBlock := newAdminBlock(achain)
-	//fmt.Printf("buildGenesisBlocks: aBlock=%s\n", spew.Sdump(aBlock))
+	
 	dchain.AddABlockToDBEntry(aBlock)
 	exportABlock(aBlock)
 
 	// Factoid chain
 	fBlock := newFactoidBlock(fchain)
-	//fmt.Printf("buildGenesisBlocks: aBlock=%s\n", spew.Sdump(aBlock))
+	
 	dchain.AddFBlockToDBEntry(fBlock)
 	exportFctBlock(fBlock)
 
@@ -1012,7 +1004,6 @@ func newFactoidBlock(chain *common.FctChain) block.IFBlock {
 	chain.BlockMutex.Unlock()
 
 	//Store the block in db
-	fmt.Printf("processor: currentBlock=%s\n", currentBlock)
 	db.ProcessFBlockBatch(currentBlock)
 	procLog.Infof("Factoid chain: block " + strconv.FormatUint(uint64(currentBlock.GetDBHeight()), 10) + " created for chain: " + chain.ChainID.String())
 
