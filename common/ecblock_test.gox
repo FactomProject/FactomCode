@@ -2,7 +2,6 @@ package common_test
 
 import (
 	"crypto/rand"
-	"encoding/hex"
 	"fmt"
 	"testing"
 
@@ -19,12 +18,9 @@ func TestECBlockMarshal(t *testing.T) {
 	cc := common.NewCommitChain()
 	cc.Version = 0
 	cc.MilliTime = &[6]byte{1, 1, 1, 1, 1, 1}
-	p, _ := hex.DecodeString("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
-	cc.ChainIDHash.SetBytes(p)
-	p, _ = hex.DecodeString("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
-	cc.Weld.SetBytes(p)
-	p, _ = hex.DecodeString("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc")
-	cc.EntryHash.SetBytes(p)
+	cc.ChainIDHash.SetBytes(byteof(0xaa))
+	cc.Weld.SetBytes(byteof(0xbb))
+	cc.EntryHash.SetBytes(byteof(0xcc))
 	cc.Credits = 11
 
 	// make a key and sign the msg
@@ -37,25 +33,18 @@ func TestECBlockMarshal(t *testing.T) {
 
 	// create an IncreaseBalance for testing
 	pub := new([32]byte)
-	p, _ = hex.DecodeString("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
-	copy(pub[:], p)
+	copy(pub[:], byteof(0xaa))
 	facTX := common.NewHash()
-	p, _ = hex.DecodeString("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
-	facTX.SetBytes(p)
-	ib := common.NewIncreaseBalance(pub, facTX, 12)
+	facTX.SetBytes(byteof(0xbb))
+	ib := common.MakeIncreaseBalance(pub, facTX, 12)
 
 	// create a ECBlock for testing
-	p, _ = hex.DecodeString("1111111111111111111111111111111111111111111111111111111111111111")
-	ecb.Header.ECChainID.SetBytes(p)
-	p, _ = hex.DecodeString("2222222222222222222222222222222222222222222222222222222222222222")
-	ecb.Header.BodyHash.SetBytes(p)
-	p, _ = hex.DecodeString("3333333333333333333333333333333333333333333333333333333333333333")
-	ecb.Header.PrevHeaderHash.SetBytes(p)
-	p, _ = hex.DecodeString("4444444444444444444444444444444444444444444444444444444444444444")
-	ecb.Header.PrevFullHash.SetBytes(p)
+	ecb.Header.ECChainID.SetBytes(byteof(0x11))
+	ecb.Header.BodyHash.SetBytes(byteof(0x22))
+	ecb.Header.PrevHeaderHash.SetBytes(byteof(0x33))
+	ecb.Header.PrevFullHash.SetBytes(byteof(0x44))
 	ecb.Header.DBHeight = 10
-	ecb.Header.HeaderExpansionArea, _ = hex.DecodeString("5555555555555555555555555555555555555555555555555555555555555555")
-	p, _ = hex.DecodeString("6666666666666666666666666666666666666666666666666666666666666666")
+	ecb.Header.HeaderExpansionArea = byteof(0x55)
 	ecb.Header.ObjectCount = 0
 
 	// add the CommitChain to the ECBlock
@@ -86,4 +75,12 @@ func TestECBlockMarshal(t *testing.T) {
 		}
 		t.Log(spew.Sdump(ecb2))
 	}
+}
+
+func byteof(b byte) []byte {
+	r := make([]byte, 0, 32)
+	for i := 0; i < 32; i++ {
+		r = append(r, b)
+	}
+	return r
 }
