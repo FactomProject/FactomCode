@@ -8,7 +8,6 @@ import (
 	"errors"
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/database"
-	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/davecgh/go-spew/spew"
 	"strconv"
@@ -63,7 +62,6 @@ func processFBlock(msg *wire.MsgFBlock) error {
 // processABlock validates admin block and save it to factom db.
 // similar to blockChain.BC_ProcessBlock
 func processABlock(msg *wire.MsgABlock) error {
-	util.Trace()
 
 	// Error condiftion for Milestone 1
 	if nodeMode == common.SERVER_NODE {
@@ -80,7 +78,6 @@ func processABlock(msg *wire.MsgABlock) error {
 // procesFBlock validates entry credit block and save it to factom db.
 // similar to blockChain.BC_ProcessBlock
 func procesECBlock(msg *wire.MsgECBlock) error {
-	util.Trace()
 
 	// Error condiftion for Milestone 1
 	if nodeMode == common.SERVER_NODE {
@@ -100,7 +97,6 @@ func procesECBlock(msg *wire.MsgECBlock) error {
 // processEBlock validates entry block and save it to factom db.
 // similar to blockChain.BC_ProcessBlock
 func processEBlock(msg *wire.MsgEBlock) error {
-	util.Trace()
 
 	// Error condiftion for Milestone 1
 	if nodeMode == common.SERVER_NODE {
@@ -124,7 +120,6 @@ func processEBlock(msg *wire.MsgEBlock) error {
 // processEntry validates entry and save it to factom db.
 // similar to blockChain.BC_ProcessBlock
 func processEntry(msg *wire.MsgEntry) error {
-	util.Trace()
 
 	// Error condiftion for Milestone 1
 	if nodeMode == common.SERVER_NODE {
