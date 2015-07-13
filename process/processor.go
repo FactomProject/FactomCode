@@ -355,7 +355,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 					th.SetBytes(t.GetHash().Bytes())
 					credits := int32(ecout.GetAmount() / uint64(FactoshisPerCredit))
 					processBuyEntryCredit(pub, credits, th)
-					incBal := common.NewIncreaseBalance(pub, th, credits)
+					incBal := common.MakeIncreaseBalance(pub, th, credits)
 
 					ecchain.NextBlock.AddEntry(incBal)
 				}

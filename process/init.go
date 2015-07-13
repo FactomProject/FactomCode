@@ -225,7 +225,7 @@ func initializeECreditMap(block *common.ECBlock) {
 			common.FactoidState.UpdateECBalance(fct.NewAddress(e.ECPubKey[:]), int64(e.Credits))
 		case common.ECIDBalanceIncrease:
 			e := entry.(*common.IncreaseBalance)
-			eCreditMap[string(e.ECPubKey[:])] += int32(e.Credits)
+			eCreditMap[string(e.ECPubKey[:])] += int32(e.NumEC)
 			// Don't add the Increases to Factoid state, the Factoid processing will do that.
 		case common.ECIDServerIndexNumber:
 		case common.ECIDMinuteNumber:
