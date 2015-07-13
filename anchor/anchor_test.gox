@@ -1,3 +1,6 @@
+//  Goxed because it goes away too long... Maybe this should have a 
+//  short test and skip.
+
 package anchor
 
 import (
