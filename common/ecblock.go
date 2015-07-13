@@ -259,7 +259,7 @@ func (e *ECBlockHeader) MarshalBinary() ([]byte, error) {
 
 func (e *ECBlockHeader) UnmarshalBinary(data []byte) error {
 	buf := bytes.NewBuffer(data)
-	_, err := e.readUnmarshal(buf)
+	err := e.readUnmarshal(buf)
 	if err != nil {
 		return err
 	}
@@ -268,60 +268,51 @@ func (e *ECBlockHeader) UnmarshalBinary(data []byte) error {
 
 // readUnmarshal is a private method to read the correct lenth of bytes from a
 // buffer and unmarshal the data
-func (e *ECBlockHeader) readUnmarshal(buf *bytes.Buffer) (n int, err error) {
+func (e *ECBlockHeader) readUnmarshal(buf *bytes.Buffer) error {
 	hash := make([]byte, 32)
 
-	if x, err := buf.Read(hash); err != nil {
-		return n+x, err
+	if _, err := buf.Read(hash); err != nil {
+		return err
 	} else {
 		e.ECChainID.SetBytes(hash)
-		n += x
 	}
 
-	if x, err := buf.Read(hash); err != nil {
-		return n+x, err
+	if _, err := buf.Read(hash); err != nil {
+		return err
 	} else {
 		e.BodyHash.SetBytes(hash)
-		n += x
 	}
 
-	if x, err := buf.Read(hash); err != nil {
-		return n+x, err
+	if _, err := buf.Read(hash); err != nil {
+		return err
 	} else {
 		e.PrevHeaderHash.SetBytes(hash)
-		n += x
 	}
 
-	if x, err := buf.Read(hash); err != nil {
-		return n+x, err
+	if _, err := buf.Read(hash); err != nil {
+		return err
 	} else {
 		e.PrevFullHash.SetBytes(hash)
-		n += x
 	}
 
 	if err := binary.Read(buf, binary.BigEndian, &e.DBHeight); err != nil {
-		return n, err
+		return err
 	}
-	n += 4
 
 	// read the Header Expansion Area
 	hesize := ReadVarInt(buf)
 	e.HeaderExpansionArea = make([]byte, hesize)
-	if x, err := buf.Read(e.HeaderExpansionArea); err != nil {
-		return n+x, err
-	} else {
-		n += x
+	if _, err := buf.Read(e.HeaderExpansionArea); err != nil {
+		return err
 	}
-	
+		
 	if err := binary.Read(buf, binary.BigEndian, &e.ObjectCount); err != nil {
-		return n, err
+		return err
 	}
-	n += 8
 
 	if err := binary.Read(buf, binary.BigEndian, &e.BodySize); err != nil {
-		return n, err
+		return err
 	}
-	n += 8
 
-	return n, nil
+	return nil
 }
