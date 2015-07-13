@@ -6,10 +6,7 @@ package common
 
 import (
 	"bytes"
-	"fmt"
 )
-
-var _ = fmt.Println
 
 var IncreaseBalanceSize int = 32 + 4 + 32
 
