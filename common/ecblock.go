@@ -165,8 +165,8 @@ func (b *ECBlockBody) UnmarshalBinary(data []byte) error {
 			}
 			b.Entries = append(b.Entries, c)
 		case ECIDBalanceIncrease:
-			c := new(IncreaseBalance)
-			err := c.UnmarshalBinary(buf.Next(IncreaseBalanceSize))
+			c := NewIncreaseBalance()
+			err := c.readUnmarshal(buf)
 			if err != nil {
 				return err
 			}
