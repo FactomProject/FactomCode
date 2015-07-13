@@ -29,12 +29,12 @@ echo "
 *       ./all.sh <branch> <default>
 *
 *       Will try to check out <branch>, will default
-*       to <default>, and if neither exists, will 
-*       checkout the master branch.
+*       to <default>, and if neither exists, or are  
+*       missing, will checkout the master branch.
 *
 *********************************************************"
 branch=master
-default=
+default=master
 else
 echo "
 *********************************************************
@@ -125,5 +125,31 @@ compile factoid/fctwallet
 compile factom-cli  
 compile FactomCode/factomd 
 echo ""
-echo ""
+echo "
+*******************************************************
+*     Running Unit Tests
+*******************************************************
+"
+echo "
++================+
+|     btcd       |
++================+
+"
+go test ./btcd/...
+
+echo "
++================+
+|  FactomCode    |
++================+
+"
+go test ./FactomCode/...
+
+echo "
++================+
+|   factoids     |
++================+
+"
+go test ./factoid/...
+
+
 cd FactomCode
