@@ -20,5 +20,5 @@ var (
 
 // setup subsystem loggers
 var (
-	ftmdLog = factomlog.New(logfile, logLevel, "ftmd")
+	ftmdLog = factomlog.New(logfile, logLevel, "FTMD")
 )

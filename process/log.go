@@ -20,5 +20,5 @@ var (
 
 // setup subsystem loggers
 var (
-	procLog = factomlog.New(logfile, logLevel, "proc")
+	procLog = factomlog.New(logfile, logLevel, "PROC")
 )

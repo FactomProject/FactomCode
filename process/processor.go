@@ -336,8 +336,10 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		}
 
 	case wire.CmdFactoidTX:
+		//		util.Trace("some mode: CmdFactoidTX")
 
 		if nodeMode == common.SERVER_NODE {
+			//			util.Trace("server mode")
 			t := (msg.(*wire.MsgFactoidTX)).Transaction
 			if common.FactoidState.AddTransaction(t) {
 				for _, ecout := range t.GetECOutputs() {
@@ -355,6 +357,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 			}
 		} else {
 			// client-mode, milestone 1 - transmit to the server node
+			//			util.Trace("client mode; TODO")
 			outMsgQueue <- msg
 		}
 
