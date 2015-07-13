@@ -272,8 +272,6 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 			}
 			procLog.Infof("PROCESSOR: End of minute msg - wire.CmdInt_EOM:%+v\n", msg)
             
-            fmt.Print(" EOM_",msgEom.EOM_Type," ")
-            
 			if msgEom.EOM_Type == wire.END_MINUTE_10 {
                 fmt.Println()
                 // Process from Orphan pool before the end of process list
