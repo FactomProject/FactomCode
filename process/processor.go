@@ -272,8 +272,10 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 			}
 			procLog.Infof("PROCESSOR: End of minute msg - wire.CmdInt_EOM:%+v\n", msg)
             
+            common.FactoidState.EndOfPeriod(int(msgEom.EOM_Type))
+            
 			if msgEom.EOM_Type == wire.END_MINUTE_10 {
-                fmt.Printf("\nDBHeight: %6d:",dchain.NextDBHeight)
+              
                 // Process from Orphan pool before the end of process list
 				processFromOrphanPool()
 
