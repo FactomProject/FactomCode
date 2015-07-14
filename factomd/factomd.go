@@ -5,8 +5,6 @@
 package main
 
 import (
-	"os"
-	"runtime"
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/database/ldb"
@@ -16,6 +14,8 @@ import (
 	"github.com/FactomProject/btcd"
 	"github.com/FactomProject/btcd/limits"
 	"github.com/FactomProject/btcd/wire"
+	"os"
+	"runtime"
 	"time"
 )
 
@@ -43,7 +43,7 @@ func main() {
 	ftmdLog.Info("//////////////////////// Copyright 2015 Factom Foundation")
 	ftmdLog.Info("//////////////////////// Use of this source code is governed by the MIT")
 	ftmdLog.Info("//////////////////////// license that can be found in the LICENSE file.")
-	
+
 	// Initialize db
 	initDB()
 

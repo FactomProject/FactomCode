@@ -272,8 +272,6 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 			}
 			procLog.Infof("PROCESSOR: End of minute msg - wire.CmdInt_EOM:%+v\n", msg)
             
-            fmt.Print(" EOM_",msgEom.EOM_Type," ")
-            
 			if msgEom.EOM_Type == wire.END_MINUTE_10 {
                 fmt.Printf("\nDBHeight: %6d:",dchain.NextDBHeight)
                 // Process from Orphan pool before the end of process list
@@ -336,8 +334,10 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		}
 
 	case wire.CmdFactoidTX:
+		//		util.Trace("some mode: CmdFactoidTX")
 
 		if nodeMode == common.SERVER_NODE {
+			//			util.Trace("server mode")
 			t := (msg.(*wire.MsgFactoidTX)).Transaction
 			if common.FactoidState.AddTransaction(t) {
 				for _, ecout := range t.GetECOutputs() {
@@ -348,13 +348,14 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 					th.SetBytes(t.GetHash().Bytes())
 					credits := int32(ecout.GetAmount() / uint64(FactoshisPerCredit))
 					processBuyEntryCredit(pub, credits, th)
-					incBal := common.NewIncreaseBalance(pub, th, credits)
+					incBal := common.MakeIncreaseBalance(pub, th, credits)
 
 					ecchain.NextBlock.AddEntry(incBal)
 				}
 			}
 		} else {
 			// client-mode, milestone 1 - transmit to the server node
+			//			util.Trace("client mode; TODO")
 			outMsgQueue <- msg
 		}
 
