@@ -275,7 +275,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
             fmt.Print(" EOM_",msgEom.EOM_Type," ")
             
 			if msgEom.EOM_Type == wire.END_MINUTE_10 {
-                fmt.Println()
+                fmt.Printf("\nDBHeight: %6d:",dchain.NextDBHeight)
                 // Process from Orphan pool before the end of process list
 				processFromOrphanPool()
 
