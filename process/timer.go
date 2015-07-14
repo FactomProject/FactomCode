@@ -26,6 +26,9 @@ func (bt *BlockTimer) StartBlockTimer() {
 
 	if directoryBlockInSeconds < 600 {
 		sleeptime := directoryBlockInSeconds / 10
+	
+		// Set the start time for the open dir block
+		dchain.NextBlock.Header.Timestamp = uint32(time.Now().Round(time.Minute).Unix() / 60)
 
 		for i := 0; i < 10; i++ {
 			eomMsg := &wire.MsgInt_EOM{
