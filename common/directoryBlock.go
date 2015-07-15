@@ -112,25 +112,19 @@ func NewDBlockHeader() *DBlockHeader {
 type DBEntry struct {
 	ChainID *Hash
 	KeyMR   *Hash // Different MR in EBlockHeader
-
-	// not marshalled
-	hash   *Hash // to be removed??
-	status int8  //for future use??
 }
 
 func NewDBEntry(eb *EBlock) *DBEntry {
 	e := new(DBEntry)
-	e.hash = eb.EBHash
 
-	e.ChainID = eb.Chain.ChainID
-	e.KeyMR = eb.MerkleRoot
+	e.ChainID = eb.Header.ChainID
+	e.KeyMR = eb.KeyMR()
 
 	return e
 }
 
 func NewDBEntryFromECBlock(cb *ECBlock) *DBEntry {
 	e := &DBEntry{}
-	e.hash = cb.Header.BodyHash
 
 	e.ChainID = cb.Header.ECChainID
 	e.KeyMR = cb.Header.Hash()
@@ -140,7 +134,6 @@ func NewDBEntryFromECBlock(cb *ECBlock) *DBEntry {
 
 func NewDBEntryFromABlock(b *AdminBlock) *DBEntry {
 	e := &DBEntry{}
-	e.hash = b.ABHash
 
 	e.ChainID = b.Header.AdminChainID
 	e.KeyMR = b.ABHash
@@ -158,23 +151,23 @@ func NewDirBlockInfoFromDBlock(b *DirectoryBlock) *DirBlockInfo {
 	return e
 }
 
-func (e *DBEntry) Hash() *Hash {
-	return e.hash
-}
-
-func (e *DBEntry) SetHash(binaryHash []byte) {
-	h := new(Hash)
-	h.SetBytes(binaryHash)
-	e.hash = h
-}
-
-func (e *DBEntry) EncodableFields() map[string]reflect.Value {
-	fields := map[string]reflect.Value{
-		`KeyMR`:   reflect.ValueOf(e.KeyMR),
-		`ChainID`: reflect.ValueOf(e.ChainID),
-	}
-	return fields
-}
+//func (e *DBEntry) Hash() *Hash {
+//	return e.hash
+//}
+//
+//func (e *DBEntry) SetHash(binaryHash []byte) {
+//	h := new(Hash)
+//	h.SetBytes(binaryHash)
+//	e.hash = h
+//}
+//
+//func (e *DBEntry) EncodableFields() map[string]reflect.Value {
+//	fields := map[string]reflect.Value{
+//		`KeyMR`:   reflect.ValueOf(e.KeyMR),
+//		`ChainID`: reflect.ValueOf(e.ChainID),
+//	}
+//	return fields
+//}
 
 func (e *DBEntry) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer

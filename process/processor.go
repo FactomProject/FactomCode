@@ -893,47 +893,47 @@ func newEntryBlock(chain *common.EChain) *common.EBlock {
 	if block == nil {
 		return nil
 	}
-	if len(block.EBEntries) < 1 {
+	if len(block.Body.EBEntries) < 1 {
 		procLog.Debug("No new entry found. No block created for chain: " + chain.ChainID.String())
 		return nil
 	}
 
 	// Create the block and add a new block for new coming entries
 	block.Header.DBHeight = dchain.NextDBHeight
-	block.Header.EntryCount = uint32(len(block.EBEntries))
-	block.Header.StartTime = uint64(dchain.NextBlock.Header.Timestamp)
+	block.Header.EntryCount = uint32(len(block.Body.EBEntries))
 
-	if devNet {
-		block.Header.NetworkID = common.NETWORK_ID_TEST
-	} else {
-		block.Header.NetworkID = common.NETWORK_ID_EB
-	}
-
-	// Create the Entry Block Body Merkle Root from EB Entries
-	hashes := make([]*common.Hash, 0, len(block.EBEntries))
-	for _, entry := range block.EBEntries {
-		hashes = append(hashes, entry.EntryHash)
-	}
-	merkle := common.BuildMerkleTreeStore(hashes)
-	block.Header.BodyMR = merkle[len(merkle)-1]
-
-	// Create the Entry Block Key Merkle Root from the hash of Header and the Body Merkle Root
-	hashes = make([]*common.Hash, 0, 2)
-	binaryEBHeader, _ := block.Header.MarshalBinary()
-	hashes = append(hashes, common.Sha(binaryEBHeader))
-	hashes = append(hashes, block.Header.BodyMR)
-	merkle = common.BuildMerkleTreeStore(hashes)
-	block.MerkleRoot = merkle[len(merkle)-1] // MerkleRoot is not marshalized in Entry Block
-	blkhash, _ := common.CreateHash(block)
-	block.EBHash = blkhash
-
-	block.IsSealed = true
+// mjb ?
+//	if devNet {
+//		block.Header.NetworkID = common.NETWORK_ID_TEST
+//	} else {
+//		block.Header.NetworkID = common.NETWORK_ID_EB
+//	}
+//
+//	// Create the Entry Block Body Merkle Root from EB Entries
+//	hashes := make([]*common.Hash, 0, len(block.Body.EBEntries))
+//	for _, entry := range block.Body.EBEntries {
+//		hashes = append(hashes, entry)
+//	}
+//	merkle := common.BuildMerkleTreeStore(hashes)
+//	block.Header.BodyMR = merkle[len(merkle)-1]
+//
+//	// Create the Entry Block Key Merkle Root from the hash of Header and the Body Merkle Root
+//	hashes = make([]*common.Hash, 0, 2)
+//	binaryEBHeader, _ := block.Header.MarshalBinary()
+//	hashes = append(hashes, common.Sha(binaryEBHeader))
+//	hashes = append(hashes, block.Header.BodyMR)
+//	merkle = common.BuildMerkleTreeStore(hashes)
+//	block.MerkleRoot = merkle[len(merkle)-1] // MerkleRoot is not marshalized in Entry Block
+//	blkhash, _ := common.CreateHash(block)
+//	block.EBHash = blkhash
+//
+//	block.IsSealed = true
 	chain.NextBlockHeight++
-	chain.NextBlock, _ = common.CreateBlock(chain, block, 10)
+	chain.NextBlock = common.MakeEBlock(chain, block)
 
 	//Store the block in db
 	db.ProcessEBlockBatch(block)
-	procLog.Infof("EntryBlock: block" + strconv.FormatUint(uint64(block.Header.EBHeight), 10) + " created for chain: " + chain.ChainID.String())
+	procLog.Infof("EntryBlock: block" + strconv.FormatUint(uint64(block.Header.EBSequence), 10) + " created for chain: " + chain.ChainID.String())
 	return block
 }
 

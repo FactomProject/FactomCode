@@ -262,30 +262,27 @@ func initEChainFromDB(chain *common.EChain) {
 	sort.Sort(util.ByEBlockIDAccending(*eBlocks))
 
 	for i := 0; i < len(*eBlocks); i = i + 1 {
-		if uint32(i) != (*eBlocks)[i].Header.EBHeight {
-			panic(errors.New("BlockID does not equal index for chain:" + chain.ChainID.String() + " block:" + fmt.Sprintf("%v", (*eBlocks)[i].Header.EBHeight)))
+		if uint32(i) != (*eBlocks)[i].Header.EBSequence {
+			panic(errors.New("BlockID does not equal index for chain:" + chain.ChainID.String() + " block:" + fmt.Sprintf("%v", (*eBlocks)[i].Header.EBSequence)))
 		}
 	}
 
 	if len(*eBlocks) == 0 {
 		chain.NextBlockHeight = 0
-		chain.NextBlock, _ = common.CreateBlock(chain, nil, 10)
+		chain.NextBlock = common.MakeEBlock(chain, nil)
 	} else {
 		chain.NextBlockHeight = uint32(len(*eBlocks))
-		chain.NextBlock, _ = common.CreateBlock(chain, &(*eBlocks)[len(*eBlocks)-1], 10)
+		chain.NextBlock = common.MakeEBlock(chain, &(*eBlocks)[len(*eBlocks)-1])
 	}
 
 	// Initialize chain with the first entry (Name and rules) for non-server mode
 	if nodeMode != common.SERVER_NODE && chain.FirstEntry == nil && len(*eBlocks) > 0 {
-		chain.FirstEntry, _ = db.FetchEntryByHash((*eBlocks)[0].EBEntries[0].EntryHash)
+		chain.FirstEntry, _ = db.FetchEntryByHash((*eBlocks)[0].Body.EBEntries[0])
 		if chain.FirstEntry != nil {
 			db.InsertChain(chain)
 		}
 	}
 
-	if chain.NextBlock.IsSealed == true {
-		panic("chain.NextBlock.IsSealed for chain:" + chain.ChainID.String())
-	}
 }
 
 // Validate dir chain from genesis block
@@ -419,16 +416,14 @@ func validateEBlockByMR(cid *common.Hash, mr *common.Hash) error {
 		return errors.New("Entry block not found in db for merkle root: " + mr.String())
 	}
 
-	eb.BuildMerkleRoot()
-
-	if !mr.IsSameAs(eb.MerkleRoot) {
+	if !mr.IsSameAs(eb.KeyMR()) {
 		return errors.New("Entry block's merkle root does not match with: " + mr.String())
 	}
 
-	for _, ebEntry := range eb.EBEntries {
-		entry, _ := db.FetchEntryByHash(ebEntry.EntryHash)
+	for _, ebEntry := range eb.Body.EBEntries {
+		entry, _ := db.FetchEntryByHash(ebEntry)
 		if entry == nil {
-			return errors.New("Entry not found in db for entry hash: " + ebEntry.EntryHash.String())
+			return errors.New("Entry not found in db for entry hash: " + ebEntry.String())
 		}
 	}
 

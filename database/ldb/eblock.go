@@ -12,7 +12,6 @@ import (
 
 // ProcessEBlockBatche inserts the EBlock and update all it's ebentries in DB
 func (db *LevelDb) ProcessEBlockBatch(eblock *common.EBlock) error {
-
 	if eblock != nil {
 		if db.lbatch == nil {
 			db.lbatch = new(leveldb.Batch)
@@ -20,7 +19,7 @@ func (db *LevelDb) ProcessEBlockBatch(eblock *common.EBlock) error {
 
 		defer db.lbatch.Reset()
 
-		if len(eblock.EBEntries) < 1 {
+		if len(eblock.Body.EBEntries) < 1 {
 			return errors.New("Empty eblock!")
 		}
 
@@ -29,37 +28,29 @@ func (db *LevelDb) ProcessEBlockBatch(eblock *common.EBlock) error {
 			return err
 		}
 		
-		if eblock.EBHash == nil {
-			eblock.EBHash = common.Sha(binaryEblock)
-		}
-
-		if eblock.MerkleRoot == nil {
-			eblock.BuildMerkleRoot()
-		}
-		
 		// Insert the binary entry block
 		var key []byte = []byte{byte(TBL_EB)}
-		key = append(key, eblock.EBHash.Bytes()...)
+		key = append(key, eblock.Hash().Bytes()...)
 		db.lbatch.Put(key, binaryEblock)
 
 		// Insert the entry block merkle root cross reference
 		key = []byte{byte(TBL_EB_MR)}
-		key = append(key, eblock.MerkleRoot.Bytes()...)
-		binaryEBHash, _ := eblock.EBHash.MarshalBinary()
+		key = append(key, eblock.KeyMR().Bytes()...)
+		binaryEBHash, _ := eblock.Hash().MarshalBinary()
 		db.lbatch.Put(key, binaryEBHash)
 
 		// Insert the entry block number cross reference
 		key = []byte{byte(TBL_EB_CHAIN_NUM)}
 		key = append(key, eblock.Header.ChainID.Bytes()...)
 		bytes := make([]byte, 4)
-		binary.BigEndian.PutUint32(bytes, eblock.Header.EBHeight)
+		binary.BigEndian.PutUint32(bytes, eblock.Header.EBSequence)
 		key = append(key, bytes...)
 		db.lbatch.Put(key, binaryEBHash)
 
 		// Update the chain head reference
 		key = []byte{byte(TBL_CHAIN_HEAD)}
 		key = append(key, eblock.Header.ChainID.Bytes()...)
-		db.lbatch.Put(key, eblock.MerkleRoot.Bytes())
+		db.lbatch.Put(key, eblock.KeyMR().Bytes())
 
 		err = db.lDb.Write(db.lbatch, db.wo)
 		if err != nil {
@@ -238,7 +229,6 @@ func (db *LevelDb) FetchAllEBlocksByChain(chainID *common.Hash) (eBlocks *[]comm
 		eBlock := common.NewEBlock()
 		if data != nil {
 			eBlock.UnmarshalBinary(data)
-			eBlock.EBHash = eBlockHash
 			eBlockSlice = append(eBlockSlice, *eBlock)
 		}
 	}
