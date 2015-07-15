@@ -902,32 +902,6 @@ func newEntryBlock(chain *common.EChain) *common.EBlock {
 	block.Header.DBHeight = dchain.NextDBHeight
 	block.Header.EntryCount = uint32(len(block.Body.EBEntries))
 
-// mjb ?
-//	if devNet {
-//		block.Header.NetworkID = common.NETWORK_ID_TEST
-//	} else {
-//		block.Header.NetworkID = common.NETWORK_ID_EB
-//	}
-//
-//	// Create the Entry Block Body Merkle Root from EB Entries
-//	hashes := make([]*common.Hash, 0, len(block.Body.EBEntries))
-//	for _, entry := range block.Body.EBEntries {
-//		hashes = append(hashes, entry)
-//	}
-//	merkle := common.BuildMerkleTreeStore(hashes)
-//	block.Header.BodyMR = merkle[len(merkle)-1]
-//
-//	// Create the Entry Block Key Merkle Root from the hash of Header and the Body Merkle Root
-//	hashes = make([]*common.Hash, 0, 2)
-//	binaryEBHeader, _ := block.Header.MarshalBinary()
-//	hashes = append(hashes, common.Sha(binaryEBHeader))
-//	hashes = append(hashes, block.Header.BodyMR)
-//	merkle = common.BuildMerkleTreeStore(hashes)
-//	block.MerkleRoot = merkle[len(merkle)-1] // MerkleRoot is not marshalized in Entry Block
-//	blkhash, _ := common.CreateHash(block)
-//	block.EBHash = blkhash
-//
-//	block.IsSealed = true
 	chain.NextBlockHeight++
 	chain.NextBlock = common.MakeEBlock(chain, block)
 
