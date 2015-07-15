@@ -76,7 +76,6 @@ checkout() {
             fi
         fi
         git status | awk '/^Untracked files.*/ {g=1; print"\t"$0}; /^\t.*/ { if(g) print"\t"$0 };$1=="modified:" {print"\t"$0}'
-        git pull | awk '$1!="Already" {print}'
         cd $current
    else
         echo $1 | awk "{printf(\"%15s\",\"$1\")}"
