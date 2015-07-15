@@ -49,7 +49,7 @@ type Db interface {
 	FetchChainByHash(chainID *common.Hash) (chain *common.EChain, err error)
 
 	//FetchAllChains gets all of the chains
-	FetchAllChains() (chains []common.EChain, err error)
+	FetchAllChains() (chains []*common.EChain, err error)
 
 	// FetchEntryInfoBranchByHash gets an EntryInfo obj
 	//FetchEntryInfoByHash(entryHash *common.Hash) (entryInfo *common.EntryInfo, err error)

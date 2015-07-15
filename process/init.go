@@ -204,8 +204,8 @@ func initEChains() {
 
 	for _, chain := range chains {
 		var newChain = chain
-		chainIDMap[newChain.ChainID.String()] = &newChain
-		exportEChain(&chain)
+		chainIDMap[newChain.ChainID.String()] = newChain
+		exportEChain(chain)
 	}
 
 }
