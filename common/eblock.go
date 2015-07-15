@@ -25,8 +25,10 @@ type EBlock struct {
 func MakeEBlock(echain *EChain, prev *EBlock) *EBlock {
 	e := NewEBlock()
 	e.Header.ChainID = echain.ChainID
-	e.Header.PrevKeyMR = prev.KeyMR()
-	e.Header.PrevFullHash = prev.Hash()
+	if prev != nil {
+		e.Header.PrevKeyMR = prev.KeyMR()
+		e.Header.PrevFullHash = prev.Hash()
+	}
 	e.Header.EBSequence = echain.NextBlockHeight
 	return e
 }
