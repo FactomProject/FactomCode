@@ -20,5 +20,5 @@ var (
 
 // setup subsystem loggers
 var (
-	anchorLog = factomlog.New(logfile, logLevel, "anchor")
+	anchorLog = factomlog.New(logfile, logLevel, "ANCH")
 )

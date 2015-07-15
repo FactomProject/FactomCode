@@ -466,8 +466,6 @@ func (b *DirectoryBlock) MarshalBinary() (data []byte, err error) {
 	buf.Write(data)
 
 	count := uint32(len(b.DBEntries))
-	// need to get rid of count, duplicated with blockheader.BlockCount
-	binary.Write(&buf, binary.BigEndian, count)
 	for i := uint32(0); i < count; i = i + 1 {
 		data, err = b.DBEntries[i].MarshalBinary()
 		if err != nil {
@@ -514,7 +512,7 @@ func (b *DirectoryBlock) UnmarshalBinary(data []byte) (err error) {
 	b.Header = fbh
 	data = data[fbh.MarshalledSize():]
 
-	count, data := binary.BigEndian.Uint32(data[0:4]), data[4:]
+	count:=b.Header.BlockCount
 	b.DBEntries = make([]*DBEntry, count)
 	for i := uint32(0); i < count; i++ {
 		b.DBEntries[i] = new(DBEntry)
