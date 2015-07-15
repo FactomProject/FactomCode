@@ -8,7 +8,6 @@ import (
 	"errors"
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/database"
-	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/davecgh/go-spew/spew"
 	"strconv"
@@ -63,7 +62,6 @@ func processFBlock(msg *wire.MsgFBlock) error {
 // processABlock validates admin block and save it to factom db.
 // similar to blockChain.BC_ProcessBlock
 func processABlock(msg *wire.MsgABlock) error {
-	util.Trace()
 
 	// Error condiftion for Milestone 1
 	if nodeMode == common.SERVER_NODE {
@@ -80,7 +78,6 @@ func processABlock(msg *wire.MsgABlock) error {
 // procesFBlock validates entry credit block and save it to factom db.
 // similar to blockChain.BC_ProcessBlock
 func procesECBlock(msg *wire.MsgECBlock) error {
-	util.Trace()
 
 	// Error condiftion for Milestone 1
 	if nodeMode == common.SERVER_NODE {
@@ -100,7 +97,6 @@ func procesECBlock(msg *wire.MsgECBlock) error {
 // processEBlock validates entry block and save it to factom db.
 // similar to blockChain.BC_ProcessBlock
 func processEBlock(msg *wire.MsgEBlock) error {
-	util.Trace()
 
 	// Error condiftion for Milestone 1
 	if nodeMode == common.SERVER_NODE {
@@ -112,8 +108,7 @@ func processEBlock(msg *wire.MsgEBlock) error {
 		}
 	*/
 	//Add it to mem pool before saving it in db
-	msg.EBlk.BuildMerkleRoot()
-	fMemPool.addBlockMsg(msg, msg.EBlk.MerkleRoot.String()) // store it in mem pool with MR as the key
+	fMemPool.addBlockMsg(msg, msg.EBlk.KeyMR().String()) // store it in mem pool with MR as the key
 
 	// for debugging??
 	procLog.Debugf("SyncUp: MsgEBlock=%s\n", spew.Sdump(msg.EBlk))
@@ -124,7 +119,6 @@ func processEBlock(msg *wire.MsgEBlock) error {
 // processEntry validates entry and save it to factom db.
 // similar to blockChain.BC_ProcessBlock
 func processEntry(msg *wire.MsgEntry) error {
-	util.Trace()
 
 	// Error condiftion for Milestone 1
 	if nodeMode == common.SERVER_NODE {
@@ -220,10 +214,10 @@ func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, d
 			} else {
 				eBlkMsg, _ := msg.(*wire.MsgEBlock)
 				// validate every entry in EBlock
-				for _, ebEntry := range eBlkMsg.EBlk.EBEntries {
-					if _, foundInMemPool := fMemPool.blockpool[ebEntry.EntryHash.String()]; !foundInMemPool {
+				for _, ebEntry := range eBlkMsg.EBlk.Body.EBEntries {
+					if _, foundInMemPool := fMemPool.blockpool[ebEntry.String()]; !foundInMemPool {
 						// continue if the entry arleady exists in db
-						entry, _ := db.FetchEntryByHash(ebEntry.EntryHash)
+						entry, _ := db.FetchEntryByHash(ebEntry)
 						if entry == nil {
 							return false
 						}
@@ -278,8 +272,8 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 			// handle Entry Block
 			eBlkMsg, _ := fMemPool.blockpool[dbEntry.KeyMR.String()].(*wire.MsgEBlock)
 			// store entry in db first
-			for _, ebEntry := range eBlkMsg.EBlk.EBEntries {
-				if msg, foundInMemPool := fMemPool.blockpool[ebEntry.EntryHash.String()]; foundInMemPool {
+			for _, ebEntry := range eBlkMsg.EBlk.Body.EBEntries {
+				if msg, foundInMemPool := fMemPool.blockpool[ebEntry.String()]; foundInMemPool {
 					err := db.InsertEntry(msg.(*wire.MsgEntry).Entry)
 					if err != nil {
 						return err
@@ -297,13 +291,13 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 			if chain == nil {
 				chain = new(common.EChain)
 				chain.ChainID = eBlkMsg.EBlk.Header.ChainID
-				if eBlkMsg.EBlk.Header.EBHeight == 0 {
-					chain.FirstEntry, _ = db.FetchEntryByHash(eBlkMsg.EBlk.EBEntries[0].EntryHash)
+				if eBlkMsg.EBlk.Header.EBSequence == 0 {
+					chain.FirstEntry, _ = db.FetchEntryByHash(eBlkMsg.EBlk.Body.EBEntries[0])
 				}
 				db.InsertChain(chain)
 				chainIDMap[chain.ChainID.String()] = chain
-			} else if chain.FirstEntry == nil && eBlkMsg.EBlk.Header.EBHeight == 0 {
-				chain.FirstEntry, _ = db.FetchEntryByHash(eBlkMsg.EBlk.EBEntries[0].EntryHash)
+			} else if chain.FirstEntry == nil && eBlkMsg.EBlk.Header.EBSequence == 0 {
+				chain.FirstEntry, _ = db.FetchEntryByHash(eBlkMsg.EBlk.Body.EBEntries[0])
 				db.InsertChain(chain)
 			}
 
@@ -341,8 +335,8 @@ func deleteBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool) err
 			delete(fMemPool.blockpool, dbEntry.KeyMR.String())
 		default:
 			eBlkMsg, _ := fMemPool.blockpool[dbEntry.KeyMR.String()].(*wire.MsgEBlock)
-			for _, ebEntry := range eBlkMsg.EBlk.EBEntries {
-				delete(fMemPool.blockpool, ebEntry.EntryHash.String())
+			for _, ebEntry := range eBlkMsg.EBlk.Body.EBEntries {
+				delete(fMemPool.blockpool, ebEntry.String())
 			}
 			delete(fMemPool.blockpool, dbEntry.KeyMR.String())
 		}

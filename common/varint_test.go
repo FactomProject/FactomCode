@@ -1,7 +1,6 @@
 package common
 
 import (
-	"bytes"
 	"fmt"
 	"math/rand"
 	"testing"
@@ -17,84 +16,9 @@ func mix(v []uint64) {
 	}
 }
 
-func TestVarInt(t *testing.T) {
-	fmt.Printf("---\nTestVarInt\n---\n")
-
-	for i := 0; i < 1000; i++ {
-		var out, out2 bytes.Buffer
-
-		v := make([]uint64, 10)
-
-		for j := 0; j < len(v); j++ {
-			sw := rand.Int63() % 5
-			switch sw {
-			case 0:
-				v[j] = uint64(rand.Int63() & 0xFF)
-			case 1:
-				v[j] = uint64(rand.Int63() & 0xFFFF)
-			case 2:
-				v[j] = uint64(rand.Int63() & 0xFFFFFFFF)
-			case 3:
-				v[j] = uint64(rand.Int63()) // Test lowerbit
-			case 4:
-				v[j] = uint64(rand.Int63() << 1) // Test signed bit
-			}
-		}
-
-		mix(v[:])
-
-		for j := 0; j < len(v); j++ {
-			n, err := WriteVarInt(&out2, v[j])
-			if err != nil {
-				t.Log(n, err)
-				t.Fail()
-				return
-			}
-			//            fmt.Printf("%x ",v[j])
-		}
-
-		for j := 0; j < len(v); j++ {
-			err := EncodeVarInt(&out, v[j])
-			if err != nil {
-				t.Log(err)
-				t.Fail()
-				return
-			}
-			//            fmt.Printf("%x ",v[j])
-		}
-		//        fmt.Println( "Length: ",out.Len())
-
-		data := out.Bytes()
-
-		//        PrtData(data)
-		//        fmt.Println()
-
-		var dv uint64
-		for j := 0; j < len(v); j++ {
-			dv, data = DecodeVarInt(data)
-			if dv != v[j] {
-				t.Logf("Values don't match: %x %x (%d)\n", dv, v[j], j)
-				t.Fail()
-				return
-			}
-		}
-
-		//        PrtData(data)
-		//        fmt.Println()
-
-		for j := 0; j < len(v); j++ {
-			dv = ReadVarInt(&out2)
-			if dv != v[j] {
-				t.Logf("Values don't match: %x %x (%d)\n", dv, v[j], j)
-				t.Fail()
-				return
-			}
-		}
-
-	}
-}
-
 func TestVarIntLength(t *testing.T) {
+    fmt.Println("VarInt")
+
 	if VarIntLength(0) != 1 {
 		t.Error("Wrong length for 0")
 	}

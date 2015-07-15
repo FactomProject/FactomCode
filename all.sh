@@ -1,28 +1,85 @@
-cd ..
-echo checking out $1
+# Copyright 2015 Factom Foundation
+# Use of this source code is governed by the MIT
+# license that can be found in the LICENSE file.
 
-# We cd to the given directory, look and see if the branch exists...
-# If it does, we make sure we are in that branch.
-# Then we go back to the previous directory.
+# To be run from within the FactomCode project.
 #
-# In all cases we do a pull.  Something might have changed.
+# Factom has a pile of dependencies, and development requries that these be 
+# kept in sync with each other.  This script allows you to check out a 
+# particular branch in many repositories, while specifying a default branch.
+#
+# So for example, if you want to check development, and default to master:
+#  
+#  ./all.sh development master
+#
+# Or if you have your own branch TerribleBug, building off development:
+#
+#  ./all.sh TerribleBug development
+#
+# Any repository that doesn't have a development branch in this last case
+# is going to default to master.
+#
+cd ..
+
+if [[ -z $1 ]]; then
+echo "
+*********************************************************
+*       Defaulting... Checking out Master
+*
+*       ./all.sh <branch> <default>
+*
+*       Will try to check out <branch>, will default
+*       to <default>, and if neither exists, or are  
+*       missing, will checkout the master branch.
+*
+*********************************************************"
+branch=master
+default=master
+else
+echo "
+*********************************************************
+*       Checking out the" $1 "branch
+*
+*       ./all.sh <branch> <default>
+*
+*       Will try to check out <branch>, will default
+*       to <default>, and if neither exists, or are  
+*       missing, will checkout the master branch.
+*
+*********************************************************"
+branch=$1
+if [[ -z $2 ]]; then
+default=master
+else
+default=$2
+fi
+fi
 checkout() {
     current=`pwd` 
-    cd $1
+    cd $1 $2 > /dev/null 2>&1 
     if [ $? -eq 0 ]; then
-        echo $1 
+        echo $1 | awk "{printf(\"%15s\",\"$1\")}"
         git checkout -q $2 > /dev/null 2>&1
         if [ $? -eq 0 ]; then
-            echo "Now " $1 " is on the " $2 " branch" 
+            echo -e " now on" $2    # checkout did not fail
         else 
-             if [[ ! -z $2 ]]
-             then
-                git checkout master
-                echo "Now " $1 " is on the master branch" 
-             fi    
+            git checkout -q $3 > /dev/null 2>&1
+            if [ $? -ne 0 ]; then
+                git checkout -q master > /dev/null 2>&1
+                if [ $? -ne 0 ]; then
+                   echo -e " ****checkout failed!!!"
+                else
+                   echo " defaulting to master"
+                fi
+            else
+                echo " defaulting to" $3
+            fi
         fi
-        git pull
+        git pull | awk '$1!="Already" {print}'
         cd $current
+   else
+        echo $1 | awk "{printf(\"%15s\",\"$1\")}"
+        echo " not found"
    fi
 }
 
@@ -35,38 +92,64 @@ compile() {
     cd $current
 }
 
-checkout btcd $1
-checkout btcjson $1
-checkout btclog  $1
-checkout btcrpcclient $1
-checkout btcutil $1
-checkout btcwallet $1
-checkout btcws $1
-checkout dynrsrc $1
-checkout ed25519 $1
-checkout factoid $1
-checkout factom $1
-checkout factom-cli  $1
-checkout FactomDocs $1
-checkout factomexplorer  $1
-checkout fastsha256  $1
-checkout gobundle  $1
-cd gocoding 
-git pull
-cd ..
-checkout go-flags  $1
-checkout goleveldb  $1
-checkout go-socks  $1
-checkout seelog  $1
-checkout snappy-go  $1
-checkout websocket  $1
-checkout FactomCode $1
+checkout FactomCode   $branch $default
+checkout btcd         $branch $default
+checkout factoid      $branch $default
+checkout factom       $branch $default
+checkout factom-cli   $branch $default
+checkout btcrpcclient $branch $default
+checkout btcutil      $branch $default 
+checkout btcws        $branch $default
+checkout gobundle     $branch $default
+checkout goleveldb    $branch $default
+checkout FactomDocs   master  master
+checkout gocoding     master  master
 
+checkout btcjson      $branch $default
+checkout btclog       $branch $default
+checkout dynrsrc      $branch $default
+checkout ed25519      $branch $default
+checkout fastsha256   $branch $default 
+checkout go-flags     $branch $default
+checkout go-socks     $branch $default
+checkout seelog       $branch $default
+checkout snappy-go    $branch $default
+checkout websocket    $branch $default
+
+echo "
+******************************************************** 
+*     Compiling fctwallet, the cli, and factomd
+******************************************************** 
+"
 compile factoid/fctwallet 
 compile factom-cli  
 compile FactomCode/factomd 
+echo ""
+echo "
+*******************************************************
+*     Running Unit Tests
+*******************************************************
+"
+echo "
++================+
+|     btcd       |
++================+
+"
+go test ./btcd/...
+
+echo "
++================+
+|  FactomCode    |
++================+
+"
+go test ./FactomCode/...
+
+echo "
++================+
+|   factoids     |
++================+
+"
+go test ./factoid/...
+
 
 cd FactomCode
-
-
-   

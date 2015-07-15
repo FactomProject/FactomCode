@@ -209,7 +209,6 @@ func Start_Processor(
 
 // Serve the "fast lane" incoming control msg from inCtlMsgQueue
 func serveCtlMsgRequest(msg wire.FtmInternalMsg) error {
-	util.Trace()
 
 	switch msg.Command() {
 	case wire.CmdCommitChain:
@@ -265,7 +264,6 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		outMsgQueue <- msg
 
 	case wire.CmdInt_EOM:
-		util.Trace("CmdInt_EOM")
 
 		if nodeMode == common.SERVER_NODE {
 			msgEom, ok := msg.(*wire.MsgInt_EOM)
@@ -273,9 +271,12 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 				return errors.New("Error in build blocks:" + fmt.Sprintf("%+v", msg))
 			}
 			procLog.Infof("PROCESSOR: End of minute msg - wire.CmdInt_EOM:%+v\n", msg)
-
+            
+            common.FactoidState.EndOfPeriod(int(msgEom.EOM_Type))
+            
 			if msgEom.EOM_Type == wire.END_MINUTE_10 {
-				// Process from Orphan pool before the end of process list
+              
+                // Process from Orphan pool before the end of process list
 				processFromOrphanPool()
 
 				// Pass the Entry Credit Exchange Rate into the Factoid component
@@ -290,7 +291,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 				}
 
 			} else if msgEom.EOM_Type >= wire.END_MINUTE_1 && msgEom.EOM_Type < wire.END_MINUTE_10 {
-				ack, err := plMgr.AddMyProcessListItem(msgEom, nil, msgEom.EOM_Type)
+                ack, err := plMgr.AddMyProcessListItem(msgEom, nil, msgEom.EOM_Type)
 				if err != nil {
 					return err
 				}
@@ -335,13 +336,12 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		}
 
 	case wire.CmdFactoidTX:
-		util.Trace("some mode: CmdFactoidTX")
+		//		util.Trace("some mode: CmdFactoidTX")
 
 		if nodeMode == common.SERVER_NODE {
-			util.Trace("server mode; TODO")
+			//			util.Trace("server mode")
 			t := (msg.(*wire.MsgFactoidTX)).Transaction
 			if common.FactoidState.AddTransaction(t) {
-				fmt.Println("Recorded:")
 				for _, ecout := range t.GetECOutputs() {
 
 					pub := new([32]byte)
@@ -350,18 +350,14 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 					th.SetBytes(t.GetHash().Bytes())
 					credits := int32(ecout.GetAmount() / uint64(FactoshisPerCredit))
 					processBuyEntryCredit(pub, credits, th)
-					incBal := common.NewIncreaseBalance(pub, th, credits)
+					incBal := common.MakeIncreaseBalance(pub, th, credits)
 
 					ecchain.NextBlock.AddEntry(incBal)
 				}
-			} else {
-				fmt.Println("Failed:")
 			}
-			fmt.Println(t)
 		} else {
 			// client-mode, milestone 1 - transmit to the server node
-			util.Trace("client mode; TODO")
-			// TODO: test ...
+			//			util.Trace("client mode; TODO")
 			outMsgQueue <- msg
 		}
 
@@ -766,7 +762,7 @@ func buildGenesisBlocks() error {
 	data, _ := FBlock.MarshalBinary()
 	procLog.Debugf("\n\n ", common.Sha(data).String(), "\n\n")
 	dchain.AddFBlockToDBEntry(FBlock)
-	fmt.Println("Factoid genesis block hash:", FBlock.GetHash())
+    procLog.Debugf("Factoid genesis block hash: %v\n", FBlock.GetHash())
 	exportFctChain(fchain)
 	// Add transactions from genesis block to factoid balances
 	common.FactoidState.AddTransactionBlock(FBlock)
@@ -792,8 +788,7 @@ func buildGenesisBlocks() error {
 
 // build blocks from all process lists
 func buildBlocks() error {
-	util.Trace()
-
+	
 	// Allocate the first three dbentries for Admin block, ECBlock and Factoid block
 	dchain.AddDBEntry(&common.DBEntry{}) // AdminBlock
 	dchain.AddDBEntry(&common.DBEntry{}) // ECBlock
@@ -810,13 +805,13 @@ func buildBlocks() error {
 
 	// Admin chain
 	aBlock := newAdminBlock(achain)
-	//fmt.Printf("buildGenesisBlocks: aBlock=%s\n", spew.Sdump(aBlock))
+	
 	dchain.AddABlockToDBEntry(aBlock)
 	exportABlock(aBlock)
 
 	// Factoid chain
 	fBlock := newFactoidBlock(fchain)
-	//fmt.Printf("buildGenesisBlocks: aBlock=%s\n", spew.Sdump(aBlock))
+	
 	dchain.AddFBlockToDBEntry(fBlock)
 	exportFctBlock(fBlock)
 
@@ -898,47 +893,21 @@ func newEntryBlock(chain *common.EChain) *common.EBlock {
 	if block == nil {
 		return nil
 	}
-	if len(block.EBEntries) < 1 {
+	if len(block.Body.EBEntries) < 1 {
 		procLog.Debug("No new entry found. No block created for chain: " + chain.ChainID.String())
 		return nil
 	}
 
 	// Create the block and add a new block for new coming entries
 	block.Header.DBHeight = dchain.NextDBHeight
-	block.Header.EntryCount = uint32(len(block.EBEntries))
-	block.Header.StartTime = uint64(dchain.NextBlock.Header.Timestamp)
+	block.Header.EntryCount = uint32(len(block.Body.EBEntries))
 
-	if devNet {
-		block.Header.NetworkID = common.NETWORK_ID_TEST
-	} else {
-		block.Header.NetworkID = common.NETWORK_ID_EB
-	}
-
-	// Create the Entry Block Body Merkle Root from EB Entries
-	hashes := make([]*common.Hash, 0, len(block.EBEntries))
-	for _, entry := range block.EBEntries {
-		hashes = append(hashes, entry.EntryHash)
-	}
-	merkle := common.BuildMerkleTreeStore(hashes)
-	block.Header.BodyMR = merkle[len(merkle)-1]
-
-	// Create the Entry Block Key Merkle Root from the hash of Header and the Body Merkle Root
-	hashes = make([]*common.Hash, 0, 2)
-	binaryEBHeader, _ := block.Header.MarshalBinary()
-	hashes = append(hashes, common.Sha(binaryEBHeader))
-	hashes = append(hashes, block.Header.BodyMR)
-	merkle = common.BuildMerkleTreeStore(hashes)
-	block.MerkleRoot = merkle[len(merkle)-1] // MerkleRoot is not marshalized in Entry Block
-	blkhash, _ := common.CreateHash(block)
-	block.EBHash = blkhash
-
-	block.IsSealed = true
 	chain.NextBlockHeight++
-	chain.NextBlock, _ = common.CreateBlock(chain, block, 10)
+	chain.NextBlock = common.MakeEBlock(chain, block)
 
 	//Store the block in db
 	db.ProcessEBlockBatch(block)
-	procLog.Infof("EntryBlock: block" + strconv.FormatUint(uint64(block.Header.EBHeight), 10) + " created for chain: " + chain.ChainID.String())
+	procLog.Infof("EntryBlock: block" + strconv.FormatUint(uint64(block.Header.EBSequence), 10) + " created for chain: " + chain.ChainID.String())
 	return block
 }
 
@@ -1012,7 +981,6 @@ func newFactoidBlock(chain *common.FctChain) block.IFBlock {
 	chain.BlockMutex.Unlock()
 
 	//Store the block in db
-	fmt.Printf("processor: currentBlock=%s\n", currentBlock)
 	db.ProcessFBlockBatch(currentBlock)
 	procLog.Infof("Factoid chain: block " + strconv.FormatUint(uint64(currentBlock.GetDBHeight()), 10) + " created for chain: " + chain.ChainID.String())
 

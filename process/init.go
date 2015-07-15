@@ -204,8 +204,8 @@ func initEChains() {
 
 	for _, chain := range chains {
 		var newChain = chain
-		chainIDMap[newChain.ChainID.String()] = &newChain
-		exportEChain(&chain)
+		chainIDMap[newChain.ChainID.String()] = newChain
+		exportEChain(chain)
 	}
 
 }
@@ -225,7 +225,7 @@ func initializeECreditMap(block *common.ECBlock) {
 			common.FactoidState.UpdateECBalance(fct.NewAddress(e.ECPubKey[:]), int64(e.Credits))
 		case common.ECIDBalanceIncrease:
 			e := entry.(*common.IncreaseBalance)
-			eCreditMap[string(e.ECPubKey[:])] += int32(e.Credits)
+			eCreditMap[string(e.ECPubKey[:])] += int32(e.NumEC)
 			// Don't add the Increases to Factoid state, the Factoid processing will do that.
 		case common.ECIDServerIndexNumber:
 		case common.ECIDMinuteNumber:
@@ -262,30 +262,27 @@ func initEChainFromDB(chain *common.EChain) {
 	sort.Sort(util.ByEBlockIDAccending(*eBlocks))
 
 	for i := 0; i < len(*eBlocks); i = i + 1 {
-		if uint32(i) != (*eBlocks)[i].Header.EBHeight {
-			panic(errors.New("BlockID does not equal index for chain:" + chain.ChainID.String() + " block:" + fmt.Sprintf("%v", (*eBlocks)[i].Header.EBHeight)))
+		if uint32(i) != (*eBlocks)[i].Header.EBSequence {
+			panic(errors.New("BlockID does not equal index for chain:" + chain.ChainID.String() + " block:" + fmt.Sprintf("%v", (*eBlocks)[i].Header.EBSequence)))
 		}
 	}
 
 	if len(*eBlocks) == 0 {
 		chain.NextBlockHeight = 0
-		chain.NextBlock, _ = common.CreateBlock(chain, nil, 10)
+		chain.NextBlock = common.MakeEBlock(chain, nil)
 	} else {
 		chain.NextBlockHeight = uint32(len(*eBlocks))
-		chain.NextBlock, _ = common.CreateBlock(chain, &(*eBlocks)[len(*eBlocks)-1], 10)
+		chain.NextBlock = common.MakeEBlock(chain, &(*eBlocks)[len(*eBlocks)-1])
 	}
 
 	// Initialize chain with the first entry (Name and rules) for non-server mode
 	if nodeMode != common.SERVER_NODE && chain.FirstEntry == nil && len(*eBlocks) > 0 {
-		chain.FirstEntry, _ = db.FetchEntryByHash((*eBlocks)[0].EBEntries[0].EntryHash)
+		chain.FirstEntry, _ = db.FetchEntryByHash((*eBlocks)[0].Body.EBEntries[0])
 		if chain.FirstEntry != nil {
 			db.InsertChain(chain)
 		}
 	}
 
-	if chain.NextBlock.IsSealed == true {
-		panic("chain.NextBlock.IsSealed for chain:" + chain.ChainID.String())
-	}
 }
 
 // Validate dir chain from genesis block
@@ -308,7 +305,9 @@ func validateDChain(c *common.DChain) error {
 	//validate the genesis block
 	//prevBlkHash is the block hash for c.Blocks[0]
 	if prevBlkHash == nil || prevBlkHash.String() != common.GENESIS_DIR_BLOCK_HASH {
-		panic("Genesis dir block is not as expected: " + prevBlkHash.String())
+		panic("\n\nGenesis dir block is not as expected.\n" + 
+        "\n    Expected: "+common.GENESIS_DIR_BLOCK_HASH+
+        "\n    Found:    "+prevBlkHash.String()+"\n\n")
 	}
 
 	for i := 1; i < len(c.Blocks); i++ {
@@ -417,16 +416,14 @@ func validateEBlockByMR(cid *common.Hash, mr *common.Hash) error {
 		return errors.New("Entry block not found in db for merkle root: " + mr.String())
 	}
 
-	eb.BuildMerkleRoot()
-
-	if !mr.IsSameAs(eb.MerkleRoot) {
+	if !mr.IsSameAs(eb.KeyMR()) {
 		return errors.New("Entry block's merkle root does not match with: " + mr.String())
 	}
 
-	for _, ebEntry := range eb.EBEntries {
-		entry, _ := db.FetchEntryByHash(ebEntry.EntryHash)
+	for _, ebEntry := range eb.Body.EBEntries {
+		entry, _ := db.FetchEntryByHash(ebEntry)
 		if entry == nil {
-			return errors.New("Entry not found in db for entry hash: " + ebEntry.EntryHash.String())
+			return errors.New("Entry not found in db for entry hash: " + ebEntry.String())
 		}
 	}
 
