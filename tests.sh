@@ -74,8 +74,11 @@ checkout() {
             else
                 echo " defaulting to" $3
             fi
-        fi
-        git status | awk '/^Untracked files.*/ {g=1; print"\t"$0}; /^\t.*/ { if(g) print"\t"$0 };$1=="modified:" {print"\t"$0}'
+        fi 
+        git status | awk '/^Your branch is [ab]/ {print"\t"$0}'
+        git status | awk '$1=="modified:" {print"\t"$0}'
+        git status | awk '/^Untracked files.*/ {g=1; print"\t"$0}; /^\t.*/ { if(g) print"\t"$0 }'
+
         cd $current
    else
         echo $1 | awk "{printf(\"%15s\",\"$1\")}"
