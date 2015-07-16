@@ -77,7 +77,7 @@ checkout() {
         fi 
         git status | awk '/^Your branch is [ab]/ {$1="";$2="";FS=" ";printf(" and%s",$0)}'
         echo
-        git status | awk '$1=="modified:" {if(!a[$0]){print"\t"$0}; a[$0]=1}'
+        git status | awk '/:/ {if(!a[$0]){print"\t\t"$0}; a[$0]=1}'
         git status | awk '/^Untracked files.*/ {g=1}; /^\t.*/ { if(g) print"\t\tUntracked:  "$1 }'
 
         cd $current
