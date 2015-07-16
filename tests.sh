@@ -53,7 +53,7 @@ default=master
 else
 default=$2
 fi
-fi
+fi 
 checkout() {
     current=`pwd` 
     cd $1 $2 > /dev/null 2>&1 
@@ -61,23 +61,24 @@ checkout() {
         echo $1 | awk "{printf(\"%15s\",\"$1\")}"
         git checkout -q $2 > /dev/null 2>&1
         if [ $? -eq 0 ]; then
-            echo -e " now on" $2    # checkout did not fail
+            echo -e -n " now on" $2    # checkout did not fail
         else 
             git checkout -q $3 > /dev/null 2>&1
             if [ $? -ne 0 ]; then
                 git checkout -q master > /dev/null 2>&1
                 if [ $? -ne 0 ]; then
-                   echo -e " ****checkout failed!!!"
+                   echo -e -n " ****checkout failed!!!"
                 else
-                   echo " defaulting to master"
+                   echo -n " defaulting to master"
                 fi
             else
-                echo " defaulting to" $3
+                echo -n " defaulting to" $3
             fi
         fi 
-        git status | awk '/^Your branch is [ab]/ {print"\t"$0}'
-        git status | awk '$1=="modified:" {print"\t"$0}'
-        git status | awk '/^Untracked files.*/ {g=1; print"\t"$0}; /^\t.*/ { if(g) print"\t"$0 }'
+        git status | awk '/^Your branch is [ab]/ {$1="";$2="";FS=" ";printf(" and%s",$0)}'
+        echo
+        git status | awk '$1=="modified:" {if(!a[$0]){print"\t"$0}; a[$0]=1}'
+        git status | awk '/^Untracked files.*/ {g=1}; /^\t.*/ { if(g) print"\t\tUntracked:  "$1 }'
 
         cd $current
    else
@@ -153,6 +154,13 @@ echo "
 +================+
 "
 go test ./factoid/...
+
+echo "
++================+
+|  Factom-cli   |
++================+
+"
+go test ./factom-cli/...
 
 
 cd FactomCode
