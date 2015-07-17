@@ -188,7 +188,7 @@ func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, d
 		}
 	}
 
-	for _, dbEntry := range b.DBEntries {
+	for _, dbEntry := range b.Body.DBEntries {
 		switch dbEntry.ChainID.String() {
 		case ecchain.ChainID.String():
 			if _, ok := fMemPool.blockpool[dbEntry.KeyMR.String()]; !ok {
@@ -234,7 +234,7 @@ func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, d
 // Need to make a batch insert in db in milestone 2
 func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db database.Db) error {
 
-	for _, dbEntry := range b.DBEntries {
+	for _, dbEntry := range b.Body.DBEntries {
 		switch dbEntry.ChainID.String() {
 		case ecchain.ChainID.String():
 			ecBlkMsg := fMemPool.blockpool[dbEntry.KeyMR.String()].(*wire.MsgECBlock)
@@ -325,7 +325,7 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 // Validate the new blocks in mem pool and store them in db
 func deleteBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool) error {
 
-	for _, dbEntry := range b.DBEntries {
+	for _, dbEntry := range b.Body.DBEntries {
 		switch dbEntry.ChainID.String() {
 		case ecchain.ChainID.String():
 			delete(fMemPool.blockpool, dbEntry.KeyMR.String())

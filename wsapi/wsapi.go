@@ -94,14 +94,14 @@ func handleCommitChain(ctx *web.Context) {
 		ctx.Write([]byte(err.Error()))
 		return
 	} else {
-        if err := commit.UnmarshalBinary(p); err != nil {
-            wsLog.Error(err)
+		if err := commit.UnmarshalBinary(p); err != nil {
+			wsLog.Error(err)
 			ctx.WriteHeader(httpBad)
 			ctx.Write([]byte(err.Error()))
-            return
-        }
-    }
-    
+			return
+		}
+	}
+
 	if err := factomapi.CommitChain(commit); err != nil {
 		wsLog.Error(err)
 		ctx.WriteHeader(httpBad)
@@ -109,7 +109,7 @@ func handleCommitChain(ctx *web.Context) {
 		return
 	}
 
-//	ctx.WriteHeader(httpOK)
+	//	ctx.WriteHeader(httpOK)
 }
 
 func handleRevealChain(ctx *web.Context) {
@@ -201,7 +201,7 @@ func handleRevealEntry(ctx *web.Context) {
 		return
 	}
 
-//	ctx.WriteHeader(httpOK)
+	//	ctx.WriteHeader(httpOK)
 }
 
 func handleDirectoryBlockHead(ctx *web.Context) {
@@ -256,7 +256,7 @@ func handleDirectoryBlock(ctx *web.Context, keymr string) {
 		d.Header.PrevBlockKeyMR = block.Header.PrevKeyMR.String()
 		d.Header.SequenceNumber = block.Header.DBHeight
 		d.Header.TimeStamp = uint64(block.Header.Timestamp) * 60 //Converting from minutes to seconds
-		for _, v := range block.DBEntries {
+		for _, v := range block.Body.DBEntries {
 			l := new(eblockaddr)
 			l.ChainID = v.ChainID.String()
 			l.KeyMR = v.KeyMR.String()
@@ -273,7 +273,7 @@ func handleDirectoryBlock(ctx *web.Context, keymr string) {
 		ctx.Write(p)
 	}
 
-//	ctx.WriteHeader(httpOK)
+	//	ctx.WriteHeader(httpOK)
 }
 
 func handleEntryBlock(ctx *web.Context, keymr string) {
@@ -301,7 +301,7 @@ func handleEntryBlock(ctx *web.Context, keymr string) {
 		e.Header.BlockSequenceNumber = block.Header.EBSequence
 		e.Header.ChainID = block.Header.ChainID.String()
 		e.Header.PrevKeyMR = block.Header.PrevKeyMR.String()
-//		e.Header.TimeStamp = block.Header.StartTime
+		//		e.Header.TimeStamp = block.Header.StartTime
 		for _, v := range block.Body.EBEntries {
 			l := new(entryaddr)
 			l.EntryHash = v.String()
@@ -318,7 +318,7 @@ func handleEntryBlock(ctx *web.Context, keymr string) {
 		ctx.Write(p)
 	}
 
-//	ctx.WriteHeader(httpOK)
+	//	ctx.WriteHeader(httpOK)
 }
 
 func handleEntry(ctx *web.Context, hash string) {
@@ -381,37 +381,37 @@ func handleChainHead(ctx *web.Context, chainid string) {
 }
 
 type ecbal struct {
-    Balance uint32
+	Balance uint32
 }
 
 func handleEntryCreditBalance(ctx *web.Context, eckey string) {
-    type ecbal struct {
-        Response string
-        Success  bool
-    }
-    var b ecbal
-    adr, err := hex.DecodeString(eckey)
-    if err == nil && len(adr) != common.HASH_LENGTH {
-        b = ecbal{Response: "Invalid Address", Success: false,}
-    }
-    if err == nil {
-        if bal, err := factomapi.ECBalance(eckey); err != nil {
-            wsLog.Error(err)
-            return
-        } else {
-            str := fmt.Sprintf("%d",bal)
-            b = ecbal{Response: str, Success: true,}
-        }
-    } else {
-        b = ecbal{Response: err.Error(), Success: false,}
-    }
-    
-    if p, err := json.Marshal(b); err != nil {
-        wsLog.Error(err)
-        return
-    } else {
-        ctx.Write(p)
-    }
+	type ecbal struct {
+		Response string
+		Success  bool
+	}
+	var b ecbal
+	adr, err := hex.DecodeString(eckey)
+	if err == nil && len(adr) != common.HASH_LENGTH {
+		b = ecbal{Response: "Invalid Address", Success: false}
+	}
+	if err == nil {
+		if bal, err := factomapi.ECBalance(eckey); err != nil {
+			wsLog.Error(err)
+			return
+		} else {
+			str := fmt.Sprintf("%d", bal)
+			b = ecbal{Response: str, Success: true}
+		}
+	} else {
+		b = ecbal{Response: err.Error(), Success: false}
+	}
+
+	if p, err := json.Marshal(b); err != nil {
+		wsLog.Error(err)
+		return
+	} else {
+		ctx.Write(p)
+	}
 
 }
 
@@ -422,13 +422,13 @@ func handleFactoidBalance(ctx *web.Context, eckey string) {
 	}
 	var b fbal
 	adr, err := hex.DecodeString(eckey)
-    if err == nil && len(adr) != common.HASH_LENGTH {
-        b = fbal{Response: "Invalid Address", Success: false,}
-    }
+	if err == nil && len(adr) != common.HASH_LENGTH {
+		b = fbal{Response: "Invalid Address", Success: false}
+	}
 	if err == nil {
 		v := int64(common.FactoidState.GetBalance(fct.NewAddress(adr)))
-        str := fmt.Sprintf("%d",v)
-		b = fbal{Response: str, Success: true,}
+		str := fmt.Sprintf("%d", v)
+		b = fbal{Response: str, Success: true}
 	} else {
 		b = fbal{Response: err.Error(), Success: false}
 	}

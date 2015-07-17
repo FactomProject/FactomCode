@@ -110,7 +110,7 @@ func initProcessor() {
 	// init Directory Block Chain
 	initDChain()
 
-	procLog.Info("Loaded ", dchain.NextDBHeight, " Directory blocks for chain: "+dchain.ChainID.String())
+	procLog.Info("Loaded ", dchain.NextBlockHeight, " Directory blocks for chain: "+dchain.ChainID.String())
 
 	// init Entry Credit Chain
 	initECChain()
@@ -127,7 +127,7 @@ func initProcessor() {
 	anchor.InitAnchor(db)
 
 	// build the Genesis blocks if the current height is 0
-	if dchain.NextDBHeight == 0 && nodeMode == common.SERVER_NODE {
+	if dchain.NextBlockHeight == 0 && nodeMode == common.SERVER_NODE {
 		buildGenesisBlocks()
 	} else {
 		// To be improved in milestone 2
@@ -176,7 +176,7 @@ func Start_Processor(
 	// Initialize timer for the open dblock before processing messages
 	if nodeMode == common.SERVER_NODE {
 		timer := &BlockTimer{
-			nextDBlockHeight: dchain.NextDBHeight,
+			nextDBlockHeight: dchain.NextBlockHeight,
 			inCtlMsgQueue:    inCtlMsgQueue,
 		}
 		go timer.StartBlockTimer()
@@ -271,12 +271,12 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 				return errors.New("Error in build blocks:" + fmt.Sprintf("%+v", msg))
 			}
 			procLog.Infof("PROCESSOR: End of minute msg - wire.CmdInt_EOM:%+v\n", msg)
-            
-            common.FactoidState.EndOfPeriod(int(msgEom.EOM_Type))
-            
+
+			common.FactoidState.EndOfPeriod(int(msgEom.EOM_Type))
+
 			if msgEom.EOM_Type == wire.END_MINUTE_10 {
-              
-                // Process from Orphan pool before the end of process list
+
+				// Process from Orphan pool before the end of process list
 				processFromOrphanPool()
 
 				// Pass the Entry Credit Exchange Rate into the Factoid component
@@ -291,7 +291,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 				}
 
 			} else if msgEom.EOM_Type >= wire.END_MINUTE_1 && msgEom.EOM_Type < wire.END_MINUTE_10 {
-                ack, err := plMgr.AddMyProcessListItem(msgEom, nil, msgEom.EOM_Type)
+				ack, err := plMgr.AddMyProcessListItem(msgEom, nil, msgEom.EOM_Type)
 				if err != nil {
 					return err
 				}
@@ -445,8 +445,8 @@ func processAcknowledgement(msg *wire.MsgAcknowledgement) error {
 	}
 
 	// Update the next block height in dchain
-	if msg.Height > dchain.NextDBHeight {
-		dchain.NextDBHeight = msg.Height
+	if msg.Height > dchain.NextBlockHeight {
+		dchain.NextBlockHeight = msg.Height
 	}
 
 	// Update the next block height in db
@@ -762,7 +762,7 @@ func buildGenesisBlocks() error {
 	data, _ := FBlock.MarshalBinary()
 	procLog.Debugf("\n\n ", common.Sha(data).String(), "\n\n")
 	dchain.AddFBlockToDBEntry(FBlock)
-    procLog.Debugf("Factoid genesis block hash: %v\n", FBlock.GetHash())
+	procLog.Debugf("Factoid genesis block hash: %v\n", FBlock.GetHash())
 	exportFctChain(fchain)
 	// Add transactions from genesis block to factoid balances
 	common.FactoidState.AddTransactionBlock(FBlock)
@@ -788,7 +788,7 @@ func buildGenesisBlocks() error {
 
 // build blocks from all process lists
 func buildBlocks() error {
-	
+
 	// Allocate the first three dbentries for Admin block, ECBlock and Factoid block
 	dchain.AddDBEntry(&common.DBEntry{}) // AdminBlock
 	dchain.AddDBEntry(&common.DBEntry{}) // ECBlock
@@ -805,13 +805,13 @@ func buildBlocks() error {
 
 	// Admin chain
 	aBlock := newAdminBlock(achain)
-	
+
 	dchain.AddABlockToDBEntry(aBlock)
 	exportABlock(aBlock)
 
 	// Factoid chain
 	fBlock := newFactoidBlock(fchain)
-	
+
 	dchain.AddFBlockToDBEntry(fBlock)
 	exportFctBlock(fBlock)
 
@@ -845,7 +845,7 @@ func buildBlocks() error {
 
 	// Update dir block height cache in db
 	db.UpdateBlockHeightCache(dbBlock.Header.DBHeight, commonHash)
-	db.UpdateNextBlockHeightCache(dchain.NextDBHeight)
+	db.UpdateNextBlockHeightCache(dchain.NextBlockHeight)
 
 	exportDBlock(dbBlock)
 
@@ -855,7 +855,7 @@ func buildBlocks() error {
 	// Initialize timer for the new dblock
 	if nodeMode == common.SERVER_NODE {
 		timer := &BlockTimer{
-			nextDBlockHeight: dchain.NextDBHeight,
+			nextDBlockHeight: dchain.NextBlockHeight,
 			inCtlMsgQueue:    inCtlMsgQueue,
 		}
 		go timer.StartBlockTimer()
@@ -899,7 +899,7 @@ func newEntryBlock(chain *common.EChain) *common.EBlock {
 	}
 
 	// Create the block and add a new block for new coming entries
-	block.Header.DBHeight = dchain.NextDBHeight
+	block.Header.DBHeight = dchain.NextBlockHeight
 	block.Header.EntryCount = uint32(len(block.Body.EBEntries))
 
 	chain.NextBlockHeight++
@@ -917,8 +917,8 @@ func newEntryCreditBlock(chain *common.ECChain) *common.ECBlock {
 	// acquire the last block
 	block := chain.NextBlock
 
-	if chain.NextBlockHeight != dchain.NextDBHeight {
-		panic("Entry Credit Block height does not match Directory Block height:" + string(dchain.NextDBHeight))
+	if chain.NextBlockHeight != dchain.NextBlockHeight {
+		panic("Entry Credit Block height does not match Directory Block height:" + string(dchain.NextBlockHeight))
 	}
 
 	block.BuildHeader()
@@ -942,8 +942,8 @@ func newAdminBlock(chain *common.AdminChain) *common.AdminBlock {
 	// acquire the last block
 	block := chain.NextBlock
 
-	if chain.NextBlockHeight != dchain.NextDBHeight {
-		panic("Admin Block height does not match Directory Block height:" + string(dchain.NextDBHeight))
+	if chain.NextBlockHeight != dchain.NextBlockHeight {
+		panic("Admin Block height does not match Directory Block height:" + string(dchain.NextBlockHeight))
 	}
 
 	block.Header.MessageCount = uint32(len(block.ABEntries))
@@ -969,8 +969,8 @@ func newFactoidBlock(chain *common.FctChain) block.IFBlock {
 	// acquire the last block
 	currentBlock := chain.NextBlock
 
-	if chain.NextBlockHeight != dchain.NextDBHeight {
-		panic("Factoid Block height does not match Directory Block height:" + strconv.Itoa(int(dchain.NextDBHeight)))
+	if chain.NextBlockHeight != dchain.NextBlockHeight {
+		panic("Factoid Block height does not match Directory Block height:" + strconv.Itoa(int(dchain.NextBlockHeight)))
 	}
 
 	chain.BlockMutex.Lock()
@@ -1001,7 +1001,7 @@ func newDirectoryBlock(chain *common.DChain) *common.DirectoryBlock {
 
 	// Create the block add a new block for new coming entries
 	chain.BlockMutex.Lock()
-	block.Header.BlockCount = uint32(len(block.DBEntries))
+	block.Header.BlockCount = uint32(len(block.Body.DBEntries))
 	// Calculate Merkle Root for FBlock and store it in header
 	if block.Header.BodyMR == nil {
 		block.Header.BodyMR, _ = block.BuildBodyMR()
@@ -1009,7 +1009,7 @@ func newDirectoryBlock(chain *common.DChain) *common.DirectoryBlock {
 	}
 	block.IsSealed = true
 	chain.AddDBlockToDChain(block)
-	chain.NextDBHeight++
+	chain.NextBlockHeight++
 	chain.NextBlock, _ = common.CreateDBlock(chain, block, 10)
 	chain.BlockMutex.Unlock()
 
@@ -1034,9 +1034,9 @@ func newDirectoryBlock(chain *common.DChain) *common.DirectoryBlock {
 // Sign the directory block
 func SignDirectoryBlock() error {
 	// Only Servers can write the anchor to Bitcoin network
-	if nodeMode == common.SERVER_NODE && dchain.NextDBHeight > 0 {
+	if nodeMode == common.SERVER_NODE && dchain.NextBlockHeight > 0 {
 		// get the previous directory block from db
-		dbBlock, _ := db.FetchDBlockByHeight(dchain.NextDBHeight - 1)
+		dbBlock, _ := db.FetchDBlockByHeight(dchain.NextBlockHeight - 1)
 		dbHeaderBytes, _ := dbBlock.Header.MarshalBinary()
 		identityChainID := common.NewHash() // 0 ID for milestone 1
 		sig := serverPrivKey.Sign(dbHeaderBytes)

@@ -18,6 +18,7 @@ const DBlockVersion = 0
 
 type DChain struct {
 	Chain
+	NextBlock   *DirectoryBlock
 	Blocks      []*DirectoryBlock
 	IsValidated bool
 }
@@ -44,16 +45,17 @@ type DirectoryBlock struct {
 	IsValidated bool
 }
 
-func (d DirectoryBlock) GetHeader() *DBlockHeader {
+func (d DirectoryBlock) GetHeader() Header {
 	return d.Header
 }
 
-func (d DirectoryBlock) GetBody() *DBlockBody {
+func (d DirectoryBlock) GetBody() Body {
 	return d.Body
 }
 
 func (d DirectoryBlock) BuildHeader() error {
 	d.Header.BlockCount = uint32(len(d.Body.DBEntries))
+	return nil
 }
 
 func NewDirectoryBlock() *DirectoryBlock {
@@ -237,6 +239,17 @@ func (b *DBlockHeader) EncodableFields() map[string]reflect.Value {
 	return fields
 }
 
+func (b *DBlockHeader) BuildHeader(body interface{}) (err error) {
+	switch body.(type) {
+	case *DBlockBody:
+		break
+	default:
+		return errors.New("Invalid data passed as body")
+	}
+	b.BlockCount = uint32(len(body.(*DBlockBody).DBEntries))
+	return nil
+}
+
 func (b *DBlockHeader) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
 
@@ -288,7 +301,12 @@ func (b *DBlockHeader) MarshalledSize() uint64 {
 	return size
 }
 
-func (b *DBlockHeader) UnmarshalBinary(data []byte) ([]byte, error) {
+func (b *DBlockHeader) UnmarshalBinary(data []byte) error {
+	_, err := b.UnmarshalBinaryReturnRest(data)
+	return err
+}
+
+func (b *DBlockHeader) UnmarshalBinaryReturnRest(data []byte) ([]byte, error) {
 	b.Version, data = data[0], data[1:]
 
 	b.NetworkID, data = binary.BigEndian.Uint32(data[0:4]), data[4:]
@@ -313,9 +331,9 @@ func (b *DBlockHeader) UnmarshalBinary(data []byte) ([]byte, error) {
 }
 
 func CreateDBlock(chain *DChain, prev *DirectoryBlock, cap uint) (b *DirectoryBlock, err error) {
-	if prev == nil && chain.NextDBHeight != 0 {
+	if prev == nil && chain.NextBlockHeight != 0 {
 		return nil, errors.New("Previous block cannot be nil")
-	} else if prev != nil && chain.NextDBHeight == 0 {
+	} else if prev != nil && chain.NextBlockHeight == 0 {
 		return nil, errors.New("Origin block cannot have a parent block")
 	}
 
@@ -335,9 +353,9 @@ func CreateDBlock(chain *DChain, prev *DirectoryBlock, cap uint) (b *DirectoryBl
 		b.Header.PrevKeyMR = prev.KeyMR
 	}
 
-	b.Header.DBHeight = chain.NextDBHeight
+	b.Header.DBHeight = chain.NextBlockHeight
 	b.Chain = chain
-	b.DBEntries = make([]*DBEntry, 0, cap)
+	b.Body.DBEntries = make([]*DBEntry, 0, cap)
 	b.IsSealed = false
 
 	return b, err
@@ -348,7 +366,7 @@ func (c *DChain) AddEBlockToDBEntry(eb *EBlock) (err error) {
 
 	dbEntry := NewDBEntry(eb)
 	c.BlockMutex.Lock()
-	c.NextBlock.DBEntries = append(c.NextBlock.DBEntries, dbEntry)
+	c.NextBlock.Body.DBEntries = append(c.NextBlock.Body.DBEntries, dbEntry)
 	c.BlockMutex.Unlock()
 
 	return nil
@@ -359,13 +377,13 @@ func (c *DChain) AddECBlockToDBEntry(ecb *ECBlock) (err error) {
 
 	dbEntry := NewDBEntryFromECBlock(ecb)
 
-	if len(c.NextBlock.DBEntries) < 3 {
-		panic("1 DBEntries not initialized properly for block: " + string(c.NextDBHeight))
+	if len(c.NextBlock.Body.DBEntries) < 3 {
+		panic("1 DBEntries not initialized properly for block: " + string(c.NextBlockHeight))
 	}
 
 	c.BlockMutex.Lock()
 	// Cblock is always at the first entry
-	c.NextBlock.DBEntries[1] = dbEntry // First three entries are ABlock, CBlock, FBlock
+	c.NextBlock.Body.DBEntries[1] = dbEntry // First three entries are ABlock, CBlock, FBlock
 	c.BlockMutex.Unlock()
 
 	return nil
@@ -378,14 +396,14 @@ func (c *DChain) AddABlockToDBEntry(b *AdminBlock) (err error) {
 	dbEntry.ChainID = b.Header.AdminChainID
 	dbEntry.KeyMR = b.ABHash
 
-	if len(c.NextBlock.DBEntries) < 3 {
-		panic("2 DBEntries not initialized properly for block: " + string(c.NextDBHeight))
+	if len(c.NextBlock.Body.DBEntries) < 3 {
+		panic("2 DBEntries not initialized properly for block: " + string(c.NextBlockHeight))
 	}
 
 	c.BlockMutex.Lock()
 	// Ablock is always at the first entry
 	// First three entries are ABlock, CBlock, FBlock
-	c.NextBlock.DBEntries[0] = dbEntry
+	c.NextBlock.Body.DBEntries[0] = dbEntry
 	c.BlockMutex.Unlock()
 
 	return nil
@@ -401,14 +419,14 @@ func (c *DChain) AddFBlockToDBEntry(b block.IFBlock) (err error) {
 	dbEntry.KeyMR = new(Hash)
 	dbEntry.KeyMR.SetBytes(b.GetHash().Bytes())
 
-	if len(c.NextBlock.DBEntries) < 3 {
-		panic("3 DBEntries not initialized properly for block: " + string(c.NextDBHeight))
+	if len(c.NextBlock.Body.DBEntries) < 3 {
+		panic("3 DBEntries not initialized properly for block: " + string(c.NextBlockHeight))
 	}
 
 	c.BlockMutex.Lock()
 	// Ablock is always at the first entry
 	// First three entries are ABlock, CBlock, FBlock
-	c.NextBlock.DBEntries[2] = dbEntry
+	c.NextBlock.Body.DBEntries[2] = dbEntry
 	c.BlockMutex.Unlock()
 
 	return nil
@@ -418,7 +436,7 @@ func (c *DChain) AddFBlockToDBEntry(b block.IFBlock) (err error) {
 func (c *DChain) AddDBEntry(dbEntry *DBEntry) (err error) {
 
 	c.BlockMutex.Lock()
-	c.NextBlock.DBEntries = append(c.NextBlock.DBEntries, dbEntry)
+	c.NextBlock.Body.DBEntries = append(c.NextBlock.Body.DBEntries, dbEntry)
 	c.BlockMutex.Unlock()
 
 	return nil
@@ -430,13 +448,13 @@ func (c *DChain) AddFBlockMRToDBEntry(dbEntry *DBEntry) (err error) {
 
 	fmt.Println("AddFDBlock >>>>>")
 
-	if len(c.NextBlock.DBEntries) < 3 {
-		panic("4 DBEntries not initialized properly for block: " + string(c.NextDBHeight))
+	if len(c.NextBlock.Body.DBEntries) < 3 {
+		panic("4 DBEntries not initialized properly for block: " + string(c.NextBlockHeight))
 	}
 	c.BlockMutex.Lock()
 	// Factoid entry is alwasy at the same position
 	// First three entries are ABlock, CBlock, FBlock
-	//c.NextBlock.DBEntries[2] = dbEntry
+	//c.NextBlock.Body.DBEntries[2] = dbEntry
 	c.BlockMutex.Unlock()
 
 	return nil
@@ -494,8 +512,8 @@ func (b *DBlockBody) MarshalledSize() uint64 {
 }
 
 func (b *DirectoryBlock) BuildBodyMR() (mr *Hash, err error) {
-	hashes := make([]*Hash, len(b.DBEntries))
-	for i, entry := range b.DBEntries {
+	hashes := make([]*Hash, len(b.Body.DBEntries))
+	for i, entry := range b.Body.DBEntries {
 		data, _ := entry.MarshalBinary()
 		hashes[i] = Sha(data)
 	}
@@ -522,30 +540,48 @@ func (b *DirectoryBlock) BuildKeyMerkleRoot() (err error) {
 	return
 }
 
-func (b *DirectoryBlock) UnmarshalBinary(data []byte) (err error) {
-	fbh := new(DBlockHeader)
-	fbh.UnmarshalBinary(data)
-	b.Header = fbh
-	data = data[fbh.MarshalledSize():]
+func (b *DirectoryBlock) UnmarshalBinary(data []byte) error {
+	_, err := b.UnmarshalBinaryReturnRest(data)
+	return err
+}
 
-	count := b.Header.BlockCount
+func (b *DirectoryBlock) UnmarshalBinaryReturnRest(data []byte) ([]byte, error) {
+	b.Header = new(DBlockHeader)
+	b.Body = new(DBlockBody)
+	return UnmarshalBinary(b, data)
+}
+
+func (b *DirectoryBlock) MarshalBinary() ([]byte, error) {
+	return MarshalBinary(b)
+}
+
+func (b *DBlockBody) UnmarshalBinaryReturnRest(data []byte, header interface{}) ([]byte, error) {
+	switch header.(type) {
+	case *DBlockHeader:
+		break
+	default:
+		return data, errors.New("Invalid data passed as header")
+	}
+
+	tmpData := data[:]
+	count := header.(*DBlockHeader).BlockCount
 	b.DBEntries = make([]*DBEntry, count)
 	for i := uint32(0); i < count; i++ {
 		b.DBEntries[i] = new(DBEntry)
-		err = b.DBEntries[i].UnmarshalBinary(data)
+		err := b.DBEntries[i].UnmarshalBinary(data)
 		if err != nil {
-			return
+			return data, err
 		}
-		data = data[HASH_LENGTH*2:]
+		tmpData = tmpData[HASH_LENGTH*2:]
 	}
 
-	return nil
+	return tmpData, nil
 }
 
 func (b *DirectoryBlock) EncodableFields() map[string]reflect.Value {
 	fields := map[string]reflect.Value{
 		`Header`:    reflect.ValueOf(b.Header),
-		`DBEntries`: reflect.ValueOf(b.DBEntries),
+		`DBEntries`: reflect.ValueOf(b.Body.DBEntries),
 		`DBHash`:    reflect.ValueOf(b.DBHash),
 	}
 	return fields

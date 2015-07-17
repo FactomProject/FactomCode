@@ -53,13 +53,13 @@ func initDChain() {
 
 	//Create an empty block and append to the chain
 	if len(dchain.Blocks) == 0 {
-		dchain.NextDBHeight = 0
+		dchain.NextBlockHeight = 0
 		dchain.NextBlock, _ = common.CreateDBlock(dchain, nil, 10)
 	} else {
-		dchain.NextDBHeight = uint32(len(dchain.Blocks))
+		dchain.NextBlockHeight = uint32(len(dchain.Blocks))
 		dchain.NextBlock, _ = common.CreateDBlock(dchain, dchain.Blocks[len(dchain.Blocks)-1], 10)
 		// Update dir block height cache in db
-		db.UpdateBlockHeightCache(dchain.NextDBHeight-1, dchain.NextBlock.Header.PrevFullHash)
+		db.UpdateBlockHeightCache(dchain.NextBlockHeight-1, dchain.NextBlock.Header.PrevFullHash)
 	}
 
 	exportDChain(dchain)
@@ -93,12 +93,12 @@ func initECChain() {
 	}
 
 	//Create an empty block and append to the chain
-	if len(ecBlocks) == 0 || dchain.NextDBHeight == 0 {
+	if len(ecBlocks) == 0 || dchain.NextBlockHeight == 0 {
 		ecchain.NextBlockHeight = 0
 		ecchain.NextBlock = common.NewECBlock()
 	} else {
 		// Entry Credit Chain should have the same height as the dir chain
-		ecchain.NextBlockHeight = dchain.NextDBHeight
+		ecchain.NextBlockHeight = dchain.NextBlockHeight
 		ecchain.NextBlock = common.NextECBlock(&ecBlocks[ecchain.NextBlockHeight-1])
 	}
 
@@ -136,13 +136,13 @@ func initAChain() {
 	}
 
 	//Create an empty block and append to the chain
-	if len(aBlocks) == 0 || dchain.NextDBHeight == 0 {
+	if len(aBlocks) == 0 || dchain.NextBlockHeight == 0 {
 		achain.NextBlockHeight = 0
 		achain.NextBlock, _ = common.CreateAdminBlock(achain, nil, 10)
 
 	} else {
 		// Entry Credit Chain should have the same height as the dir chain
-		achain.NextBlockHeight = dchain.NextDBHeight
+		achain.NextBlockHeight = dchain.NextBlockHeight
 		achain.NextBlock, _ = common.CreateAdminBlock(achain, &aBlocks[achain.NextBlockHeight-1], 10)
 	}
 
@@ -176,14 +176,14 @@ func initFctChain() {
 	}
 
 	//Create an empty block and append to the chain
-	if len(fBlocks) == 0 || dchain.NextDBHeight == 0 {
+	if len(fBlocks) == 0 || dchain.NextBlockHeight == 0 {
 		fchain.NextBlockHeight = 0
 
 		fchain.NextBlock = block.GetGenesisBlock(
 			0, 1000000, 10, 200000000000)
 	} else {
-		fchain.NextBlockHeight = dchain.NextDBHeight
-		common.FactoidState.ProcessEndOfBlock2(dchain.NextDBHeight)
+		fchain.NextBlockHeight = dchain.NextBlockHeight
+		common.FactoidState.ProcessEndOfBlock2(dchain.NextBlockHeight)
 		fchain.NextBlock = common.FactoidState.GetCurrentBlock()
 	}
 
@@ -251,7 +251,7 @@ func initServerKeys() {
 
 // Initialize the process list manager with the proper dir block height
 func initProcessListMgr() {
-	plMgr = consensus.NewProcessListMgr(dchain.NextDBHeight, 1, 10, serverPrivKey)
+	plMgr = consensus.NewProcessListMgr(dchain.NextBlockHeight, 1, 10, serverPrivKey)
 
 }
 
@@ -292,8 +292,8 @@ func validateDChain(c *common.DChain) error {
 		return nil
 	}
 
-	if uint32(len(c.Blocks)) != c.NextDBHeight {
-		return errors.New("Dir chain has an un-expected Next Block ID: " + strconv.Itoa(int(c.NextDBHeight)))
+	if uint32(len(c.Blocks)) != c.NextBlockHeight {
+		return errors.New("Dir chain has an un-expected Next Block ID: " + strconv.Itoa(int(c.NextBlockHeight)))
 	}
 
 	//prevMR and prevBlkHash are used to validate against the block next in the chain
@@ -305,9 +305,9 @@ func validateDChain(c *common.DChain) error {
 	//validate the genesis block
 	//prevBlkHash is the block hash for c.Blocks[0]
 	if prevBlkHash == nil || prevBlkHash.String() != common.GENESIS_DIR_BLOCK_HASH {
-		panic("\n\nGenesis dir block is not as expected.\n" + 
-        "\n    Expected: "+common.GENESIS_DIR_BLOCK_HASH+
-        "\n    Found:    "+prevBlkHash.String()+"\n\n")
+		panic("\n\nGenesis dir block is not as expected.\n" +
+			"\n    Expected: " + common.GENESIS_DIR_BLOCK_HASH +
+			"\n    Found:    " + prevBlkHash.String() + "\n\n")
 	}
 
 	for i := 1; i < len(c.Blocks); i++ {
@@ -343,7 +343,7 @@ func validateDBlock(c *common.DChain, b *common.DirectoryBlock) (merkleRoot *com
 		return nil, nil, errors.New("Invalid body MR for dir block: " + string(b.Header.DBHeight))
 	}
 
-	for _, dbEntry := range b.DBEntries {
+	for _, dbEntry := range b.Body.DBEntries {
 		switch dbEntry.ChainID.String() {
 		case ecchain.ChainID.String():
 			err := validateCBlockByMR(dbEntry.KeyMR)
