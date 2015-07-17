@@ -53,7 +53,7 @@ default=master
 else
 default=$2
 fi
-fi
+fi 
 checkout() {
     current=`pwd` 
     cd $1 $2 > /dev/null 2>&1 
@@ -75,18 +75,16 @@ checkout() {
                 echo -n " defaulting to" $3
             fi
         fi 
-        git status | awk '/^Your branch is [ab]/ {$1="";$2="";FS=" ";printf(" and%s",$0)}; /Your branch and/{printf("\n\t\t%s",$0)}'
+        git status | awk '/^Your branch is [ab]/ {$1="";$2="";FS=" ";printf(" and%s",$0)}'
         echo
-        git pull 2>&1 | awk '$1=="error:" {print "\t\t"$0};/\|/{print("\t\t"$0)}'
         git status | awk '/:/ {if(!a[$0]){print"\t\t"$0}; a[$0]=1}'
         git status | awk '/^Untracked files.*/ {g=1}; /^\t.*/ { if(g) print"\t\tUntracked:  "$1 }'
-        
-        
+
         cd $current
    else
         echo $1 | awk "{printf(\"%15s\",\"$1\")}"
         echo " not found"
-   fi 
+   fi
 }
 
 compile() {
@@ -133,7 +131,7 @@ compile FactomCode/factomd
 echo ""
 echo "
 *******************************************************
-*     Running Unit Tests    Now safe to Ctrl+C
+*     Running Unit Tests
 *******************************************************
 "
 echo "
@@ -163,5 +161,6 @@ echo "
 +================+
 "
 go test ./factom-cli/...
+
 
 cd FactomCode
