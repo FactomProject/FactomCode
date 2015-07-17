@@ -11,18 +11,15 @@ import (
 	//	"fmt"
 	"github.com/FactomProject/factoid/block"
 	"reflect"
-	"sync"
+	//"sync"
 )
 
 const DBlockVersion = 0
 
 type DChain struct {
-	ChainID      *Hash
-	Blocks       []*DirectoryBlock
-	BlockMutex   sync.Mutex
-	NextBlock    *DirectoryBlock
-	NextDBHeight uint32
-	IsValidated  bool
+	Chain
+	Blocks      []*DirectoryBlock
+	IsValidated bool
 }
 
 func NewDChain() *DChain {
@@ -35,8 +32,8 @@ func NewDChain() *DChain {
 
 type DirectoryBlock struct {
 	//Marshalized
-	Header    *DBlockHeader
-	DBEntries []*DBEntry
+	Header *DBlockHeader
+	Body   *DBlockBody
 
 	//Not Marshalized
 	Chain       *DChain
@@ -47,11 +44,23 @@ type DirectoryBlock struct {
 	IsValidated bool
 }
 
+func (d DirectoryBlock) GetHeader() *DBlockHeader {
+	return d.Header
+}
+
+func (d DirectoryBlock) GetBody() *DBlockBody {
+	return d.Body
+}
+
+func (d DirectoryBlock) BuildHeader() error {
+	d.Header.BlockCount = uint32(len(d.Body.DBEntries))
+}
+
 func NewDirectoryBlock() *DirectoryBlock {
 	d := new(DirectoryBlock)
 	d.Header = NewDBlockHeader()
+	d.Body = NewDBlockBody()
 
-	d.DBEntries = make([]*DBEntry, 0)
 	d.DBHash = NewHash()
 	d.KeyMR = NewHash()
 
@@ -107,6 +116,16 @@ func NewDBlockHeader() *DBlockHeader {
 	d.PrevFullHash = NewHash()
 
 	return d
+}
+
+type DBlockBody struct {
+	DBEntries []*DBEntry
+}
+
+func NewDBlockBody() *DBlockBody {
+	body := new(DBlockBody)
+	body.DBEntries = make([]*DBEntry, 0)
+	return body
 }
 
 type DBEntry struct {
@@ -269,8 +288,7 @@ func (b *DBlockHeader) MarshalledSize() uint64 {
 	return size
 }
 
-func (b *DBlockHeader) UnmarshalBinary(data []byte) (err error) {
-
+func (b *DBlockHeader) UnmarshalBinary(data []byte) ([]byte, error) {
 	b.Version, data = data[0], data[1:]
 
 	b.NetworkID, data = binary.BigEndian.Uint32(data[0:4]), data[4:]
@@ -291,7 +309,7 @@ func (b *DBlockHeader) UnmarshalBinary(data []byte) (err error) {
 	b.DBHeight, data = binary.BigEndian.Uint32(data[0:4]), data[4:]
 	b.BlockCount, data = binary.BigEndian.Uint32(data[0:4]), data[4:]
 
-	return nil
+	return data, nil
 }
 
 func CreateDBlock(chain *DChain, prev *DirectoryBlock, cap uint) (b *DirectoryBlock, err error) {
@@ -456,14 +474,8 @@ func (c *DChain) IsBlockExisting(height uint32) bool {
 	return false
 }
 
-func (b *DirectoryBlock) MarshalBinary() (data []byte, err error) {
+func (b *DBlockBody) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
-
-	data, err = b.Header.MarshalBinary()
-	if err != nil {
-		return
-	}
-	buf.Write(data)
 
 	count := uint32(len(b.DBEntries))
 	for i := uint32(0); i < count; i = i + 1 {
@@ -475,6 +487,10 @@ func (b *DirectoryBlock) MarshalBinary() (data []byte, err error) {
 	}
 
 	return buf.Bytes(), err
+}
+
+func (b *DBlockBody) MarshalledSize() uint64 {
+	return uint64(len(b.DBEntries) * 2 * HASH_LENGTH)
 }
 
 func (b *DirectoryBlock) BuildBodyMR() (mr *Hash, err error) {
@@ -512,7 +528,7 @@ func (b *DirectoryBlock) UnmarshalBinary(data []byte) (err error) {
 	b.Header = fbh
 	data = data[fbh.MarshalledSize():]
 
-	count:=b.Header.BlockCount
+	count := b.Header.BlockCount
 	b.DBEntries = make([]*DBEntry, count)
 	for i := uint32(0); i < count; i++ {
 		b.DBEntries[i] = new(DBEntry)
