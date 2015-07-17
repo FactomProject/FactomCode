@@ -133,7 +133,7 @@ compile FactomCode/factomd
 echo ""
 echo "
 *******************************************************
-*     Running Unit Tests
+*     Running Unit Tests    Now safe to Ctrl+C
 *******************************************************
 "
 echo "
