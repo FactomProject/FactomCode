@@ -29,6 +29,8 @@ import (
 
 var _ = (*block.FBlock)(nil)
 
+var _ = util.Trace
+
 var (
 	db       database.Db        // database
 	dchain   *common.DChain     //Directory Block Chain
@@ -271,12 +273,12 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 				return errors.New("Error in build blocks:" + fmt.Sprintf("%+v", msg))
 			}
 			procLog.Infof("PROCESSOR: End of minute msg - wire.CmdInt_EOM:%+v\n", msg)
-            
-            common.FactoidState.EndOfPeriod(int(msgEom.EOM_Type))
-            
+
+			common.FactoidState.EndOfPeriod(int(msgEom.EOM_Type))
+
 			if msgEom.EOM_Type == wire.END_MINUTE_10 {
-              
-                // Process from Orphan pool before the end of process list
+
+				// Process from Orphan pool before the end of process list
 				processFromOrphanPool()
 
 				// Pass the Entry Credit Exchange Rate into the Factoid component
@@ -291,7 +293,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 				}
 
 			} else if msgEom.EOM_Type >= wire.END_MINUTE_1 && msgEom.EOM_Type < wire.END_MINUTE_10 {
-                ack, err := plMgr.AddMyProcessListItem(msgEom, nil, msgEom.EOM_Type)
+				ack, err := plMgr.AddMyProcessListItem(msgEom, nil, msgEom.EOM_Type)
 				if err != nil {
 					return err
 				}
@@ -762,7 +764,7 @@ func buildGenesisBlocks() error {
 	data, _ := FBlock.MarshalBinary()
 	procLog.Debugf("\n\n ", common.Sha(data).String(), "\n\n")
 	dchain.AddFBlockToDBEntry(FBlock)
-    procLog.Debugf("Factoid genesis block hash: %v\n", FBlock.GetHash())
+	procLog.Debugf("Factoid genesis block hash: %v\n", FBlock.GetHash())
 	exportFctChain(fchain)
 	// Add transactions from genesis block to factoid balances
 	common.FactoidState.AddTransactionBlock(FBlock)
@@ -788,7 +790,7 @@ func buildGenesisBlocks() error {
 
 // build blocks from all process lists
 func buildBlocks() error {
-	
+
 	// Allocate the first three dbentries for Admin block, ECBlock and Factoid block
 	dchain.AddDBEntry(&common.DBEntry{}) // AdminBlock
 	dchain.AddDBEntry(&common.DBEntry{}) // ECBlock
@@ -805,13 +807,13 @@ func buildBlocks() error {
 
 	// Admin chain
 	aBlock := newAdminBlock(achain)
-	
+
 	dchain.AddABlockToDBEntry(aBlock)
 	exportABlock(aBlock)
 
 	// Factoid chain
 	fBlock := newFactoidBlock(fchain)
-	
+
 	dchain.AddFBlockToDBEntry(fBlock)
 	exportFctBlock(fBlock)
 
