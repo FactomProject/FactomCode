@@ -139,28 +139,28 @@ echo "
 |     btcd       |
 +================+
 "
-go test ./btcd/...
+go test -short  ./btcd/...
 
 echo "
 +================+
 |  FactomCode    |
 +================+
 "
-go test ./FactomCode/...
+go test -short  ./FactomCode/...
 
 echo "
 +================+
 |   factoids     |
 +================+
 "
-go test ./factoid/...
+go test -short  ./factoid/...
 
 echo "
 +================+
 |  Factom-cli   |
 +================+
 "
-go test ./factom-cli/...
+go test -short  ./factom-cli/...
 
 
 cd FactomCode
