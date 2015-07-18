@@ -25,6 +25,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"sort"
 	"strconv"
+	"time"
 )
 
 var _ = (*block.FBlock)(nil)
@@ -224,6 +225,14 @@ func serveCtlMsgRequest(msg wire.FtmInternalMsg) error {
 
 // Serve incoming msg from inMsgQueue
 func serveMsgRequest(msg wire.FtmInternalMsg) error {
+
+	if msg.Command() == wire.CmdFBlock {
+		fblock, ok := msg.(*wire.MsgFBlock)
+		if ok {
+			fmt.Printf("%s : Current chain height: %v\r", time.Now().Format(time.RFC3339), fblock.SC.GetDBHeight())
+		}
+
+	}
 
 	switch msg.Command() {
 	case wire.CmdCommitChain:
