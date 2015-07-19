@@ -359,7 +359,6 @@ func handleChainHead(ctx *web.Context, chainid string) {
 	}
 
 	c := new(chead)
-	fmt.Println("DEBUG:", c)
 	if mr, err := factomapi.ChainHead(chainid); err != nil {
 		wsLog.Error(err)
 		ctx.WriteHeader(httpBad)

@@ -108,7 +108,7 @@ func initProcessor() {
 	wire.FChainID = common.NewHash()
 	wire.FChainID.SetBytes(common.FACTOID_CHAINID)
 
-	FactoshisPerCredit = 666667 // .001 / .15 * 100000000 (assuming a Factoid is .15 cents, entry credit = .1 cents
+	FactoshisPerCredit = 66666 // .001 / .15 * 100000000 (assuming a Factoid is .15 cents, entry credit = .1 cents
 
 	// init Directory Block Chain
 	initDChain()
@@ -226,14 +226,6 @@ func serveCtlMsgRequest(msg wire.FtmInternalMsg) error {
 // Serve incoming msg from inMsgQueue
 func serveMsgRequest(msg wire.FtmInternalMsg) error {
 
-	if msg.Command() == wire.CmdFBlock {
-		fblock, ok := msg.(*wire.MsgFBlock)
-		if ok {
-			fmt.Printf("%s : Current chain height: %v\r", time.Now().Format(time.RFC3339), fblock.SC.GetDBHeight())
-		}
-
-	}
-
 	switch msg.Command() {
 	case wire.CmdCommitChain:
 		msgCommitChain, ok := msg.(*wire.MsgCommitChain)
@@ -314,6 +306,15 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 
 				plMgr.AddMyProcessListItem(msgEom, nil, msgEom.EOM_Type)
 			}
+			fmt.Printf("\033[s")             // save the cursor position
+            fmt.Printf("\033[1;0H%80s","")
+            fmt.Printf("\033[2;0H%80s","")
+            fmt.Printf("\033[3;0H     Minute %2v: %20s Current chain height: %7v         ", 
+                    msgEom.EOM_Type, 
+                    time.Now().Format(time.RFC3339), 
+                    dchain.NextDBHeight)
+            fmt.Printf("\033[4;0H%80s","")
+            fmt.Printf("\033[u")             // restore the cursor positio
 		}
 
 	case wire.CmdDirBlock:

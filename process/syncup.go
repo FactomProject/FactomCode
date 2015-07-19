@@ -262,8 +262,9 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 			}
 			// Initialize the Factoid State
 			err = common.FactoidState.AddTransactionBlock(fBlkMsg.SC)
+            FactoshisPerCredit = fBlkMsg.SC.GetExchRate()
 			if err != nil {
-				panic("Failed to rebuild factoid state: " + err.Error())
+				return err
 			}
 
 			// for debugging
