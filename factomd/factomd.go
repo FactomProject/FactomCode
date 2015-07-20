@@ -36,13 +36,12 @@ var (
 //var winServiceMain func() (bool, error)
 
 func main() {
-
-	// Load configuration file and send settings to components
-	loadConfigurations()
-
 	ftmdLog.Info("//////////////////////// Copyright 2015 Factom Foundation")
 	ftmdLog.Info("//////////////////////// Use of this source code is governed by the MIT")
 	ftmdLog.Info("//////////////////////// license that can be found in the LICENSE file.")
+
+	// Load configuration file and send settings to components
+	loadConfigurations()
 
 	// Initialize db
 	initDB()
