@@ -487,9 +487,9 @@ func handleFactoidSubmit(ctx *web.Context) {
 		return
 	}
 
-	good := common.FactoidState.Validate(msg.Transaction)
-	if !good {
-		returnMsg(ctx, "The transaction did not validate", false)
+	err = common.FactoidState.Validate(msg.Transaction)
+	if err != nil  {
+		returnMsg(ctx, err.Error(), false)
 		return
 	}
 
