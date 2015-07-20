@@ -35,7 +35,7 @@ func processDirBlock(msg *wire.MsgDirBlock) error {
 	//Add it to mem pool before saving it in db
 	fMemPool.addBlockMsg(msg, strconv.Itoa(int(msg.DBlk.Header.DBHeight))) // store in mempool with the height as the key
 
-	procLog.Debugf("SyncUp: MsgDirBlock=%s\n", spew.Sdump(msg.DBlk))
+	procLog.Debug("SyncUp: MsgDirBlock DBHeight=", msg.DBlk.Header.DBHeight)
 
 	return nil
 }
@@ -53,7 +53,7 @@ func processFBlock(msg *wire.MsgFBlock) error {
 	//Add it to mem pool before saving it in db
 	fMemPool.addBlockMsg(msg, string(key)) // stored in mem pool with the MR as the key
 
-	procLog.Debugf("SyncUp: MsgFBlock=%s\n", spew.Sdump(msg.SC))
+	procLog.Debug("SyncUp: MsgFBlock DBHeight=", msg.SC.GetDBHeight())
 
 	return nil
 
@@ -71,6 +71,8 @@ func processABlock(msg *wire.MsgABlock) error {
 	//Add it to mem pool before saving it in db
 	msg.ABlk.BuildABHash()
 	fMemPool.addBlockMsg(msg, msg.ABlk.ABHash.String()) // store in mem pool with ABHash as key
+	
+	procLog.Debug("SyncUp: MsgABlock DBHeight=", msg.ABlk.Header.DBHeight)	
 
 	return nil
 }
@@ -88,8 +90,7 @@ func procesECBlock(msg *wire.MsgECBlock) error {
 	fMemPool.addBlockMsg(msg, msg.ECBlock.Header.Hash().String())
 
 	// for debugging??
-	procLog.Debugf("SyncUp: msg.ECBlock.Header.Hash().String()=%s\n", msg.ECBlock.Header.Hash().String())
-	procLog.Debugf("SyncUp: MsgCBlock=%s\n", spew.Sdump(msg.ECBlock))
+	procLog.Debug("SyncUp: MsgCBlock DBHeight=", msg.ECBlock.Header.DBHeight)
 
 	return nil
 }
@@ -111,7 +112,7 @@ func processEBlock(msg *wire.MsgEBlock) error {
 	fMemPool.addBlockMsg(msg, msg.EBlk.KeyMR().String()) // store it in mem pool with MR as the key
 
 	// for debugging??
-	procLog.Debugf("SyncUp: MsgEBlock=%s\n", spew.Sdump(msg.EBlk))
+	procLog.Debug("SyncUp: MsgEBlock DBHeight=", msg.EBlk.Header.DBHeight)
 
 	return nil
 }
@@ -129,7 +130,7 @@ func processEntry(msg *wire.MsgEntry) error {
 	h := msg.Entry.Hash()
 	fMemPool.addBlockMsg(msg, h.String()) // store it in mem pool with hash as the key
 
-	procLog.Debugf("SyncUp: MsgEntry=%s\n", spew.Sdump(msg.Entry))
+	procLog.Debug("SyncUp: MsgEntry hash=", msg.Entry.Hash())
 
 	return nil
 }

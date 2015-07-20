@@ -192,14 +192,12 @@ func Start_Processor(
 	for {
 		select {
 		case msg := <-inMsgQ:
-			procLog.Debugf("PROCESSOR: in inMsgQ, msg:%+v\n", msg)
 
 			if err := serveMsgRequest(msg); err != nil {
 				procLog.Error(err)
 			}
 
 		case ctlMsg := <-inCtlMsgQueue:
-			procLog.Debugf("PROCESSOR: in ctlMsg, msg:%+v\n", ctlMsg)
 
 			if err := serveMsgRequest(ctlMsg); err != nil {
 				procLog.Error(err)
