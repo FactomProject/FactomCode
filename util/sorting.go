@@ -69,7 +69,7 @@ func (f ByEBlockIDAccending) Len() int {
 	return len(f)
 }
 func (f ByEBlockIDAccending) Less(i, j int) bool {
-	return f[i].Header.EBHeight < f[j].Header.EBHeight
+	return f[i].Header.EBSequence < f[j].Header.EBSequence
 }
 func (f ByEBlockIDAccending) Swap(i, j int) {
 	f[i], f[j] = f[j], f[i]

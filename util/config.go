@@ -84,6 +84,9 @@ RpcClientPass 			= "notarychain"
 BtcTransFee				= 0.0001
 CertHomePathBtcd		= "btcd"
 RpcBtcdHost 			= "localhost:18334"
+RpcUser					= ""
+RpcPass					= ""
+
 
 [wsapi]
 ApplicationName			= "Factom/wsapi"

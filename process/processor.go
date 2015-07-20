@@ -25,9 +25,12 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"sort"
 	"strconv"
+	"time"
 )
 
 var _ = (*block.FBlock)(nil)
+
+var _ = util.Trace
 
 var (
 	db       database.Db        // database
@@ -76,7 +79,6 @@ var (
 
 // Get the configurations
 func LoadConfigurations(cfg *util.FactomdConfig) {
-	util.Trace("LoadConf")
 
 	//setting the variables by the valued form the config file
 	logLevel = cfg.Log.LogLevel
@@ -88,10 +90,6 @@ func LoadConfigurations(cfg *util.FactomdConfig) {
 
 	FactomdUser = cfg.Btc.RpcUser
 	FactomdPass = cfg.Btc.RpcPass
-
-	util.Trace("logLevel= " + logLevel)
-	util.Trace("ldbpath= " + ldbpath)
-	util.Trace("FactomdUser= " + FactomdUser)
 }
 
 // Initialize the processor
@@ -110,7 +108,7 @@ func initProcessor() {
 	wire.FChainID = common.NewHash()
 	wire.FChainID.SetBytes(common.FACTOID_CHAINID)
 
-	FactoshisPerCredit = 666667 // .001 / .15 * 100000000 (assuming a Factoid is .15 cents, entry credit = .1 cents
+	FactoshisPerCredit = 66666 // .001 / .15 * 100000000 (assuming a Factoid is .15 cents, entry credit = .1 cents
 
 	// init Directory Block Chain
 	initDChain()
@@ -194,14 +192,12 @@ func Start_Processor(
 	for {
 		select {
 		case msg := <-inMsgQ:
-			procLog.Debugf("PROCESSOR: in inMsgQ, msg:%+v\n", msg)
 
 			if err := serveMsgRequest(msg); err != nil {
 				procLog.Error(err)
 			}
 
 		case ctlMsg := <-inCtlMsgQueue:
-			procLog.Debugf("PROCESSOR: in ctlMsg, msg:%+v\n", ctlMsg)
 
 			if err := serveMsgRequest(ctlMsg); err != nil {
 				procLog.Error(err)
@@ -277,10 +273,10 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 			}
 			procLog.Infof("PROCESSOR: End of minute msg - wire.CmdInt_EOM:%+v\n", msg)
 
-			fmt.Print(" EOM_", msgEom.EOM_Type, " ")
+			common.FactoidState.EndOfPeriod(int(msgEom.EOM_Type))
 
 			if msgEom.EOM_Type == wire.END_MINUTE_10 {
-				fmt.Println()
+
 				// Process from Orphan pool before the end of process list
 				processFromOrphanPool()
 
@@ -308,6 +304,15 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 
 				plMgr.AddMyProcessListItem(msgEom, nil, msgEom.EOM_Type)
 			}
+			fmt.Printf("\033[s")             // save the cursor position
+            fmt.Printf("\033[1;0H%80s","")
+            fmt.Printf("\033[2;0H%80s","")
+            fmt.Printf("\033[3;0H     Minute %2v: %20s Current chain height: %7v         ", 
+                    msgEom.EOM_Type, 
+                    time.Now().Format(time.RFC3339), 
+                    dchain.NextDBHeight)
+            fmt.Printf("\033[4;0H%80s","")
+            fmt.Printf("\033[u")             // restore the cursor positio
 		}
 
 	case wire.CmdDirBlock:
@@ -355,7 +360,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 					th.SetBytes(t.GetHash().Bytes())
 					credits := int32(ecout.GetAmount() / uint64(FactoshisPerCredit))
 					processBuyEntryCredit(pub, credits, th)
-					incBal := common.NewIncreaseBalance(pub, th, credits)
+					incBal := common.MakeIncreaseBalance(pub, th, credits)
 
 					ecchain.NextBlock.AddEntry(incBal)
 				}
@@ -898,47 +903,21 @@ func newEntryBlock(chain *common.EChain) *common.EBlock {
 	if block == nil {
 		return nil
 	}
-	if len(block.EBEntries) < 1 {
+	if len(block.Body.EBEntries) < 1 {
 		procLog.Debug("No new entry found. No block created for chain: " + chain.ChainID.String())
 		return nil
 	}
 
 	// Create the block and add a new block for new coming entries
 	block.Header.DBHeight = dchain.NextDBHeight
-	block.Header.EntryCount = uint32(len(block.EBEntries))
-	block.Header.StartTime = uint64(dchain.NextBlock.Header.Timestamp)
+	block.Header.EntryCount = uint32(len(block.Body.EBEntries))
 
-	if devNet {
-		block.Header.NetworkID = common.NETWORK_ID_TEST
-	} else {
-		block.Header.NetworkID = common.NETWORK_ID_EB
-	}
-
-	// Create the Entry Block Body Merkle Root from EB Entries
-	hashes := make([]*common.Hash, 0, len(block.EBEntries))
-	for _, entry := range block.EBEntries {
-		hashes = append(hashes, entry.EntryHash)
-	}
-	merkle := common.BuildMerkleTreeStore(hashes)
-	block.Header.BodyMR = merkle[len(merkle)-1]
-
-	// Create the Entry Block Key Merkle Root from the hash of Header and the Body Merkle Root
-	hashes = make([]*common.Hash, 0, 2)
-	binaryEBHeader, _ := block.Header.MarshalBinary()
-	hashes = append(hashes, common.Sha(binaryEBHeader))
-	hashes = append(hashes, block.Header.BodyMR)
-	merkle = common.BuildMerkleTreeStore(hashes)
-	block.MerkleRoot = merkle[len(merkle)-1] // MerkleRoot is not marshalized in Entry Block
-	blkhash, _ := common.CreateHash(block)
-	block.EBHash = blkhash
-
-	block.IsSealed = true
 	chain.NextBlockHeight++
-	chain.NextBlock, _ = common.CreateBlock(chain, block, 10)
+	chain.NextBlock = common.MakeEBlock(chain, block)
 
 	//Store the block in db
 	db.ProcessEBlockBatch(block)
-	procLog.Infof("EntryBlock: block" + strconv.FormatUint(uint64(block.Header.EBHeight), 10) + " created for chain: " + chain.ChainID.String())
+	procLog.Infof("EntryBlock: block" + strconv.FormatUint(uint64(block.Header.EBSequence), 10) + " created for chain: " + chain.ChainID.String())
 	return block
 }
 

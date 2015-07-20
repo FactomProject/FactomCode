@@ -11,6 +11,9 @@ import (
 	"github.com/FactomProject/FactomCode/util"
 )
 
+var _ = util.Trace
+var _ = fmt.Sprintf
+
 // 1-byte version
 func FactoidTx_VersionCheck(version uint8) bool {
 	//	util.Trace(fmt.Sprintf("version being checked: %d", version))
@@ -19,18 +22,18 @@ func FactoidTx_VersionCheck(version uint8) bool {
 
 // in reality: 5 bytes
 func FactoidTx_LocktimeCheck(locktime int64) bool {
-	util.Trace(fmt.Sprintf("locktime being checked: 0x%X", locktime))
+	//util.Trace(fmt.Sprintf("locktime being checked: 0x%X", locktime))
 	return (0 == locktime)
 }
 
 // 1-byte RCD version
 func FactoidTx_RCDVersionCheck(version uint8) bool {
-	util.Trace()
+	//util.Trace()
 	return (0 == version)
 }
 
 // 1-byte RCD type
 func FactoidTx_RCDTypeCheck(rcdtype uint8) bool {
-	util.Trace()
+	//util.Trace()
 	return (0 == rcdtype)
 }

@@ -298,13 +298,13 @@ func handleEntryBlock(ctx *web.Context, keymr string) {
 		ctx.Write([]byte(err.Error()))
 		return
 	} else {
-		e.Header.BlockSequenceNumber = block.Header.EBHeight
+		e.Header.BlockSequenceNumber = block.Header.EBSequence
 		e.Header.ChainID = block.Header.ChainID.String()
 		e.Header.PrevKeyMR = block.Header.PrevKeyMR.String()
-		e.Header.TimeStamp = block.Header.StartTime
-		for _, v := range block.EBEntries {
+//		e.Header.TimeStamp = block.Header.StartTime
+		for _, v := range block.Body.EBEntries {
 			l := new(entryaddr)
-			l.EntryHash = v.EntryHash.String()
+			l.EntryHash = v.String()
 			e.EntryList = append(e.EntryList, *l)
 		}
 	}
@@ -359,7 +359,6 @@ func handleChainHead(ctx *web.Context, chainid string) {
 	}
 
 	c := new(chead)
-	fmt.Println("DEBUG:", c)
 	if mr, err := factomapi.ChainHead(chainid); err != nil {
 		wsLog.Error(err)
 		ctx.WriteHeader(httpBad)

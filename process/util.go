@@ -16,6 +16,9 @@ import (
 	"sort"
 )
 
+var _ = util.Trace
+var _ = spew.Sdump
+
 func GetEntryCreditBalance(pubKey *[32]byte) (int32, error) {
 
 	return eCreditMap[string(pubKey[:])], nil
@@ -332,7 +335,7 @@ func copyCreditMap(
 func printCreditMap() {
 	procLog.Debug("eCreditMap:")
 	for key := range eCreditMap {
-		procLog.Debugf("Key: %x Value %d\n", key, eCreditMap[key])
+		procLog.Debugf("Entry credit Key: %x Value %d", key, eCreditMap[key])
 	}
 }
 
@@ -350,7 +353,7 @@ func fileNotExists(name string) bool {
 //
 // This function is NOT safe for concurrent access.
 func HaveBlockInDB(hash *common.Hash) (bool, error) {
-	util.Trace(spew.Sdump(hash))
+	//util.Trace(spew.Sdump(hash))
 
 	if hash == nil || dchain.Blocks == nil || len(dchain.Blocks) == 0 {
 		return false, nil

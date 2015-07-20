@@ -8,11 +8,13 @@ import (
 	"testing"
 )
 
-var dirBlockHeight uint32 = 241
+var dirBlockHeight uint32 = 1
 
 func TestBlocks(t *testing.T) {
 	fmt.Println("\nTest Blocks===========================================================================")
 
+	loadConfigurations()
+	
 	initDB()
 
 	// directory block ------------------
@@ -34,16 +36,16 @@ func TestBlocks(t *testing.T) {
 	for _, dbEntry := range dblk.DBEntries {
 		switch dbEntry.ChainID.String() {
 		case ecchainid.String():
-			ecblk, _ := db.FetchECBlockByHash(dbEntry.MerkleRoot)
+			ecblk, _ := db.FetchECBlockByHash(dbEntry.KeyMR)
 			t.Logf("ecblk=%s\n", spew.Sdump(ecblk))
 		case achainid.String():
-			ablk, _ := db.FetchABlockByHash(dbEntry.MerkleRoot)
+			ablk, _ := db.FetchABlockByHash(dbEntry.KeyMR)
 			t.Logf("ablk=%s\n", spew.Sdump(ablk))
 		case fchainid.String():
-			fblk, _ := db.FetchFBlockByHash(dbEntry.MerkleRoot)
+			fblk, _ := db.FetchFBlockByHash(dbEntry.KeyMR)
 			t.Logf("fblk=%s\n", spew.Sdump(fblk))
 		default:
-			eBlk, _ := db.FetchEBlockByMR(dbEntry.MerkleRoot)
+			eBlk, _ := db.FetchEBlockByMR(dbEntry.KeyMR)
 			// validate every entry in EBlock
 			for _, ebEntry := range eBlk.EBEntries {
 				// continue if the entry arleady exists in db
