@@ -483,7 +483,7 @@ func handleFactoidSubmit(ctx *web.Context) {
 	msg.Transaction = new(fct.Transaction)
 	err = msg.Transaction.UnmarshalBinary(p)
 	if err != nil {
-		returnMsg(ctx, "Unable to unmarshal the transaction", false)
+		returnMsg(ctx, err.Error(), false)
 		return
 	}
 
