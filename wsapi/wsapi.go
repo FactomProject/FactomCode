@@ -283,6 +283,7 @@ func handleDirectoryBlock(ctx *web.Context, keymr string) {
 func handleEntryBlock(ctx *web.Context, keymr string) {
 	type entryaddr struct {
 		EntryHash string
+		TimeStamp uint32
 	}
 
 	type eblock struct {
@@ -313,6 +314,7 @@ func handleEntryBlock(ctx *web.Context, keymr string) {
 		for _, v := range block.Body.EBEntries {
 			l := new(entryaddr)
 			l.EntryHash = v.String()
+			l.TimeStamp = e.Header.TimeStamp
 			e.EntryList = append(e.EntryList, *l)
 		}
 	}
