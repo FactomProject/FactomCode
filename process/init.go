@@ -181,6 +181,7 @@ func initFctChain() {
 	if len(fBlocks) == 0 || dchain.NextDBHeight == 0 {
 		fchain.NextBlockHeight = 0
 		fchain.NextBlock = block.GetGenesisBlock(common.FactoidState.GetTimeMilli(), 1000000, 10, 200000000000)
+        common.FactoidState.AddTransactionBlock(fchain.NextBlock)
         fmt.Println(fchain.NextBlock)
 	} else {
 		fchain.NextBlockHeight = dchain.NextDBHeight
