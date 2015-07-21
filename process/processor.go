@@ -304,15 +304,15 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 
 				plMgr.AddMyProcessListItem(msgEom, nil, msgEom.EOM_Type)
 			}
-			fmt.Printf("\033[s")             // save the cursor position
-            fmt.Printf("\033[1;0H%80s","")
-            fmt.Printf("\033[2;0H%80s","")
-            fmt.Printf("\033[3;0H     Minute %2v: %20s Current chain height: %7v         ", 
-                    msgEom.EOM_Type, 
-                    time.Now().Format(time.RFC3339), 
-                    dchain.NextDBHeight)
-            fmt.Printf("\033[4;0H%80s","")
-            fmt.Printf("\033[u")             // restore the cursor positio
+			fmt.Printf("\033[s") // save the cursor position
+			fmt.Printf("\033[1;0H%80s", "")
+			fmt.Printf("\033[2;0H%80s", "")
+			fmt.Printf("\033[3;0H     Minute %2v: %20s Current chain height: %7v         ",
+				msgEom.EOM_Type,
+				time.Now().Format(time.RFC3339),
+				dchain.NextDBHeight)
+			fmt.Printf("\033[4;0H%80s", "")
+			fmt.Printf("\033[u") // restore the cursor positio
 		}
 
 	case wire.CmdDirBlock:
@@ -490,6 +490,11 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 
 		// Add to MyPL if Server Node
 		if nodeMode == common.SERVER_NODE {
+			if plMgr.IsMyPListExceedingLimit() {
+				procLog.Warning("Exceeding MyProcessList size limit!")
+				return fMemPool.addOrphanMsg(msg, h)
+			}
+
 			ack, err := plMgr.AddMyProcessListItem(msg, h,
 				wire.ACK_REVEAL_ENTRY)
 			if err != nil {
@@ -525,6 +530,10 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 
 		// Add to MyPL if Server Node
 		if nodeMode == common.SERVER_NODE {
+			if plMgr.IsMyPListExceedingLimit() {
+				procLog.Warning("Exceeding MyProcessList size limit!")
+				return fMemPool.addOrphanMsg(msg, h)
+			}
 			ack, err := plMgr.AddMyProcessListItem(msg, h,
 				wire.ACK_REVEAL_CHAIN)
 			if err != nil {
@@ -564,6 +573,11 @@ func processCommitEntry(msg *wire.MsgCommitEntry) error {
 	// Server: add to MyPL
 	if nodeMode == common.SERVER_NODE {
 		h, _ := msg.Sha()
+		if plMgr.IsMyPListExceedingLimit() {
+			procLog.Warning("Exceeding MyProcessList size limit!")
+			return fMemPool.addOrphanMsg(msg, &h)
+		}
+
 		ack, err := plMgr.AddMyProcessListItem(msg, &h, wire.ACK_COMMIT_ENTRY)
 		if err != nil {
 			return err
@@ -602,6 +616,12 @@ func processCommitChain(msg *wire.MsgCommitChain) error {
 	// Server: add to MyPL
 	if nodeMode == common.SERVER_NODE {
 		h, _ := msg.Sha()
+
+		if plMgr.IsMyPListExceedingLimit() {
+			procLog.Warning("Exceeding MyProcessList size limit!")
+			return fMemPool.addOrphanMsg(msg, &h)
+		}
+
 		ack, err := plMgr.AddMyProcessListItem(msg, &h, wire.ACK_COMMIT_CHAIN)
 		if err != nil {
 			return err

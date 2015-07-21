@@ -165,9 +165,9 @@ func initFctChain() {
 	// double check the block ids
 	for i := 0; i < len(fBlocks); i = i + 1 {
 		if uint32(i) != fBlocks[i].GetDBHeight() {
-			panic(errors.New("BlockID does not equal index for chain:" + 
-            fchain.ChainID.String() + " block:" + 
-            fmt.Sprintf("%v", fBlocks[i].GetDBHeight())))
+			panic(errors.New("BlockID does not equal index for chain:" +
+				fchain.ChainID.String() + " block:" +
+				fmt.Sprintf("%v", fBlocks[i].GetDBHeight())))
 		} else {
 			// initialize the FactoidState in sequence
 			err := common.FactoidState.AddTransactionBlock(fBlocks[i])
@@ -181,12 +181,12 @@ func initFctChain() {
 	if len(fBlocks) == 0 || dchain.NextDBHeight == 0 {
 		fchain.NextBlockHeight = 0
 		fchain.NextBlock = block.GetGenesisBlock(0, 1000000, 10, 200000000000)
-    }else{
-        fchain.NextBlockHeight = dchain.NextDBHeight
-    }
-    common.FactoidState.ProcessEndOfBlock2(dchain.NextDBHeight)
-    fchain.NextBlock = common.FactoidState.GetCurrentBlock()
-    
+	} else {
+		fchain.NextBlockHeight = dchain.NextDBHeight
+	}
+	common.FactoidState.ProcessEndOfBlock2(dchain.NextDBHeight)
+	fchain.NextBlock = common.FactoidState.GetCurrentBlock()
+
 	exportFctChain(fchain)
 
 }
@@ -305,9 +305,9 @@ func validateDChain(c *common.DChain) error {
 	//validate the genesis block
 	//prevBlkHash is the block hash for c.Blocks[0]
 	if prevBlkHash == nil || prevBlkHash.String() != common.GENESIS_DIR_BLOCK_HASH {
-		panic("\n\nGenesis dir block is not as expected.\n" + 
-        "\n    Expected: "+common.GENESIS_DIR_BLOCK_HASH+
-        "\n    Found:    "+prevBlkHash.String()+"\n\n")
+		panic("\n\nGenesis dir block is not as expected.\n" +
+			"\n    Expected: " + common.GENESIS_DIR_BLOCK_HASH +
+			"\n    Found:    " + prevBlkHash.String() + "\n\n")
 	}
 
 	for i := 1; i < len(c.Blocks); i++ {

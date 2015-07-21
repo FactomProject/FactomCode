@@ -26,7 +26,7 @@ func (bt *BlockTimer) StartBlockTimer() {
 
 	if directoryBlockInSeconds < 600 {
 		sleeptime := directoryBlockInSeconds / 10
-	
+
 		// Set the start time for the open dir block
 		dchain.NextBlock.Header.Timestamp = uint32(time.Now().Round(time.Minute).Unix() / 60)
 
@@ -48,7 +48,7 @@ func (bt *BlockTimer) StartBlockTimer() {
 	minutesPassed := roundTime.Minute() - (roundTime.Minute()/10)*10
 
 	// Set the start time for the open dir block
-	dchain.NextBlock.Header.Timestamp = uint32(roundTime.Add(time.Duration((0 - 60*minutesPassed) * 1000000000)).Unix() / 60)
+	dchain.NextBlock.Header.Timestamp = uint32(roundTime.Add(time.Duration((0-60*minutesPassed)*1000000000)).Unix() / 60)
 
 	for minutesPassed < 10 {
 
