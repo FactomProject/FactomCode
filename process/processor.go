@@ -184,7 +184,8 @@ func Start_Processor(
 		}
 		go timer.StartBlockTimer()
 	} else {
-		// start the go routine to process the blocks and entries downloaded from peers
+		// start the go routine to process the blocks and entries downloaded
+		// from peers
 		go validateAndStoreBlocks(fMemPool, db, dchain, outCtlMsgQueue)
 	}
 
@@ -203,9 +204,7 @@ func Start_Processor(
 				procLog.Error(err)
 			}
 		}
-
 	}
-
 }
 
 // Serve the "fast lane" incoming control msg from inCtlMsgQueue
