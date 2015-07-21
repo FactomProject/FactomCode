@@ -804,7 +804,7 @@ func buildGenesisBlocks() error {
 	// Check block hash if genesis block
 	if dbBlock.DBHash.String() != common.GENESIS_DIR_BLOCK_HASH {
 
-		panic("\nGenesis block hash expected: " + common.GENESIS_DIR_BLOCK_HASH +
+		procLog.Errorf("\nGenesis block hash expected: " + common.GENESIS_DIR_BLOCK_HASH +
 			"\nGenesis block hash found:    " + dbBlock.DBHash.String() + "\n")
 	}
 
