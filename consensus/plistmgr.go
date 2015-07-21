@@ -133,3 +133,10 @@ func (plMgr *ProcessListMgr) SignAck(bytes []byte) (sig common.Signature) {
 	sig = plMgr.serverPrivKey.Sign(bytes)
 	return sig
 }
+
+// Check if the number of process list items is exceeding the size limit
+func (plMgr *ProcessListMgr) IsMyPListExceedingLimit() bool {
+
+ return (plMgr.MyProcessList.totalItems >= common.MAX_PLIST_SIZE)
+
+}

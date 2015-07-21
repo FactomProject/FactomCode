@@ -19,6 +19,7 @@ const (
 	MAX_ORPHAN_SIZE = int(5000)		//Prphan mem pool size
 	MAX_TX_POOL_SIZE = int(50000)	//Transaction mem pool size
 	MAX_BLK_POOL_SIZE = int(500000) //Block mem bool size
+	MAX_PLIST_SIZE = int(200000) 	//MY Process List size	
 	
 	
 	//Common constants
@@ -37,7 +38,7 @@ const (
 
 	//Server public key for milestone 1
 	SERVER_PUB_KEY = "8cee85c62a9e48039d4ac294da97943c2001be1539809ea5f54721f0c5477a0a"
-    GENESIS_DIR_BLOCK_HASH = "8f0311149ca366b48660f1663b6605dad4c6f88d129a89a4e309d7b5ddc61973"
+    GENESIS_DIR_BLOCK_HASH = "c0f4b8506c5f4855aa2f6d3e38ef3113490bfa84f4b0f39a6c84815976729485"
 )
 
 //---------------------------------------------------------------

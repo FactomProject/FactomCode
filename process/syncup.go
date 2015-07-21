@@ -71,8 +71,8 @@ func processABlock(msg *wire.MsgABlock) error {
 	//Add it to mem pool before saving it in db
 	msg.ABlk.BuildABHash()
 	fMemPool.addBlockMsg(msg, msg.ABlk.ABHash.String()) // store in mem pool with ABHash as key
-	
-	procLog.Debug("SyncUp: MsgABlock DBHeight=", msg.ABlk.Header.DBHeight)	
+
+	procLog.Debug("SyncUp: MsgABlock DBHeight=", msg.ABlk.Header.DBHeight)
 
 	return nil
 }
@@ -263,7 +263,7 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 			}
 			// Initialize the Factoid State
 			err = common.FactoidState.AddTransactionBlock(fBlkMsg.SC)
-            FactoshisPerCredit = fBlkMsg.SC.GetExchRate()
+			FactoshisPerCredit = fBlkMsg.SC.GetExchRate()
 			if err != nil {
 				return err
 			}
