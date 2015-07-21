@@ -13,15 +13,14 @@ const (
 	AB_CAP = EC_CAP //Administrative Block Cap for AB messages
 
 	//Limits and Sizes
-	MAX_ENTRY_SIZE = uint16(10240) //Maximum size for Entry External IDs and the Data
-	HASH_LENGTH    = int(32)       //Length of a Hash
-	SIG_LENGTH     = int(64)       //Length of a signature
-	MAX_ORPHAN_SIZE = int(5000)		//Prphan mem pool size
-	MAX_TX_POOL_SIZE = int(50000)	//Transaction mem pool size
-	MAX_BLK_POOL_SIZE = int(500000) //Block mem bool size
-	MAX_PLIST_SIZE = int(200000) 	//MY Process List size	
-	
-	
+	MAX_ENTRY_SIZE    = uint16(10240) //Maximum size for Entry External IDs and the Data
+	HASH_LENGTH       = int(32)       //Length of a Hash
+	SIG_LENGTH        = int(64)       //Length of a signature
+	MAX_ORPHAN_SIZE   = int(5000)     //Prphan mem pool size
+	MAX_TX_POOL_SIZE  = int(50000)    //Transaction mem pool size
+	MAX_BLK_POOL_SIZE = int(500000)   //Block mem bool size
+	MAX_PLIST_SIZE    = int(200000)   //MY Process List size
+
 	//Common constants
 	VERSION_0     = byte(0)
 	NETWORK_ID_DB = uint32(4203931041) //0xFA92E5A1
@@ -37,8 +36,8 @@ const (
 	LIGHT_NODE  = "LIGHT"
 
 	//Server public key for milestone 1
-	SERVER_PUB_KEY = "8cee85c62a9e48039d4ac294da97943c2001be1539809ea5f54721f0c5477a0a"
-    GENESIS_DIR_BLOCK_HASH = "f5252b2208a1b669130f3403903336122bb9f6de1954ceeee195c36e99db43dd"
+	SERVER_PUB_KEY         = "8cee85c62a9e48039d4ac294da97943c2001be1539809ea5f54721f0c5477a0a"
+	GENESIS_DIR_BLOCK_HASH = "4b60527dfa57f15baa8e55ddfc9b0e76ace7d04ee30b0831bbcef90009eb3776"
 )
 
 //---------------------------------------------------------------

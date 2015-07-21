@@ -13,6 +13,7 @@ package process
 
 import (
 	"encoding/binary"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"github.com/FactomProject/FactomCode/anchor"
@@ -787,6 +788,7 @@ func buildGenesisBlocks() error {
 	exportAChain(achain)
 
 	// factoid Genesis Address
+	fchain.NextBlock = getGenesisFBlock()
 	FBlock := newFactoidBlock(fchain)
 	data, _ := FBlock.MarshalBinary()
 	procLog.Debugf("\n\n ", common.Sha(data).String(), "\n\n")
@@ -813,6 +815,13 @@ func buildGenesisBlocks() error {
 	placeAnchor(dbBlock)
 
 	return nil
+}
+func getGenesisFBlock() block.IFBlock {
+	blockStr := "000000000000000000000000000000000000000000000000000000000000000F104F47D9BFEB779AB7BAF02B06A9FFEA52AD6F4703429EF18FD676AF65A6B1940000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000F42400000000000000000010000003B02000000000000000100E3CBB7BDA1F4201C725FEC65BFC9D7BF66B55C86990C2C8E52F9995E1631A95330CD635A58D88200000000000000000000"
+	block := new(block.FBlock)
+	data, _ := hex.DecodeString(blockStr)
+	block.UnmarshalBinary(data)
+	return block
 }
 
 // build blocks from all process lists
