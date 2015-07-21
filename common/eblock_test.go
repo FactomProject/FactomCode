@@ -21,8 +21,9 @@ func TestEBlockMarshal(t *testing.T) {
 	ha.SetBytes(byteof(0xaa))
 	hb := common.NewHash()
 	hb.SetBytes(byteof(0xbb))
-	eb.Body.EBEntries = append(eb.Body.EBEntries, ha, hb)
+	eb.Body.EBEntries = append(eb.Body.EBEntries, ha)
 	eb.AddEndOfMinuteMarker(0xcc)
+	eb.Body.EBEntries = append(eb.Body.EBEntries, hb)
 	
 	t.Log(eb)
 	p, err := eb.MarshalBinary()
