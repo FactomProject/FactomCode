@@ -2,7 +2,6 @@ package common_test
 
 import (
 	"crypto/rand"
-	"fmt"
 	"testing"
 
 	"github.com/FactomProject/FactomCode/common"
@@ -11,7 +10,6 @@ import (
 )
 
 func TestECBlockMarshal(t *testing.T) {
-	fmt.Printf("---\nTestECBlockMarshal\n---\n")
 	ecb := common.NewECBlock()
 
 	// build a CommitChain for testing
