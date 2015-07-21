@@ -37,7 +37,7 @@ const (
 
 	//Server public key for milestone 1
 	SERVER_PUB_KEY         = "8cee85c62a9e48039d4ac294da97943c2001be1539809ea5f54721f0c5477a0a"
-	GENESIS_DIR_BLOCK_HASH = "d8ae172b6b44af4ba1f9e8b4cc17295a6b6f1374f48a7626e87d2686cb5b9e63"
+	GENESIS_DIR_BLOCK_HASH = "1a5c37458aa5f8db9c23f7bd7d8e16d48136e06923e84f426dffc22e9c72a350"
 )
 
 //---------------------------------------------------------------
