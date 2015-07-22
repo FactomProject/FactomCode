@@ -15,8 +15,9 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/FactomProject/FactomCode/anchor"
-	"github.com/FactomProject/FactomCode/common"
+    cp "github.com/FactomProject/FactomCode/controlpanel"
+    "github.com/FactomProject/FactomCode/anchor"
+    "github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/consensus"
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/util"
@@ -25,7 +26,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"sort"
 	"strconv"
-	"time"
+
 )
 
 var _ = (*block.FBlock)(nil)
@@ -303,15 +304,8 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 
 				plMgr.AddMyProcessListItem(msgEom, nil, msgEom.EOM_Type)
 			}
-			fmt.Printf("\033[s") // save the cursor position
-			fmt.Printf("\033[1;0H%80s", "")
-			fmt.Printf("\033[2;0H%80s", "")
-			fmt.Printf("\033[3;0H     Minute %2v: %20s Current chain height: %7v         ",
-				msgEom.EOM_Type,
-				time.Now().Format(time.RFC3339),
-				dchain.NextDBHeight)
-			fmt.Printf("\033[4;0H%80s", "")
-			fmt.Printf("\033[u") // restore the cursor positio
+			cp.CP.UpdatePeriodMark(int(msgEom.EOM_Type))
+            cp.CP.UpdateBlockHeight(int(dchain.NextDBHeight))
 		}
 
 	case wire.CmdDirBlock:

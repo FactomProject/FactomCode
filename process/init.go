@@ -7,8 +7,9 @@ package process
 import (
 	"errors"
 	"fmt"
-	"github.com/FactomProject/FactomCode/common"
-	"github.com/FactomProject/FactomCode/consensus"
+    "github.com/FactomProject/FactomCode/common"
+    cp "github.com/FactomProject/FactomCode/controlpanel"
+    "github.com/FactomProject/FactomCode/consensus"
 	"github.com/FactomProject/FactomCode/factomlog"
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd/wire"
@@ -307,12 +308,12 @@ func validateDChain(c *common.DChain) error {
 	//validate the genesis block
 	//prevBlkHash is the block hash for c.Blocks[0]
 	if prevBlkHash == nil || prevBlkHash.String() != common.GENESIS_DIR_BLOCK_HASH {
-		fmt.Printf("\n\nGenesis dir block is not as expected.\n" +
+		str := fmt.Sprintf("\n\nGenesis dir block is not as expected." +
 			"\n    Expected: " + common.GENESIS_DIR_BLOCK_HASH +
 			"\n    Found:    " + prevBlkHash.String() + "\n\n")
-		procLog.Errorf("\n\nGenesis dir block is not as expected.\n" +
-			"\n    Expected: " + common.GENESIS_DIR_BLOCK_HASH +
-			"\n    Found:    " + prevBlkHash.String() + "\n\n")
+        fmt.Println(str)
+        procLog.Errorf(str)
+        cp.CP.AddWarning(str)
 	}
 
 	for i := 1; i < len(c.Blocks); i++ {
