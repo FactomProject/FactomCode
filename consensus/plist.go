@@ -54,7 +54,7 @@ func (pl *ProcessList) AddToProcessList(pli *ProcessListItem) error {
 // Validate the process list
 func (pl *ProcessList) IsValid() bool {
 
-	// to add logic ??
+	//TODO: to add logic ??
 	return true
 }
 
