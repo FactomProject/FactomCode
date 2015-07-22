@@ -362,7 +362,7 @@ func handleEntry(ctx *web.Context, hash string) {
 
 func handleChainHead(ctx *web.Context, chainid string) {
 	type chead struct {
-		EntryBlockKeyMR string
+		ChainHead string
 	}
 
 	c := new(chead)
@@ -372,7 +372,7 @@ func handleChainHead(ctx *web.Context, chainid string) {
 		ctx.Write([]byte(err.Error()))
 		return
 	} else {
-		c.EntryBlockKeyMR = mr.String()
+		c.ChainHead = mr.String()
 	}
 
 	if p, err := json.Marshal(c); err != nil {
@@ -383,7 +383,6 @@ func handleChainHead(ctx *web.Context, chainid string) {
 	} else {
 		ctx.Write(p)
 	}
-
 }
 
 type ecbal struct {
