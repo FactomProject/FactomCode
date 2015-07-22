@@ -781,6 +781,7 @@ func buildGenesisBlocks() error {
 	exportAChain(achain)
 
 	// factoid Genesis Address
+	fchain.NextBlock = getGenesisFBlock()
 	FBlock := newFactoidBlock(fchain)
 	data, _ := FBlock.MarshalBinary()
 	procLog.Debugf("\n\n ", common.Sha(data).String(), "\n\n")
