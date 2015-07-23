@@ -179,7 +179,10 @@ func (db *LevelDb) FetchHeightRange(startHeight, endHeight int64) (rshalist []wi
 // part of the database.Db interface implementation.
 func (db *LevelDb) FetchBlockHeightBySha(sha *wire.ShaHash) (int64, error) {
 
-	dblk, _ := db.FetchDBlockByHash(sha.ToFactomHash())
+	dblk, err := db.FetchDBlockByHash(sha.ToFactomHash())
+	if err != nil {
+		return 0, err
+	}
 
 	var height int64 = -1
 	if dblk != nil {
@@ -261,10 +264,16 @@ func (db *LevelDb) FetchDBlockByHash(dBlockHash *common.Hash) (*common.Directory
 
 // FetchDBlockByHeight gets an directory block by height from the database.
 func (db *LevelDb) FetchDBlockByHeight(dBlockHeight uint32) (dBlock *common.DirectoryBlock, err error) {
-	dBlockHash, _ := db.FetchDBHashByHeight(dBlockHeight)
+	dBlockHash, err := db.FetchDBHashByHeight(dBlockHeight)
+	if err != nil {
+		return nil, err
+	}
 
 	if dBlockHash != nil {
-		dBlock, _ = db.FetchDBlockByHash(dBlockHash)
+		dBlock, err = db.FetchDBlockByHash(dBlockHash)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return dBlock, nil

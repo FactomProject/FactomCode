@@ -230,7 +230,10 @@ func (db *LevelDb) FetchAllEBlocksByChain(chainID *common.Hash) (eBlocks *[]comm
 
 		var key []byte = []byte{byte(TBL_EB)}
 		key = append(key, eBlockHash.Bytes()...)
-		data, _ := db.lDb.Get(key, db.ro)
+		data, err := db.lDb.Get(key, db.ro)
+		if err != nil {
+			return nil, err
+		}
 
 		eBlock := common.NewEBlock()
 		if data != nil {
