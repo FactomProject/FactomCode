@@ -73,6 +73,20 @@ func handlerGetReport(w http.ResponseWriter, r *http.Request) {
     }else{
         out.WriteString("Running Factom<br>")
     }
+    
+    since := time.Since(CP.LastCommunication())
+    out.WriteString("Last update: ")
+    if int(since.Hours())>0 {
+        hours := int(since.Hours())
+        out.WriteString(fmt.Sprintf("more than %d hour(s) ago<br>",hours))
+    }else if int(since.Minutes())>0 {
+        minutes := int(since.Minutes())
+        out.WriteString(fmt.Sprintf("more than %d minute(s) ago<br>",minutes))
+    }else{
+        seconds := int(since.Seconds())
+        out.WriteString(fmt.Sprintf("%d second(s) ago<br>",seconds))
+    }
+    
     if CP.PeriodMark() <= 10 {
         out.WriteString(fmt.Sprintf("Minute %d, Block Height %d<br>",CP.PeriodMark(),CP.BlockHeight()))
     }

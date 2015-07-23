@@ -23,8 +23,10 @@ package controlpanel
 import (
     "time"
     "strings"
+    "fmt"
 )
 
+var _ = fmt.Print
 var CP IControlPanel = new(ControlPanel)
 
 type IControlPanel interface {
@@ -43,6 +45,8 @@ type IControlPanel interface {
     Errors() ([]CPEntry)
     AddWarning(string)
     Warnings() ([]CPEntry)
+    
+    LastCommunication() time.Time
     
 }
 
@@ -65,12 +69,19 @@ type ControlPanel struct {
     warnings []CPEntry
     
     running     bool
+    
+    lastCommunication time.Time
 }
 
 func (cp *ControlPanel) Run() {
+    cp.lastCommunication = time.Now()
     if cp.running {return}
     cp.running = true
     go runPanel()
+}
+
+func (cp *ControlPanel) LastCommunication() time.Time {
+    return cp.lastCommunication
 }
 
 func (cp *ControlPanel) AddWarning(warning string) {
@@ -124,6 +135,7 @@ func (cp *ControlPanel) PeriodMark() int {
 }
 
 func (cp *ControlPanel) UpdateBlockHeight(height int) {
+    if height < 0 {return}
     cp.Run()
     cp.blockHeight = height
 }
