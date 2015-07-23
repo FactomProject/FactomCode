@@ -305,14 +305,14 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 				plMgr.AddMyProcessListItem(msgEom, nil, msgEom.EOM_Type)
 			}
 			cp.CP.UpdatePeriodMark(int(msgEom.EOM_Type))
-            cp.CP.UpdateBlockHeight(int(dchain.NextDBHeight))
-		}
+        }
+		cp.CP.UpdateBlockHeight(int(dchain.NextDBHeight))
 
 	case wire.CmdDirBlock:
 		if nodeMode == common.SERVER_NODE {
 			break
 		}
-
+		
 		dirBlock, ok := msg.(*wire.MsgDirBlock)
 		if ok {
 			err := processDirBlock(dirBlock)
@@ -322,7 +322,9 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		} else {
 			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
 		}
-
+		
+		cp.CP.UpdateBlockHeight(int(dchain.NextDBHeight))
+        
 	case wire.CmdFBlock:
 		if nodeMode == common.SERVER_NODE {
 			break

@@ -73,7 +73,7 @@ func handlerGetReport(w http.ResponseWriter, r *http.Request) {
     }else{
         out.WriteString("Running Factom<br>")
     }
-    if CP.PeriodMark() > 0 && CP.PeriodMark() <= 10 {
+    if CP.PeriodMark() <= 10 {
         out.WriteString(fmt.Sprintf("Minute %d, Block Height %d<br>",CP.PeriodMark(),CP.BlockHeight()))
     }
     
