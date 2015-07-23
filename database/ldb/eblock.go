@@ -27,7 +27,7 @@ func (db *LevelDb) ProcessEBlockBatch(eblock *common.EBlock) error {
 		if err != nil {
 			return err
 		}
-		
+
 		// Insert the binary entry block
 		var key []byte = []byte{byte(TBL_EB)}
 		key = append(key, eblock.Hash().Bytes()...)
@@ -64,10 +64,16 @@ func (db *LevelDb) ProcessEBlockBatch(eblock *common.EBlock) error {
 
 // FetchEBlockByMR gets an entry block by merkle root from the database.
 func (db *LevelDb) FetchEBlockByMR(eBMR *common.Hash) (eBlock *common.EBlock, err error) {
-	eBlockHash, _ := db.FetchEBHashByMR(eBMR)
+	eBlockHash, err := db.FetchEBHashByMR(eBMR)
+	if err != nil {
+		return nil, err
+	}
 
 	if eBlockHash != nil {
-		eBlock, _ = db.FetchEBlockByHash(eBlockHash)
+		eBlock, err = db.FetchEBlockByHash(eBlockHash)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return eBlock, nil
@@ -102,12 +108,12 @@ func (db *LevelDb) FetchEBlockByHash(eBlockHash *common.Hash) (*common.EBlock, e
 	key = append(key, chainID.Bytes...)
 	bytes := make([]byte, 4)
 	binary.BigEndian.PutUint32(bytes, eBlockHeight)
-	key = append(key, bytes...)	
+	key = append(key, bytes...)
 	data, err := db.lDb.Get(key, db.ro)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	eBlock := common.NewEBlock()
 	if data != nil {
 		eBlock.UnmarshalBinary(data)
@@ -211,7 +217,7 @@ func (db *LevelDb) FetchAllEBlocksByChain(chainID *common.Hash) (eBlocks *[]comm
 	defer db.dbLock.Unlock()
 
 	var fromkey []byte = []byte{byte(TBL_EB_CHAIN_NUM)} // Table Name (1 bytes)
-	fromkey = append(fromkey, chainID.Bytes()...) // Chain Type (32 bytes)
+	fromkey = append(fromkey, chainID.Bytes()...)       // Chain Type (32 bytes)
 	var tokey []byte = addOneToByteArray(fromkey)
 
 	eBlockSlice := make([]common.EBlock, 0, 10)
