@@ -55,6 +55,7 @@ func Start(db database.Db, inMsgQ chan wire.FtmInternalMsg) {
 	server.Post("/v1/reveal-entry/?", handleRevealEntry)
 	server.Post("/v1/factoid-submit/?", handleFactoidSubmit)
 	server.Get("/v1/directory-block-head/?", handleDirectoryBlockHead)
+	server.Get("/v1/get-raw-data/([^/]+)", handleGetRaw)	
 	server.Get("/v1/directory-block-by-keymr/([^/]+)", handleDirectoryBlock)
 	server.Get("/v1/entry-block-by-keymr/([^/]+)", handleEntryBlock)
 	server.Get("/v1/entry-by-hash/([^/]+)", handleEntry)
@@ -62,6 +63,7 @@ func Start(db database.Db, inMsgQ chan wire.FtmInternalMsg) {
 	server.Get("/v1/entry-credit-balance/([^/]+)", handleEntryCreditBalance)
 	server.Get("/v1/factoid-balance/([^/]+)", handleFactoidBalance)
 	server.Get("/v1/factoid-get-fee/", handleGetFee)
+	
 
 	wsLog.Info("Starting server")
 	go server.Run("localhost:" + strconv.Itoa(portNumber))
@@ -249,7 +251,7 @@ func handleDirectoryBlock(ctx *web.Context, keymr string) {
 		}
 		EntryBlockList []eblockaddr
 	}
-
+	
 	d := new(dblock)
 	if block, err := factomapi.DBlockByKeyMR(keymr); err != nil {
 		wsLog.Error(err)
@@ -516,4 +518,60 @@ func handleGetFee(ctx *web.Context) {
 	} else {
 		ctx.Write(p)
 	}
+}
+
+
+func handleGetRaw(ctx *web.Context, hashkey string) {	
+	type rawData struct {
+		Data string
+	}
+	//TODO: var block common.BinaryMarshallable
+	d := new(rawData)
+		
+	h, err := common.HexToHash(hashkey);	
+	if  err != nil {
+		wsLog.Error(err)
+		ctx.WriteHeader(httpBad)
+		ctx.Write([]byte(err.Error()))
+		return
+	}	
+
+	// try to find the block data in db and return the first one found
+	if 	block, _ := dbase.FetchFBlockByHash(h); block !=nil {
+		bytes, _ := block.MarshalBinary()
+		d.Data = hex.EncodeToString(bytes[:])				
+	}  else if block, _ := dbase.FetchDBlockByHash(h); block !=nil {
+		bytes, _ := block.MarshalBinary()
+		d.Data = hex.EncodeToString(bytes[:])		
+	} else if block, _ := dbase.FetchABlockByHash(h); block !=nil {
+		bytes, _ := block.MarshalBinary()
+		d.Data = hex.EncodeToString(bytes[:])					
+	} else if block, _ := dbase.FetchDBlockByMR(h); block !=nil {	
+		bytes, _ := block.MarshalBinary()
+		d.Data = hex.EncodeToString(bytes[:])			
+	} else if block, _ := dbase.FetchEBlockByHash(h); block !=nil {
+		bytes, _ := block.MarshalBinary()
+		d.Data = hex.EncodeToString(bytes[:])		
+	} else if block, _ := dbase.FetchEBlockByMR(h); block !=nil {
+		bytes, _ := block.MarshalBinary()
+		d.Data = hex.EncodeToString(bytes[:])		
+	} else if block, _ := dbase.FetchECBlockByHash(h); block !=nil {
+		bytes, _ := block.MarshalBinary()
+		d.Data = hex.EncodeToString(bytes[:])		
+	} else if block, _ := dbase.FetchEntryByHash(h); block !=nil {	
+		bytes, _ := block.MarshalBinary()
+		d.Data = hex.EncodeToString(bytes[:])
+	}
+	
+	
+	if p, err := json.Marshal(d); err != nil {
+		wsLog.Error(err)
+		ctx.WriteHeader(httpBad)
+		ctx.Write([]byte(err.Error()))
+		return
+	} else {
+		ctx.Write(p)
+	}
+
+//	ctx.WriteHeader(httpOK)
 }

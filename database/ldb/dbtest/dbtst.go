@@ -17,7 +17,7 @@ type tst struct {
 	value string
 }
 
-const dbpath = "/tmp/ldb9"
+const dbpath = "/tmp/ldb"
 
 func main() { 
 
@@ -53,7 +53,7 @@ func main() {
 		elice = append(elice, t)
 
 	}
-
+ 
 	fmt.Printf("len(elice):%v", len(elice))
 	fmt.Printf("completed\n")
 	ldb.Close()
