@@ -40,22 +40,28 @@ func (b *IncreaseBalance) MarshalBinary() ([]byte, error) {
 	buf := new(bytes.Buffer)
 
 	buf.Write(b.ECPubKey[:])
-	
+
 	buf.Write(b.TXID.Bytes())
 
 	WriteVarInt(buf, b.Index)
-	
+
 	WriteVarInt(buf, b.NumEC)
-	
+
 	return buf.Bytes(), nil
 }
 
-func (b *IncreaseBalance) UnmarshalBinary(data []byte) error {
+func (b *IncreaseBalance) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	buf := bytes.NewBuffer(data)
-	if err := b.readUnmarshal(buf); err != nil {
-		return err
+	if err = b.readUnmarshal(buf); err != nil {
+		return
 	}
-	return nil
+	newData = buf.Bytes()
+	return
+}
+
+func (b *IncreaseBalance) UnmarshalBinary(data []byte) (err error) {
+	_, err = b.UnmarshalBinaryData(data)
+	return
 }
 
 func (b *IncreaseBalance) readUnmarshal(buf *bytes.Buffer) error {
@@ -67,10 +73,10 @@ func (b *IncreaseBalance) readUnmarshal(buf *bytes.Buffer) error {
 
 	buf.Read(hash)
 	b.TXID.SetBytes(hash)
-	
+
 	b.Index = ReadVarInt(buf)
 
 	b.NumEC = ReadVarInt(buf)
-	
+
 	return nil
 }

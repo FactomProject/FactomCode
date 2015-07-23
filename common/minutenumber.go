@@ -30,12 +30,19 @@ func (m *MinuteNumber) MarshalBinary() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (m *MinuteNumber) UnmarshalBinary(data []byte) error {
+func (m *MinuteNumber) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	buf := bytes.NewBuffer(data)
-	if c, err := buf.ReadByte(); err != nil {
-		return err
+	var c byte
+	if c, err = buf.ReadByte(); err != nil {
+		return
 	} else {
 		m.Number = c
 	}
-	return nil
+	newData = buf.Bytes()
+	return
+}
+
+func (m *MinuteNumber) UnmarshalBinary(data []byte) (err error) {
+	_, err = m.UnmarshalBinaryData(data)
+	return
 }

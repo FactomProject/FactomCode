@@ -8,7 +8,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
-	//	"fmt"
+	"fmt"
 	"github.com/FactomProject/factoid/block"
 	"reflect"
 	"sync"
@@ -187,20 +187,31 @@ func (e *DBEntry) MarshalBinary() (data []byte, err error) {
 	return buf.Bytes(), nil
 }
 
-func (e *DBEntry) UnmarshalBinary(data []byte) (err error) {
+func (e *DBEntry) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("Error unmarshalling: %v", r)
+		}
+	}()
+	newData = data
 	e.ChainID = new(Hash)
-	err = e.ChainID.UnmarshalBinary(data[:HASH_LENGTH])
+	newData, err = e.ChainID.UnmarshalBinaryData(newData)
 	if err != nil {
 		return
 	}
 
 	e.KeyMR = new(Hash)
-	err = e.KeyMR.UnmarshalBinary(data[HASH_LENGTH:])
+	newData, err = e.KeyMR.UnmarshalBinaryData(newData)
 	if err != nil {
 		return
 	}
 
-	return nil
+	return
+}
+
+func (e *DBEntry) UnmarshalBinary(data []byte) (err error) {
+	_, err = e.UnmarshalBinaryData(data)
+	return
 }
 
 func (e *DBEntry) ShaHash() *Hash {
@@ -269,29 +280,39 @@ func (b *DBlockHeader) MarshalledSize() uint64 {
 	return size
 }
 
-func (b *DBlockHeader) UnmarshalBinary(data []byte) (err error) {
+func (b *DBlockHeader) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("Error unmarshalling: %v", r)
+		}
+	}()
+	newData = data
+	b.Version, newData = newData[0], newData[1:]
 
-	b.Version, data = data[0], data[1:]
-
-	b.NetworkID, data = binary.BigEndian.Uint32(data[0:4]), data[4:]
+	b.NetworkID, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
 	b.BodyMR = new(Hash)
-	b.BodyMR.UnmarshalBinary(data)
-	data = data[HASH_LENGTH:]
+	b.BodyMR.UnmarshalBinary(newData)
+	newData = newData[HASH_LENGTH:]
 
 	b.PrevKeyMR = new(Hash)
-	b.PrevKeyMR.UnmarshalBinary(data)
-	data = data[HASH_LENGTH:]
+	b.PrevKeyMR.UnmarshalBinary(newData)
+	newData = newData[HASH_LENGTH:]
 
 	b.PrevFullHash = new(Hash)
-	b.PrevFullHash.UnmarshalBinary(data)
-	data = data[HASH_LENGTH:]
+	b.PrevFullHash.UnmarshalBinary(newData)
+	newData = newData[HASH_LENGTH:]
 
-	b.Timestamp, data = binary.BigEndian.Uint32(data[0:4]), data[4:]
-	b.DBHeight, data = binary.BigEndian.Uint32(data[0:4]), data[4:]
-	b.BlockCount, data = binary.BigEndian.Uint32(data[0:4]), data[4:]
+	b.Timestamp, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+	b.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+	b.BlockCount, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
-	return nil
+	return
+}
+
+func (b *DBlockHeader) UnmarshalBinary(data []byte) (err error) {
+	_, err = b.UnmarshalBinaryData(data)
+	return
 }
 
 func CreateDBlock(chain *DChain, prev *DirectoryBlock, cap uint) (b *DirectoryBlock, err error) {
@@ -505,24 +526,38 @@ func (b *DirectoryBlock) BuildKeyMerkleRoot() (err error) {
 	return
 }
 
-func (b *DirectoryBlock) UnmarshalBinary(data []byte) (err error) {
-	fbh := new(DBlockHeader)
-	fbh.UnmarshalBinary(data)
-	b.Header = fbh
-	data = data[fbh.MarshalledSize():]
+func (b *DirectoryBlock) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("Error unmarshalling: %v", r)
+		}
+	}()
 
-	count:=b.Header.BlockCount
+	newData = data
+
+	fbh := new(DBlockHeader)
+	newData, err = fbh.UnmarshalBinaryData(newData)
+	if err != nil {
+		return
+	}
+	b.Header = fbh
+
+	count := b.Header.BlockCount
 	b.DBEntries = make([]*DBEntry, count)
 	for i := uint32(0); i < count; i++ {
 		b.DBEntries[i] = new(DBEntry)
-		err = b.DBEntries[i].UnmarshalBinary(data)
+		newData, err = b.DBEntries[i].UnmarshalBinaryData(newData)
 		if err != nil {
 			return
 		}
-		data = data[HASH_LENGTH*2:]
 	}
 
-	return nil
+	return
+}
+
+func (b *DirectoryBlock) UnmarshalBinary(data []byte) (err error) {
+	_, err = b.UnmarshalBinaryData(data)
+	return
 }
 
 func (b *DirectoryBlock) EncodableFields() map[string]reflect.Value {
@@ -573,32 +608,45 @@ func (b *DirBlockInfo) MarshalBinary() (data []byte, err error) {
 	return buf.Bytes(), err
 }
 
-func (b *DirBlockInfo) UnmarshalBinary(data []byte) (err error) {
+func (b *DirBlockInfo) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("Error unmarshalling: %v", r)
+		}
+	}()
+
+	newData = data
+
 	b.DBHash = new(Hash)
-	b.DBHash.UnmarshalBinary(data[:HASH_LENGTH])
+	newData, err = b.DBHash.UnmarshalBinaryData(newData)
+	if err != nil {
+		return
+	}
 
 	b.BTCTxHash = new(Hash)
-	b.BTCTxHash.UnmarshalBinary(data[:HASH_LENGTH])
-	data = data[HASH_LENGTH:]
+	newData, err = b.BTCTxHash.UnmarshalBinaryData(newData)
 
-	b.BTCTxOffset = int(binary.BigEndian.Uint32(data[:4]))
-	data = data[4:]
+	b.BTCTxOffset = int(binary.BigEndian.Uint32(newData[:4]))
+	newData = newData[4:]
 
-	b.BTCBlockHeight = int32(binary.BigEndian.Uint32(data[:4]))
-	data = data[4:]
-	/*
-		b.BTCBlockHash = new(Hash)
-		b.BTCBlockHash.UnmarshalBinary(data[:HASH_LENGTH])
-	*/
+	b.BTCBlockHeight = int32(binary.BigEndian.Uint32(newData[:4]))
+	newData = newData[4:]
+
 	b.DBMerkleRoot = new(Hash)
-	b.DBMerkleRoot.UnmarshalBinary(data[:HASH_LENGTH])
+	newData, err = b.DBMerkleRoot.UnmarshalBinaryData(newData)
 
 	// convert one byte to bool
-	if data[0] > 0 {
+	if newData[0] > 0 {
 		b.BTCConfirmed = true
 	} else {
 		b.BTCConfirmed = false
 	}
+	newData = newData[1:]
 
-	return nil
+	return
+}
+
+func (b *DirBlockInfo) UnmarshalBinary(data []byte) (err error) {
+	_, err = b.UnmarshalBinaryData(data)
+	return
 }
