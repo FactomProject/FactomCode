@@ -50,6 +50,7 @@ func TestAdminBlockMarshalUnmarshal(t *testing.T) {
 
 			if bytes.Compare(entryOne, entryTwo) != 0 {
 				t.Logf("Block %d", b)
+				t.Logf("%X vs %X", entryOne, entryTwo)
 				t.Error("ABEntries are not identical")
 			}
 		}
@@ -119,24 +120,22 @@ func TestInvalidABlockHeaderUnmarshal(t *testing.T) {
 
 	header := new(ABlockHeader)
 	err := header.UnmarshalBinary(nil)
-	if err != nil {
-		t.Error(err)
+	if err == nil {
+		t.Error("We expected errors but we didn't get any")
 	}
-	if WeDidPanic != true {
-		t.Error("We did not panic and we should've")
-	} else {
+	if WeDidPanic == true {
+		t.Error("We did panic and we shouldn't have")
 		WeDidPanic = false
 		defer CatchPanic()
 	}
 
 	header = new(ABlockHeader)
 	err = header.UnmarshalBinary([]byte{})
-	if err != nil {
-		t.Error(err)
+	if err == nil {
+		t.Error("We expected errors but we didn't get any")
 	}
-	if WeDidPanic != true {
-		t.Error("We did not panic and we should've")
-	} else {
+	if WeDidPanic == true {
+		t.Error("We did panic and we shouldn't have")
 		WeDidPanic = false
 		defer CatchPanic()
 	}
@@ -150,13 +149,11 @@ func TestInvalidABlockHeaderUnmarshal(t *testing.T) {
 	}
 	header = new(ABlockHeader)
 	err = header.UnmarshalBinary(binary[:len(binary)-1])
-	if err != nil {
-		t.Error(err)
-		t.FailNow()
+	if err == nil {
+		t.Error("We expected errors but we didn't get any")
 	}
-	if WeDidPanic != true {
-		t.Error("We did not panic and we should've")
-	} else {
+	if WeDidPanic == true {
+		t.Error("We did panic and we shouldn't have")
 		WeDidPanic = false
 		defer CatchPanic()
 	}
@@ -170,24 +167,22 @@ func TestInvalidAdminBlockUnmarshal(t *testing.T) {
 
 	block := new(AdminBlock)
 	err := block.UnmarshalBinary(nil)
-	if err != nil {
-		t.Error(err)
+	if err == nil {
+		t.Error("We expected errors but we didn't get any")
 	}
-	if WeDidPanic != true {
-		t.Error("We did not panic and we should've")
-	} else {
+	if WeDidPanic == true {
+		t.Error("We did panic and we shouldn't have")
 		WeDidPanic = false
 		defer CatchPanic()
 	}
 
 	block = new(AdminBlock)
 	err = block.UnmarshalBinary([]byte{})
-	if err != nil {
-		t.Error(err)
+	if err == nil {
+		t.Error("We expected errors but we didn't get any")
 	}
-	if WeDidPanic != true {
-		t.Error("We did not panic and we should've")
-	} else {
+	if WeDidPanic == true {
+		t.Error("We did panic and we shouldn't have")
 		WeDidPanic = false
 		defer CatchPanic()
 	}
@@ -201,13 +196,11 @@ func TestInvalidAdminBlockUnmarshal(t *testing.T) {
 	}
 	block = new(AdminBlock)
 	err = block.UnmarshalBinary(binary[:len(binary)-1])
-	if err != nil {
-		t.Error(err)
-		t.FailNow()
+	if err == nil {
+		t.Error("We expected errors but we didn't get any")
 	}
-	if WeDidPanic != true {
-		t.Error("We did not panic and we should've")
-	} else {
+	if WeDidPanic == true {
+		t.Error("We did panic and we shouldn't have")
 		WeDidPanic = false
 		defer CatchPanic()
 	}
