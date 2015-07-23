@@ -10,7 +10,7 @@ import (
 )
 
 func TestAdminBlockMarshalUnmarshal(t *testing.T) {
-	fmt.Printf("---\nTestAdminBlockMarshalUnmarshal\n---\n")
+	fmt.Printf("\n---\nTestAdminBlockMarshalUnmarshal\n---\n")
 
 	blocks := []*AdminBlock{}
 	blocks = append(blocks, createSmallTestAdminBlock())
@@ -57,7 +57,7 @@ func TestAdminBlockMarshalUnmarshal(t *testing.T) {
 }
 
 func TestABlockHeaderMarshalUnmarshal(t *testing.T) {
-	fmt.Printf("---\nTestABlockHeaderMarshalUnmarshal\n---\n")
+	fmt.Printf("\n---\nTestABlockHeaderMarshalUnmarshal\n---\n")
 
 	header := createTestAdminHeader()
 
@@ -103,8 +103,118 @@ func TestABlockHeaderMarshalUnmarshal(t *testing.T) {
 
 }
 
+var WeDidPanic bool
+
+func CatchPanic() {
+	if r := recover(); r != nil {
+		WeDidPanic = true
+	}
+}
+
+func TestInvalidABlockHeaderUnmarshal(t *testing.T) {
+	fmt.Printf("\n---\nTestInvalidABlockHeaderUnmarshal\n---\n")
+
+	WeDidPanic = false
+	defer CatchPanic()
+
+	header := new(ABlockHeader)
+	err := header.UnmarshalBinary(nil)
+	if err != nil {
+		t.Error(err)
+	}
+	if WeDidPanic != true {
+		t.Error("We did not panic and we should've")
+	} else {
+		WeDidPanic = false
+		defer CatchPanic()
+	}
+
+	header = new(ABlockHeader)
+	err = header.UnmarshalBinary([]byte{})
+	if err != nil {
+		t.Error(err)
+	}
+	if WeDidPanic != true {
+		t.Error("We did not panic and we should've")
+	} else {
+		WeDidPanic = false
+		defer CatchPanic()
+	}
+
+	header2 := createTestAdminHeader()
+
+	binary, err := header2.MarshalBinary()
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+	header = new(ABlockHeader)
+	err = header.UnmarshalBinary(binary[:len(binary)-1])
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+	if WeDidPanic != true {
+		t.Error("We did not panic and we should've")
+	} else {
+		WeDidPanic = false
+		defer CatchPanic()
+	}
+}
+
+func TestInvalidAdminBlockUnmarshal(t *testing.T) {
+	fmt.Printf("\n---\nTestInvalidAdminBlockUnmarshal\n---\n")
+
+	WeDidPanic = false
+	defer CatchPanic()
+
+	block := new(AdminBlock)
+	err := block.UnmarshalBinary(nil)
+	if err != nil {
+		t.Error(err)
+	}
+	if WeDidPanic != true {
+		t.Error("We did not panic and we should've")
+	} else {
+		WeDidPanic = false
+		defer CatchPanic()
+	}
+
+	block = new(AdminBlock)
+	err = block.UnmarshalBinary([]byte{})
+	if err != nil {
+		t.Error(err)
+	}
+	if WeDidPanic != true {
+		t.Error("We did not panic and we should've")
+	} else {
+		WeDidPanic = false
+		defer CatchPanic()
+	}
+
+	block2 := createTestAdminBlock()
+
+	binary, err := block2.MarshalBinary()
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+	block = new(AdminBlock)
+	err = block.UnmarshalBinary(binary[:len(binary)-1])
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+	if WeDidPanic != true {
+		t.Error("We did not panic and we should've")
+	} else {
+		WeDidPanic = false
+		defer CatchPanic()
+	}
+}
+
 func TestMarshalledSize(t *testing.T) {
-	fmt.Printf("---\nTestMarshalledSize\n---\n")
+	fmt.Printf("\n---\nTestMarshalledSize\n---\n")
 
 	header := createTestAdminHeader()
 	marshalled, err := header.MarshalBinary()
