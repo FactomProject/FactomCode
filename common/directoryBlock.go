@@ -483,7 +483,6 @@ func (b *DirectoryBlock) BuildBodyMR() (mr *Hash, err error) {
 		data, _ := entry.MarshalBinary()
 		hashes[i] = Sha(data)
 	}
-	// Verify bodyMR here??
 
 	if len(hashes) == 0 {
 		hashes = append(hashes, Sha(nil))

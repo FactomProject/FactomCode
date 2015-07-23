@@ -7,13 +7,13 @@ package process
 import (
 	"errors"
 	"fmt"
-	"github.com/FactomProject/FactomCode/common"
-	"github.com/FactomProject/FactomCode/consensus"
+    "github.com/FactomProject/FactomCode/common"
+    cp "github.com/FactomProject/FactomCode/controlpanel"
+    "github.com/FactomProject/FactomCode/consensus"
 	"github.com/FactomProject/FactomCode/factomlog"
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd/wire"
 	fct "github.com/FactomProject/factoid"
-	"github.com/FactomProject/factoid/block"
 	"github.com/davecgh/go-spew/spew"
 	"sort"
 	"strconv"
@@ -165,7 +165,9 @@ func initFctChain() {
 	// double check the block ids
 	for i := 0; i < len(fBlocks); i = i + 1 {
 		if uint32(i) != fBlocks[i].GetDBHeight() {
-			panic(errors.New("BlockID does not equal index for chain:" + fchain.ChainID.String() + " block:" + fmt.Sprintf("%v", fBlocks[i].GetDBHeight())))
+			panic(errors.New("BlockID does not equal index for chain:" +
+				fchain.ChainID.String() + " block:" +
+				fmt.Sprintf("%v", fBlocks[i].GetDBHeight())))
 		} else {
 			// initialize the FactoidState in sequence
 			err := common.FactoidState.AddTransactionBlock(fBlocks[i])
@@ -178,14 +180,13 @@ func initFctChain() {
 	//Create an empty block and append to the chain
 	if len(fBlocks) == 0 || dchain.NextDBHeight == 0 {
 		fchain.NextBlockHeight = 0
-
-		fchain.NextBlock = block.GetGenesisBlock(
-			0, 1000000, 10, 200000000000)
+		fchain.NextBlock = getGenesisFBlock()
+		fmt.Println(fchain.NextBlock)
 	} else {
 		fchain.NextBlockHeight = dchain.NextDBHeight
-		common.FactoidState.ProcessEndOfBlock2(dchain.NextDBHeight)
-		fchain.NextBlock = common.FactoidState.GetCurrentBlock()
 	}
+	common.FactoidState.ProcessEndOfBlock2(dchain.NextDBHeight)
+	fchain.NextBlock = common.FactoidState.GetCurrentBlock()
 
 	exportFctChain(fchain)
 
@@ -305,9 +306,12 @@ func validateDChain(c *common.DChain) error {
 	//validate the genesis block
 	//prevBlkHash is the block hash for c.Blocks[0]
 	if prevBlkHash == nil || prevBlkHash.String() != common.GENESIS_DIR_BLOCK_HASH {
-		panic("\n\nGenesis dir block is not as expected.\n" + 
-        "\n    Expected: "+common.GENESIS_DIR_BLOCK_HASH+
-        "\n    Found:    "+prevBlkHash.String()+"\n\n")
+		str := fmt.Sprintf("\n\nGenesis dir block is not as expected." +
+			"\n    Expected: " + common.GENESIS_DIR_BLOCK_HASH +
+			"\n    Found:    " + prevBlkHash.String() + "\n\n")
+        fmt.Println(str)
+        procLog.Errorf(str)
+        cp.CP.AddWarning(str)
 	}
 
 	for i := 1; i < len(c.Blocks); i++ {

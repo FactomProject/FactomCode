@@ -246,7 +246,8 @@ func sendRawTransaction(msgtx *wire.MsgTx) (*wire.ShaHash, error) {
 	if err := msgtx.BtcEncode(&buf, wire.ProtocolVersion); err != nil {
 		// Hitting OOM by growing or writing to a bytes.Buffer already
 		// panics, and all returned errors are unexpected.
-		//panic(err) //?? should we have retry logic?
+		//panic(err) 
+		//TODO: should we have retry logic?
 		return nil, err
 	}
 

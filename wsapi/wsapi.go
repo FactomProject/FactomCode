@@ -37,10 +37,14 @@ var _ = fmt.Println
 
 var server = web.NewServer()
 
-var inMessageQ chan wire.FtmInternalMsg
+var (
+	inMessageQ chan wire.FtmInternalMsg
+	dbase database.Db
+)
 
 func Start(db database.Db, inMsgQ chan wire.FtmInternalMsg) {
 	factomapi.SetDB(db)
+	dbase = db
 	factomapi.SetInMsgQueue(inMsgQ)
 	inMessageQ = inMsgQ
 
@@ -241,7 +245,7 @@ func handleDirectoryBlock(ctx *web.Context, keymr string) {
 		Header struct {
 			PrevBlockKeyMR string
 			SequenceNumber uint32
-			TimeStamp      uint64
+			TimeStamp      uint32
 		}
 		EntryBlockList []eblockaddr
 	}
@@ -255,7 +259,7 @@ func handleDirectoryBlock(ctx *web.Context, keymr string) {
 	} else {
 		d.Header.PrevBlockKeyMR = block.Header.PrevKeyMR.String()
 		d.Header.SequenceNumber = block.Header.DBHeight
-		d.Header.TimeStamp = uint64(block.Header.Timestamp) * 60 //Converting from minutes to seconds
+		d.Header.TimeStamp = block.Header.Timestamp * 60
 		for _, v := range block.DBEntries {
 			l := new(eblockaddr)
 			l.ChainID = v.ChainID.String()
@@ -279,6 +283,7 @@ func handleDirectoryBlock(ctx *web.Context, keymr string) {
 func handleEntryBlock(ctx *web.Context, keymr string) {
 	type entryaddr struct {
 		EntryHash string
+		TimeStamp uint32
 	}
 
 	type eblock struct {
@@ -286,7 +291,7 @@ func handleEntryBlock(ctx *web.Context, keymr string) {
 			BlockSequenceNumber uint32
 			ChainID             string
 			PrevKeyMR           string
-			TimeStamp           uint64
+			TimeStamp           uint32
 		}
 		EntryList []entryaddr
 	}
@@ -301,10 +306,15 @@ func handleEntryBlock(ctx *web.Context, keymr string) {
 		e.Header.BlockSequenceNumber = block.Header.EBSequence
 		e.Header.ChainID = block.Header.ChainID.String()
 		e.Header.PrevKeyMR = block.Header.PrevKeyMR.String()
-//		e.Header.TimeStamp = block.Header.StartTime
+
+		if dblock, err := dbase.FetchDBlockByHeight(block.Header.DBHeight); err == nil {
+			e.Header.TimeStamp = dblock.Header.Timestamp * 60
+		}
+
 		for _, v := range block.Body.EBEntries {
 			l := new(entryaddr)
 			l.EntryHash = v.String()
+			l.TimeStamp = e.Header.TimeStamp
 			e.EntryList = append(e.EntryList, *l)
 		}
 	}
@@ -317,8 +327,6 @@ func handleEntryBlock(ctx *web.Context, keymr string) {
 	} else {
 		ctx.Write(p)
 	}
-
-//	ctx.WriteHeader(httpOK)
 }
 
 func handleEntry(ctx *web.Context, hash string) {
@@ -350,23 +358,21 @@ func handleEntry(ctx *web.Context, hash string) {
 	} else {
 		ctx.Write(p)
 	}
-
 }
 
 func handleChainHead(ctx *web.Context, chainid string) {
 	type chead struct {
-		EntryBlockKeyMR string
+		ChainHead string
 	}
 
 	c := new(chead)
-	fmt.Println("DEBUG:", c)
 	if mr, err := factomapi.ChainHead(chainid); err != nil {
 		wsLog.Error(err)
 		ctx.WriteHeader(httpBad)
 		ctx.Write([]byte(err.Error()))
 		return
 	} else {
-		c.EntryBlockKeyMR = mr.String()
+		c.ChainHead = mr.String()
 	}
 
 	if p, err := json.Marshal(c); err != nil {
@@ -377,7 +383,6 @@ func handleChainHead(ctx *web.Context, chainid string) {
 	} else {
 		ctx.Write(p)
 	}
-
 }
 
 type ecbal struct {
@@ -484,13 +489,13 @@ func handleFactoidSubmit(ctx *web.Context) {
 	msg.Transaction = new(fct.Transaction)
 	err = msg.Transaction.UnmarshalBinary(p)
 	if err != nil {
-		returnMsg(ctx, "Unable to unmarshal the transaction", false)
+		returnMsg(ctx, err.Error(), false)
 		return
 	}
 
-	good := common.FactoidState.Validate(msg.Transaction)
-	if !good {
-		returnMsg(ctx, "The transaction did not validate", false)
+	err = common.FactoidState.Validate(msg.Transaction)
+	if err != nil  {
+		returnMsg(ctx, err.Error(), false)
 		return
 	}
 

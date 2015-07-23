@@ -15,8 +15,9 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/FactomProject/FactomCode/anchor"
-	"github.com/FactomProject/FactomCode/common"
+    cp "github.com/FactomProject/FactomCode/controlpanel"
+    "github.com/FactomProject/FactomCode/anchor"
+    "github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/consensus"
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/util"
@@ -25,9 +26,12 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"sort"
 	"strconv"
+
 )
 
 var _ = (*block.FBlock)(nil)
+
+var _ = util.Trace
 
 var (
 	db       database.Db        // database
@@ -105,7 +109,7 @@ func initProcessor() {
 	wire.FChainID = common.NewHash()
 	wire.FChainID.SetBytes(common.FACTOID_CHAINID)
 
-	FactoshisPerCredit = 666667 // .001 / .15 * 100000000 (assuming a Factoid is .15 cents, entry credit = .1 cents
+	FactoshisPerCredit = 66666 // .001 / .15 * 100000000 (assuming a Factoid is .15 cents, entry credit = .1 cents
 
 	// init Directory Block Chain
 	initDChain()
@@ -181,7 +185,8 @@ func Start_Processor(
 		}
 		go timer.StartBlockTimer()
 	} else {
-		// start the go routine to process the blocks and entries downloaded from peers
+		// start the go routine to process the blocks and entries downloaded
+		// from peers
 		go validateAndStoreBlocks(fMemPool, db, dchain, outCtlMsgQueue)
 	}
 
@@ -189,22 +194,18 @@ func Start_Processor(
 	for {
 		select {
 		case msg := <-inMsgQ:
-			procLog.Debugf("PROCESSOR: in inMsgQ, msg:%+v\n", msg)
 
 			if err := serveMsgRequest(msg); err != nil {
 				procLog.Error(err)
 			}
 
 		case ctlMsg := <-inCtlMsgQueue:
-			procLog.Debugf("PROCESSOR: in ctlMsg, msg:%+v\n", ctlMsg)
 
 			if err := serveMsgRequest(ctlMsg); err != nil {
 				procLog.Error(err)
 			}
 		}
-
 	}
-
 }
 
 // Serve the "fast lane" incoming control msg from inCtlMsgQueue
@@ -271,12 +272,12 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 				return errors.New("Error in build blocks:" + fmt.Sprintf("%+v", msg))
 			}
 			procLog.Infof("PROCESSOR: End of minute msg - wire.CmdInt_EOM:%+v\n", msg)
-            
-            common.FactoidState.EndOfPeriod(int(msgEom.EOM_Type))
-            
+
+			common.FactoidState.EndOfPeriod(int(msgEom.EOM_Type))
+
 			if msgEom.EOM_Type == wire.END_MINUTE_10 {
-              
-                // Process from Orphan pool before the end of process list
+
+				// Process from Orphan pool before the end of process list
 				processFromOrphanPool()
 
 				// Pass the Entry Credit Exchange Rate into the Factoid component
@@ -291,7 +292,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 				}
 
 			} else if msgEom.EOM_Type >= wire.END_MINUTE_1 && msgEom.EOM_Type < wire.END_MINUTE_10 {
-                ack, err := plMgr.AddMyProcessListItem(msgEom, nil, msgEom.EOM_Type)
+				ack, err := plMgr.AddMyProcessListItem(msgEom, nil, msgEom.EOM_Type)
 				if err != nil {
 					return err
 				}
@@ -303,13 +304,14 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 
 				plMgr.AddMyProcessListItem(msgEom, nil, msgEom.EOM_Type)
 			}
-		}
+			cp.CP.UpdatePeriodMark(int(msgEom.EOM_Type))
+        }
 
 	case wire.CmdDirBlock:
 		if nodeMode == common.SERVER_NODE {
 			break
 		}
-
+		
 		dirBlock, ok := msg.(*wire.MsgDirBlock)
 		if ok {
 			err := processDirBlock(dirBlock)
@@ -319,8 +321,9 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		} else {
 			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
 		}
-
+        
 	case wire.CmdFBlock:
+        
 		if nodeMode == common.SERVER_NODE {
 			break
 		}
@@ -341,7 +344,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		if nodeMode == common.SERVER_NODE {
 			//			util.Trace("server mode")
 			t := (msg.(*wire.MsgFactoidTX)).Transaction
-			if common.FactoidState.AddTransaction(t) {
+			if common.FactoidState.AddTransaction(t) == nil {
 				for _, ecout := range t.GetECOutputs() {
 
 					pub := new([32]byte)
@@ -480,6 +483,11 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 
 		// Add to MyPL if Server Node
 		if nodeMode == common.SERVER_NODE {
+			if plMgr.IsMyPListExceedingLimit() {
+				procLog.Warning("Exceeding MyProcessList size limit!")
+				return fMemPool.addOrphanMsg(msg, h)
+			}
+
 			ack, err := plMgr.AddMyProcessListItem(msg, h,
 				wire.ACK_REVEAL_ENTRY)
 			if err != nil {
@@ -515,6 +523,10 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 
 		// Add to MyPL if Server Node
 		if nodeMode == common.SERVER_NODE {
+			if plMgr.IsMyPListExceedingLimit() {
+				procLog.Warning("Exceeding MyProcessList size limit!")
+				return fMemPool.addOrphanMsg(msg, h)
+			}
 			ack, err := plMgr.AddMyProcessListItem(msg, h,
 				wire.ACK_REVEAL_CHAIN)
 			if err != nil {
@@ -554,6 +566,11 @@ func processCommitEntry(msg *wire.MsgCommitEntry) error {
 	// Server: add to MyPL
 	if nodeMode == common.SERVER_NODE {
 		h, _ := msg.Sha()
+		if plMgr.IsMyPListExceedingLimit() {
+			procLog.Warning("Exceeding MyProcessList size limit!")
+			return fMemPool.addOrphanMsg(msg, &h)
+		}
+
 		ack, err := plMgr.AddMyProcessListItem(msg, &h, wire.ACK_COMMIT_ENTRY)
 		if err != nil {
 			return err
@@ -592,6 +609,12 @@ func processCommitChain(msg *wire.MsgCommitChain) error {
 	// Server: add to MyPL
 	if nodeMode == common.SERVER_NODE {
 		h, _ := msg.Sha()
+
+		if plMgr.IsMyPListExceedingLimit() {
+			procLog.Warning("Exceeding MyProcessList size limit!")
+			return fMemPool.addOrphanMsg(msg, &h)
+		}
+
 		ack, err := plMgr.AddMyProcessListItem(msg, &h, wire.ACK_COMMIT_CHAIN)
 		if err != nil {
 			return err
@@ -758,11 +781,12 @@ func buildGenesisBlocks() error {
 	exportAChain(achain)
 
 	// factoid Genesis Address
+	fchain.NextBlock = getGenesisFBlock()
 	FBlock := newFactoidBlock(fchain)
 	data, _ := FBlock.MarshalBinary()
 	procLog.Debugf("\n\n ", common.Sha(data).String(), "\n\n")
 	dchain.AddFBlockToDBEntry(FBlock)
-    procLog.Debugf("Factoid genesis block hash: %v\n", FBlock.GetHash())
+	procLog.Debugf("Factoid genesis block hash: %v\n", FBlock.GetHash())
 	exportFctChain(fchain)
 	// Add transactions from genesis block to factoid balances
 	common.FactoidState.AddTransactionBlock(FBlock)
@@ -774,7 +798,7 @@ func buildGenesisBlocks() error {
 	// Check block hash if genesis block
 	if dbBlock.DBHash.String() != common.GENESIS_DIR_BLOCK_HASH {
 
-		panic("\nGenesis block hash expected: " + common.GENESIS_DIR_BLOCK_HASH +
+		procLog.Errorf("\nGenesis block hash expected: " + common.GENESIS_DIR_BLOCK_HASH +
 			"\nGenesis block hash found:    " + dbBlock.DBHash.String() + "\n")
 	}
 
@@ -788,7 +812,7 @@ func buildGenesisBlocks() error {
 
 // build blocks from all process lists
 func buildBlocks() error {
-	
+
 	// Allocate the first three dbentries for Admin block, ECBlock and Factoid block
 	dchain.AddDBEntry(&common.DBEntry{}) // AdminBlock
 	dchain.AddDBEntry(&common.DBEntry{}) // ECBlock
@@ -805,13 +829,13 @@ func buildBlocks() error {
 
 	// Admin chain
 	aBlock := newAdminBlock(achain)
-	
+
 	dchain.AddABlockToDBEntry(aBlock)
 	exportABlock(aBlock)
 
 	// Factoid chain
 	fBlock := newFactoidBlock(fchain)
-	
+
 	dchain.AddFBlockToDBEntry(fBlock)
 	exportFctBlock(fBlock)
 

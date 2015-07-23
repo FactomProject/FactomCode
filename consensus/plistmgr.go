@@ -51,14 +51,14 @@ func NewProcessListMgr(height uint32, otherPLSize int, plSizeHint uint, privKey 
 	return nil
 }*/
 
-//Added to OtherPL[0] - to be improved after milestone 1??
+//TODO: Added to OtherPL[0] - to be improved after milestone 1
 func (plMgr *ProcessListMgr) AddToOtherProcessList(plItem *ProcessListItem) error {
 	// Determin which process list to add
 	plMgr.OtherProcessLists[0].AddToProcessList(plItem)
 	return nil
 }
 
-//Added to OtherPL[0] - to be improved after milestone 1??
+//TODO: Added to OtherPL[0] - to be improved after milestone 1
 func (plMgr *ProcessListMgr) AddToOrphanProcessList(plItem *ProcessListItem) error {
 	// Determin which process list to add
 	//	plMgr.OrphanPLMap[string(plItem.ack.Affirmation)] = plItem
@@ -98,7 +98,7 @@ func (plMgr *ProcessListMgr) AddToOrphanProcessList(plItem *ProcessListItem) err
 func (plMgr *ProcessListMgr) InitProcessListFromOrphanMap() error {
 
 	for key, plItem := range plMgr.OrphanPLMap {
-		if plMgr.NextDBlockHeight == plItem.Ack.Height {//??
+		if plMgr.NextDBlockHeight == plItem.Ack.Height {
 			plMgr.MyProcessList.AddToProcessList(plItem)
 			delete(plMgr.OrphanPLMap, key)
 		}
@@ -128,8 +128,16 @@ func (plMgr *ProcessListMgr) AddMyProcessListItem(msg wire.FtmInternalMsg, hash 
 	return ack, nil
 }
 
-// Sign the Ack -- to do??: to be moved into util package
+// Sign the Ack -- 
+//TODO: to be moved into util package
 func (plMgr *ProcessListMgr) SignAck(bytes []byte) (sig common.Signature) {
 	sig = plMgr.serverPrivKey.Sign(bytes)
 	return sig
+}
+
+// Check if the number of process list items is exceeding the size limit
+func (plMgr *ProcessListMgr) IsMyPListExceedingLimit() bool {
+
+ return (plMgr.MyProcessList.totalItems >= common.MAX_PLIST_SIZE)
+
 }
