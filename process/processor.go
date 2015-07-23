@@ -306,7 +306,6 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 			}
 			cp.CP.UpdatePeriodMark(int(msgEom.EOM_Type))
         }
-		cp.CP.UpdateBlockHeight(int(dchain.NextDBHeight))
 
 	case wire.CmdDirBlock:
 		if nodeMode == common.SERVER_NODE {
@@ -322,10 +321,9 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		} else {
 			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
 		}
-		
-		cp.CP.UpdateBlockHeight(int(dchain.NextDBHeight))
         
 	case wire.CmdFBlock:
+        
 		if nodeMode == common.SERVER_NODE {
 			break
 		}
