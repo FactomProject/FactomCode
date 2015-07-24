@@ -144,6 +144,7 @@ func (b *ECBlockBody) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 		id, err = buf.ReadByte()
 		if err != nil {
 			if err == io.EOF {
+				err = nil
 				break
 			}
 			newData = buf.Bytes()

@@ -383,9 +383,7 @@ func validateCBlockByMR(mr *common.Hash) error {
 	cb, err := db.FetchECBlockByHash(mr)
 
 	if err != nil {
-		if err.Error() != "EOF" {
-			return errors.New("Entry Credit block not found in db for merkle root: " + mr.String() + ". Error: " + err.Error())
-		}
+		return errors.New("Entry Credit block not found in db for merkle root: " + mr.String() + ". Error: " + err.Error())
 	}
 
 	if cb == nil {
@@ -400,9 +398,7 @@ func validateABlockByMR(mr *common.Hash) error {
 	b, err := db.FetchABlockByHash(mr)
 
 	if err != nil {
-		if err.Error() != "EOF" {
-			return errors.New("Admin block not found in db for merkle root: " + mr.String() + ". Error: " + err.Error())
-		}
+		return errors.New("Admin block not found in db for merkle root: " + mr.String() + ". Error: " + err.Error())
 	}
 
 	if b == nil {
@@ -417,9 +413,7 @@ func validateFBlockByMR(mr *common.Hash) error {
 	b, err := db.FetchFBlockByHash(mr)
 
 	if err != nil {
-		if err.Error() != "EOF" {
-			return errors.New("Simple Coin block not found in db for merkle root: " + mr.String() + ". Error: " + err.Error())
-		}
+		return errors.New("Simple Coin block not found in db for merkle root: " + mr.String() + ". Error: " + err.Error())
 	}
 
 	if b == nil {
@@ -434,9 +428,7 @@ func validateEBlockByMR(cid *common.Hash, mr *common.Hash) error {
 	eb, err := db.FetchEBlockByMR(mr)
 
 	if err != nil {
-		if err.Error() != "EOF" {
-			return errors.New("Entry block not found in db for merkle root: " + mr.String() + ". Error: " + err.Error())
-		}
+		return errors.New("Entry block not found in db for merkle root: " + mr.String() + ". Error: " + err.Error())
 	}
 
 	if eb == nil {
