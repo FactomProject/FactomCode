@@ -91,18 +91,23 @@ func (e *ECBlock) BuildHeader() error {
 	return nil
 }
 
-func (e *ECBlock) UnmarshalBinary(data []byte) error {
+func (e *ECBlock) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	buf := bytes.NewBuffer(data)
 
 	// Unmarshal Header
 	e.Header.readUnmarshal(buf)
 
 	// Unmarshal Body
-	if err := e.Body.UnmarshalBinary(buf.Bytes()); err != nil {
-		return err
+	if err = e.Body.UnmarshalBinary(buf.Bytes()); err != nil {
+		return
 	}
 
-	return nil
+	return
+}
+
+func (e *ECBlock) UnmarshalBinary(data []byte) (err error) {
+	_, err = e.UnmarshalBinaryData(data)
+	return
 }
 
 type ECBlockBody struct {
@@ -234,7 +239,7 @@ func (e *ECBlockHeader) MarshalBinary() ([]byte, error) {
 	if err := binary.Write(buf, binary.BigEndian, e.DBHeight); err != nil {
 		return buf.Bytes(), err
 	}
-	
+
 	// variable Header Expansion Size
 	if _, err := WriteVarInt(buf,
 		uint64(len(e.HeaderExpansionArea))); err != nil {
@@ -243,7 +248,7 @@ func (e *ECBlockHeader) MarshalBinary() ([]byte, error) {
 
 	// varable byte Header Expansion Area
 	buf.Write(e.HeaderExpansionArea)
-	
+
 	// 8 byte Object Count
 	if err := binary.Write(buf, binary.BigEndian, e.ObjectCount); err != nil {
 		return buf.Bytes(), err
@@ -305,7 +310,7 @@ func (e *ECBlockHeader) readUnmarshal(buf *bytes.Buffer) error {
 	if _, err := buf.Read(e.HeaderExpansionArea); err != nil {
 		return err
 	}
-		
+
 	if err := binary.Read(buf, binary.BigEndian, &e.ObjectCount); err != nil {
 		return err
 	}

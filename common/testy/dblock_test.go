@@ -77,39 +77,33 @@ func TestInvalidUnmarshalDirectoryBlockHeader(t *testing.T) {
 
 	header2 := new(DBlockHeader)
 	err = header2.UnmarshalBinary(nil)
-	if err != nil {
-		t.Error(err)
+	if err == nil {
+		t.Error("We expected errors but we didn't get any")
 	}
-
-	if WeDidPanic != true {
-		t.Error("We did not panic and we should've")
-	} else {
+	if WeDidPanic == true {
+		t.Error("We did panic and we shouldn't have")
 		WeDidPanic = false
 		defer CatchPanic()
 	}
 
 	header2 = new(DBlockHeader)
 	err = header2.UnmarshalBinary([]byte{})
-	if err != nil {
-		t.Error(err)
+	if err == nil {
+		t.Error("We expected errors but we didn't get any")
 	}
-
-	if WeDidPanic != true {
-		t.Error("We did not panic and we should've")
-	} else {
+	if WeDidPanic == true {
+		t.Error("We did panic and we shouldn't have")
 		WeDidPanic = false
 		defer CatchPanic()
 	}
 
 	header2 = new(DBlockHeader)
 	err = header2.UnmarshalBinary(bytes1[:len(bytes1)-1])
-	if err != nil {
-		t.Error(err)
+	if err == nil {
+		t.Error("We expected errors but we didn't get any")
 	}
-
-	if WeDidPanic != true {
-		t.Error("We did not panic and we should've")
-	} else {
+	if WeDidPanic == true {
+		t.Error("We did panic and we shouldn't have")
 		WeDidPanic = false
 		defer CatchPanic()
 	}
@@ -129,39 +123,33 @@ func TestInvalidUnmarshalDirectoryBlock(t *testing.T) {
 
 	dblock2 := new(DirectoryBlock)
 	err = dblock2.UnmarshalBinary(nil)
-	if err != nil {
-		t.Error(err)
+	if err == nil {
+		t.Error("We expected errors but we didn't get any")
 	}
-
-	if WeDidPanic != true {
-		t.Error("We did not panic and we should've")
-	} else {
+	if WeDidPanic == true {
+		t.Error("We did panic and we shouldn't have")
 		WeDidPanic = false
 		defer CatchPanic()
 	}
 
 	dblock2 = new(DirectoryBlock)
 	err = dblock2.UnmarshalBinary([]byte{})
-	if err != nil {
-		t.Error(err)
+	if err == nil {
+		t.Error("We expected errors but we didn't get any")
 	}
-
-	if WeDidPanic != true {
-		t.Error("We did not panic and we should've")
-	} else {
+	if WeDidPanic == true {
+		t.Error("We did panic and we shouldn't have")
 		WeDidPanic = false
 		defer CatchPanic()
 	}
 
 	dblock2 = new(DirectoryBlock)
 	err = dblock2.UnmarshalBinary(bytes1[:len(bytes1)-1])
-	if err != nil {
-		t.Error(err)
+	if err == nil {
+		t.Error("We expected errors but we didn't get any")
 	}
-
-	if WeDidPanic != true {
-		t.Error("We did not panic and we should've")
-	} else {
+	if WeDidPanic == true {
+		t.Error("We did panic and we shouldn't have")
 		WeDidPanic = false
 		defer CatchPanic()
 	}
