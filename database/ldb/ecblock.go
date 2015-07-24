@@ -1,7 +1,7 @@
 package ldb
 
 import (
-//	"errors"
+	//	"errors"
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/goleveldb/leveldb"
 	"github.com/FactomProject/goleveldb/leveldb/util"
@@ -31,8 +31,8 @@ func (db *LevelDb) ProcessECBlockBatch(block *common.ECBlock) error {
 		// Update the chain head reference
 		key = []byte{byte(TBL_CHAIN_HEAD)}
 		key = append(key, common.EC_CHAINID...)
-		db.lbatch.Put(key, block.Header.Hash().Bytes())	
-		
+		db.lbatch.Put(key, block.Header.Hash().Bytes())
+
 		err = db.lDb.Write(db.lbatch, db.wo)
 		if err != nil {
 			log.Println("batch failed %v\n", err)
@@ -54,7 +54,10 @@ func (db *LevelDb) FetchECBlockByHash(ecBlockHash *common.Hash) (ecBlock *common
 
 	if data != nil {
 		ecBlock = common.NewECBlock()
-		ecBlock.UnmarshalBinary(data)
+		_, err := ecBlock.UnmarshalBinaryData(data)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return ecBlock, nil
 }
@@ -73,7 +76,10 @@ func (db *LevelDb) FetchAllECBlocks() (ecBlocks []common.ECBlock, err error) {
 
 	for iter.Next() {
 		ecBlock := common.NewECBlock()
-		ecBlock.UnmarshalBinary(iter.Value())
+		_, err := ecBlock.UnmarshalBinaryData(iter.Value())
+		if err != nil {
+			return nil, err
+		}
 		ecBlockSlice = append(ecBlockSlice, *ecBlock)
 	}
 	iter.Release()

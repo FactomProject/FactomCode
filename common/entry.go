@@ -104,29 +104,30 @@ func (e *Entry) MarshalExtIDsBinary() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (e *Entry) UnmarshalBinary(data []byte) (err error) {
+func (e *Entry) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	buf := bytes.NewBuffer(data)
 	hash := make([]byte, 32)
 
 	// 1 byte Version
-	if x, err := buf.ReadByte(); err != nil {
-		return err
+	var b byte
+	if b, err = buf.ReadByte(); err != nil {
+		return
 	} else {
-		e.Version = x
+		e.Version = b
 	}
 
 	// 32 byte ChainID
 	e.ChainID = NewHash()
-	if _, err := buf.Read(hash); err != nil {
-		return err
-	} else if err := e.ChainID.SetBytes(hash); err != nil {
-		return err
+	if _, err = buf.Read(hash); err != nil {
+		return
+	} else if err = e.ChainID.SetBytes(hash); err != nil {
+		return
 	}
 
 	// 2 byte size of ExtIDs
 	var extSize uint16
-	if err := binary.Read(buf, binary.BigEndian, &extSize); err != nil {
-		return err
+	if err = binary.Read(buf, binary.BigEndian, &extSize); err != nil {
+		return
 	}
 
 	// ExtIDs
@@ -134,27 +135,35 @@ func (e *Entry) UnmarshalBinary(data []byte) (err error) {
 		var xsize int16
 		binary.Read(buf, binary.BigEndian, &xsize)
 		i -= 2
-        if i < 0 {
-            return fmt.Errorf("Error parsing external IDs") 
-        }
+		if i < 0 {
+			err = fmt.Errorf("Error parsing external IDs")
+			return
+		}
 		x := make([]byte, xsize)
-		if n, err := buf.Read(x); err != nil {
-			return err
+		var n int
+		if n, err = buf.Read(x); err != nil {
+			return
 		} else {
 			if c := cap(x); n != c {
-				return fmt.Errorf("Could not read ExtID: Read %d bytes of %d\n",
-					n, c)
+				err = fmt.Errorf("Could not read ExtID: Read %d bytes of %d\n", n, c)
+				return
 			}
 			e.ExtIDs = append(e.ExtIDs, x)
 			i -= int16(n)
-            if i < 0 {
-                return fmt.Errorf("Error parsing external IDs") 
-            }
-        }
+			if i < 0 {
+				err = fmt.Errorf("Error parsing external IDs")
+				return
+			}
+		}
 	}
 
 	// Content
 	e.Content = buf.Bytes()
 
-	return nil
+	return
+}
+
+func (e *Entry) UnmarshalBinary(data []byte) (err error) {
+	_, err = e.UnmarshalBinaryData(data)
+	return
 }

@@ -47,7 +47,10 @@ func (db *LevelDb) FetchEntryByHash(entrySha *common.Hash) (entry *common.Entry,
 
 	if data != nil {
 		entry = new(common.Entry)
-		entry.UnmarshalBinary(data)
+		_, err := entry.UnmarshalBinaryData(data)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return entry, nil
 }
@@ -65,7 +68,10 @@ func (db *LevelDb) InitializeExternalIDMap() (extIDMap map[string]bool, err erro
 
 	for iter.Next() {
 		entry := new(common.Entry)
-		entry.UnmarshalBinary(iter.Value())
+		_, err := entry.UnmarshalBinaryData(iter.Value())
+		if err != nil {
+			return nil, err
+		}
 		if entry.ExtIDs != nil {
 			for i := 0; i < len(entry.ExtIDs); i++ {
 				mapKey := string(iter.Key()[1:])

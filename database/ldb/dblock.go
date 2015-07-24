@@ -227,7 +227,10 @@ func (db *LevelDb) FetchDirBlockInfoByHash(dbHash *common.Hash) (dirBlockInfo *c
 
 	if data != nil {
 		dirBlockInfo = new(common.DirBlockInfo)
-		dirBlockInfo.UnmarshalBinary(data)
+		_, err := dirBlockInfo.UnmarshalBinaryData(data)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return dirBlockInfo, nil
@@ -246,8 +249,9 @@ func (db *LevelDb) FetchDBlockByHash(dBlockHash *common.Hash) (*common.Directory
 	if data == nil {
 		return nil, errors.New("DBlock not found for Hash: " + dBlockHash.String())
 	} else {
-		if err := dBlock.UnmarshalBinary(data); err != nil {
-			return dBlock, err
+		_, err := dBlock.UnmarshalBinaryData(data)
+		if err != nil {
+			return nil, err
 		}
 	}
 
@@ -288,8 +292,9 @@ func (db *LevelDb) FetchDBHashByHeight(dBlockHeight uint32) (*common.Hash, error
 	}
 
 	dBlockHash := common.NewHash()
-	if err := dBlockHash.UnmarshalBinary(data); err != nil {
-		return dBlockHash, err
+	_, err = dBlockHash.UnmarshalBinaryData(data)
+	if err != nil {
+		return nil, err
 	}
 
 	return dBlockHash, nil
@@ -308,8 +313,9 @@ func (db *LevelDb) FetchDBHashByMR(dBMR *common.Hash) (*common.Hash, error) {
 	}
 
 	dBlockHash := common.NewHash()
-	if err := dBlockHash.UnmarshalBinary(data); err != nil {
-		return dBlockHash, err
+	_, err = dBlockHash.UnmarshalBinaryData(data)
+	if err != nil {
+		return nil, err
 	}
 
 	return dBlockHash, nil
@@ -347,8 +353,9 @@ func (db *LevelDb) FetchHeadMRByChainID(chainID *common.Hash) (blkMR *common.Has
 	}
 
 	blkMR = common.NewHash()
-	if err = blkMR.UnmarshalBinary(data); err != nil {
-		return blkMR, err
+	_, err = blkMR.UnmarshalBinaryData(data)
+	if err != nil {
+		return nil, err
 	}
 
 	return blkMR, nil
@@ -368,7 +375,10 @@ func (db *LevelDb) FetchAllDBlocks() (dBlocks []common.DirectoryBlock, err error
 
 	for iter.Next() {
 		var dBlock common.DirectoryBlock
-		dBlock.UnmarshalBinary(iter.Value())
+		_, err := dBlock.UnmarshalBinaryData(iter.Value())
+		if err != nil {
+			return nil, err
+		}
 		dBlock.DBHash = common.Sha(iter.Value()) //to be optimized??
 
 		dBlockSlice = append(dBlockSlice, dBlock)
@@ -394,7 +404,10 @@ func (db *LevelDb) FetchAllDirBlockInfo() (dirBlockInfoMap map[string]*common.Di
 
 	for iter.Next() {
 		dBInfo := new(common.DirBlockInfo)
-		dBInfo.UnmarshalBinary(iter.Value())
+		_, err := dBInfo.UnmarshalBinaryData(iter.Value())
+		if err != nil {
+			return nil, err
+		}
 		dirBlockInfoMap[dBInfo.DBMerkleRoot.String()] = dBInfo
 	}
 	iter.Release()
@@ -419,7 +432,10 @@ func (db *LevelDb) FetchAllUnconfirmedDirBlockInfo() (dirBlockInfoMap map[string
 
 		// The last byte stores the confirmation flag
 		if iter.Value()[len(iter.Value())-1] == 0 {
-			dBInfo.UnmarshalBinary(iter.Value())
+			_, err := dBInfo.UnmarshalBinaryData(iter.Value())
+			if err != nil {
+				return nil, err
+			}
 			dirBlockInfoMap[dBInfo.DBMerkleRoot.String()] = dBInfo
 		}
 	}

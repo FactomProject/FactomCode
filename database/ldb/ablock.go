@@ -67,7 +67,10 @@ func (db *LevelDb) FetchABlockByHash(aBlockHash *common.Hash) (aBlock *common.Ad
 
 	if data != nil {
 		aBlock = new(common.AdminBlock)
-		aBlock.UnmarshalBinary(data)
+		_, err := aBlock.UnmarshalBinaryData(data)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return aBlock, nil
 }
@@ -86,7 +89,10 @@ func (db *LevelDb) FetchAllABlocks() (aBlocks []common.AdminBlock, err error) {
 
 	for iter.Next() {
 		var aBlock common.AdminBlock
-		aBlock.UnmarshalBinary(iter.Value())
+		_, err := aBlock.UnmarshalBinaryData(iter.Value())
+		if err != nil {
+			return nil, err
+		}
 		aBlock.ABHash = common.Sha(iter.Value()) //to be optimized??
 
 		aBlockSlice = append(aBlockSlice, aBlock)

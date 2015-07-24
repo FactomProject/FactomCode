@@ -1,12 +1,12 @@
 package ldb
 
 import (
-//	"errors"
-    "github.com/FactomProject/factoid/block"
+	//	"errors"
+	"encoding/binary"
 	"github.com/FactomProject/FactomCode/common"
+	"github.com/FactomProject/factoid/block"
 	"github.com/FactomProject/goleveldb/leveldb"
 	"github.com/FactomProject/goleveldb/leveldb/util"
-	"encoding/binary"	
 	"log"
 )
 
@@ -25,25 +25,25 @@ func (db *LevelDb) ProcessFBlockBatch(block block.IFBlock) error {
 			return err
 		}
 
-        scHash := block.GetHash()
-		
+		scHash := block.GetHash()
+
 		// Insert the binary factom block
 		var key []byte = []byte{byte(TBL_SC)}
 		key = append(key, scHash.Bytes()...)
 		db.lbatch.Put(key, binaryBlock)
-		
+
 		// Insert the sc block number cross reference
 		key = []byte{byte(TBL_SC_NUM)}
 		key = append(key, block.GetChainID().Bytes()...)
 		bytes := make([]byte, 4)
-        binary.BigEndian.PutUint32(bytes, block.GetDBHeight())
+		binary.BigEndian.PutUint32(bytes, block.GetDBHeight())
 		key = append(key, bytes...)
-        db.lbatch.Put(key, scHash.Bytes())		
-        
+		db.lbatch.Put(key, scHash.Bytes())
+
 		// Update the chain head reference
 		key = []byte{byte(TBL_CHAIN_HEAD)}
 		key = append(key, common.FACTOID_CHAINID...)
-		db.lbatch.Put(key,scHash.Bytes())	        
+		db.lbatch.Put(key, scHash.Bytes())
 
 		err = db.lDb.Write(db.lbatch, db.wo)
 		if err != nil {
@@ -56,7 +56,7 @@ func (db *LevelDb) ProcessFBlockBatch(block block.IFBlock) error {
 }
 
 // FetchFBlockByHash gets an factoid block by hash from the database.
-func (db *LevelDb) FetchFBlockByHash(hash *common.Hash) ( FBlock block.IFBlock, err error) {
+func (db *LevelDb) FetchFBlockByHash(hash *common.Hash) (FBlock block.IFBlock, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -66,7 +66,10 @@ func (db *LevelDb) FetchFBlockByHash(hash *common.Hash) ( FBlock block.IFBlock, 
 
 	if data != nil {
 		FBlock = new(block.FBlock)
-		FBlock.UnmarshalBinary(data)
+		_, err := FBlock.UnmarshalBinaryData(data)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return FBlock, nil
 }
@@ -85,11 +88,14 @@ func (db *LevelDb) FetchAllFBlocks() (FBlocks []block.IFBlock, err error) {
 
 	for iter.Next() {
 		FBlock := new(block.FBlock)
-		FBlock.UnmarshalBinary(iter.Value())
-		
+		_, err := FBlock.UnmarshalBinaryData(iter.Value())
+		if err != nil {
+			return nil, err
+		}
+
 		FBlockSlice = append(FBlockSlice, FBlock)
 
-	} 
+	}
 	iter.Release()
 	err = iter.Error()
 

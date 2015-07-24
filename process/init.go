@@ -7,9 +7,9 @@ package process
 import (
 	"errors"
 	"fmt"
-    "github.com/FactomProject/FactomCode/common"
-    cp "github.com/FactomProject/FactomCode/controlpanel"
-    "github.com/FactomProject/FactomCode/consensus"
+	"github.com/FactomProject/FactomCode/common"
+	"github.com/FactomProject/FactomCode/consensus"
+	cp "github.com/FactomProject/FactomCode/controlpanel"
 	"github.com/FactomProject/FactomCode/factomlog"
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd/wire"
@@ -309,9 +309,9 @@ func validateDChain(c *common.DChain) error {
 		str := fmt.Sprintf("\n\nGenesis dir block is not as expected." +
 			"\n    Expected: " + common.GENESIS_DIR_BLOCK_HASH +
 			"\n    Found:    " + prevBlkHash.String() + "\n\n")
-        fmt.Println(str)
-        procLog.Errorf(str)
-        cp.CP.AddWarning(str)
+		fmt.Println(str)
+		procLog.Errorf(str)
+		cp.CP.AddWarning(str)
 	}
 
 	for i := 1; i < len(c.Blocks); i++ {
@@ -380,7 +380,13 @@ func validateDBlock(c *common.DChain, b *common.DirectoryBlock) (merkleRoot *com
 
 // Validate Entry Credit Block by merkle root
 func validateCBlockByMR(mr *common.Hash) error {
-	cb, _ := db.FetchECBlockByHash(mr)
+	cb, err := db.FetchECBlockByHash(mr)
+
+	if err != nil {
+		if err.Error() != "EOF" {
+			return errors.New("Entry Credit block not found in db for merkle root: " + mr.String() + ". Error: " + err.Error())
+		}
+	}
 
 	if cb == nil {
 		return errors.New("Entry Credit block not found in db for merkle root: " + mr.String())
@@ -391,7 +397,13 @@ func validateCBlockByMR(mr *common.Hash) error {
 
 // Validate Admin Block by merkle root
 func validateABlockByMR(mr *common.Hash) error {
-	b, _ := db.FetchABlockByHash(mr)
+	b, err := db.FetchABlockByHash(mr)
+
+	if err != nil {
+		if err.Error() != "EOF" {
+			return errors.New("Admin block not found in db for merkle root: " + mr.String() + ". Error: " + err.Error())
+		}
+	}
 
 	if b == nil {
 		return errors.New("Admin block not found in db for merkle root: " + mr.String())
@@ -402,7 +414,13 @@ func validateABlockByMR(mr *common.Hash) error {
 
 // Validate FBlock by merkle root
 func validateFBlockByMR(mr *common.Hash) error {
-	b, _ := db.FetchFBlockByHash(mr)
+	b, err := db.FetchFBlockByHash(mr)
+
+	if err != nil {
+		if err.Error() != "EOF" {
+			return errors.New("Simple Coin block not found in db for merkle root: " + mr.String() + ". Error: " + err.Error())
+		}
+	}
 
 	if b == nil {
 		return errors.New("Simple Coin block not found in db for merkle root: " + mr.String())
@@ -413,8 +431,13 @@ func validateFBlockByMR(mr *common.Hash) error {
 
 // Validate Entry Block by merkle root
 func validateEBlockByMR(cid *common.Hash, mr *common.Hash) error {
+	eb, err := db.FetchEBlockByMR(mr)
 
-	eb, _ := db.FetchEBlockByMR(mr)
+	if err != nil {
+		if err.Error() != "EOF" {
+			return errors.New("Entry block not found in db for merkle root: " + mr.String() + ". Error: " + err.Error())
+		}
+	}
 
 	if eb == nil {
 		return errors.New("Entry block not found in db for merkle root: " + mr.String())
