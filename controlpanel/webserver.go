@@ -123,6 +123,5 @@ func handlerGetReport2(w http.ResponseWriter, r *http.Request) {
 func runPanel() {
         http.HandleFunc("/controlpanel", handler)
         http.HandleFunc("/getreport", handlerGetReport)
-        http.HandleFunc("
         log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s",CP.GetPort()), nil))
 }
