@@ -16,13 +16,12 @@ import (
 	"github.com/FactomProject/btcd/limits"
 	"github.com/FactomProject/btcd/wire"
 	"os"
-    "fmt"
 	"runtime"
 	"time"
 )
 
 var (
-    _               = fmt.Print
+	_               = fmt.Print
 	cfg             *util.FactomdConfig
 	shutdownChannel = make(chan struct{})
 	ldbpath         = ""
@@ -89,17 +88,16 @@ func factomdMain() error {
 		}
 	}
 
-	if len(os.Args) >=2 {
-        if os.Args[1] == "initializeonly" {
-            time.Sleep(time.Second)
-            fmt.Println("Initializing only.")
-            os.Exit(0)
-        }
-    }else{
-        fmt.Println("\n'factomd initializeonly' will do just that.  Initialize and stop.")
-    }
-	
-	
+	if len(os.Args) >= 2 {
+		if os.Args[1] == "initializeonly" {
+			time.Sleep(time.Second)
+			fmt.Println("Initializing only.")
+			os.Exit(0)
+		}
+	} else {
+		fmt.Println("\n'factomd initializeonly' will do just that.  Initialize and stop.")
+	}
+
 	// Start the factoid (btcd) component and P2P component
 	btcd.Start_btcd(db, inMsgQueue, outMsgQueue, inCtlMsgQueue, outCtlMsgQueue, process.FactomdUser, process.FactomdPass, common.SERVER_NODE != cfg.App.NodeMode)
 
