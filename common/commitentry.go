@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"io"
 	"time"
 
 	ed "github.com/FactomProject/ed25519"
@@ -112,6 +113,11 @@ func (c *CommitEntry) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 		c.Version = uint8(b)
 	}
 
+	if buf.Len() < 6 {
+		err = io.EOF
+		return
+	}
+
 	// 6 byte MilliTime
 	if p = buf.Next(6); p == nil {
 		err = fmt.Errorf("Could not read MilliTime")
@@ -134,12 +140,22 @@ func (c *CommitEntry) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 		c.Credits = uint8(b)
 	}
 
+	if buf.Len() < 32 {
+		err = io.EOF
+		return
+	}
+
 	// 32 byte Public Key
 	if p = buf.Next(32); p == nil {
 		err = fmt.Errorf("Could not read ECPubKey")
 		return
 	} else {
 		copy(c.ECPubKey[:], p)
+	}
+
+	if buf.Len() < 64 {
+		err = io.EOF
+		return
 	}
 
 	// 64 byte Signature

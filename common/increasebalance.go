@@ -64,19 +64,34 @@ func (b *IncreaseBalance) UnmarshalBinary(data []byte) (err error) {
 	return
 }
 
-func (b *IncreaseBalance) readUnmarshal(buf *bytes.Buffer) error {
+func (b *IncreaseBalance) readUnmarshal(buf *bytes.Buffer) (err error) {
 	hash := make([]byte, 32)
 
-	buf.Read(hash)
+	_, err = buf.Read(hash)
+	if err != nil {
+		return
+	}
 	b.ECPubKey = new([32]byte)
 	copy(b.ECPubKey[:], hash)
 
-	buf.Read(hash)
+	_, err = buf.Read(hash)
+	if err != nil {
+		return
+	}
+	if b.TXID == nil {
+		b.TXID = NewHash()
+	}
 	b.TXID.SetBytes(hash)
 
-	b.Index = ReadVarInt(buf)
+	b.Index, err = ReadVarIntWithError(buf)
+	if err != nil {
+		return
+	}
 
-	b.NumEC = ReadVarInt(buf)
+	b.NumEC, err = ReadVarIntWithError(buf)
+	if err != nil {
+		return
+	}
 
-	return nil
+	return
 }

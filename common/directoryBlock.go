@@ -292,16 +292,22 @@ func (b *DBlockHeader) UnmarshalBinaryData(data []byte) (newData []byte, err err
 	b.NetworkID, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
 	b.BodyMR = new(Hash)
-	b.BodyMR.UnmarshalBinary(newData)
-	newData = newData[HASH_LENGTH:]
+	newData, err = b.BodyMR.UnmarshalBinaryData(newData)
+	if err != nil {
+		return
+	}
 
 	b.PrevKeyMR = new(Hash)
-	b.PrevKeyMR.UnmarshalBinary(newData)
-	newData = newData[HASH_LENGTH:]
+	newData, err = b.PrevKeyMR.UnmarshalBinaryData(newData)
+	if err != nil {
+		return
+	}
 
 	b.PrevFullHash = new(Hash)
-	b.PrevFullHash.UnmarshalBinary(newData)
-	newData = newData[HASH_LENGTH:]
+	newData, err = b.PrevFullHash.UnmarshalBinaryData(newData)
+	if err != nil {
+		return
+	}
 
 	b.Timestamp, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 	b.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]

@@ -93,7 +93,10 @@ func (db *LevelDb) FetchEBlockByHash(eBlockHash *common.Hash) (*common.EBlock, e
 
 	eBlock := common.NewEBlock()
 	if data != nil {
-		eBlock.UnmarshalBinary(data)
+		_, err := eBlock.UnmarshalBinaryData(data)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return eBlock, nil
 }
@@ -116,7 +119,10 @@ func (db *LevelDb) FetchEBlockByHash(eBlockHash *common.Hash) (*common.EBlock, e
 
 	eBlock := common.NewEBlock()
 	if data != nil {
-		eBlock.UnmarshalBinary(data)
+		_, err:=eBlock.UnmarshalBinaryData(data)
+		if err!=nil {
+			return nil, err
+		}
 	}
 	return eBlock, nil
 }
@@ -135,8 +141,9 @@ func (db *LevelDb) FetchEBHashByMR(eBMR *common.Hash) (*common.Hash, error) {
 	}
 
 	eBlockHash := common.NewHash()
-	if err := eBlockHash.UnmarshalBinary(data); err != nil {
-		return eBlockHash, err
+	_, err = eBlockHash.UnmarshalBinaryData(data)
+	if err != nil {
+		return nil, err
 	}
 
 	return eBlockHash, nil
@@ -182,8 +189,9 @@ func (db *LevelDb) FetchChainByHash(chainID *common.Hash) (*common.EChain, error
 
 	chain := common.NewEChain()
 	if data != nil {
-		if err := chain.UnmarshalBinary(data); err != nil {
-			return chain, err
+		_, err := chain.UnmarshalBinaryData(data)
+		if err != nil {
+			return nil, err
 		}
 	}
 	return chain, nil
@@ -202,7 +210,10 @@ func (db *LevelDb) FetchAllChains() (chains []*common.EChain, err error) {
 	iter := db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
 	for iter.Next() {
 		chain := common.NewEChain()
-		chain.UnmarshalBinary(iter.Value())
+		_, err := chain.UnmarshalBinaryData(iter.Value())
+		if err != nil {
+			return nil, err
+		}
 		chainSlice = append(chainSlice, chain)
 	}
 	iter.Release()
@@ -226,7 +237,10 @@ func (db *LevelDb) FetchAllEBlocksByChain(chainID *common.Hash) (eBlocks *[]comm
 
 	for iter.Next() {
 		eBlockHash := common.NewHash()
-		eBlockHash.UnmarshalBinary(iter.Value())
+		_, err := eBlockHash.UnmarshalBinaryData(iter.Value())
+		if err != nil {
+			return nil, err
+		}
 
 		var key []byte = []byte{byte(TBL_EB)}
 		key = append(key, eBlockHash.Bytes()...)
@@ -237,7 +251,10 @@ func (db *LevelDb) FetchAllEBlocksByChain(chainID *common.Hash) (eBlocks *[]comm
 
 		eBlock := common.NewEBlock()
 		if data != nil {
-			eBlock.UnmarshalBinary(data)
+			_, err := eBlock.UnmarshalBinaryData(data)
+			if err != nil {
+				return nil, err
+			}
 			eBlockSlice = append(eBlockSlice, *eBlock)
 		}
 	}

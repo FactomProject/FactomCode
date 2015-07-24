@@ -33,7 +33,7 @@ func (bt *BlockTimer) StartBlockTimer() {
 		for i := 0; i < 10; i++ {
 			eomMsg := &wire.MsgInt_EOM{
 				EOM_Type:         wire.END_MINUTE_1 + byte(i),
-				NextDBlockHeight: bt.nextDBlockHeight, //??
+				NextDBlockHeight: bt.nextDBlockHeight, 
 			}
 
 			//send the end-of-minute message to processor

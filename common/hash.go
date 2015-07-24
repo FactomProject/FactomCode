@@ -75,7 +75,6 @@ func (hash *Hash) SetBytes(newHash []byte) error {
 	if nhlen != HASH_LENGTH {
 		return fmt.Errorf("invalid sha length of %v, want %v", nhlen, HASH_LENGTH)
 	}
-
 	copy(hash.bytes[:], newHash)
 	return nil
 }

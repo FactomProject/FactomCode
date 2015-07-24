@@ -27,31 +27,38 @@ func NewEChain() *EChain {
 
 func (e *EChain) MarshalBinary() ([]byte, error) {
 	buf := new(bytes.Buffer)
-	
+
 	buf.Write(e.ChainID.Bytes())
-	
+
 	if p, err := e.FirstEntry.MarshalBinary(); err != nil {
 		return buf.Bytes(), err
 	} else {
 		buf.Write(p)
 	}
-	
+
 	return buf.Bytes(), nil
 }
 
-func (e *EChain) UnmarshalBinary(data []byte) error {
-	buf := bytes.NewBuffer(data)
+func (e *EChain) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+	newData = data
+	buf := bytes.NewBuffer(newData)
 	hash := make([]byte, 32)
 
-	if _, err := buf.Read(hash); err != nil {
-		return err
+	if _, err = buf.Read(hash); err != nil {
+		return
 	} else {
 		e.ChainID.SetBytes(hash)
 	}
-	
-	if err := e.FirstEntry.UnmarshalBinary(buf.Bytes()); err !=  nil {
-		return err
+
+	newData, err = e.FirstEntry.UnmarshalBinaryData(buf.Bytes())
+	if err != nil {
+		return
 	}
-	
-	return nil
+
+	return
+}
+
+func (e *EChain) UnmarshalBinary(data []byte) (err error) {
+	_, err = e.UnmarshalBinaryData(data)
+	return
 }

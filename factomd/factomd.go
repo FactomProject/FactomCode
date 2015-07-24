@@ -16,11 +16,13 @@ import (
 	"github.com/FactomProject/btcd/limits"
 	"github.com/FactomProject/btcd/wire"
 	"os"
+    "fmt"
 	"runtime"
 	"time"
 )
 
 var (
+    _               = fmt.Print
 	cfg             *util.FactomdConfig
 	shutdownChannel = make(chan struct{})
 	ldbpath         = ""
@@ -73,7 +75,7 @@ func factomdMain() error {
 	// Start the wsapi server module in a separate go-routine
 	wsapi.Start(db, inMsgQueue)
 
-	// wait till the initialization is complete in processor - to be improved??
+	// wait till the initialization is complete in processor
 	hash, _ := db.FetchDBHashByHeight(0)
 	if hash != nil {
 		for true {
@@ -87,6 +89,17 @@ func factomdMain() error {
 		}
 	}
 
+	if len(os.Args) >=2 {
+        if os.Args[1] == "initializeonly" {
+            time.Sleep(time.Second)
+            fmt.Println("Initializing only.")
+            os.Exit(0)
+        }
+    }else{
+        fmt.Println("\n'factomd initializeonly' will do just that.  Initialize and stop.")
+    }
+	
+	
 	// Start the factoid (btcd) component and P2P component
 	btcd.Start_btcd(db, inMsgQueue, outMsgQueue, inCtlMsgQueue, outCtlMsgQueue, process.FactomdUser, process.FactomdPass, common.SERVER_NODE != cfg.App.NodeMode)
 

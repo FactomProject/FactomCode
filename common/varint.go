@@ -6,35 +6,16 @@ package common
 
 import (
 	"bytes"
+	"io"
 )
 
 func DecodeVarInt(data []byte) (uint64, []byte) {
-	b := uint8(data[0])
-	if b < 0xfd {
-		return uint64(b), data[1:]
+	buf := bytes.NewBuffer(data)
+	resp, err := ReadVarIntWithError(buf)
+	if err != nil {
+		panic(err)
 	}
-
-	var v uint64
-
-	v = (uint64(data[1]) << 8) | uint64(data[2])
-	if b == 0xfd {
-		return v, data[3:]
-	}
-
-	v = v << 16
-	v = v | (uint64(data[3]) << 8) | uint64(data[4])
-
-	if b == 0xfe {
-		return v, data[5:]
-	}
-
-	v = v << 16
-	v = v | (uint64(data[5]) << 8) | uint64(data[6])
-
-	v = v << 16
-	v = v | (uint64(data[7]) << 8) | uint64(data[8])
-
-	return v, data[9:]
+	return resp, buf.Bytes()
 }
 
 func VarIntLength(v uint64) int {
@@ -53,80 +34,64 @@ func VarIntLength(v uint64) int {
 
 // Encode an integer as a variable int into the given data buffer.
 func EncodeVarInt(out *bytes.Buffer, v uint64) error {
-	var err error
-	switch {
-	case v < 0xfd:
-		err = out.WriteByte(byte(v))
-		if err != nil {
-			return err
-		}
-	case v <= 0xFFFF:
-		out.WriteByte(0xfd)
-		err = out.WriteByte(byte(v >> 8))
-		if err != nil {
-			return err
-		}
-		err = out.WriteByte(byte(v))
-		if err != nil {
-			return err
-		}
-	case v <= 0xFFFFFFFF:
-		out.WriteByte(0xfe)
-		for i := 0; i < 4; i++ {
-			v = (v>>24)&0xFF + v<<8
-			err = out.WriteByte(byte(v))
-			if err != nil {
-				return err
-			}
-		}
-	default:
-		out.WriteByte(0xff)
-		for i := 0; i < 8; i++ {
-			v = (v>>56)&0xFF + v<<8
-			err = out.WriteByte(byte(v))
-			if err != nil {
-				return err
-			}
-		}
-	}
-	return nil
+	_, err := WriteVarInt(out, v)
+	return err
 }
 
-func ReadVarInt(buf *bytes.Buffer) uint64 {
+func ReadVarIntWithError(buf *bytes.Buffer) (uint64, error) {
 	b, err := buf.ReadByte()
 	if err != nil {
-		return 0
+		return 0, err
 	}
 	if b < 0xfd {
-		return uint64(b)
+		return uint64(b), nil
 	}
 
 	var v uint64
+
+	if buf.Len() < 2 {
+		return 0, io.EOF
+	}
 
 	if p := buf.Next(2); p != nil {
 		v = (uint64(p[0]) << 8) | uint64(p[1])
 	}
 	if b == 0xfd {
-		return v
+		return v, nil
 	}
 
+	if buf.Len() < 2 {
+		return 0, io.EOF
+	}
 	v = v << 16
 	if p := buf.Next(2); p != nil {
 		v = v | (uint64(p[0]) << 8) | uint64(p[1])
 	}
 	if b == 0xfe {
-		return v
+		return v, nil
 	}
 
-	v = v << 16
-	if p := buf.Next(2); p != nil {
-		v = v | (uint64(p[0]) << 8) | uint64(p[1])
+	if buf.Len() < 2 {
+		return 0, io.EOF
 	}
 	v = v << 16
 	if p := buf.Next(2); p != nil {
 		v = v | (uint64(p[0]) << 8) | uint64(p[1])
 	}
-	return v
+	if buf.Len() < 2 {
+		return 0, io.EOF
+	}
+	v = v << 16
+	if p := buf.Next(2); p != nil {
+		v = v | (uint64(p[0]) << 8) | uint64(p[1])
+	}
+	return v, nil
+
+}
+
+func ReadVarInt(buf *bytes.Buffer) uint64 {
+	u, _ := ReadVarIntWithError(buf)
+	return u
 }
 
 func WriteVarInt(buf *bytes.Buffer, v uint64) (n int, err error) {

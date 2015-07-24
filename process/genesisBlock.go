@@ -7,8 +7,14 @@ import (
 
 func getGenesisFBlock() block.IFBlock {
 	block := new(block.FBlock)
-	data, _ := hex.DecodeString(GenesisBlockStr)
-	block.UnmarshalBinary(data)
+	data, err := hex.DecodeString(GenesisBlockStr)
+	if err != nil {
+		panic(err)
+	}
+	_, err = block.UnmarshalBinaryData(data)
+	if err != nil {
+		panic(err)
+	}
 	return block
 }
 
