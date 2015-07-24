@@ -5,6 +5,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/database/ldb"
@@ -39,6 +40,9 @@ func main() {
 	ftmdLog.Info("//////////////////////// Copyright 2015 Factom Foundation")
 	ftmdLog.Info("//////////////////////// Use of this source code is governed by the MIT")
 	ftmdLog.Info("//////////////////////// license that can be found in the LICENSE file.")
+
+	ftmdLog.Warning("Go compiler version: %s", runtime.Version())
+	fmt.Println("Go compiler version: ", runtime.Version())
 
 	// Load configuration file and send settings to components
 	loadConfigurations()
