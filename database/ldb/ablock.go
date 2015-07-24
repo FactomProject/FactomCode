@@ -87,7 +87,8 @@ func (db *LevelDb) FetchAllABlocks() (aBlocks []common.AdminBlock, err error) {
 	for iter.Next() {
 		var aBlock common.AdminBlock
 		aBlock.UnmarshalBinary(iter.Value())
-		aBlock.ABHash = common.Sha(iter.Value()) //to be optimized??
+		//TODO: to be optimized??
+		aBlock.ABHash = common.Sha(iter.Value()) 
 
 		aBlockSlice = append(aBlockSlice, aBlock)
 

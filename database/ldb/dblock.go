@@ -369,7 +369,8 @@ func (db *LevelDb) FetchAllDBlocks() (dBlocks []common.DirectoryBlock, err error
 	for iter.Next() {
 		var dBlock common.DirectoryBlock
 		dBlock.UnmarshalBinary(iter.Value())
-		dBlock.DBHash = common.Sha(iter.Value()) //to be optimized??
+		//TODO: to be optimized??		
+		dBlock.DBHash = common.Sha(iter.Value()) 
 
 		dBlockSlice = append(dBlockSlice, dBlock)
 
