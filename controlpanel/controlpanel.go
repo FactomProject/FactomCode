@@ -27,24 +27,19 @@ import (
 )
 
 var _ = fmt.Print
-var CP IControlPanel = new(ControlPanel)
+var CP = new(ControlPanel)
 
 type IControlPanel interface {
-    SetFactomMode(string)
-    FactomMode() string
     
-    UpdatePeriodMark(int)
-    PeriodMark() int
-    UpdateBlockHeight(int)
-    BlockHeight() int
+    SetPort(string)
+    GetPort() string
+    SetTitle(string)
+    GetTitle() string
+        
+    AddUpdate  (tag string, cat string, title string, message string, seconds int) // show for int seconds
+    Updates()  ([]CPEntry)
     
-    UpdateTransactionsProcessed(int)
-    TransactionsProcessed() int 
-    
-    AddError(string)
-    Errors() ([]CPEntry)
-    AddWarning(string)
-    Warnings() ([]CPEntry)
+    Purge()             // Purge system, status, info, warnings, and errors
     
     LastCommunication() time.Time
     
@@ -53,24 +48,50 @@ type IControlPanel interface {
 // We display what is going on now.  cpEntry's are perged now and again.
 //
 type CPEntry struct {
-    msg  string     // Message to display
-    time int64      // Time we got it.  We perge every now and then. 
+    tag    string   // Tagged messages are updated rather than added to
+                    //   a list.  This prevents the same message from flooding
+                    //   the information presented to the user.
+    cat    string   // Catagory (system, status, info, warning, errors)                
+    title  string   // Title for this information 
+    msg    string   // Message to display
+    time   int64    // Time we got it.  We perge every now and then. 
                     // See logs for persistent errors and warnings.
+    remove int64    // Time to remove
 }
+
 type ControlPanel struct {
     IControlPanel
+
+    running  bool       // Set to true if the control panel is running.
     
-    factommode      string
-    period          int
-    blockHeight     int
-    numTransactions int
+    title    string     // Goes in the Tab in the Browser
+    port     string     // The port where the control panel is published.
     
-    errors   []CPEntry
-    warnings []CPEntry
+    updates  []CPEntry  // Report is processed by Category (status, info, warnings, errors)        
     
-    running     bool
-    
-    lastCommunication time.Time
+    lastCommunication time.Time     // The last time the application updated data on the app.
+}
+
+func (cp *ControlPanel) SetPort(port string) {
+    cp.port = port
+}
+
+func (cp *ControlPanel) GetPort() string {
+    if len(cp.port)==0 {
+        cp.port = "8090"    // Default to Factom Control Panel
+    }
+    return cp.port 
+}
+
+
+func (cp *ControlPanel) SetTitle(title string) {
+    cp.title = title
+}
+func (cp *ControlPanel) GetTitle() string {
+    if len(cp.title)==0 {
+        cp.title = "Factom Control Panel    "    // Default to Factom Control Panel
+    }
+    return cp.title 
 }
 
 func (cp *ControlPanel) Run() {
@@ -80,65 +101,45 @@ func (cp *ControlPanel) Run() {
     go runPanel()
 }
 
+// Purge our lists of out of date info, warning, and error posts.
+func (cp *ControlPanel) Purge() {
+    now := time.Now().Unix()
+    tags := make(map[string]bool,0)
+   
+    u := make([]CPEntry,0)
+    for i:=len(cp.updates)-1; i>=0; i-- {
+        item := cp.updates[i]
+        if now < item.remove && !tags[item.tag] {
+            u = append(u,item)
+        }
+        tags[item.tag]=true
+    }
+    cp.updates = u
+}
+
 func (cp *ControlPanel) LastCommunication() time.Time {
     return cp.lastCommunication
 }
 
-func (cp *ControlPanel) AddWarning(warning string) {
-    warning = strings.TrimSpace(warning)
-    warning = strings.Replace(warning,"\n","<br>",-1)
-    cp.warnings = append (cp.warnings, CPEntry{ 
-        msg: warning, 
-        time: time.Now().Unix(), 
+func (cp *ControlPanel) AddUpdate(tag string, cat string, title string, msg string, expire int) {
+    cp.Run()
+    cat   = strings.TrimSpace(cat)
+    title = strings.TrimSpace(title)
+    msg   = strings.TrimSpace(msg)
+    msg   = strings.Replace(msg,"\n","<br>",-1)
+    if expire <= 0 {expire=9999999}
+    cp.updates = append (cp.updates, CPEntry{ 
+        tag:    tag,
+        cat:    cat,
+        title:  title,
+        msg:    msg, 
+        time:   time.Now().Unix(), 
+        remove: time.Now().Unix() + int64(expire),
     })
 }
-func (cp *ControlPanel) Warnings() ([]CPEntry) {
-    return cp.warnings
-}
 
-func (cp *ControlPanel) AddError(err string) {
-    err = strings.TrimSpace(err)
-    err = strings.Replace(err,"\n","<br>",-1)
-    cp.errors = append (cp.errors, CPEntry{ 
-        msg: err, 
-        time: time.Now().Unix(), 
-    })
-}
-func (cp *ControlPanel) Errors() ([]CPEntry) {
-    return cp.errors
+func (cp *ControlPanel) Updates() ([]CPEntry) {
+    return cp.updates
 }
 
 
-func (cp *ControlPanel) UpdateTransactionsProcessed(num int) {
-    cp.Run()
-    cp.numTransactions = num
-}
-func (cp *ControlPanel) TransactionsProcessed() int {
-    return cp.numTransactions
-}
-
-func (cp *ControlPanel) SetFactomMode(mode string) {
-    cp.Run()
-    cp.factommode = mode
-}
-func (cp *ControlPanel) FactomMode() string {
-    return cp.factommode
-}
-
-
-func (cp *ControlPanel) UpdatePeriodMark(period int) {
-    cp.Run()
-    cp.period = period
-}
-func (cp *ControlPanel) PeriodMark() int {
-    return cp.period
-}
-
-func (cp *ControlPanel) UpdateBlockHeight(height int) {
-    if height < 0 {return}
-    cp.Run()
-    cp.blockHeight = height
-}
-func (cp *ControlPanel) BlockHeight() int {
-    return cp.blockHeight
-}

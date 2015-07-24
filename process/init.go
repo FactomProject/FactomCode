@@ -306,12 +306,21 @@ func validateDChain(c *common.DChain) error {
 	//validate the genesis block
 	//prevBlkHash is the block hash for c.Blocks[0]
 	if prevBlkHash == nil || prevBlkHash.String() != common.GENESIS_DIR_BLOCK_HASH {
-		str := fmt.Sprintf("\n\nGenesis dir block is not as expected." +
-			"\n    Expected: " + common.GENESIS_DIR_BLOCK_HASH +
-			"\n    Found:    " + prevBlkHash.String() + "\n\n")
-        fmt.Println(str)
-        procLog.Errorf(str)
-        cp.CP.AddWarning(str)
+		
+        procLog.Errorf("Genesis Block wasn't as expected:\n"+
+        "    Expected: " + common.GENESIS_DIR_BLOCK_HASH +"\n"+
+        "    Found:    " + prevBlkHash.String())
+        
+        str := fmt.Sprintf("<pre>"+
+        "Expected: " + common.GENESIS_DIR_BLOCK_HASH +"<br>"+
+        "Found:    " + prevBlkHash.String() + "</pre><br><br>")
+        cp.CP.AddUpdate(
+            "GenHash",                            // tag
+            "warning",                            // Category 
+            "Genesis Hash doesn't match",         // Title
+            str,                                  // Message
+            0)
+        
 	}
 
 	for i := 1; i < len(c.Blocks); i++ {

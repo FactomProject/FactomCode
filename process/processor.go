@@ -304,7 +304,13 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 
 				plMgr.AddMyProcessListItem(msgEom, nil, msgEom.EOM_Type)
 			}
-			cp.CP.UpdatePeriodMark(int(msgEom.EOM_Type))
+			
+            cp.CP.AddUpdate(
+                "MinMark",                                          // tag
+                "info",                                             // Category 
+                fmt.Sprintf("End of Minute %v",msgEom.EOM_Type),    // Title
+                "",                                                 // Message
+                0)
         }
 
 	case wire.CmdDirBlock:
