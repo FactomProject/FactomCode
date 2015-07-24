@@ -68,7 +68,6 @@ const (
 	STATUS_PROCESSED
 )
 
-// chain type key prefix ??
 var currentChainType uint32 = 1
 
 var isLookupDB bool = true // to be put in property file
@@ -100,7 +99,6 @@ type LevelDb struct {
 }
 var CurrentDBVersion int32 = 1
 
-//to be removed??
 func OpenLevelDB(dbpath string, create bool) (pbdb database.Db, err error) {
 	return openDB(dbpath, create)
 }
@@ -116,8 +114,6 @@ func openDB(dbpath string, create bool) (pbdb database.Db, err error) {
 			
 			// Initialize db
 			db.lastDirBlkHeight = -1
-			//			db.txUpdateMap = map[wire.ShaHash]*txUpdateObj{}
-			//			db.txSpentUpdateMap = make(map[wire.ShaHash]*spentTxUpdate)
 						
 			pbdb = &db
 		}
@@ -153,11 +149,9 @@ func openDB(dbpath string, create bool) (pbdb database.Db, err error) {
 		}
 	}
 
-	//myCache := cache.NewEmptyCache()
+
 	opts := &opt.Options{
-		//		BlockCacher: opt.DefaultBlockCacher,
 		Compression: opt.NoCompression,
-		//		OpenFilesCacher: opt.DefaultOpenFilesCacher,
 	}
 
 	switch dbversion {

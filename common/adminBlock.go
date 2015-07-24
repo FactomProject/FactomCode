@@ -8,7 +8,11 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
-	//"fmt"
+	"fmt"
+	"log"
+	"runtime"
+	"runtime/debug"
+	"strconv"
 	"sync"
 )
 
@@ -119,28 +123,49 @@ func (b *AdminBlock) MarshalledSize() uint64 {
 	return size
 }
 
-// Read in the binary into the Admin block.
-func (b *AdminBlock) UnmarshalBinary(data []byte) (err error) {
+func Debugf(format string, args ...interface{}) {
+	debug.PrintStack()
+	_, file, line, ok := runtime.Caller(1)
+	if !ok {
+		file = "???"
+		line = 0
+	}
+	log.Printf(file+":"+strconv.Itoa(line)+" - "+format, args...)
+}
+
+func (b *AdminBlock) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("Error unmarshalling: %v", r)
+		}
+	}()
+	newData = data
 	h := new(ABlockHeader)
-	h.UnmarshalBinary(data)
+	newData, err = h.UnmarshalBinaryData(newData)
+	if err != nil {
+		return
+	}
 	b.Header = h
 
-	data = data[h.MarshalledSize():]
 	b.ABEntries = make([]ABEntry, b.Header.MessageCount)
 	for i := uint32(0); i < b.Header.MessageCount; i++ {
-		if data[0] == TYPE_DB_SIGNATURE {
+		if newData[0] == TYPE_DB_SIGNATURE {
 			b.ABEntries[i] = new(DBSignatureEntry)
-		} else if data[0] == TYPE_MINUTE_NUM {
+		} else if newData[0] == TYPE_MINUTE_NUM {
 			b.ABEntries[i] = new(EndOfMinuteEntry)
 		}
-		err = b.ABEntries[i].UnmarshalBinary(data)
+		newData, err = b.ABEntries[i].UnmarshalBinaryData(newData)
 		if err != nil {
 			return
 		}
-		data = data[b.ABEntries[i].MarshalledSize():]
 	}
+	return
+}
 
-	return nil
+// Read in the binary into the Admin block.
+func (b *AdminBlock) UnmarshalBinary(data []byte) (err error) {
+	_, err = b.UnmarshalBinaryData(data)
+	return
 }
 
 // Read in the binary into the Admin block.
@@ -209,26 +234,40 @@ func (b *ABlockHeader) MarshalledSize() uint64 {
 	return size
 }
 
-// Read in the binary into the ABlockHeader.
-func (b *ABlockHeader) UnmarshalBinary(data []byte) (err error) {
-
+func (b *ABlockHeader) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("Error unmarshalling: %v", r)
+		}
+	}()
+	newData = data
 	b.AdminChainID = new(Hash)
-	b.AdminChainID.UnmarshalBinary(data)
-	data = data[HASH_LENGTH:]
+	newData, err = b.AdminChainID.UnmarshalBinaryData(newData)
+	if err != nil {
+		return
+	}
 
 	b.PrevFullHash = new(Hash)
-	b.PrevFullHash.UnmarshalBinary(data)
-	data = data[HASH_LENGTH:]
+	newData, err = b.PrevFullHash.UnmarshalBinaryData(newData)
+	if err != nil {
+		return
+	}
 
-	b.DBHeight, data = binary.BigEndian.Uint32(data[0:4]), data[4:]
+	b.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
-	b.HeaderExpansionSize, data = DecodeVarInt(data)
-	b.HeaderExpansionArea, data = data[:b.HeaderExpansionSize], data[b.HeaderExpansionSize:]
+	b.HeaderExpansionSize, newData = DecodeVarInt(newData)
+	b.HeaderExpansionArea, newData = newData[:b.HeaderExpansionSize], newData[b.HeaderExpansionSize:]
 
-	b.MessageCount, data = binary.BigEndian.Uint32(data[0:4]), data[4:]
-	b.BodySize, data = binary.BigEndian.Uint32(data[0:4]), data[4:]
+	b.MessageCount, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+	b.BodySize, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
-	return nil
+	return
+}
+
+// Read in the binary into the ABlockHeader.
+func (b *ABlockHeader) UnmarshalBinary(data []byte) (err error) {
+	_, err = b.UnmarshalBinaryData(data)
+	return
 }
 
 // Generic admin block entry type
@@ -237,6 +276,7 @@ type ABEntry interface {
 	MarshalBinary() ([]byte, error)
 	MarshalledSize() uint64
 	UnmarshalBinary(data []byte) (err error)
+	UnmarshalBinaryData(data []byte) (newData []byte, err error)
 }
 
 // DB Signature Entry -------------------------
@@ -296,21 +336,36 @@ func (e *DBSignatureEntry) MarshalledSize() uint64 {
 	return size
 }
 
-func (e *DBSignatureEntry) UnmarshalBinary(data []byte) (err error) {
-	e.entryType, data = data[0], data[1:]
+func (e *DBSignatureEntry) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("Error unmarshalling: %v", r)
+		}
+	}()
+	newData = data
+	e.entryType, newData = newData[0], newData[1:]
 
 	e.IdentityAdminChainID = new(Hash)
-	e.IdentityAdminChainID.UnmarshalBinary(data)
-	data = data[HASH_LENGTH:]
+	newData, err = e.IdentityAdminChainID.UnmarshalBinaryData(newData)
+	if err != nil {
+		return
+	}
 
 	e.PubKey.Key = new([HASH_LENGTH]byte)
-	copy(e.PubKey.Key[:], data[:HASH_LENGTH])
-	data = data[HASH_LENGTH:]
+	copy(e.PubKey.Key[:], newData[:HASH_LENGTH])
+	newData = newData[HASH_LENGTH:]
 
 	e.PrevDBSig = new([SIG_LENGTH]byte)
-	copy(e.PrevDBSig[:], data[:SIG_LENGTH])
+	copy(e.PrevDBSig[:], newData[:SIG_LENGTH])
 
-	return nil
+	newData = newData[SIG_LENGTH:]
+
+	return
+}
+
+func (e *DBSignatureEntry) UnmarshalBinary(data []byte) (err error) {
+	_, err = e.UnmarshalBinaryData(data)
+	return
 }
 
 type EndOfMinuteEntry struct {
@@ -340,9 +395,21 @@ func (e *EndOfMinuteEntry) MarshalledSize() uint64 {
 	return size
 }
 
-func (e *EndOfMinuteEntry) UnmarshalBinary(data []byte) (err error) {
-	e.entryType, data = data[0], data[1:]
-	e.EOM_Type, data = data[0], data[1:]
+func (e *EndOfMinuteEntry) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("Error unmarshalling: %v", r)
+		}
+	}()
+	newData = data
 
-	return nil
+	e.entryType, newData = newData[0], newData[1:]
+	e.EOM_Type, newData = newData[0], newData[1:]
+
+	return
+}
+
+func (e *EndOfMinuteEntry) UnmarshalBinary(data []byte) (err error) {
+	_, err = e.UnmarshalBinaryData(data)
+	return
 }

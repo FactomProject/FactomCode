@@ -45,9 +45,20 @@ func (h *Hash) MarshalBinary() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (h *Hash) UnmarshalBinary(p []byte) error {
+func (h *Hash) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("Error unmarshalling: %v", r)
+		}
+	}()
 	copy(h.bytes[:], p)
-	return nil
+	newData = p[HASH_LENGTH:]
+	return
+}
+
+func (h *Hash) UnmarshalBinary(p []byte) (err error) {
+	_, err = h.UnmarshalBinaryData(p)
+	return
 }
 
 func (h *Hash) GetBytes() []byte {
@@ -64,7 +75,6 @@ func (hash *Hash) SetBytes(newHash []byte) error {
 	if nhlen != HASH_LENGTH {
 		return fmt.Errorf("invalid sha length of %v, want %v", nhlen, HASH_LENGTH)
 	}
-
 	copy(hash.bytes[:], newHash)
 	return nil
 }
