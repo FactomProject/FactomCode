@@ -331,20 +331,20 @@ func deleteBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool) err
 	for _, dbEntry := range b.DBEntries {
 		switch dbEntry.ChainID.String() {
 		case ecchain.ChainID.String():
-			delete(fMemPool.blockpool, dbEntry.KeyMR.String())
+			fMemPool.deleteBlockMsg(dbEntry.KeyMR.String())
 		case achain.ChainID.String():
-			delete(fMemPool.blockpool, dbEntry.KeyMR.String())
+			fMemPool.deleteBlockMsg(dbEntry.KeyMR.String())
 		case fchain.ChainID.String():
-			delete(fMemPool.blockpool, dbEntry.KeyMR.String())
+			fMemPool.deleteBlockMsg(dbEntry.KeyMR.String())
 		default:
 			eBlkMsg, _ := fMemPool.blockpool[dbEntry.KeyMR.String()].(*wire.MsgEBlock)
 			for _, ebEntry := range eBlkMsg.EBlk.Body.EBEntries {
-				delete(fMemPool.blockpool, ebEntry.String())
+				fMemPool.deleteBlockMsg(ebEntry.String())				
 			}
-			delete(fMemPool.blockpool, dbEntry.KeyMR.String())
+			fMemPool.deleteBlockMsg(dbEntry.KeyMR.String())
 		}
 	}
-	delete(fMemPool.blockpool, strconv.Itoa(int(b.Header.DBHeight)))
+	fMemPool.deleteBlockMsg(strconv.Itoa(int(b.Header.DBHeight)))	
 
 	return nil
 }

@@ -62,8 +62,21 @@ func (mp *ftmMemPool) addBlockMsg(msg wire.Message, hash string) error {
 	if len(mp.blockpool) > common.MAX_BLK_POOL_SIZE {
 		errors.New("Block mem pool exceeds the limit. Please restart.")
 	}
-
+	mp.Lock()
 	mp.blockpool[hash] = msg
+	mp.Unlock()
+
+	return nil
+}
+
+// Delete a factom block message from the  Mem pool
+func (mp *ftmMemPool) deleteBlockMsg(hash string) error {
+
+	if mp.blockpool[hash] != nil {
+		mp.Lock()		
+		delete(fMemPool.blockpool, hash)	
+		mp.Unlock()
+	}
 
 	return nil
 }
