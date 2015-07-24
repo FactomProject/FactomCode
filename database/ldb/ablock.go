@@ -93,7 +93,8 @@ func (db *LevelDb) FetchAllABlocks() (aBlocks []common.AdminBlock, err error) {
 		if err != nil {
 			return nil, err
 		}
-		aBlock.ABHash = common.Sha(iter.Value()) //to be optimized??
+		//TODO: to be optimized??
+		aBlock.ABHash = common.Sha(iter.Value())
 
 		aBlockSlice = append(aBlockSlice, aBlock)
 

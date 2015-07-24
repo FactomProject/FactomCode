@@ -69,7 +69,7 @@ func factomdMain() error {
 	// Start the wsapi server module in a separate go-routine
 	wsapi.Start(db, inMsgQueue)
 
-	// wait till the initialization is complete in processor - to be improved??
+	// wait till the initialization is complete in processor
 	hash, _ := db.FetchDBHashByHeight(0)
 	if hash != nil {
 		for true {

@@ -47,7 +47,7 @@ var (
 	inCtlMsgQueue  chan wire.FtmInternalMsg //incoming message queue for factom control messages
 	outCtlMsgQueue chan wire.FtmInternalMsg //outgoing message queue for factom control messages
 
-	// To be moved to ftmMemPool??
+	//TODO: To be moved to ftmMemPool??
 	chainIDMap     map[string]*common.EChain // ChainIDMap with chainID string([32]byte) as key
 	commitChainMap = make(map[string]*common.CommitChain, 0)
 	commitEntryMap = make(map[string]*common.CommitEntry, 0)
@@ -859,7 +859,6 @@ func buildBlocks() error {
 	// Directory Block chain
 	procLog.Debug("in buildBlocks")
 	dbBlock := newDirectoryBlock(dchain)
-	// Check block hash if genesis block here??
 
 	// Generate the inventory vector and relay it.
 	binary, _ := dbBlock.MarshalBinary()
