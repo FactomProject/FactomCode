@@ -435,7 +435,8 @@ func (db *LevelDb) FetchAllUnconfirmedDirBlockInfo() (dirBlockInfoMap map[string
 		if iter.Value()[len(iter.Value())-1] == 0 {
 			_, err := dBInfo.UnmarshalBinaryData(iter.Value())
 			if err != nil {
-				return nil, err
+				//TODO: FIXME: return nil, err , rather than an incomplete map; fix the underlying problem
+				return dirBlockInfoMap, err
 			}
 			dirBlockInfoMap[dBInfo.DBMerkleRoot.String()] = dBInfo
 		}

@@ -246,7 +246,7 @@ func sendRawTransaction(msgtx *wire.MsgTx) (*wire.ShaHash, error) {
 	if err := msgtx.BtcEncode(&buf, wire.ProtocolVersion); err != nil {
 		// Hitting OOM by growing or writing to a bytes.Buffer already
 		// panics, and all returned errors are unexpected.
-		//panic(err) 
+		//panic(err)
 		//TODO: should we have retry logic?
 		return nil, err
 	}
@@ -319,16 +319,21 @@ func createBtcdNotificationHandlers() btcrpcclient.NotificationHandlers {
 func InitAnchor(ldb database.Db) {
 	anchorLog.Debug("InitAnchor")
 	db = ldb
-	dirBlockInfoMap, _ = db.FetchAllUnconfirmedDirBlockInfo()
+	var err error
+	dirBlockInfoMap, err = db.FetchAllUnconfirmedDirBlockInfo()
+	if err != nil {
+		anchorLog.Error("InitAnchor error - " + err.Error())
+		return
+	}
 
-	if err := initRPCClient(); err != nil {
+	if err = initRPCClient(); err != nil {
 		anchorLog.Error(err.Error())
 		return
 	}
 	//defer shutdown(dclient)
 	//defer shutdown(wclient)
 
-	if err := initWallet(); err != nil {
+	if err = initWallet(); err != nil {
 		anchorLog.Error(err.Error())
 		return
 	}
