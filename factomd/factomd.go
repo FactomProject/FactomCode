@@ -5,6 +5,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/database/ldb"
@@ -15,13 +16,12 @@ import (
 	"github.com/FactomProject/btcd/limits"
 	"github.com/FactomProject/btcd/wire"
 	"os"
-    "fmt"
 	"runtime"
 	"time"
 )
 
 var (
-    _               = fmt.Print
+	_               = fmt.Print
 	cfg             *util.FactomdConfig
 	shutdownChannel = make(chan struct{})
 	ldbpath         = ""
@@ -41,6 +41,9 @@ func main() {
 	ftmdLog.Info("//////////////////////// Copyright 2015 Factom Foundation")
 	ftmdLog.Info("//////////////////////// Use of this source code is governed by the MIT")
 	ftmdLog.Info("//////////////////////// license that can be found in the LICENSE file.")
+
+	ftmdLog.Warning("Go compiler version: %s", runtime.Version())
+	fmt.Println("Go compiler version: ", runtime.Version())
 
 	// Load configuration file and send settings to components
 	loadConfigurations()
@@ -85,17 +88,16 @@ func factomdMain() error {
 		}
 	}
 
-	if len(os.Args) >=2 {
-        if os.Args[1] == "initializeonly" {
-            time.Sleep(time.Second)
-            fmt.Println("Initializing only.")
-            os.Exit(0)
-        }
-    }else{
-        fmt.Println("\n'factomd initializeonly' will do just that.  Initialize and stop.")
-    }
-	
-	
+	if len(os.Args) >= 2 {
+		if os.Args[1] == "initializeonly" {
+			time.Sleep(time.Second)
+			fmt.Println("Initializing only.")
+			os.Exit(0)
+		}
+	} else {
+		fmt.Println("\n'factomd initializeonly' will do just that.  Initialize and stop.")
+	}
+
 	// Start the factoid (btcd) component and P2P component
 	btcd.Start_btcd(db, inMsgQueue, outMsgQueue, inCtlMsgQueue, outCtlMsgQueue, process.FactomdUser, process.FactomdPass, common.SERVER_NODE != cfg.App.NodeMode)
 
