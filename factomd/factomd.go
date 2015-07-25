@@ -5,6 +5,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/database/ldb"
@@ -20,6 +21,7 @@ import (
 )
 
 var (
+	_               = fmt.Print
 	cfg             *util.FactomdConfig
 	shutdownChannel = make(chan struct{})
 	ldbpath         = ""
@@ -39,6 +41,9 @@ func main() {
 	ftmdLog.Info("//////////////////////// Copyright 2015 Factom Foundation")
 	ftmdLog.Info("//////////////////////// Use of this source code is governed by the MIT")
 	ftmdLog.Info("//////////////////////// license that can be found in the LICENSE file.")
+
+	ftmdLog.Warning("Go compiler version: %s", runtime.Version())
+	fmt.Println("Go compiler version: ", runtime.Version())
 
 	// Load configuration file and send settings to components
 	loadConfigurations()
@@ -69,7 +74,7 @@ func factomdMain() error {
 	// Start the wsapi server module in a separate go-routine
 	wsapi.Start(db, inMsgQueue)
 
-	// wait till the initialization is complete in processor - to be improved??
+	// wait till the initialization is complete in processor
 	hash, _ := db.FetchDBHashByHeight(0)
 	if hash != nil {
 		for true {
@@ -81,6 +86,16 @@ func factomdMain() error {
 				break
 			}
 		}
+	}
+
+	if len(os.Args) >= 2 {
+		if os.Args[1] == "initializeonly" {
+			time.Sleep(time.Second)
+			fmt.Println("Initializing only.")
+			os.Exit(0)
+		}
+	} else {
+		fmt.Println("\n'factomd initializeonly' will do just that.  Initialize and stop.")
 	}
 
 	// Start the factoid (btcd) component and P2P component

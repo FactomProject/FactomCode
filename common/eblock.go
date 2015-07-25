@@ -101,7 +101,7 @@ func (e *EBlock) KeyMR() *Hash {
 // MarshalBinary returns the serialized binary form of the Entry Block.
 func (e *EBlock) MarshalBinary() ([]byte, error) {
 	buf := new(bytes.Buffer)
-	
+
 	if err := e.BuildHeader(); err != nil {
 		return buf.Bytes(), err
 	}
@@ -122,18 +122,25 @@ func (e *EBlock) MarshalBinary() ([]byte, error) {
 
 // UnmarshalBinary populates the Entry Block object from the serialized binary
 // data.
-func (e *EBlock) UnmarshalBinary(data []byte) error {
-	buf := bytes.NewBuffer(data)
-	
-	if err := e.Header.UnmarshalBinary(buf.Next(EBHeaderSize)); err != nil {
-		return err
+func (e *EBlock) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+	newData = data
+
+	newData, err = e.Header.UnmarshalBinaryData(newData)
+	if err != nil {
+		return
 	}
-	
-	if err := e.Body.UnmarshalBinary(buf.Bytes()); err != nil {
-		return err
+
+	newData, err = e.Body.UnmarshalBinaryData(newData)
+	if err != nil {
+		return
 	}
-	
-	return nil
+
+	return
+}
+
+func (e *EBlock) UnmarshalBinary(data []byte) (err error) {
+	_, err = e.UnmarshalBinaryData(data)
+	return
 }
 
 // EBlockBody is the series of Hashes that form the Entry Block Body.
@@ -151,11 +158,11 @@ func NewEBlockBody() *EBlockBody {
 // MarshalBinary returns a serialized binary Entry Block Body
 func (e *EBlockBody) MarshalBinary() ([]byte, error) {
 	buf := new(bytes.Buffer)
-	
+
 	for _, v := range e.EBEntries {
 		buf.Write(v.Bytes())
 	}
-	
+
 	return buf.Bytes(), nil
 }
 
@@ -168,24 +175,32 @@ func (e *EBlockBody) MR() *Hash {
 }
 
 // UnmarshalBinary builds the Entry Block Body from the serialized binary.
-func (e *EBlockBody) UnmarshalBinary(data []byte) error {
+func (e *EBlockBody) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	buf := bytes.NewBuffer(data)
 	hash := make([]byte, 32)
-	
+
 	for {
-		if _, err := buf.Read(hash); err != nil {
+		if _, err = buf.Read(hash); err != nil {
 			if err == io.EOF {
+				err = nil
 				break
 			}
-			return err
+			return
 		}
-		
+
 		h := NewHash()
 		h.SetBytes(hash)
 		e.EBEntries = append(e.EBEntries, h)
 	}
-	
-	return nil
+
+	newData = buf.Bytes()
+
+	return
+}
+
+func (e *EBlockBody) UnmarshalBinary(data []byte) (err error) {
+	_, err = e.UnmarshalBinaryData(data)
+	return
 }
 
 // EBlockHeader holds relevent metadata about the Entry Block and the data
@@ -213,7 +228,7 @@ func NewEBlockHeader() *EBlockHeader {
 // MarshalBinary returns a serialized binary Entry Block Header
 func (e *EBlockHeader) MarshalBinary() ([]byte, error) {
 	buf := new(bytes.Buffer)
-	
+
 	// 32 byte ChainID
 	buf.Write(e.ChainID.Bytes())
 
@@ -237,50 +252,58 @@ func (e *EBlockHeader) MarshalBinary() ([]byte, error) {
 	if err := binary.Write(buf, binary.BigEndian, e.EntryCount); err != nil {
 		return buf.Bytes(), err
 	}
-	
+
 	return buf.Bytes(), nil
 }
 
 // UnmarshalBinary builds the Entry Block Header from the serialized binary.
-func (e *EBlockHeader) UnmarshalBinary(data []byte) error {
+func (e *EBlockHeader) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	buf := bytes.NewBuffer(data)
 	hash := make([]byte, 32)
-	
-	if _, err := buf.Read(hash); err != nil {
-		return err
+	newData = data
+
+	if _, err = buf.Read(hash); err != nil {
+		return
 	} else {
 		e.ChainID.SetBytes(hash)
 	}
 
-	if _, err := buf.Read(hash); err != nil {
-		return err
+	if _, err = buf.Read(hash); err != nil {
+		return
 	} else {
 		e.BodyMR.SetBytes(hash)
 	}
 
-	if _, err := buf.Read(hash); err != nil {
-		return err
+	if _, err = buf.Read(hash); err != nil {
+		return
 	} else {
 		e.PrevKeyMR.SetBytes(hash)
 	}
 
-	if _, err := buf.Read(hash); err != nil {
-		return err
+	if _, err = buf.Read(hash); err != nil {
+		return
 	} else {
 		e.PrevFullHash.SetBytes(hash)
 	}
-	
-	if err := binary.Read(buf, binary.BigEndian, &e.EBSequence); err != nil {
-		return err
-	}
-	
-	if err := binary.Read(buf, binary.BigEndian, &e.DBHeight); err != nil {
-		return err
-	}
-	
-	if err := binary.Read(buf, binary.BigEndian, &e.EntryCount); err != nil {
-		return err
+
+	if err = binary.Read(buf, binary.BigEndian, &e.EBSequence); err != nil {
+		return
 	}
 
-	return nil
+	if err = binary.Read(buf, binary.BigEndian, &e.DBHeight); err != nil {
+		return
+	}
+
+	if err = binary.Read(buf, binary.BigEndian, &e.EntryCount); err != nil {
+		return
+	}
+
+	newData = buf.Bytes()
+
+	return
+}
+
+func (e *EBlockHeader) UnmarshalBinary(data []byte) (err error) {
+	_, err = e.UnmarshalBinaryData(data)
+	return
 }

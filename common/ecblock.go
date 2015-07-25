@@ -91,18 +91,24 @@ func (e *ECBlock) BuildHeader() error {
 	return nil
 }
 
-func (e *ECBlock) UnmarshalBinary(data []byte) error {
+func (e *ECBlock) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	buf := bytes.NewBuffer(data)
 
 	// Unmarshal Header
 	e.Header.readUnmarshal(buf)
 
 	// Unmarshal Body
-	if err := e.Body.UnmarshalBinary(buf.Bytes()); err != nil {
-		return err
+	newData, err = e.Body.UnmarshalBinaryData(buf.Bytes())
+	if err != nil {
+		return
 	}
 
-	return nil
+	return
+}
+
+func (e *ECBlock) UnmarshalBinary(data []byte) (err error) {
+	_, err = e.UnmarshalBinaryData(data)
+	return
 }
 
 type ECBlockBody struct {
@@ -130,53 +136,79 @@ func (b *ECBlockBody) MarshalBinary() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (b *ECBlockBody) UnmarshalBinary(data []byte) error {
+func (b *ECBlockBody) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	buf := bytes.NewBuffer(data)
 
 	for {
-		id, err := buf.ReadByte()
+		var id byte
+		id, err = buf.ReadByte()
 		if err != nil {
 			if err == io.EOF {
+				err = nil
 				break
 			}
-			return err
+			newData = buf.Bytes()
+			return
 		}
 		switch id {
 		case ECIDServerIndexNumber:
 		case ECIDMinuteNumber:
 			m := NewMinuteNumber()
-			err := m.UnmarshalBinary(buf.Next(MinuteNumberSize))
+			if buf.Len() < MinuteNumberSize {
+				err = io.EOF
+				newData = buf.Bytes()
+				return
+			}
+			_, err = m.UnmarshalBinaryData(buf.Next(MinuteNumberSize))
 			if err != nil {
-				return err
+				newData = buf.Bytes()
+				return
 			}
 			b.Entries = append(b.Entries, m)
 		case ECIDChainCommit:
+			if buf.Len() < CommitChainSize {
+				err = io.EOF
+				newData = buf.Bytes()
+				return
+			}
 			c := NewCommitChain()
-			err := c.UnmarshalBinary(buf.Next(CommitChainSize))
+			_, err = c.UnmarshalBinaryData(buf.Next(CommitChainSize))
 			if err != nil {
-				return err
+				return
 			}
 			b.Entries = append(b.Entries, c)
 		case ECIDEntryCommit:
+			if buf.Len() < CommitEntrySize {
+				err = io.EOF
+				newData = buf.Bytes()
+				return
+			}
 			c := NewCommitEntry()
-			err := c.UnmarshalBinary(buf.Next(CommitEntrySize))
+			_, err = c.UnmarshalBinaryData(buf.Next(CommitEntrySize))
 			if err != nil {
-				return err
+				return
 			}
 			b.Entries = append(b.Entries, c)
 		case ECIDBalanceIncrease:
 			c := NewIncreaseBalance()
-			err := c.readUnmarshal(buf)
+			err = c.readUnmarshal(buf)
 			if err != nil {
-				return err
+				return
 			}
 			b.Entries = append(b.Entries, c)
 		default:
-			return fmt.Errorf("Unsupported ECID: %x\n", id)
+			err = fmt.Errorf("Unsupported ECID: %x\n", id)
+			return
 		}
 	}
 
-	return nil
+	newData = buf.Bytes()
+	return
+}
+
+func (b *ECBlockBody) UnmarshalBinary(data []byte) (err error) {
+	_, err = b.UnmarshalBinaryData(data)
+	return
 }
 
 type ECBlockEntry interface {
@@ -234,7 +266,7 @@ func (e *ECBlockHeader) MarshalBinary() ([]byte, error) {
 	if err := binary.Write(buf, binary.BigEndian, e.DBHeight); err != nil {
 		return buf.Bytes(), err
 	}
-	
+
 	// variable Header Expansion Size
 	if _, err := WriteVarInt(buf,
 		uint64(len(e.HeaderExpansionArea))); err != nil {
@@ -243,7 +275,7 @@ func (e *ECBlockHeader) MarshalBinary() ([]byte, error) {
 
 	// varable byte Header Expansion Area
 	buf.Write(e.HeaderExpansionArea)
-	
+
 	// 8 byte Object Count
 	if err := binary.Write(buf, binary.BigEndian, e.ObjectCount); err != nil {
 		return buf.Bytes(), err
@@ -305,7 +337,7 @@ func (e *ECBlockHeader) readUnmarshal(buf *bytes.Buffer) error {
 	if _, err := buf.Read(e.HeaderExpansionArea); err != nil {
 		return err
 	}
-		
+
 	if err := binary.Read(buf, binary.BigEndian, &e.ObjectCount); err != nil {
 		return err
 	}

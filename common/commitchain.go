@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"io"
 	"time"
 
 	ed "github.com/FactomProject/ed25519"
@@ -64,8 +65,8 @@ func (c *CommitChain) InTime() bool {
 	binary.Read(buf, binary.BigEndian, &sec)
 	sec = sec / 1000
 	t := time.Unix(sec, 0)
-	
-	return t.After(now.Add(-24 * time.Hour)) && t.Before(now.Add(24 * time.Hour))
+
+	return t.After(now.Add(-24*time.Hour)) && t.Before(now.Add(24*time.Hour))
 }
 
 func (c *CommitChain) IsValid() bool {
@@ -110,65 +111,97 @@ func (c *CommitChain) ECID() byte {
 	return ECIDChainCommit
 }
 
-func (c *CommitChain) UnmarshalBinary(data []byte) (err error) {
+func (c *CommitChain) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("Error unmarshalling: %v", r)
+		}
+	}()
 	buf := bytes.NewBuffer(data)
 	hash := make([]byte, 32)
 
 	// 1 byte Version
-	if p, err := buf.ReadByte(); err != nil {
-		return err
+	var b byte
+	var p []byte
+	if b, err = buf.ReadByte(); err != nil {
+		return
 	} else {
-		c.Version = uint8(p)
+		c.Version = uint8(b)
+	}
+
+	if buf.Len() < 6 {
+		err = io.EOF
+		return
 	}
 
 	// 6 byte MilliTime
-	if p := buf.Next(6); p == nil {
-		return fmt.Errorf("Could not read MilliTime")
+	if p = buf.Next(6); p == nil {
+		err = fmt.Errorf("Could not read MilliTime")
+		return
 	} else {
 		copy(c.MilliTime[:], p)
 	}
 
 	// 32 byte ChainIDHash
-	if _, err := buf.Read(hash); err != nil {
-		return err
-	} else if err := c.ChainIDHash.SetBytes(hash); err != nil {
-		return err
+	if _, err = buf.Read(hash); err != nil {
+		return
+	} else if err = c.ChainIDHash.SetBytes(hash); err != nil {
+		return
 	}
 
 	// 32 byte Weld
-	if _, err := buf.Read(hash); err != nil {
-		return err
-	} else if err := c.Weld.SetBytes(hash); err != nil {
-		return err
+	if _, err = buf.Read(hash); err != nil {
+		return
+	} else if err = c.Weld.SetBytes(hash); err != nil {
+		return
 	}
 
 	// 32 byte Entry Hash
-	if _, err := buf.Read(hash); err != nil {
-		return err
-	} else if err := c.EntryHash.SetBytes(hash); err != nil {
-		return err
+	if _, err = buf.Read(hash); err != nil {
+		return
+	} else if err = c.EntryHash.SetBytes(hash); err != nil {
+		return
 	}
 
 	// 1 byte number of Entry Credits
-	if p, err := buf.ReadByte(); err != nil {
-		return err
+	if b, err = buf.ReadByte(); err != nil {
+		return
 	} else {
-		c.Credits = uint8(p)
+		c.Credits = uint8(b)
+	}
+
+	if buf.Len() < 32 {
+		err = io.EOF
+		return
 	}
 
 	// 32 byte Public Key
 	if p := buf.Next(32); p == nil {
-		return fmt.Errorf("Could not read ECPubKey")
+		err = fmt.Errorf("Could not read ECPubKey")
+		return
 	} else {
 		copy(c.ECPubKey[:], p)
 	}
 
+	if buf.Len() < 64 {
+		err = io.EOF
+		return
+	}
+
 	// 64 byte Signature
 	if p := buf.Next(64); p == nil {
-		return fmt.Errorf("Could not read Sig")
+		err = fmt.Errorf("Could not read Sig")
+		return
 	} else {
 		copy(c.Sig[:], p)
 	}
 
-	return nil
+	newData = buf.Bytes()
+
+	return
+}
+
+func (c *CommitChain) UnmarshalBinary(data []byte) (err error) {
+	_, err = c.UnmarshalBinaryData(data)
+	return
 }

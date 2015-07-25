@@ -9,6 +9,7 @@ package controlpanel
 import (
     "fmt"
     "bytes"
+    "strings"
     "log"
     "net/http"
     "time"
@@ -17,63 +18,58 @@ import (
 var _ = time.Sleep
 
 // Content for the control panel html page..
-var page =
-        `<html>
-           <head>
-             <link href="data:image/x-icon;base64,AAABAAEAEBAAAAEAIABoBAAAFgAAACgAAAAQAAAAIAAAAAEAIAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEJjUbGbP5/wAAAAAAAAAAxYwU/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACaZjX/oW48/wAAAAAAAAAAHKv5/xyo+P8AAAAA0qRb/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAI9ZJP8AAAAAAAAAAAAAAACndkP/sIBN/7eKWP8AAAAAHqL3/x6f9/8AAAAA4MOa/wAAAAAAAAAAAAAAALByDP+0dw3/uX0U/7+EFf/FjBT/ypMg/wAAAAAAAAAAvpVl/8Wgcv8AAAAAHpr3/25hTDAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMqTIP/PnEb/1Kdj/wAAAADFoHL/zKt//wAAAAAflfb/AAAAAAAAAAAUuvrxF7b6/xmz+f8asPn/G635/xyq+f8cp/jWAAAAANSnY//ZsXr/AAAAAMyrf//SuI7/AAAAACCP9v8AAAAAF7f6/wAAAAAAAAAAAAAAAAAAAAAPgsM5HaT4/x6i9/8AAAAAAAAAAN29kP8AAAAA0riO/9rFnP8gjfb/AAAAAI5YI/+VYC7/nGk5/6VzQP+vf03/uIxa/wAAAAAdn/f/Hpz3/x6a9v8AAAAA48qm/2xlVzzaxZz/AAAAACCI9f+OWCP/AAAAAAAAAAAAAAAAAAAAALiMWv/Bmmv/yad61QAAAAAfl/b/BB48BOPKpv/q2b3/AAAAAAAAAAAghfX/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMqoe//St47/AAAAACCR9f8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA0reO/wAAAAAgj/b/IIz1/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAANK3jv/cyaD/AAAAACCJ9f8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//8AAP2/AADzLwAA3EsAAIGXAAD8SwAAASUAAHzRAAACKgAAeKYAAP5fAAD/TwAA/y8AAP//AAD//wAA//8AAA==" rel="icon" type="image/x-icon" />
-             <script type="text/javascript"
-               src="http://ajax.googleapis.com/ajax/libs/jquery/1.3.2/jquery.min.js">
-             </script>
-             <style> 
-               div {
-                 font-family: "Times New Roman", Georgia, Serif;
-                 font-size: 1em;
-                 width: 40.3em;
-                 padding: 8px 8px; 
-                 border: 2px solid #2B1B17;
-                 border-radius: 10px;
-                 color: #2B1B17;
-                 text-shadow: 1px 1px #E5E4E2;
-                 background: #FFFFFF;
-               }
-             </style>
-           </head>
-           <body>
-             <h2>Factom Control Panel</h2>
-             <div id="output"></div>
-             <script type="text/javascript">
-               $(document).ready(function () {
-                 $("#output").append("Waiting on Factom...");
-                 setInterval("delayedPost()", 1000);
-               });
-               
-               document.title = "factomd"
-               
-               function delayedPost() {
-                 $.post("http://localhost:8090/getreport", "", function(data, status) {
-                 $("#output").empty();
-                 $("#output").append(data);
-                 });
-               }
-             </script>
-           </body>
-         </html>`
+var page =`
+<html>
+    <head>
+        <title>%s</title>
+        <link href="data:image/x-icon;base64,AAABAAEAEBAAAAEAIABoBAAAFgAAACgAAAAQAAAAIAAAAAEAIAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEJjUbGbP5/wAAAAAAAAAAxYwU/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACaZjX/oW48/wAAAAAAAAAAHKv5/xyo+P8AAAAA0qRb/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAI9ZJP8AAAAAAAAAAAAAAACndkP/sIBN/7eKWP8AAAAAHqL3/x6f9/8AAAAA4MOa/wAAAAAAAAAAAAAAALByDP+0dw3/uX0U/7+EFf/FjBT/ypMg/wAAAAAAAAAAvpVl/8Wgcv8AAAAAHpr3/25hTDAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMqTIP/PnEb/1Kdj/wAAAADFoHL/zKt//wAAAAAflfb/AAAAAAAAAAAUuvrxF7b6/xmz+f8asPn/G635/xyq+f8cp/jWAAAAANSnY//ZsXr/AAAAAMyrf//SuI7/AAAAACCP9v8AAAAAF7f6/wAAAAAAAAAAAAAAAAAAAAAPgsM5HaT4/x6i9/8AAAAAAAAAAN29kP8AAAAA0riO/9rFnP8gjfb/AAAAAI5YI/+VYC7/nGk5/6VzQP+vf03/uIxa/wAAAAAdn/f/Hpz3/x6a9v8AAAAA48qm/2xlVzzaxZz/AAAAACCI9f+OWCP/AAAAAAAAAAAAAAAAAAAAALiMWv/Bmmv/yad61QAAAAAfl/b/BB48BOPKpv/q2b3/AAAAAAAAAAAghfX/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMqoe//St47/AAAAACCR9f8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA0reO/wAAAAAgj/b/IIz1/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAANK3jv/cyaD/AAAAACCJ9f8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//8AAP2/AADzLwAA3EsAAIGXAAD8SwAAASUAAHzRAAACKgAAeKYAAP5fAAD/TwAA/y8AAP//AAD//wAA//8AAA==" rel="icon" type="image/x-icon" />
+        <script type="text/javascript"
+        src="http://ajax.googleapis.com/ajax/libs/jquery/1.3.2/jquery.min.js">
+        </script>
+        <style> 
+        div {
+            font-family: "Times New Roman", Georgia, Serif;
+            font-size: 1em;
+            width: 40.3em;
+            padding: 8px 8px; 
+            border: 2px solid #2B1B17;
+            border-radius: 10px;
+            color: #2B1B17;
+            text-shadow: 1px 1px #E5E4E2;
+            background: #FFFFFF;
+        }
+        </style>
+    </head>
+    <body>
+        <h3>Factom</h3>
+        <div id="output">
+            <script type="text/javascript">
+                $(document).ready(function () {
+                    $("#output").append("Waiting on Factom...");
+                    setInterval("delayedPost()", 1000);
+                });
+                            
+                function delayedPost() {
+                    $.post("http://localhost:%s/getreport", "", function(data, status) {
+                        $("#output").empty();
+                        $("#output").append(data);
+                    });
+                }
+            </script>
+        </div>
+    </body>
+</html>
+`
 
 // handler for the main page.
 func handler(w http.ResponseWriter, r *http.Request) {
-        fmt.Fprint(w, page)
+    fmt.Fprint(w, fmt.Sprintf(page,CP.GetTitle(),CP.GetPort()))
 }
 
 // Build the report to show on the web page
 // Standard html (like <br> etc.) can be used.
 func handlerGetReport(w http.ResponseWriter, r *http.Request) {
     var out bytes.Buffer
-    if len(CP.FactomMode())>0 {
-        out.WriteString("Running as "+CP.FactomMode()+"<br>")
-    }else{
-        out.WriteString("Running Factom<br>")
-    }
-    
     since := time.Since(CP.LastCommunication())
     out.WriteString("Last update: ")
     if int(since.Hours())>0 {
@@ -87,37 +83,45 @@ func handlerGetReport(w http.ResponseWriter, r *http.Request) {
         out.WriteString(fmt.Sprintf("%d second(s) ago<br>",seconds))
     }
     
-    if CP.PeriodMark() <= 10 {
-        out.WriteString(fmt.Sprintf("Minute %d, Block Height %d<br>",CP.PeriodMark(),CP.BlockHeight()))
+    CP.Purge()
+    
+    for i:=0; i<len(CP.updates)-1; i++ {
+        for j:=0; j<len(CP.updates)-i-1; j++ {
+            if CP.updates[j].title > CP.updates[j+1].title {
+                t := CP.updates[j]
+                CP.updates[j] = CP.updates[j+1]
+                CP.updates[j+1] = t
+            }
+        }
     }
     
-    out.WriteString(fmt.Sprintf("Number of Transactions Processed: %d<br>",CP.TransactionsProcessed()))
-    
-    if len(CP.Warnings()) > 0 {
-        out.WriteString("<br><b>Warnings</b><br><OL>")
-        for _,warn := range CP.Warnings() {
-            out.WriteString("<LI>")
-            out.WriteString(warn.msg)
+    if len(CP.Updates()) > 0 {        
+        cats := []string  { "system","status", "info", "warnings", "errors"}
+        for _,cat := range cats {
+            first := true
+            for _,update := range CP.Updates() {
+                if update.cat == cat {
+                    if first { 
+                        out.WriteString(fmt.Sprintf("<br><b>%s</b><br><OL><dl>",strings.Title(cat)))
+                        first=false
+                    }
+                    if len(update.title)>0 {out.WriteString("<dt>"+update.title+"</dt>")}
+                    if len(update.msg)>0   {out.WriteString("<dd>"+update.msg+"</dd>")}
+                }
+            }
+            if !first {out.WriteString("</OL></dl>")}
         }
         out.WriteString("</OL>")
     }
+    fmt.Fprint(w, string(out.Bytes()))    
+}
 
-    if len(CP.Errors()) > 0 {
-        out.WriteString("<br><b>Warnings</b><br><OL>")
-        for _,err := range CP.Errors() {
-            out.WriteString("<LI>")
-            out.WriteString(err.msg)
-        }
-        out.WriteString("</OL>")
-    }
-    
-    
-    fmt.Fprint(w, string(out.Bytes()))
-    //fmt.Fprint(w, "Running as Server<br>Minute 1, Block Height 123")
+func handlerGetReport2(w http.ResponseWriter, r *http.Request) {
+    fmt.Fprint(w,"fctWallet report")
 }
 
 func runPanel() {
         http.HandleFunc("/controlpanel", handler)
         http.HandleFunc("/getreport", handlerGetReport)
-        log.Fatal(http.ListenAndServe(":8090", nil))
+        log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s",CP.GetPort()), nil))
 }

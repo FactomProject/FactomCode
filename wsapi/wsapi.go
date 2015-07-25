@@ -39,7 +39,7 @@ var server = web.NewServer()
 
 var (
 	inMessageQ chan wire.FtmInternalMsg
-	dbase database.Db
+	dbase      database.Db
 )
 
 func Start(db database.Db, inMsgQ chan wire.FtmInternalMsg) {
@@ -55,6 +55,7 @@ func Start(db database.Db, inMsgQ chan wire.FtmInternalMsg) {
 	server.Post("/v1/reveal-entry/?", handleRevealEntry)
 	server.Post("/v1/factoid-submit/?", handleFactoidSubmit)
 	server.Get("/v1/directory-block-head/?", handleDirectoryBlockHead)
+	server.Get("/v1/get-raw-data/([^/]+)", handleGetRaw)
 	server.Get("/v1/directory-block-by-keymr/([^/]+)", handleDirectoryBlock)
 	server.Get("/v1/entry-block-by-keymr/([^/]+)", handleEntryBlock)
 	server.Get("/v1/entry-by-hash/([^/]+)", handleEntry)
@@ -98,14 +99,15 @@ func handleCommitChain(ctx *web.Context) {
 		ctx.Write([]byte(err.Error()))
 		return
 	} else {
-        if err := commit.UnmarshalBinary(p); err != nil {
-            wsLog.Error(err)
+		_, err := commit.UnmarshalBinaryData(p)
+		if err != nil {
+			wsLog.Error(err)
 			ctx.WriteHeader(httpBad)
 			ctx.Write([]byte(err.Error()))
-            return
-        }
-    }
-    
+			return
+		}
+	}
+
 	if err := factomapi.CommitChain(commit); err != nil {
 		wsLog.Error(err)
 		ctx.WriteHeader(httpBad)
@@ -113,7 +115,7 @@ func handleCommitChain(ctx *web.Context) {
 		return
 	}
 
-//	ctx.WriteHeader(httpOK)
+	//	ctx.WriteHeader(httpOK)
 }
 
 func handleRevealChain(ctx *web.Context) {
@@ -147,7 +149,8 @@ func handleCommitEntry(ctx *web.Context) {
 		ctx.Write([]byte(err.Error()))
 		return
 	} else {
-		if err := commit.UnmarshalBinary(p); err != nil {
+		_, err := commit.UnmarshalBinaryData(p)
+		if err != nil {
 			wsLog.Error(err)
 			ctx.WriteHeader(httpBad)
 			ctx.Write([]byte(err.Error()))
@@ -190,7 +193,8 @@ func handleRevealEntry(ctx *web.Context) {
 		ctx.Write([]byte(err.Error()))
 		return
 	} else {
-		if err := entry.UnmarshalBinary(p); err != nil {
+		_, err := entry.UnmarshalBinaryData(p)
+		if err != nil {
 			wsLog.Error(err)
 			ctx.WriteHeader(httpBad)
 			ctx.Write([]byte(err.Error()))
@@ -205,7 +209,7 @@ func handleRevealEntry(ctx *web.Context) {
 		return
 	}
 
-//	ctx.WriteHeader(httpOK)
+	//	ctx.WriteHeader(httpOK)
 }
 
 func handleDirectoryBlockHead(ctx *web.Context) {
@@ -277,7 +281,7 @@ func handleDirectoryBlock(ctx *web.Context, keymr string) {
 		ctx.Write(p)
 	}
 
-//	ctx.WriteHeader(httpOK)
+	//	ctx.WriteHeader(httpOK)
 }
 
 func handleEntryBlock(ctx *web.Context, keymr string) {
@@ -386,37 +390,37 @@ func handleChainHead(ctx *web.Context, chainid string) {
 }
 
 type ecbal struct {
-    Balance uint32
+	Balance uint32
 }
 
 func handleEntryCreditBalance(ctx *web.Context, eckey string) {
-    type ecbal struct {
-        Response string
-        Success  bool
-    }
-    var b ecbal
-    adr, err := hex.DecodeString(eckey)
-    if err == nil && len(adr) != common.HASH_LENGTH {
-        b = ecbal{Response: "Invalid Address", Success: false,}
-    }
-    if err == nil {
-        if bal, err := factomapi.ECBalance(eckey); err != nil {
-            wsLog.Error(err)
-            return
-        } else {
-            str := fmt.Sprintf("%d",bal)
-            b = ecbal{Response: str, Success: true,}
-        }
-    } else {
-        b = ecbal{Response: err.Error(), Success: false,}
-    }
-    
-    if p, err := json.Marshal(b); err != nil {
-        wsLog.Error(err)
-        return
-    } else {
-        ctx.Write(p)
-    }
+	type ecbal struct {
+		Response string
+		Success  bool
+	}
+	var b ecbal
+	adr, err := hex.DecodeString(eckey)
+	if err == nil && len(adr) != common.HASH_LENGTH {
+		b = ecbal{Response: "Invalid Address", Success: false}
+	}
+	if err == nil {
+		if bal, err := factomapi.ECBalance(eckey); err != nil {
+			wsLog.Error(err)
+			return
+		} else {
+			str := fmt.Sprintf("%d", bal)
+			b = ecbal{Response: str, Success: true}
+		}
+	} else {
+		b = ecbal{Response: err.Error(), Success: false}
+	}
+
+	if p, err := json.Marshal(b); err != nil {
+		wsLog.Error(err)
+		return
+	} else {
+		ctx.Write(p)
+	}
 
 }
 
@@ -427,13 +431,13 @@ func handleFactoidBalance(ctx *web.Context, eckey string) {
 	}
 	var b fbal
 	adr, err := hex.DecodeString(eckey)
-    if err == nil && len(adr) != common.HASH_LENGTH {
-        b = fbal{Response: "Invalid Address", Success: false,}
-    }
+	if err == nil && len(adr) != common.HASH_LENGTH {
+		b = fbal{Response: "Invalid Address", Success: false}
+	}
 	if err == nil {
 		v := int64(common.FactoidState.GetBalance(fct.NewAddress(adr)))
-        str := fmt.Sprintf("%d",v)
-		b = fbal{Response: str, Success: true,}
+		str := fmt.Sprintf("%d", v)
+		b = fbal{Response: str, Success: true}
 	} else {
 		b = fbal{Response: err.Error(), Success: false}
 	}
@@ -487,14 +491,14 @@ func handleFactoidSubmit(ctx *web.Context) {
 	}
 
 	msg.Transaction = new(fct.Transaction)
-	err = msg.Transaction.UnmarshalBinary(p)
+	_, err = msg.Transaction.UnmarshalBinaryData(p)
 	if err != nil {
 		returnMsg(ctx, err.Error(), false)
 		return
 	}
 
 	err = common.FactoidState.Validate(msg.Transaction)
-	if err != nil  {
+	if err != nil {
 		returnMsg(ctx, err.Error(), false)
 		return
 	}
@@ -516,4 +520,58 @@ func handleGetFee(ctx *web.Context) {
 	} else {
 		ctx.Write(p)
 	}
+}
+
+func handleGetRaw(ctx *web.Context, hashkey string) {
+	type rawData struct {
+		Data string
+	}
+	//TODO: var block common.BinaryMarshallable
+	d := new(rawData)
+
+	h, err := common.HexToHash(hashkey)
+	if err != nil {
+		wsLog.Error(err)
+		ctx.WriteHeader(httpBad)
+		ctx.Write([]byte(err.Error()))
+		return
+	}
+
+	// try to find the block data in db and return the first one found
+	if block, _ := dbase.FetchFBlockByHash(h); block != nil {
+		bytes, _ := block.MarshalBinary()
+		d.Data = hex.EncodeToString(bytes[:])
+	} else if block, _ := dbase.FetchDBlockByHash(h); block != nil {
+		bytes, _ := block.MarshalBinary()
+		d.Data = hex.EncodeToString(bytes[:])
+	} else if block, _ := dbase.FetchABlockByHash(h); block != nil {
+		bytes, _ := block.MarshalBinary()
+		d.Data = hex.EncodeToString(bytes[:])
+	} else if block, _ := dbase.FetchDBlockByMR(h); block != nil {
+		bytes, _ := block.MarshalBinary()
+		d.Data = hex.EncodeToString(bytes[:])
+	} else if block, _ := dbase.FetchEBlockByHash(h); block != nil {
+		bytes, _ := block.MarshalBinary()
+		d.Data = hex.EncodeToString(bytes[:])
+	} else if block, _ := dbase.FetchEBlockByMR(h); block != nil {
+		bytes, _ := block.MarshalBinary()
+		d.Data = hex.EncodeToString(bytes[:])
+	} else if block, _ := dbase.FetchECBlockByHash(h); block != nil {
+		bytes, _ := block.MarshalBinary()
+		d.Data = hex.EncodeToString(bytes[:])
+	} else if block, _ := dbase.FetchEntryByHash(h); block != nil {
+		bytes, _ := block.MarshalBinary()
+		d.Data = hex.EncodeToString(bytes[:])
+	}
+
+	if p, err := json.Marshal(d); err != nil {
+		wsLog.Error(err)
+		ctx.WriteHeader(httpBad)
+		ctx.Write([]byte(err.Error()))
+		return
+	} else {
+		ctx.Write(p)
+	}
+
+	//	ctx.WriteHeader(httpOK)
 }

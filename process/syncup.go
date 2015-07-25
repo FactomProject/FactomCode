@@ -89,7 +89,6 @@ func procesECBlock(msg *wire.MsgECBlock) error {
 	//Add it to mem pool before saving it in db
 	fMemPool.addBlockMsg(msg, msg.ECBlock.Header.Hash().String())
 
-	// for debugging??
 	procLog.Debug("SyncUp: MsgCBlock DBHeight=", msg.ECBlock.Header.DBHeight)
 
 	return nil
@@ -111,7 +110,6 @@ func processEBlock(msg *wire.MsgEBlock) error {
 	//Add it to mem pool before saving it in db
 	fMemPool.addBlockMsg(msg, msg.EBlk.KeyMR().String()) // store it in mem pool with MR as the key
 
-	// for debugging??
 	procLog.Debug("SyncUp: MsgEBlock DBHeight=", msg.EBlk.Header.DBHeight)
 
 	return nil
@@ -169,8 +167,7 @@ func validateAndStoreBlocks(fMemPool *ftmMemPool, db database.Db, dchain *common
 		} else {
 			time.Sleep(time.Duration(sleeptime * 1000000)) // Nanoseconds for duration
 
-			//send an internal msg to sync up with peers
-			// ??
+			//TODO: send an internal msg to sync up with peers
 		}
 
 	}
@@ -331,20 +328,20 @@ func deleteBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool) err
 	for _, dbEntry := range b.DBEntries {
 		switch dbEntry.ChainID.String() {
 		case ecchain.ChainID.String():
-			delete(fMemPool.blockpool, dbEntry.KeyMR.String())
+			fMemPool.deleteBlockMsg(dbEntry.KeyMR.String())
 		case achain.ChainID.String():
-			delete(fMemPool.blockpool, dbEntry.KeyMR.String())
+			fMemPool.deleteBlockMsg(dbEntry.KeyMR.String())
 		case fchain.ChainID.String():
-			delete(fMemPool.blockpool, dbEntry.KeyMR.String())
+			fMemPool.deleteBlockMsg(dbEntry.KeyMR.String())
 		default:
 			eBlkMsg, _ := fMemPool.blockpool[dbEntry.KeyMR.String()].(*wire.MsgEBlock)
 			for _, ebEntry := range eBlkMsg.EBlk.Body.EBEntries {
-				delete(fMemPool.blockpool, ebEntry.String())
+				fMemPool.deleteBlockMsg(ebEntry.String())				
 			}
-			delete(fMemPool.blockpool, dbEntry.KeyMR.String())
+			fMemPool.deleteBlockMsg(dbEntry.KeyMR.String())
 		}
 	}
-	delete(fMemPool.blockpool, strconv.Itoa(int(b.Header.DBHeight)))
+	fMemPool.deleteBlockMsg(strconv.Itoa(int(b.Header.DBHeight)))	
 
 	return nil
 }

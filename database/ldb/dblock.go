@@ -179,10 +179,7 @@ func (db *LevelDb) FetchHeightRange(startHeight, endHeight int64) (rshalist []wi
 // part of the database.Db interface implementation.
 func (db *LevelDb) FetchBlockHeightBySha(sha *wire.ShaHash) (int64, error) {
 
-	dblk, err := db.FetchDBlockByHash(sha.ToFactomHash())
-	if err != nil {
-		return 0, err
-	}
+	dblk, _ := db.FetchDBlockByHash(sha.ToFactomHash())
 
 	var height int64 = -1
 	if dblk != nil {
@@ -230,7 +227,10 @@ func (db *LevelDb) FetchDirBlockInfoByHash(dbHash *common.Hash) (dirBlockInfo *c
 
 	if data != nil {
 		dirBlockInfo = new(common.DirBlockInfo)
-		dirBlockInfo.UnmarshalBinary(data)
+		_, err := dirBlockInfo.UnmarshalBinaryData(data)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return dirBlockInfo, nil
@@ -243,17 +243,15 @@ func (db *LevelDb) FetchDBlockByHash(dBlockHash *common.Hash) (*common.Directory
 
 	var key []byte = []byte{byte(TBL_DB)}
 	key = append(key, dBlockHash.Bytes()...)
-	data, err := db.lDb.Get(key, db.ro)
-	if err != nil {
-		return nil, err
-	}
+	data, _ := db.lDb.Get(key, db.ro)
 
 	dBlock := common.NewDBlock()
 	if data == nil {
 		return nil, errors.New("DBlock not found for Hash: " + dBlockHash.String())
 	} else {
-		if err := dBlock.UnmarshalBinary(data); err != nil {
-			return dBlock, err
+		_, err := dBlock.UnmarshalBinaryData(data)
+		if err != nil {
+			return nil, err
 		}
 	}
 
@@ -294,8 +292,9 @@ func (db *LevelDb) FetchDBHashByHeight(dBlockHeight uint32) (*common.Hash, error
 	}
 
 	dBlockHash := common.NewHash()
-	if err := dBlockHash.UnmarshalBinary(data); err != nil {
-		return dBlockHash, err
+	_, err = dBlockHash.UnmarshalBinaryData(data)
+	if err != nil {
+		return nil, err
 	}
 
 	return dBlockHash, nil
@@ -314,8 +313,9 @@ func (db *LevelDb) FetchDBHashByMR(dBMR *common.Hash) (*common.Hash, error) {
 	}
 
 	dBlockHash := common.NewHash()
-	if err := dBlockHash.UnmarshalBinary(data); err != nil {
-		return dBlockHash, err
+	_, err = dBlockHash.UnmarshalBinaryData(data)
+	if err != nil {
+		return nil, err
 	}
 
 	return dBlockHash, nil
@@ -353,8 +353,9 @@ func (db *LevelDb) FetchHeadMRByChainID(chainID *common.Hash) (blkMR *common.Has
 	}
 
 	blkMR = common.NewHash()
-	if err = blkMR.UnmarshalBinary(data); err != nil {
-		return blkMR, err
+	_, err = blkMR.UnmarshalBinaryData(data)
+	if err != nil {
+		return nil, err
 	}
 
 	return blkMR, nil
@@ -374,8 +375,12 @@ func (db *LevelDb) FetchAllDBlocks() (dBlocks []common.DirectoryBlock, err error
 
 	for iter.Next() {
 		var dBlock common.DirectoryBlock
-		dBlock.UnmarshalBinary(iter.Value())
-		dBlock.DBHash = common.Sha(iter.Value()) //to be optimized??
+		_, err := dBlock.UnmarshalBinaryData(iter.Value())
+		if err != nil {
+			return nil, err
+		}
+		//TODO: to be optimized??
+		dBlock.DBHash = common.Sha(iter.Value())
 
 		dBlockSlice = append(dBlockSlice, dBlock)
 
@@ -400,7 +405,10 @@ func (db *LevelDb) FetchAllDirBlockInfo() (dirBlockInfoMap map[string]*common.Di
 
 	for iter.Next() {
 		dBInfo := new(common.DirBlockInfo)
-		dBInfo.UnmarshalBinary(iter.Value())
+		_, err := dBInfo.UnmarshalBinaryData(iter.Value())
+		if err != nil {
+			return nil, err
+		}
 		dirBlockInfoMap[dBInfo.DBMerkleRoot.String()] = dBInfo
 	}
 	iter.Release()
@@ -425,7 +433,11 @@ func (db *LevelDb) FetchAllUnconfirmedDirBlockInfo() (dirBlockInfoMap map[string
 
 		// The last byte stores the confirmation flag
 		if iter.Value()[len(iter.Value())-1] == 0 {
-			dBInfo.UnmarshalBinary(iter.Value())
+			_, err := dBInfo.UnmarshalBinaryData(iter.Value())
+			if err != nil {
+				//TODO: FIXME: return nil, err , rather than an incomplete map; fix the underlying problem
+				return dirBlockInfoMap, err
+			}
 			dirBlockInfoMap[dBInfo.DBMerkleRoot.String()] = dBInfo
 		}
 	}
