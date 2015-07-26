@@ -310,7 +310,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
                 "status",                                                   // Category 
                 "Progress",                                                 // Title
                 fmt.Sprintf("End of Minute %v\n",msgEom.EOM_Type)+          // Message
-                fmt.Sprintf("Directory Block Height %v",dchain.NextDBHeight, 
+                fmt.Sprintf("Directory Block Height %v",dchain.NextDBHeight), 
                 0)
         }
 
