@@ -306,10 +306,11 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 			}
 			
             cp.CP.AddUpdate(
-                "MinMark",                                          // tag
-                "status",                                             // Category 
-                fmt.Sprintf("End of Minute %v",msgEom.EOM_Type),    // Title
-                "",                                                 // Message
+                "MinMark",                                                  // tag
+                "status",                                                   // Category 
+                "Progress",                                                 // Title
+                fmt.Sprintf("End of Minute %v\n",msgEom.EOM_Type)+          // Message
+                fmt.Sprintf("Directory Block Height %v",dchain.NextDBHeight, 
                 0)
         }
 
@@ -327,7 +328,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		} else {
 			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
 		}
-        
+            
 	case wire.CmdFBlock:
         
 		if nodeMode == common.SERVER_NODE {
