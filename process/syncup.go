@@ -6,8 +6,9 @@ package process
 
 import (
 	"errors"
-	"github.com/FactomProject/FactomCode/common"
-	"github.com/FactomProject/FactomCode/database"
+    cp "github.com/FactomProject/FactomCode/controlpanel"
+    "github.com/FactomProject/FactomCode/common"
+    "github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/davecgh/go-spew/spew"
 	"strconv"
@@ -25,7 +26,13 @@ func processDirBlock(msg *wire.MsgDirBlock) error {
 
 	blk, _ := db.FetchDBlockByHeight(msg.DBlk.Header.DBHeight)
 	if blk != nil {
-		procLog.Info("DBlock already existing for height:" + string(msg.DBlk.Header.DBHeight))
+		procLog.Info("DBlock already exists for height:" + string(msg.DBlk.Header.DBHeight))
+        cp.CP.AddUpdate(
+            "DBOverlap",                                                 // tag
+            "warning",                                                   // Category
+            "Directory Block Overlap",                                   // Title
+            "DBlock already exists for height:"+ string(msg.DBlk.Header.DBHeight), // Message
+             0)                                                           // Expire
 		return nil
 	}
 
@@ -36,7 +43,13 @@ func processDirBlock(msg *wire.MsgDirBlock) error {
 	fMemPool.addBlockMsg(msg, strconv.Itoa(int(msg.DBlk.Header.DBHeight))) // store in mempool with the height as the key
 
 	procLog.Debug("SyncUp: MsgDirBlock DBHeight=", msg.DBlk.Header.DBHeight)
-
+    cp.CP.AddUpdate(
+        "DBSyncUp",                                                 // tag
+        "Status",                                                   // Category
+        "SyncUp:",                                                  // Title
+        "MsgDirBlock DBHeigth=:"+ string(msg.DBlk.Header.DBHeight), // Message
+        0)                                                          // Expire
+    
 	return nil
 }
 

@@ -307,7 +307,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 			
             cp.CP.AddUpdate(
                 "MinMark",                                          // tag
-                "info",                                             // Category 
+                "status",                                             // Category 
                 fmt.Sprintf("End of Minute %v",msgEom.EOM_Type),    // Title
                 "",                                                 // Message
                 0)
