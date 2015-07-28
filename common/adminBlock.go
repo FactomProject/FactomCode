@@ -9,10 +9,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"log"
-	"runtime"
-	"runtime/debug"
-	"strconv"
 	"sync"
 )
 
@@ -121,16 +117,6 @@ func (b *AdminBlock) MarshalledSize() uint64 {
 	}
 
 	return size
-}
-
-func Debugf(format string, args ...interface{}) {
-	debug.PrintStack()
-	_, file, line, ok := runtime.Caller(1)
-	if !ok {
-		file = "???"
-		line = 0
-	}
-	log.Printf(file+":"+strconv.Itoa(line)+" - "+format, args...)
 }
 
 func (b *AdminBlock) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
