@@ -71,7 +71,7 @@ type DirBlockInfo struct {
 	BTCTxHash *Hash // use string or *btcwire.ShaHash ???
 
 	// BTCTxOffset is the index of the TX in this BTC block
-	BTCTxOffset int
+	BTCTxOffset int32
 
 	// BTCBlockHeight is the height of the block where this TX is stored in BTC
 	BTCBlockHeight int32
@@ -632,7 +632,7 @@ func (b *DirBlockInfo) UnmarshalBinaryData(data []byte) (newData []byte, err err
 	b.BTCTxHash = new(Hash)
 	newData, err = b.BTCTxHash.UnmarshalBinaryData(newData)
 
-	b.BTCTxOffset = int(binary.BigEndian.Uint32(newData[:4]))
+	b.BTCTxOffset = int32(binary.BigEndian.Uint32(newData[:4]))
 	newData = newData[4:]
 
 	b.BTCBlockHeight = int32(binary.BigEndian.Uint32(newData[:4]))
