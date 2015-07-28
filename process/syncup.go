@@ -82,7 +82,7 @@ func processABlock(msg *wire.MsgABlock) error {
 	}
 
 	//Add it to mem pool before saving it in db
-	abHash, err := msg.ABlk.ABHash()
+	abHash, err := msg.ABlk.PartialHash()
 	if err != nil {
 		return err
 	}

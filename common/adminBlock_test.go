@@ -19,15 +19,23 @@ func TestAdminBlockPreviousHash(t *testing.T) {
 		t.Error(err)
 	}
 
-	abHash, err := block.ABHash()
+	fullHash, err := block.FullHash()
 	if err != nil {
 		t.Error(err)
 	}
 
-	t.Logf("Current hash - %s", abHash.String())
+	partialHash, err := block.PartialHash()
+	if err != nil {
+		t.Error(err)
+	}
 
-	if abHash.String() != "0a9aa1efbe7d0e8d9c1d460d1c78e3e7b50f984e65a3f3ee7b73100a94189dbf" {
-		t.Error("Invalid ABHash")
+	t.Logf("Current hashes - %s, %s", fullHash.String(), partialHash.String())
+
+	if fullHash.String() != "0a9aa1efbe7d0e8d9c1d460d1c78e3e7b50f984e65a3f3ee7b73100a94189dbf" {
+		t.Error("Invalid fullHash")
+	}
+	if partialHash.String() != "4fb409d5369fad6aa7768dc620f11cd219f9b885956b631ad050962ca934052e" {
+		t.Error("Invalid partialHash")
 	}
 
 	aChain := new(AdminChain)
@@ -39,12 +47,17 @@ func TestAdminBlockPreviousHash(t *testing.T) {
 		t.Error(err)
 	}
 
-	abHash2, err := block2.ABHash()
+	fullHash2, err := block2.FullHash()
 	if err != nil {
 		t.Error(err)
 	}
 
-	t.Logf("Second hash - %s", abHash2.String())
+	partialHash2, err := block2.PartialHash()
+	if err != nil {
+		t.Error(err)
+	}
+
+	t.Logf("Second hashes - %s, %s", fullHash2.String(), partialHash2.String())
 	t.Logf("Previous hash - %s", block2.Header.PrevFullHash.String())
 
 	marshalled, err := block2.MarshalBinary()
@@ -53,7 +66,7 @@ func TestAdminBlockPreviousHash(t *testing.T) {
 	}
 	t.Logf("Marshalled - %X", marshalled)
 
-	if block2.Header.PrevFullHash.String() != abHash.String() {
+	if block2.Header.PrevFullHash.String() != fullHash.String() {
 		t.Error("PrevFullHash does not match ABHash")
 	}
 }

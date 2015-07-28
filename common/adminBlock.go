@@ -34,17 +34,28 @@ type AdminBlock struct {
 	ABEntries []ABEntry //Interface
 
 	//Not Marshalized
-	abHash *Hash
+	fullHash    *Hash //SHA512Half
+	partialHash *Hash //SHA256
 }
 
-func (ab *AdminBlock) ABHash() (*Hash, error) {
-	if ab.abHash == nil {
-		err := ab.buildABHash()
+func (ab *AdminBlock) FullHash() (*Hash, error) {
+	if ab.fullHash == nil {
+		err := ab.buildFullBHash()
 		if err != nil {
 			return nil, err
 		}
 	}
-	return ab.abHash, nil
+	return ab.fullHash, nil
+}
+
+func (ab *AdminBlock) PartialHash() (*Hash, error) {
+	if ab.partialHash == nil {
+		err := ab.buildPartialHash()
+		if err != nil {
+			return nil, err
+		}
+	}
+	return ab.partialHash, nil
 }
 
 // Create an empty Admin Block
@@ -63,7 +74,7 @@ func CreateAdminBlock(chain *AdminChain, prev *AdminBlock, cap uint) (b *AdminBl
 	if prev == nil {
 		b.Header.PrevFullHash = NewHash()
 	} else {
-		b.Header.PrevFullHash, err = prev.ABHash()
+		b.Header.PrevFullHash, err = prev.FullHash()
 		if err != nil {
 			return
 		}
@@ -75,14 +86,25 @@ func CreateAdminBlock(chain *AdminChain, prev *AdminBlock, cap uint) (b *AdminBl
 	return b, err
 }
 
-// Build the sha hash for the admin block
-func (b *AdminBlock) buildABHash() (err error) {
+// Build the SHA512Half hash for the admin block
+func (b *AdminBlock) buildFullBHash() (err error) {
 	var binaryAB []byte
 	binaryAB, err = b.MarshalBinary()
 	if err != nil {
 		return
 	}
-	b.abHash = Sha512Half(binaryAB)
+	b.fullHash = Sha512Half(binaryAB)
+	return
+}
+
+// Build the SHA256 hash for the admin block
+func (b *AdminBlock) buildPartialHash() (err error) {
+	var binaryAB []byte
+	binaryAB, err = b.MarshalBinary()
+	if err != nil {
+		return
+	}
+	b.partialHash = Sha(binaryAB)
 	return
 }
 

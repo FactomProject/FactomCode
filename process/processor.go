@@ -977,7 +977,11 @@ func newAdminBlock(chain *common.AdminChain) *common.AdminBlock {
 
 	block.Header.MessageCount = uint32(len(block.ABEntries))
 	block.Header.BodySize = uint32(block.MarshalledSize() - block.Header.MarshalledSize())
-	_, err := block.ABHash()
+	_, err := block.PartialHash()
+	if err != nil {
+		panic(err)
+	}
+	_, err = block.FullHash()
 	if err != nil {
 		panic(err)
 	}

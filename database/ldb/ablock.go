@@ -24,7 +24,7 @@ func (db *LevelDb) ProcessABlockBatch(block *common.AdminBlock) error {
 			return err
 		}
 
-		abHash, err := block.ABHash()
+		abHash, err := block.PartialHash()
 		if err != nil {
 			return err
 		}
@@ -95,7 +95,7 @@ func (db *LevelDb) FetchAllABlocks() (aBlocks []common.AdminBlock, err error) {
 			return nil, err
 		}
 		//TODO: to be optimized??
-		_, err = aBlock.ABHash()
+		_, err = aBlock.PartialHash()
 		if err != nil {
 			return nil, err
 		}

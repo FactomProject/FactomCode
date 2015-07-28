@@ -136,7 +136,7 @@ func NewDBEntryFromABlock(b *AdminBlock) *DBEntry {
 	e := &DBEntry{}
 
 	e.ChainID = b.Header.AdminChainID
-	e.KeyMR, _ = b.ABHash()
+	e.KeyMR, _ = b.PartialHash()
 
 	return e
 }
@@ -385,7 +385,7 @@ func (c *DChain) AddABlockToDBEntry(b *AdminBlock) (err error) {
 
 	dbEntry := &DBEntry{}
 	dbEntry.ChainID = b.Header.AdminChainID
-	dbEntry.KeyMR, err = b.ABHash()
+	dbEntry.KeyMR, err = b.PartialHash()
 	if err != nil {
 		return
 	}
