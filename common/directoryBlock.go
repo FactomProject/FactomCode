@@ -136,7 +136,7 @@ func NewDBEntryFromABlock(b *AdminBlock) *DBEntry {
 	e := &DBEntry{}
 
 	e.ChainID = b.Header.AdminChainID
-	e.KeyMR = b.ABHash
+	e.KeyMR, _ = b.ABHash()
 
 	return e
 }
@@ -385,7 +385,10 @@ func (c *DChain) AddABlockToDBEntry(b *AdminBlock) (err error) {
 
 	dbEntry := &DBEntry{}
 	dbEntry.ChainID = b.Header.AdminChainID
-	dbEntry.KeyMR = b.ABHash
+	dbEntry.KeyMR, err = b.ABHash()
+	if err != nil {
+		return
+	}
 
 	if len(c.NextBlock.DBEntries) < 3 {
 		panic("2 DBEntries not initialized properly for block: " + string(c.NextDBHeight))

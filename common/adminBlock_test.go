@@ -9,6 +9,55 @@ import (
 	. "github.com/FactomProject/FactomCode/common"
 )
 
+func TestAdminBlockPreviousHash(t *testing.T) {
+	fmt.Printf("\n---\nTestAdminBlockMarshalUnmarshal\n---\n")
+
+	block := new(AdminBlock)
+	data, _ := hex.DecodeString("000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
+	_, err := block.UnmarshalBinaryData(data)
+	if err != nil {
+		t.Error(err)
+	}
+
+	abHash, err := block.ABHash()
+	if err != nil {
+		t.Error(err)
+	}
+
+	t.Logf("Current hash - %s", abHash.String())
+
+	if abHash.String() != "0a9aa1efbe7d0e8d9c1d460d1c78e3e7b50f984e65a3f3ee7b73100a94189dbf" {
+		t.Error("Invalid ABHash")
+	}
+
+	aChain := new(AdminChain)
+	aChain.NextBlockHeight = 1
+	aChain.ChainID = block.Header.AdminChainID
+
+	block2, err := CreateAdminBlock(aChain, block, 5)
+	if err != nil {
+		t.Error(err)
+	}
+
+	abHash2, err := block2.ABHash()
+	if err != nil {
+		t.Error(err)
+	}
+
+	t.Logf("Second hash - %s", abHash2.String())
+	t.Logf("Previous hash - %s", block2.Header.PrevFullHash.String())
+
+	marshalled, err := block2.MarshalBinary()
+	if err != nil {
+		t.Error(err)
+	}
+	t.Logf("Marshalled - %X", marshalled)
+
+	if block2.Header.PrevFullHash.String() != abHash.String() {
+		t.Error("PrevFullHash does not match ABHash")
+	}
+}
+
 func TestAdminBlockMarshalUnmarshal(t *testing.T) {
 	fmt.Printf("\n---\nTestAdminBlockMarshalUnmarshal\n---\n")
 

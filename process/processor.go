@@ -15,10 +15,10 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-    cp "github.com/FactomProject/FactomCode/controlpanel"
-    "github.com/FactomProject/FactomCode/anchor"
-    "github.com/FactomProject/FactomCode/common"
+	"github.com/FactomProject/FactomCode/anchor"
+	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/consensus"
+	cp "github.com/FactomProject/FactomCode/controlpanel"
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd/wire"
@@ -26,7 +26,6 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"sort"
 	"strconv"
-
 )
 
 var _ = (*block.FBlock)(nil)
@@ -304,21 +303,21 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 
 				plMgr.AddMyProcessListItem(msgEom, nil, msgEom.EOM_Type)
 			}
-			
-            cp.CP.AddUpdate(
-                "MinMark",                                                  // tag
-                "status",                                                   // Category 
-                "Progress",                                                 // Title
-                fmt.Sprintf("End of Minute %v\n",msgEom.EOM_Type)+          // Message
-                fmt.Sprintf("Directory Block Height %v",dchain.NextDBHeight), 
-                0)
-        }
+
+			cp.CP.AddUpdate(
+				"MinMark",  // tag
+				"status",   // Category
+				"Progress", // Title
+				fmt.Sprintf("End of Minute %v\n", msgEom.EOM_Type)+ // Message
+					fmt.Sprintf("Directory Block Height %v", dchain.NextDBHeight),
+				0)
+		}
 
 	case wire.CmdDirBlock:
 		if nodeMode == common.SERVER_NODE {
 			break
 		}
-		
+
 		dirBlock, ok := msg.(*wire.MsgDirBlock)
 		if ok {
 			err := processDirBlock(dirBlock)
@@ -328,9 +327,9 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		} else {
 			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
 		}
-            
+
 	case wire.CmdFBlock:
-        
+
 		if nodeMode == common.SERVER_NODE {
 			break
 		}
@@ -978,12 +977,18 @@ func newAdminBlock(chain *common.AdminChain) *common.AdminBlock {
 
 	block.Header.MessageCount = uint32(len(block.ABEntries))
 	block.Header.BodySize = uint32(block.MarshalledSize() - block.Header.MarshalledSize())
-	block.BuildABHash()
+	_, err := block.ABHash()
+	if err != nil {
+		panic(err)
+	}
 
 	// Create the block and add a new block for new coming entries
 	chain.BlockMutex.Lock()
 	chain.NextBlockHeight++
-	chain.NextBlock, _ = common.CreateAdminBlock(chain, block, 10)
+	chain.NextBlock, err = common.CreateAdminBlock(chain, block, 10)
+	if err != nil {
+		panic(err)
+	}
 	chain.BlockMutex.Unlock()
 
 	//Store the block in db

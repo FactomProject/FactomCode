@@ -24,13 +24,14 @@ func (db *LevelDb) ProcessABlockBatch(block *common.AdminBlock) error {
 			return err
 		}
 
-		if block.ABHash == nil {
-			block.ABHash = common.Sha(binaryBlock)
+		abHash, err := block.ABHash()
+		if err != nil {
+			return err
 		}
 
 		// Insert the binary factom block
 		var key []byte = []byte{byte(TBL_AB)}
-		key = append(key, block.ABHash.Bytes()...)
+		key = append(key, abHash.Bytes()...)
 		db.lbatch.Put(key, binaryBlock)
 
 		// Insert the admin block number cross reference
@@ -39,12 +40,12 @@ func (db *LevelDb) ProcessABlockBatch(block *common.AdminBlock) error {
 		bytes := make([]byte, 4)
 		binary.BigEndian.PutUint32(bytes, block.Header.DBHeight)
 		key = append(key, bytes...)
-		db.lbatch.Put(key, block.ABHash.Bytes())
+		db.lbatch.Put(key, abHash.Bytes())
 
 		// Update the chain head reference
 		key = []byte{byte(TBL_CHAIN_HEAD)}
 		key = append(key, common.ADMIN_CHAINID...)
-		db.lbatch.Put(key, block.ABHash.Bytes())
+		db.lbatch.Put(key, abHash.Bytes())
 
 		err = db.lDb.Write(db.lbatch, db.wo)
 		if err != nil {
@@ -94,7 +95,10 @@ func (db *LevelDb) FetchAllABlocks() (aBlocks []common.AdminBlock, err error) {
 			return nil, err
 		}
 		//TODO: to be optimized??
-		aBlock.ABHash = common.Sha(iter.Value())
+		_, err = aBlock.ABHash()
+		if err != nil {
+			return nil, err
+		}
 
 		aBlockSlice = append(aBlockSlice, aBlock)
 

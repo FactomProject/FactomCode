@@ -34,7 +34,17 @@ type AdminBlock struct {
 	ABEntries []ABEntry //Interface
 
 	//Not Marshalized
-	ABHash *Hash
+	abHash *Hash
+}
+
+func (ab *AdminBlock) ABHash() (*Hash, error) {
+	if ab.abHash == nil {
+		err := ab.buildABHash()
+		if err != nil {
+			return nil, err
+		}
+	}
+	return ab.abHash, nil
 }
 
 // Create an empty Admin Block
@@ -53,11 +63,10 @@ func CreateAdminBlock(chain *AdminChain, prev *AdminBlock, cap uint) (b *AdminBl
 	if prev == nil {
 		b.Header.PrevFullHash = NewHash()
 	} else {
-
-		if prev.ABHash == nil {
-			prev.BuildABHash()
+		b.Header.PrevFullHash, err = prev.ABHash()
+		if err != nil {
+			return
 		}
-		b.Header.PrevFullHash = prev.ABHash
 	}
 
 	b.Header.DBHeight = chain.NextBlockHeight
@@ -67,11 +76,13 @@ func CreateAdminBlock(chain *AdminChain, prev *AdminBlock, cap uint) (b *AdminBl
 }
 
 // Build the sha hash for the admin block
-func (b *AdminBlock) BuildABHash() (err error) {
-
-	binaryAB, _ := b.MarshalBinary()
-	b.ABHash = Sha512Half(binaryAB)
-
+func (b *AdminBlock) buildABHash() (err error) {
+	var binaryAB []byte
+	binaryAB, err = b.MarshalBinary()
+	if err != nil {
+		return
+	}
+	b.abHash = Sha512Half(binaryAB)
 	return
 }
 
