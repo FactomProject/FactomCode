@@ -189,6 +189,18 @@ func (e *ECBlock) unmarshalBodyBinaryData(data []byte) (newData []byte, err erro
 		}
 		switch id {
 		case ECIDServerIndexNumber:
+			s := NewServerIndexNumber()
+			if buf.Len() < ServerIndexNumberSize {
+				err = io.EOF
+				newData = buf.Bytes()
+				return
+			}
+			_, err = s.UnmarshalBinaryData(buf.Next(ServerIndexNumberSize))
+			if err != nil {
+				newData = buf.Bytes()
+				return
+			}
+			e.Body.Entries = append(e.Body.Entries, s)
 		case ECIDMinuteNumber:
 			m := NewMinuteNumber()
 			if buf.Len() < MinuteNumberSize {
