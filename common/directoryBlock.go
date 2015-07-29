@@ -127,7 +127,7 @@ func NewDBEntryFromECBlock(cb *ECBlock) *DBEntry {
 	e := &DBEntry{}
 
 	e.ChainID = cb.Header.ECChainID
-	e.KeyMR = cb.Header.Hash()
+	e.KeyMR = cb.HeaderHash()
 
 	return e
 }

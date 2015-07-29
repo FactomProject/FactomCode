@@ -25,13 +25,13 @@ func (db *LevelDb) ProcessECBlockBatch(block *common.ECBlock) error {
 
 		// Insert the binary factom block
 		var key []byte = []byte{byte(TBL_CB)}
-		key = append(key, block.Header.Hash().Bytes()...)
+		key = append(key, block.HeaderHash().Bytes()...)
 		db.lbatch.Put(key, binaryBlock)
 
 		// Update the chain head reference
 		key = []byte{byte(TBL_CHAIN_HEAD)}
 		key = append(key, common.EC_CHAINID...)
-		db.lbatch.Put(key, block.Header.Hash().Bytes())
+		db.lbatch.Put(key, block.HeaderHash().Bytes())
 
 		err = db.lDb.Write(db.lbatch, db.wo)
 		if err != nil {

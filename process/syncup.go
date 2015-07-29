@@ -103,7 +103,7 @@ func procesECBlock(msg *wire.MsgECBlock) error {
 	}
 
 	//Add it to mem pool before saving it in db
-	fMemPool.addBlockMsg(msg, msg.ECBlock.Header.Hash().String())
+	fMemPool.addBlockMsg(msg, msg.ECBlock.HeaderHash().String())
 
 	procLog.Debug("SyncUp: MsgCBlock DBHeight=", msg.ECBlock.Header.DBHeight)
 
