@@ -29,6 +29,8 @@ type AdminChain struct {
 // For more details, please go to:
 // https://github.com/FactomProject/FactomDocs/blob/master/factomDataStructureDetails.md#administrative-block
 type AdminBlock struct {
+	Printable
+
 	//Marshalized
 	Header    *ABlockHeader
 	ABEntries []ABEntry //Interface
@@ -199,8 +201,26 @@ func (b *AdminBlock) GetDBSignature() ABEntry {
 	return nil
 }
 
+func (e *AdminBlock) JSONByte() ([]byte, error) {
+	return EncodeJSON(e)
+}
+
+func (e *AdminBlock) JSONString() (string, error) {
+	return EncodeJSONString(e)
+}
+
+func (e *AdminBlock) JSONBuffer(b *bytes.Buffer) error {
+	return EncodeJSONToBuffer(e, b)
+}
+
+func (e *AdminBlock) Spew() string {
+	return Spew(e)
+}
+
 // Admin Block Header
 type ABlockHeader struct {
+	Printable
+
 	AdminChainID *Hash
 	PrevFullHash *Hash
 	DBHeight     uint32
@@ -289,8 +309,26 @@ func (b *ABlockHeader) UnmarshalBinary(data []byte) (err error) {
 	return
 }
 
+func (e *ABlockHeader) JSONByte() ([]byte, error) {
+	return EncodeJSON(e)
+}
+
+func (e *ABlockHeader) JSONString() (string, error) {
+	return EncodeJSONString(e)
+}
+
+func (e *ABlockHeader) JSONBuffer(b *bytes.Buffer) error {
+	return EncodeJSONToBuffer(e, b)
+}
+
+func (e *ABlockHeader) Spew() string {
+	return Spew(e)
+}
+
 // Generic admin block entry type
 type ABEntry interface {
+	Printable
+
 	Type() byte
 	MarshalBinary() ([]byte, error)
 	MarshalledSize() uint64
@@ -300,7 +338,8 @@ type ABEntry interface {
 
 // DB Signature Entry -------------------------
 type DBSignatureEntry struct {
-	ABEntry              //interface
+	ABEntry //interface
+
 	entryType            byte
 	IdentityAdminChainID *Hash
 	PubKey               PublicKey
@@ -387,6 +426,22 @@ func (e *DBSignatureEntry) UnmarshalBinary(data []byte) (err error) {
 	return
 }
 
+func (e *DBSignatureEntry) JSONByte() ([]byte, error) {
+	return EncodeJSON(e)
+}
+
+func (e *DBSignatureEntry) JSONString() (string, error) {
+	return EncodeJSONString(e)
+}
+
+func (e *DBSignatureEntry) JSONBuffer(b *bytes.Buffer) error {
+	return EncodeJSONToBuffer(e, b)
+}
+
+func (e *DBSignatureEntry) Spew() string {
+	return Spew(e)
+}
+
 type EndOfMinuteEntry struct {
 	entryType byte
 	EOM_Type  byte
@@ -431,4 +486,20 @@ func (e *EndOfMinuteEntry) UnmarshalBinaryData(data []byte) (newData []byte, err
 func (e *EndOfMinuteEntry) UnmarshalBinary(data []byte) (err error) {
 	_, err = e.UnmarshalBinaryData(data)
 	return
+}
+
+func (e *EndOfMinuteEntry) JSONByte() ([]byte, error) {
+	return EncodeJSON(e)
+}
+
+func (e *EndOfMinuteEntry) JSONString() (string, error) {
+	return EncodeJSONString(e)
+}
+
+func (e *EndOfMinuteEntry) JSONBuffer(b *bytes.Buffer) error {
+	return EncodeJSONToBuffer(e, b)
+}
+
+func (e *EndOfMinuteEntry) Spew() string {
+	return Spew(e)
 }
