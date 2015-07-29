@@ -6,9 +6,9 @@ package main
 
 import (
 	"fmt"
-    cp "github.com/FactomProject/FactomCode/controlpanel"
-    "github.com/FactomProject/FactomCode/common"
-    "github.com/FactomProject/FactomCode/database"
+	"github.com/FactomProject/FactomCode/common"
+	cp "github.com/FactomProject/FactomCode/controlpanel"
+	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/database/ldb"
 	"github.com/FactomProject/FactomCode/process"
 	"github.com/FactomProject/FactomCode/util"
@@ -18,6 +18,7 @@ import (
 	"github.com/FactomProject/btcd/wire"
 	"os"
 	"runtime"
+	"strings"
 	"time"
 )
 
@@ -45,20 +46,24 @@ func main() {
 
 	ftmdLog.Warning("Go compiler version: %s", runtime.Version())
 	fmt.Println("Go compiler version: ", runtime.Version())
-    cp.CP.AddUpdate("gocompiler", 
-                    "system", 
-                    fmt.Sprintln("Go compiler version: ", runtime.Version()), 
-                    "", 
-                    0)
-    cp.CP.AddUpdate("copyright", 
-                    "system", 
-                    "Legal",
-                    "Copyright 2015 Factom Foundation\n"+
-                    "Use of this source code is governed by the MIT\n"+
-                    "license that can be found in the LICENSE file.", 
-                    0)
-    
-    
+	cp.CP.AddUpdate("gocompiler",
+		"system",
+		fmt.Sprintln("Go compiler version: ", runtime.Version()),
+		"",
+		0)
+	cp.CP.AddUpdate("copyright",
+		"system",
+		"Legal",
+		"Copyright 2015 Factom Foundation\n"+
+			"Use of this source code is governed by the MIT\n"+
+			"license that can be found in the LICENSE file.",
+		0)
+
+	if !isCompilerVersionOK() {
+		fmt.Println("\n\n === WARNING: unsupported compiler version !!! ===\n\n")
+		time.Sleep(time.Second)
+	}
+
 	// Load configuration file and send settings to components
 	loadConfigurations()
 
@@ -150,4 +155,28 @@ func initDB() {
 	}
 	ftmdLog.Info("Database started from: " + ldbpath)
 
+}
+
+func isCompilerVersionOK() bool {
+	goodenough := false
+
+	if strings.Contains(runtime.Version(), "1.3") {
+		goodenough = true
+	}
+
+	if strings.Contains(runtime.Version(), "1.4") {
+		goodenough = true
+	}
+
+	if strings.Contains(runtime.Version(), "1.5") {
+		goodenough = true
+	}
+
+	if strings.Contains(runtime.Version(), "1.6") {
+		goodenough = true
+	}
+
+	fmt.Println("goodenough= ", goodenough)
+
+	return goodenough
 }
