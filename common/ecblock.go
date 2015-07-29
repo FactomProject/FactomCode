@@ -120,10 +120,10 @@ func (e *ECBlock) UnmarshalBinary(data []byte) (err error) {
 	return
 }
 
-func (b *ECBlock) marshalBodyBinary() ([]byte, error) {
+func (e *ECBlock) marshalBodyBinary() ([]byte, error) {
 	buf := new(bytes.Buffer)
 
-	for _, v := range b.Body.Entries {
+	for _, v := range e.Body.Entries {
 		p, err := v.MarshalBinary()
 		if err != nil {
 			return buf.Bytes(), err
@@ -177,17 +177,13 @@ func (e *ECBlock) marshalHeaderBinary() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (b *ECBlock) unmarshalBodyBinaryData(data []byte) (newData []byte, err error) {
+func (e *ECBlock) unmarshalBodyBinaryData(data []byte) (newData []byte, err error) {
 	buf := bytes.NewBuffer(data)
 
-	for {
+	for i := uint64(0); i < e.Header.ObjectCount; i++ {
 		var id byte
 		id, err = buf.ReadByte()
 		if err != nil {
-			if err == io.EOF {
-				err = nil
-				break
-			}
 			newData = buf.Bytes()
 			return
 		}
@@ -205,7 +201,7 @@ func (b *ECBlock) unmarshalBodyBinaryData(data []byte) (newData []byte, err erro
 				newData = buf.Bytes()
 				return
 			}
-			b.Body.Entries = append(b.Body.Entries, m)
+			e.Body.Entries = append(e.Body.Entries, m)
 		case ECIDChainCommit:
 			if buf.Len() < CommitChainSize {
 				err = io.EOF
@@ -217,7 +213,7 @@ func (b *ECBlock) unmarshalBodyBinaryData(data []byte) (newData []byte, err erro
 			if err != nil {
 				return
 			}
-			b.Body.Entries = append(b.Body.Entries, c)
+			e.Body.Entries = append(e.Body.Entries, c)
 		case ECIDEntryCommit:
 			if buf.Len() < CommitEntrySize {
 				err = io.EOF
@@ -229,14 +225,14 @@ func (b *ECBlock) unmarshalBodyBinaryData(data []byte) (newData []byte, err erro
 			if err != nil {
 				return
 			}
-			b.Body.Entries = append(b.Body.Entries, c)
+			e.Body.Entries = append(e.Body.Entries, c)
 		case ECIDBalanceIncrease:
 			c := NewIncreaseBalance()
 			err = c.readUnmarshal(buf)
 			if err != nil {
 				return
 			}
-			b.Body.Entries = append(b.Body.Entries, c)
+			e.Body.Entries = append(e.Body.Entries, c)
 		default:
 			err = fmt.Errorf("Unsupported ECID: %x\n", id)
 			return
