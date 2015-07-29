@@ -6,9 +6,9 @@ package process
 
 import (
 	"errors"
-    cp "github.com/FactomProject/FactomCode/controlpanel"
-    "github.com/FactomProject/FactomCode/common"
-    "github.com/FactomProject/FactomCode/database"
+	"github.com/FactomProject/FactomCode/common"
+	cp "github.com/FactomProject/FactomCode/controlpanel"
+	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/davecgh/go-spew/spew"
 	"strconv"
@@ -27,12 +27,12 @@ func processDirBlock(msg *wire.MsgDirBlock) error {
 	blk, _ := db.FetchDBlockByHeight(msg.DBlk.Header.DBHeight)
 	if blk != nil {
 		procLog.Info("DBlock already exists for height:" + string(msg.DBlk.Header.DBHeight))
-        cp.CP.AddUpdate(
-            "DBOverlap",                                                 // tag
-            "warning",                                                   // Category
-            "Directory Block Overlap",                                   // Title
-            "DBlock already exists for height:"+ string(msg.DBlk.Header.DBHeight), // Message
-             0)                                                           // Expire
+		cp.CP.AddUpdate(
+			"DBOverlap",                                                          // tag
+			"warning",                                                            // Category
+			"Directory Block Overlap",                                            // Title
+			"DBlock already exists for height:"+string(msg.DBlk.Header.DBHeight), // Message
+			0) // Expire
 		return nil
 	}
 
@@ -43,13 +43,13 @@ func processDirBlock(msg *wire.MsgDirBlock) error {
 	fMemPool.addBlockMsg(msg, strconv.Itoa(int(msg.DBlk.Header.DBHeight))) // store in mempool with the height as the key
 
 	procLog.Debug("SyncUp: MsgDirBlock DBHeight=", msg.DBlk.Header.DBHeight)
-    cp.CP.AddUpdate(
-        "DBSyncUp",                                                 // tag
-        "Status",                                                   // Category
-        "SyncUp:",                                                  // Title
-        "MsgDirBlock DBHeigth=:"+ string(msg.DBlk.Header.DBHeight), // Message
-        0)                                                          // Expire
-    
+	cp.CP.AddUpdate(
+		"DBSyncUp", // tag
+		"Status",   // Category
+		"SyncUp:",  // Title
+		"MsgDirBlock DBHeigth=:"+string(msg.DBlk.Header.DBHeight), // Message
+		0) // Expire
+
 	return nil
 }
 
@@ -82,8 +82,11 @@ func processABlock(msg *wire.MsgABlock) error {
 	}
 
 	//Add it to mem pool before saving it in db
-	msg.ABlk.BuildABHash()
-	fMemPool.addBlockMsg(msg, msg.ABlk.ABHash.String()) // store in mem pool with ABHash as key
+	abHash, err := msg.ABlk.PartialHash()
+	if err != nil {
+		return err
+	}
+	fMemPool.addBlockMsg(msg, abHash.String()) // store in mem pool with ABHash as key
 
 	procLog.Debug("SyncUp: MsgABlock DBHeight=", msg.ABlk.Header.DBHeight)
 
@@ -196,7 +199,7 @@ func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, d
 		if h.String() != common.GENESIS_DIR_BLOCK_HASH {
 			// panic for milestone 1
 			//panic("Genesis dir block is not as expected: " + h.String())
-			procLog.Errorf("Genesis dir block is not as expected: " + h.String())			
+			procLog.Errorf("Genesis dir block is not as expected: " + h.String())
 		}
 	}
 
@@ -349,12 +352,12 @@ func deleteBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool) err
 		default:
 			eBlkMsg, _ := fMemPool.blockpool[dbEntry.KeyMR.String()].(*wire.MsgEBlock)
 			for _, ebEntry := range eBlkMsg.EBlk.Body.EBEntries {
-				fMemPool.deleteBlockMsg(ebEntry.String())				
+				fMemPool.deleteBlockMsg(ebEntry.String())
 			}
 			fMemPool.deleteBlockMsg(dbEntry.KeyMR.String())
 		}
 	}
-	fMemPool.deleteBlockMsg(strconv.Itoa(int(b.Header.DBHeight)))	
+	fMemPool.deleteBlockMsg(strconv.Itoa(int(b.Header.DBHeight)))
 
 	return nil
 }
