@@ -75,6 +75,7 @@ var (
 	nodeMode                string
 	devNet                  bool
 	serverPrivKeyHex        string
+	serverIndex				*common.ServerIndexNumber
 )
 
 // Get the configurations
@@ -956,6 +957,7 @@ func newEntryCreditBlock(chain *common.ECChain) *common.ECBlock {
 	chain.BlockMutex.Lock()
 	chain.NextBlockHeight++
 	chain.NextBlock = common.NextECBlock(block)
+	chain.NextBlock.AddEntry(serverIndex)
 	chain.BlockMutex.Unlock()
 
 	//Store the block in db
