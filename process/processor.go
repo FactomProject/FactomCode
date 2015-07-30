@@ -75,7 +75,7 @@ var (
 	nodeMode                string
 	devNet                  bool
 	serverPrivKeyHex        string
-	serverIndex				*common.ServerIndexNumber
+	serverIndex             = common.NewServerIndexNumber()
 )
 
 // Get the configurations
