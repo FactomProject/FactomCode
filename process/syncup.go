@@ -383,7 +383,7 @@ func validateDBSignature(aBlock *common.AdminBlock, dchain *common.DChain) bool 
 			} else {
 				// validatet the signature
 				bHeader, _ := dblk.Header.MarshalBinary()
-				if !serverPubKey.Verify(bHeader, dbSig.PrevDBSig) {
+				if !serverPubKey.Verify(bHeader, (*[64]byte)(dbSig.PrevDBSig)) {
 					procLog.Infof("No valid signature found in Admin Block = %s\n", spew.Sdump(aBlock))
 					return false
 				}

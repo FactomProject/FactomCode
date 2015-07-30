@@ -34,8 +34,8 @@ func NewDChain() *DChain {
 }
 
 type DirectoryBlock struct {
-	Printable
-	BinaryMarshallable
+	Printable          `json:"-"`
+	BinaryMarshallable `json:"-"`
 
 	//Marshalized
 	Header    *DBlockHeader
@@ -82,7 +82,7 @@ func (e *DirectoryBlock) Spew() string {
 }
 
 type DirBlockInfo struct {
-	Printable
+	Printable `json:"-"`
 
 	// Serial hash for the directory block
 	DBHash *Hash
@@ -124,8 +124,8 @@ func (e *DirBlockInfo) Spew() string {
 }
 
 type DBlockHeader struct {
-	Printable
-	BinaryMarshallable
+	Printable          `json:"-"`
+	BinaryMarshallable `json:"-"`
 
 	Version   byte
 	NetworkID uint32
@@ -165,8 +165,8 @@ func (e *DBlockHeader) Spew() string {
 }
 
 type DBEntry struct {
-	Printable
-	BinaryMarshallable
+	Printable          `json:"-"`
+	BinaryMarshallable `json:"-"`
 
 	ChainID *Hash
 	KeyMR   *Hash // Different MR in EBlockHeader

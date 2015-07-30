@@ -49,6 +49,20 @@ type PublicKey struct {
 	Key *[ed25519.PublicKeySize]byte
 }
 
+func (pk *PublicKey) MarshalText() ([]byte, error) {
+	return []byte(pk.String()), nil
+}
+
+func (pk *PublicKey) UnmarshalText(b []byte) error {
+	p, err := hex.DecodeString(string(b))
+	if err != nil {
+		return err
+	}
+	pk.Key = new([32]byte)
+	copy(pk.Key[:], p)
+	return nil
+}
+
 func (pk PublicKey) String() string {
 	return hex.EncodeToString((*pk.Key)[:])
 }

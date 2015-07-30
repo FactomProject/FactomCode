@@ -17,8 +17,8 @@ const (
 // Root is written into the Directory Blocks. Each Entry Block represents all
 // of the entries for a paticular Chain during a 10 minute period.
 type EBlock struct {
-	Printable
-	BinaryMarshallable
+	Printable          `json:"-"`
+	BinaryMarshallable `json:"-"`
 
 	Header *EBlockHeader
 	Body   *EBlockBody
@@ -281,7 +281,7 @@ func (e *EBlock) Spew() string {
 
 // EBlockBody is the series of Hashes that form the Entry Block Body.
 type EBlockBody struct {
-	Printable
+	Printable `json:"-"`
 
 	EBEntries []*Hash
 }

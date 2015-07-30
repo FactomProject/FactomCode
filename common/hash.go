@@ -13,10 +13,23 @@ import (
 )
 
 type Hash struct {
-	Printable
-	BinaryMarshallable
+	Printable          `json:"-"`
+	BinaryMarshallable `json:"-"`
 
 	bytes [HASH_LENGTH]byte `json:"bytes"`
+}
+
+func (h *Hash) MarshalText() ([]byte, error) {
+	return []byte(hex.EncodeToString(h.bytes[:])), nil
+}
+
+func (h *Hash) UnmarshalText(b []byte) error {
+	p, err := hex.DecodeString(string(b))
+	if err != nil {
+		return err
+	}
+	copy(h.bytes[:], p)
+	return nil
 }
 
 func (h *Hash) Bytes() []byte {
