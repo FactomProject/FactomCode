@@ -176,7 +176,5 @@ func isCompilerVersionOK() bool {
 		goodenough = true
 	}
 
-	fmt.Println("goodenough= ", goodenough)
-
 	return goodenough
 }
