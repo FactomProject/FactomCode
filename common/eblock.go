@@ -17,6 +17,9 @@ const (
 // Root is written into the Directory Blocks. Each Entry Block represents all
 // of the entries for a paticular Chain during a 10 minute period.
 type EBlock struct {
+	Printable
+	BinaryMarshallable
+
 	Header *EBlockHeader
 	Body   *EBlockBody
 }
@@ -260,8 +263,26 @@ func (e *EBlock) unmarshalHeaderBinary(data []byte) (err error) {
 	return
 }
 
+func (e *EBlock) JSONByte() ([]byte, error) {
+	return EncodeJSON(e)
+}
+
+func (e *EBlock) JSONString() (string, error) {
+	return EncodeJSONString(e)
+}
+
+func (e *EBlock) JSONBuffer(b *bytes.Buffer) error {
+	return EncodeJSONToBuffer(e, b)
+}
+
+func (e *EBlock) Spew() string {
+	return Spew(e)
+}
+
 // EBlockBody is the series of Hashes that form the Entry Block Body.
 type EBlockBody struct {
+	Printable
+
 	EBEntries []*Hash
 }
 
@@ -278,6 +299,22 @@ func (e *EBlockBody) MR() *Hash {
 	mrs := BuildMerkleTreeStore(e.EBEntries)
 	r := mrs[len(mrs)-1]
 	return r
+}
+
+func (e *EBlockBody) JSONByte() ([]byte, error) {
+	return EncodeJSON(e)
+}
+
+func (e *EBlockBody) JSONString() (string, error) {
+	return EncodeJSONString(e)
+}
+
+func (e *EBlockBody) JSONBuffer(b *bytes.Buffer) error {
+	return EncodeJSONToBuffer(e, b)
+}
+
+func (e *EBlockBody) Spew() string {
+	return Spew(e)
 }
 
 // EBlockHeader holds relevent metadata about the Entry Block and the data
@@ -300,4 +337,20 @@ func NewEBlockHeader() *EBlockHeader {
 	e.PrevKeyMR = NewHash()
 	e.PrevFullHash = NewHash()
 	return e
+}
+
+func (e *EBlockHeader) JSONByte() ([]byte, error) {
+	return EncodeJSON(e)
+}
+
+func (e *EBlockHeader) JSONString() (string, error) {
+	return EncodeJSONString(e)
+}
+
+func (e *EBlockHeader) JSONBuffer(b *bytes.Buffer) error {
+	return EncodeJSONToBuffer(e, b)
+}
+
+func (e *EBlockHeader) Spew() string {
+	return Spew(e)
 }

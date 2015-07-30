@@ -34,6 +34,9 @@ func NewDChain() *DChain {
 }
 
 type DirectoryBlock struct {
+	Printable
+	BinaryMarshallable
+
 	//Marshalized
 	Header    *DBlockHeader
 	DBEntries []*DBEntry
@@ -62,7 +65,24 @@ func NewDBlock() *DirectoryBlock {
 	return NewDirectoryBlock()
 }
 
+func (e *DirectoryBlock) JSONByte() ([]byte, error) {
+	return EncodeJSON(e)
+}
+
+func (e *DirectoryBlock) JSONString() (string, error) {
+	return EncodeJSONString(e)
+}
+
+func (e *DirectoryBlock) JSONBuffer(b *bytes.Buffer) error {
+	return EncodeJSONToBuffer(e, b)
+}
+
+func (e *DirectoryBlock) Spew() string {
+	return Spew(e)
+}
+
 type DirBlockInfo struct {
+	Printable
 
 	// Serial hash for the directory block
 	DBHash *Hash
@@ -87,7 +107,26 @@ type DirBlockInfo struct {
 	BTCConfirmed bool
 }
 
+func (e *DirBlockInfo) JSONByte() ([]byte, error) {
+	return EncodeJSON(e)
+}
+
+func (e *DirBlockInfo) JSONString() (string, error) {
+	return EncodeJSONString(e)
+}
+
+func (e *DirBlockInfo) JSONBuffer(b *bytes.Buffer) error {
+	return EncodeJSONToBuffer(e, b)
+}
+
+func (e *DirBlockInfo) Spew() string {
+	return Spew(e)
+}
+
 type DBlockHeader struct {
+	Printable
+	BinaryMarshallable
+
 	Version   byte
 	NetworkID uint32
 
@@ -109,7 +148,26 @@ func NewDBlockHeader() *DBlockHeader {
 	return d
 }
 
+func (e *DBlockHeader) JSONByte() ([]byte, error) {
+	return EncodeJSON(e)
+}
+
+func (e *DBlockHeader) JSONString() (string, error) {
+	return EncodeJSONString(e)
+}
+
+func (e *DBlockHeader) JSONBuffer(b *bytes.Buffer) error {
+	return EncodeJSONToBuffer(e, b)
+}
+
+func (e *DBlockHeader) Spew() string {
+	return Spew(e)
+}
+
 type DBEntry struct {
+	Printable
+	BinaryMarshallable
+
 	ChainID *Hash
 	KeyMR   *Hash // Different MR in EBlockHeader
 }
@@ -217,6 +275,22 @@ func (e *DBEntry) UnmarshalBinary(data []byte) (err error) {
 func (e *DBEntry) ShaHash() *Hash {
 	byteArray, _ := e.MarshalBinary()
 	return Sha(byteArray)
+}
+
+func (e *DBEntry) JSONByte() ([]byte, error) {
+	return EncodeJSON(e)
+}
+
+func (e *DBEntry) JSONString() (string, error) {
+	return EncodeJSONString(e)
+}
+
+func (e *DBEntry) JSONBuffer(b *bytes.Buffer) error {
+	return EncodeJSONToBuffer(e, b)
+}
+
+func (e *DBEntry) Spew() string {
+	return Spew(e)
 }
 
 func (b *DBlockHeader) EncodableFields() map[string]reflect.Value {

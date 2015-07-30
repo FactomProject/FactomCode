@@ -5,6 +5,7 @@
 package common
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/FactomProject/factoid/block"
 	"github.com/FactomProject/factoid/state/stateinit"
@@ -17,11 +18,28 @@ var FactoidState = stateinit.NewFactoidState("/tmp/factoid_bolt.db")
 
 // factoid Chain
 type FctChain struct {
+	Printable
 	ChainID *Hash
 
 	NextBlock       block.IFBlock
 	NextBlockHeight uint32
 	BlockMutex      sync.Mutex
+}
+
+func (e *FctChain) JSONByte() ([]byte, error) {
+	return EncodeJSON(e)
+}
+
+func (e *FctChain) JSONString() (string, error) {
+	return EncodeJSONString(e)
+}
+
+func (e *FctChain) JSONBuffer(b *bytes.Buffer) error {
+	return EncodeJSONToBuffer(e, b)
+}
+
+func (e *FctChain) Spew() string {
+	return Spew(e)
 }
 
 // factoid Block

@@ -13,6 +13,9 @@ const (
 )
 
 type ServerIndexNumber struct {
+	Printable
+	BinaryMarshallable
+
 	Number uint8
 }
 
@@ -45,4 +48,20 @@ func (s *ServerIndexNumber) UnmarshalBinaryData(data []byte) (newData []byte, er
 func (s *ServerIndexNumber) UnmarshalBinary(data []byte) (err error) {
 	_, err = s.UnmarshalBinaryData(data)
 	return
+}
+
+func (e *ServerIndexNumber) JSONByte() ([]byte, error) {
+	return EncodeJSON(e)
+}
+
+func (e *ServerIndexNumber) JSONString() (string, error) {
+	return EncodeJSONString(e)
+}
+
+func (e *ServerIndexNumber) JSONBuffer(b *bytes.Buffer) error {
+	return EncodeJSONToBuffer(e, b)
+}
+
+func (e *ServerIndexNumber) Spew() string {
+	return Spew(e)
 }

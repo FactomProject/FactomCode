@@ -10,6 +10,8 @@ import (
 )
 
 type EChain struct {
+	BinaryMarshallable
+
 	ChainID         *Hash
 	FirstEntry      *Entry
 	NextBlock       *EBlock

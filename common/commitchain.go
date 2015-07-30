@@ -20,6 +20,9 @@ const (
 )
 
 type CommitChain struct {
+	Printable
+	BinaryMarshallable
+
 	Version     uint8
 	MilliTime   *[6]byte
 	ChainIDHash *Hash
@@ -204,4 +207,20 @@ func (c *CommitChain) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 func (c *CommitChain) UnmarshalBinary(data []byte) (err error) {
 	_, err = c.UnmarshalBinaryData(data)
 	return
+}
+
+func (e *CommitChain) JSONByte() ([]byte, error) {
+	return EncodeJSON(e)
+}
+
+func (e *CommitChain) JSONString() (string, error) {
+	return EncodeJSONString(e)
+}
+
+func (e *CommitChain) JSONBuffer(b *bytes.Buffer) error {
+	return EncodeJSONToBuffer(e, b)
+}
+
+func (e *CommitChain) Spew() string {
+	return Spew(e)
 }

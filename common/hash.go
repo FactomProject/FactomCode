@@ -13,6 +13,9 @@ import (
 )
 
 type Hash struct {
+	Printable
+	BinaryMarshallable
+
 	bytes [HASH_LENGTH]byte `json:"bytes"`
 }
 
@@ -152,4 +155,20 @@ func (a *Hash) IsSameAs(b *Hash) bool {
 	}
 
 	return false
+}
+
+func (e *Hash) JSONByte() ([]byte, error) {
+	return EncodeJSON(e)
+}
+
+func (e *Hash) JSONString() (string, error) {
+	return EncodeJSONString(e)
+}
+
+func (e *Hash) JSONBuffer(b *bytes.Buffer) error {
+	return EncodeJSONToBuffer(e, b)
+}
+
+func (e *Hash) Spew() string {
+	return Spew(e)
 }

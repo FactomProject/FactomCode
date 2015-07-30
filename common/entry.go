@@ -15,6 +15,9 @@ import (
 // An Entry is the element which carries user data
 // https://github.com/FactomProject/FactomDocs/blob/master/factomDataStructureDetails.md#entry
 type Entry struct {
+	Printable
+	BinaryMarshallable
+
 	Version uint8
 	ChainID *Hash
 	ExtIDs  [][]byte
@@ -166,4 +169,20 @@ func (e *Entry) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 func (e *Entry) UnmarshalBinary(data []byte) (err error) {
 	_, err = e.UnmarshalBinaryData(data)
 	return
+}
+
+func (e *Entry) JSONByte() ([]byte, error) {
+	return EncodeJSON(e)
+}
+
+func (e *Entry) JSONString() (string, error) {
+	return EncodeJSONString(e)
+}
+
+func (e *Entry) JSONBuffer(b *bytes.Buffer) error {
+	return EncodeJSONToBuffer(e, b)
+}
+
+func (e *Entry) Spew() string {
+	return Spew(e)
 }

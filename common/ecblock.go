@@ -23,6 +23,9 @@ const (
 // of primarily Commits and Balance Increases with Minute Markers and Server
 // Markers distributed throughout.
 type ECBlock struct {
+	Printable
+	BinaryMarshallable
+
 	Header *ECBlockHeader
 	Body   *ECBlockBody
 }
@@ -316,7 +319,25 @@ func (e *ECBlock) unmarshalHeaderBinary(data []byte) error {
 	return err
 }
 
+func (e *ECBlock) JSONByte() ([]byte, error) {
+	return EncodeJSON(e)
+}
+
+func (e *ECBlock) JSONString() (string, error) {
+	return EncodeJSONString(e)
+}
+
+func (e *ECBlock) JSONBuffer(b *bytes.Buffer) error {
+	return EncodeJSONToBuffer(e, b)
+}
+
+func (e *ECBlock) Spew() string {
+	return Spew(e)
+}
+
 type ECBlockBody struct {
+	Printable
+
 	Entries []ECBlockEntry
 }
 
@@ -326,13 +347,33 @@ func NewECBlockBody() *ECBlockBody {
 	return b
 }
 
+func (e *ECBlockBody) JSONByte() ([]byte, error) {
+	return EncodeJSON(e)
+}
+
+func (e *ECBlockBody) JSONString() (string, error) {
+	return EncodeJSONString(e)
+}
+
+func (e *ECBlockBody) JSONBuffer(b *bytes.Buffer) error {
+	return EncodeJSONToBuffer(e, b)
+}
+
+func (e *ECBlockBody) Spew() string {
+	return Spew(e)
+}
+
 type ECBlockEntry interface {
+	Printable
+
 	ECID() byte
 	MarshalBinary() ([]byte, error)
 	UnmarshalBinary(data []byte) error
 }
 
 type ECBlockHeader struct {
+	Printable
+
 	ECChainID           *Hash
 	BodyHash            *Hash
 	PrevHeaderHash      *Hash
@@ -352,4 +393,20 @@ func NewECBlockHeader() *ECBlockHeader {
 	h.PrevFullHash = NewHash()
 	h.HeaderExpansionArea = make([]byte, 0)
 	return h
+}
+
+func (e *ECBlockHeader) JSONByte() ([]byte, error) {
+	return EncodeJSON(e)
+}
+
+func (e *ECBlockHeader) JSONString() (string, error) {
+	return EncodeJSONString(e)
+}
+
+func (e *ECBlockHeader) JSONBuffer(b *bytes.Buffer) error {
+	return EncodeJSONToBuffer(e, b)
+}
+
+func (e *ECBlockHeader) Spew() string {
+	return Spew(e)
 }

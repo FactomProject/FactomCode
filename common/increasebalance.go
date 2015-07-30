@@ -11,6 +11,9 @@ import (
 var IncreaseBalanceSize int = 32 + 4 + 32
 
 type IncreaseBalance struct {
+	Printable
+	BinaryMarshallable
+
 	ECBlockEntry
 	ECPubKey *[32]byte
 	TXID     *Hash
@@ -94,4 +97,20 @@ func (b *IncreaseBalance) readUnmarshal(buf *bytes.Buffer) (err error) {
 	}
 
 	return
+}
+
+func (e *IncreaseBalance) JSONByte() ([]byte, error) {
+	return EncodeJSON(e)
+}
+
+func (e *IncreaseBalance) JSONString() (string, error) {
+	return EncodeJSONString(e)
+}
+
+func (e *IncreaseBalance) JSONBuffer(b *bytes.Buffer) error {
+	return EncodeJSONToBuffer(e, b)
+}
+
+func (e *IncreaseBalance) Spew() string {
+	return Spew(e)
 }

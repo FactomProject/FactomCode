@@ -30,6 +30,7 @@ type AdminChain struct {
 // https://github.com/FactomProject/FactomDocs/blob/master/factomDataStructureDetails.md#administrative-block
 type AdminBlock struct {
 	Printable
+	BinaryMarshallable
 
 	//Marshalized
 	Header    *ABlockHeader
@@ -220,6 +221,7 @@ func (e *AdminBlock) Spew() string {
 // Admin Block Header
 type ABlockHeader struct {
 	Printable
+	BinaryMarshallable
 
 	AdminChainID *Hash
 	PrevFullHash *Hash
@@ -328,17 +330,15 @@ func (e *ABlockHeader) Spew() string {
 // Generic admin block entry type
 type ABEntry interface {
 	Printable
+	BinaryMarshallable
 
 	Type() byte
-	MarshalBinary() ([]byte, error)
-	MarshalledSize() uint64
-	UnmarshalBinary(data []byte) (err error)
-	UnmarshalBinaryData(data []byte) (newData []byte, err error)
 }
 
 // DB Signature Entry -------------------------
 type DBSignatureEntry struct {
 	ABEntry //interface
+	BinaryMarshallable
 
 	entryType            byte
 	IdentityAdminChainID *Hash
@@ -443,6 +443,9 @@ func (e *DBSignatureEntry) Spew() string {
 }
 
 type EndOfMinuteEntry struct {
+	Printable
+	BinaryMarshallable
+
 	entryType byte
 	EOM_Type  byte
 }

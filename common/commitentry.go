@@ -20,6 +20,9 @@ const (
 )
 
 type CommitEntry struct {
+	Printable
+	BinaryMarshallable
+
 	Version   uint8
 	MilliTime *[6]byte
 	EntryHash *Hash
@@ -174,4 +177,20 @@ func (c *CommitEntry) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 func (c *CommitEntry) UnmarshalBinary(data []byte) (err error) {
 	_, err = c.UnmarshalBinaryData(data)
 	return
+}
+
+func (e *CommitEntry) JSONByte() ([]byte, error) {
+	return EncodeJSON(e)
+}
+
+func (e *CommitEntry) JSONString() (string, error) {
+	return EncodeJSONString(e)
+}
+
+func (e *CommitEntry) JSONBuffer(b *bytes.Buffer) error {
+	return EncodeJSONToBuffer(e, b)
+}
+
+func (e *CommitEntry) Spew() string {
+	return Spew(e)
 }
