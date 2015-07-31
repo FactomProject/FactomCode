@@ -61,7 +61,7 @@ func main() {
 
 	if !isCompilerVersionOK() {
 		for i := 0; i < 30; i++ {
-			fmt.Println("=== ERROR: unsupported compiler version !!! ===")
+			fmt.Println("!!! !!! !!! ERROR: unsupported compiler version !!! !!! !!!")
 		}
 		time.Sleep(time.Second)
 		os.Exit(1)
@@ -162,10 +162,6 @@ func initDB() {
 
 func isCompilerVersionOK() bool {
 	goodenough := false
-
-	if strings.Contains(runtime.Version(), "1.3") {
-		goodenough = true
-	}
 
 	if strings.Contains(runtime.Version(), "1.4") {
 		goodenough = true
