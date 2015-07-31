@@ -22,6 +22,11 @@ type IncreaseBalance struct {
 var _ Printable = (*IncreaseBalance)(nil)
 var _ BinaryMarshallable = (*IncreaseBalance)(nil)
 
+func (c *IncreaseBalance) MarshalledSize() uint64 {
+	panic("Function not implemented")
+	return 0
+}
+
 func MakeIncreaseBalance(pubkey *[32]byte, facTX *Hash, credits int32) *IncreaseBalance {
 	b := new(IncreaseBalance)
 	b.ECPubKey = pubkey

@@ -31,6 +31,11 @@ type CommitEntry struct {
 var _ Printable = (*CommitEntry)(nil)
 var _ BinaryMarshallable = (*CommitEntry)(nil)
 
+func (c *CommitEntry) MarshalledSize() uint64 {
+	panic("Function not implemented")
+	return 0
+}
+
 func NewCommitEntry() *CommitEntry {
 	c := new(CommitEntry)
 	c.Version = 0

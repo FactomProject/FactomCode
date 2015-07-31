@@ -19,6 +19,11 @@ type MinuteNumber struct {
 var _ Printable = (*MinuteNumber)(nil)
 var _ BinaryMarshallable = (*MinuteNumber)(nil)
 
+func (c *MinuteNumber) MarshalledSize() uint64 {
+	panic("Function not implemented")
+	return 0
+}
+
 func NewMinuteNumber() *MinuteNumber {
 	return new(MinuteNumber)
 }

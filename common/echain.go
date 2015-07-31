@@ -19,6 +19,11 @@ type EChain struct {
 
 var _ BinaryMarshallable = (*EChain)(nil)
 
+func (c *EChain) MarshalledSize() uint64 {
+	panic("Function not implemented")
+	return 0
+}
+
 func NewEChain() *EChain {
 	e := new(EChain)
 	e.ChainID = NewHash()

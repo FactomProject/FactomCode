@@ -24,6 +24,11 @@ type Entry struct {
 var _ Printable = (*Entry)(nil)
 var _ BinaryMarshallable = (*Entry)(nil)
 
+func (c *Entry) MarshalledSize() uint64 {
+	panic("Function not implemented")
+	return 0
+}
+
 func NewEntry() *Entry {
 	e := new(Entry)
 	e.ChainID = NewHash()

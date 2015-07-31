@@ -50,6 +50,11 @@ type DirectoryBlock struct {
 var _ Printable = (*DirectoryBlock)(nil)
 var _ BinaryMarshallable = (*DirectoryBlock)(nil)
 
+func (c *DirectoryBlock) MarshalledSize() uint64 {
+	panic("Function not implemented")
+	return 0
+}
+
 func NewDirectoryBlock() *DirectoryBlock {
 	d := new(DirectoryBlock)
 	d.Header = NewDBlockHeader()
@@ -171,6 +176,11 @@ type DBEntry struct {
 
 var _ Printable = (*DBEntry)(nil)
 var _ BinaryMarshallable = (*DBEntry)(nil)
+
+func (c *DBEntry) MarshalledSize() uint64 {
+	panic("Function not implemented")
+	return 0
+}
 
 func NewDBEntry(eb *EBlock) *DBEntry {
 	e := new(DBEntry)

@@ -24,6 +24,11 @@ type EBlock struct {
 var _ Printable = (*EBlock)(nil)
 var _ BinaryMarshallable = (*EBlock)(nil)
 
+func (c *EBlock) MarshalledSize() uint64 {
+	panic("Function not implemented")
+	return 0
+}
+
 // MakeEBlock creates a new Entry Block belonging to the provieded Entry Chain.
 // Its PrevKeyMR and PrevFullHash are populated by the provided previous Entry
 // Block. If The previous Entry Block is nil (the new Entry Block is first in

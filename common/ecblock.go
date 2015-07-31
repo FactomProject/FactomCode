@@ -30,6 +30,11 @@ type ECBlock struct {
 var _ Printable = (*ECBlock)(nil)
 var _ BinaryMarshallable = (*ECBlock)(nil)
 
+func (c *ECBlock) MarshalledSize() uint64 {
+	panic("Function not implemented")
+	return 0
+}
+
 func NewECBlock() *ECBlock {
 	e := new(ECBlock)
 	e.Header = NewECBlockHeader()

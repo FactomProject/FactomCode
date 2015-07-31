@@ -19,6 +19,11 @@ type Hash struct {
 var _ Printable = (*Hash)(nil)
 var _ BinaryMarshallable = (*Hash)(nil)
 
+func (c *Hash) MarshalledSize() uint64 {
+	panic("Function not implemented")
+	return 0
+}
+
 func (h *Hash) MarshalText() ([]byte, error) {
 	return []byte(hex.EncodeToString(h.bytes[:])), nil
 }
