@@ -20,8 +20,8 @@ const (
 )
 
 type CommitChain struct {
-	Printable
-	BinaryMarshallable
+	Printable          `json:"-"`
+	BinaryMarshallable `json:"-"`
 
 	Version     uint8
 	MilliTime   *[6]byte

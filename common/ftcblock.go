@@ -18,8 +18,8 @@ var FactoidState = stateinit.NewFactoidState("/tmp/factoid_bolt.db")
 
 // factoid Chain
 type FctChain struct {
-	Printable
-	ChainID *Hash
+	Printable `json:"-"`
+	ChainID   *Hash `json:"-"`
 
 	NextBlock       block.IFBlock
 	NextBlockHeight uint32

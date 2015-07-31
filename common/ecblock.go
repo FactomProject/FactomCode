@@ -23,8 +23,8 @@ const (
 // of primarily Commits and Balance Increases with Minute Markers and Server
 // Markers distributed throughout.
 type ECBlock struct {
-	Printable
-	BinaryMarshallable
+	Printable          `json:"-"`
+	BinaryMarshallable `json:"-"`
 
 	Header *ECBlockHeader
 	Body   *ECBlockBody
@@ -336,7 +336,7 @@ func (e *ECBlock) Spew() string {
 }
 
 type ECBlockBody struct {
-	Printable
+	Printable `json:"-"`
 
 	Entries []ECBlockEntry
 }
@@ -372,7 +372,7 @@ type ECBlockEntry interface {
 }
 
 type ECBlockHeader struct {
-	Printable
+	Printable `json:"-"`
 
 	ECChainID           *Hash
 	BodyHash            *Hash

@@ -62,7 +62,7 @@ func processFBlock(msg *wire.MsgFBlock) error {
 		return errors.New("Server received msg:" + msg.Command())
 	}
 
-	key, _ := msg.SC.GetHash().MarshalText()
+	key, _ := msg.SC.GetHash().CustomMarshalText()
 	//Add it to mem pool before saving it in db
 	fMemPool.addBlockMsg(msg, string(key)) // stored in mem pool with the MR as the key
 
@@ -383,7 +383,7 @@ func validateDBSignature(aBlock *common.AdminBlock, dchain *common.DChain) bool 
 			} else {
 				// validatet the signature
 				bHeader, _ := dblk.Header.MarshalBinary()
-				if !serverPubKey.Verify(bHeader, dbSig.PrevDBSig) {
+				if !serverPubKey.Verify(bHeader, (*[64]byte)(dbSig.PrevDBSig)) {
 					procLog.Infof("No valid signature found in Admin Block = %s\n", spew.Sdump(aBlock))
 					return false
 				}

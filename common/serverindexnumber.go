@@ -13,8 +13,8 @@ const (
 )
 
 type ServerIndexNumber struct {
-	Printable
-	BinaryMarshallable
+	Printable          `json:"-"`
+	BinaryMarshallable `json:"-"`
 
 	Number uint8
 }

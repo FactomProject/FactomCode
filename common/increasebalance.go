@@ -11,10 +11,10 @@ import (
 var IncreaseBalanceSize int = 32 + 4 + 32
 
 type IncreaseBalance struct {
-	Printable
-	BinaryMarshallable
-
+	Printable          `json:"-"`
+	BinaryMarshallable `json:"-"`
 	ECBlockEntry
+
 	ECPubKey *[32]byte
 	TXID     *Hash
 	Index    uint64

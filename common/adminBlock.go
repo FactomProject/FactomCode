@@ -7,6 +7,7 @@ package common
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"sync"
@@ -29,8 +30,8 @@ type AdminChain struct {
 // For more details, please go to:
 // https://github.com/FactomProject/FactomDocs/blob/master/factomDataStructureDetails.md#administrative-block
 type AdminBlock struct {
-	Printable
-	BinaryMarshallable
+	Printable          `json:"-"`
+	BinaryMarshallable `json:"-"`
 
 	//Marshalized
 	Header    *ABlockHeader
@@ -220,8 +221,8 @@ func (e *AdminBlock) Spew() string {
 
 // Admin Block Header
 type ABlockHeader struct {
-	Printable
-	BinaryMarshallable
+	Printable          `json:"-"`
+	BinaryMarshallable `json:"-"`
 
 	AdminChainID *Hash
 	PrevFullHash *Hash
@@ -335,15 +336,30 @@ type ABEntry interface {
 	Type() byte
 }
 
+type Sig [64]byte
+
+func (s *Sig) MarshalText() ([]byte, error) {
+	return []byte(hex.EncodeToString(s[:])), nil
+}
+
+func (s *Sig) UnmarshalText(b []byte) error {
+	p, err := hex.DecodeString(string(b))
+	if err != nil {
+		return err
+	}
+	copy(s[:], p)
+	return nil
+}
+
 // DB Signature Entry -------------------------
 type DBSignatureEntry struct {
-	ABEntry //interface
-	BinaryMarshallable
+	ABEntry            `json:"-"` //interface
+	BinaryMarshallable `json:"-"`
 
 	entryType            byte
 	IdentityAdminChainID *Hash
 	PubKey               PublicKey
-	PrevDBSig            *[64]byte
+	PrevDBSig            *Sig
 }
 
 // Create a new DB Signature Entry
@@ -352,7 +368,7 @@ func NewDBSignatureEntry(identityAdminChainID *Hash, sig Signature) (e *DBSignat
 	e.entryType = TYPE_DB_SIGNATURE
 	e.IdentityAdminChainID = identityAdminChainID
 	e.PubKey = sig.Pub
-	e.PrevDBSig = sig.Sig
+	e.PrevDBSig = (*Sig)(sig.Sig)
 	return
 }
 
@@ -413,7 +429,7 @@ func (e *DBSignatureEntry) UnmarshalBinaryData(data []byte) (newData []byte, err
 	copy(e.PubKey.Key[:], newData[:HASH_LENGTH])
 	newData = newData[HASH_LENGTH:]
 
-	e.PrevDBSig = new([SIG_LENGTH]byte)
+	e.PrevDBSig = new(Sig)
 	copy(e.PrevDBSig[:], newData[:SIG_LENGTH])
 
 	newData = newData[SIG_LENGTH:]
@@ -443,8 +459,8 @@ func (e *DBSignatureEntry) Spew() string {
 }
 
 type EndOfMinuteEntry struct {
-	Printable
-	BinaryMarshallable
+	Printable          `json:"-"`
+	BinaryMarshallable `json:"-"`
 
 	entryType byte
 	EOM_Type  byte
