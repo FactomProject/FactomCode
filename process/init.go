@@ -7,9 +7,9 @@ package process
 import (
 	"errors"
 	"fmt"
-    "github.com/FactomProject/FactomCode/common"
-    cp "github.com/FactomProject/FactomCode/controlpanel"
-    "github.com/FactomProject/FactomCode/consensus"
+	"github.com/FactomProject/FactomCode/common"
+	"github.com/FactomProject/FactomCode/consensus"
+	cp "github.com/FactomProject/FactomCode/controlpanel"
 	"github.com/FactomProject/FactomCode/factomlog"
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd/wire"
@@ -306,21 +306,21 @@ func validateDChain(c *common.DChain) error {
 	//validate the genesis block
 	//prevBlkHash is the block hash for c.Blocks[0]
 	if prevBlkHash == nil || prevBlkHash.String() != common.GENESIS_DIR_BLOCK_HASH {
-		
-        procLog.Errorf("Genesis Block wasn't as expected:\n"+
-        "    Expected: " + common.GENESIS_DIR_BLOCK_HASH +"\n"+
-        "    Found:    " + prevBlkHash.String())
-        
-        str := fmt.Sprintf("<pre>"+
-        "Expected: " + common.GENESIS_DIR_BLOCK_HASH +"<br>"+
-        "Found:    " + prevBlkHash.String() + "</pre><br><br>")
-        cp.CP.AddUpdate(
-            "GenHash",                            // tag
-            "warning",                            // Category 
-            "Genesis Hash doesn't match",         // Title
-            str,                                  // Message
-            0)
-        
+
+		procLog.Errorf("Genesis Block wasn't as expected:\n" +
+			"    Expected: " + common.GENESIS_DIR_BLOCK_HASH + "\n" +
+			"    Found:    " + prevBlkHash.String())
+
+		str := fmt.Sprintf("<pre>" +
+			"Expected: " + common.GENESIS_DIR_BLOCK_HASH + "<br>" +
+			"Found:    " + prevBlkHash.String() + "</pre><br><br>")
+		cp.CP.AddUpdate(
+			"GenHash",                    // tag
+			"warning",                    // Category
+			"Genesis Hash doesn't match", // Title
+			str, // Message
+			0)
+
 	}
 
 	for i := 1; i < len(c.Blocks); i++ {

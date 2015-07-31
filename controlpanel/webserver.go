@@ -7,18 +7,18 @@
 package controlpanel
 
 import (
-    "fmt"
-    "bytes"
-    "strings"
-    "log"
-    "net/http"
-    "time"
+	"bytes"
+	"fmt"
+	"log"
+	"net/http"
+	"strings"
+	"time"
 )
 
 var _ = time.Sleep
 
 // Content for the control panel html page..
-var page =`
+var page = `
 <html>
     <head>
         <title>%s</title>
@@ -93,65 +93,71 @@ var page =`
 
 // handler for the main page.
 func handler(w http.ResponseWriter, r *http.Request) {
-    fmt.Fprint(w, fmt.Sprintf(page,CP.GetTitle(),CP.GetPort()))
+	fmt.Fprint(w, fmt.Sprintf(page, CP.GetTitle(), CP.GetPort()))
 }
 
 // Build the report to show on the web page
 // Standard html (like <br> etc.) can be used.
 func handlerGetReport(w http.ResponseWriter, r *http.Request) {
-    var out bytes.Buffer
-    since := time.Since(CP.LastCommunication())
-    out.WriteString("Last update: ")
-    if int(since.Hours())>0 {
-        hours := int(since.Hours())
-        out.WriteString(fmt.Sprintf("more than %d hour(s) ago<br>",hours))
-    }else if int(since.Minutes())>0 {
-        minutes := int(since.Minutes())
-        out.WriteString(fmt.Sprintf("more than %d minute(s) ago<br>",minutes))
-    }else{
-        seconds := int(since.Seconds())
-        out.WriteString(fmt.Sprintf("%d second(s) ago<br>",seconds))
-    }
-    
-    CP.Purge()
-    
-    for i:=0; i<len(CP.updates)-1; i++ {
-        for j:=0; j<len(CP.updates)-i-1; j++ {
-            if CP.updates[j].title > CP.updates[j+1].title {
-                t := CP.updates[j]
-                CP.updates[j] = CP.updates[j+1]
-                CP.updates[j+1] = t
-            }
-        }
-    }
-    
-    if len(CP.Updates()) > 0 {        
-        cats := []string  { "system","status", "info", "warnings", "errors"}
-        for _,cat := range cats {
-            first := true
-            for _,update := range CP.Updates() {
-                if update.cat == cat {
-                    if first { 
-                        out.WriteString(fmt.Sprintf("<br><b>%s</b><br><OL><dl>",strings.Title(cat)))
-                        first=false
-                    }
-                    if len(update.title)>0 {out.WriteString("<dt>"+update.title+"</dt>")}
-                    if len(update.msg)>0   {out.WriteString("<dd>"+update.msg+"</dd>")}
-                }
-            }
-            if !first {out.WriteString("</OL></dl>")}
-        }
-        out.WriteString("</OL>")
-    }
-    fmt.Fprint(w, string(out.Bytes()))    
+	var out bytes.Buffer
+	since := time.Since(CP.LastCommunication())
+	out.WriteString("Last update: ")
+	if int(since.Hours()) > 0 {
+		hours := int(since.Hours())
+		out.WriteString(fmt.Sprintf("more than %d hour(s) ago<br>", hours))
+	} else if int(since.Minutes()) > 0 {
+		minutes := int(since.Minutes())
+		out.WriteString(fmt.Sprintf("more than %d minute(s) ago<br>", minutes))
+	} else {
+		seconds := int(since.Seconds())
+		out.WriteString(fmt.Sprintf("%d second(s) ago<br>", seconds))
+	}
+
+	CP.Purge()
+
+	for i := 0; i < len(CP.updates)-1; i++ {
+		for j := 0; j < len(CP.updates)-i-1; j++ {
+			if CP.updates[j].title > CP.updates[j+1].title {
+				t := CP.updates[j]
+				CP.updates[j] = CP.updates[j+1]
+				CP.updates[j+1] = t
+			}
+		}
+	}
+
+	if len(CP.Updates()) > 0 {
+		cats := []string{"system", "status", "info", "warnings", "errors"}
+		for _, cat := range cats {
+			first := true
+			for _, update := range CP.Updates() {
+				if update.cat == cat {
+					if first {
+						out.WriteString(fmt.Sprintf("<br><b>%s</b><br><OL><dl>", strings.Title(cat)))
+						first = false
+					}
+					if len(update.title) > 0 {
+						out.WriteString("<dt>" + update.title + "</dt>")
+					}
+					if len(update.msg) > 0 {
+						out.WriteString("<dd>" + update.msg + "</dd>")
+					}
+				}
+			}
+			if !first {
+				out.WriteString("</OL></dl>")
+			}
+		}
+		out.WriteString("</OL>")
+	}
+	fmt.Fprint(w, string(out.Bytes()))
 }
 
 func handlerGetReport2(w http.ResponseWriter, r *http.Request) {
-    fmt.Fprint(w,"fctWallet report")
+	fmt.Fprint(w, "fctWallet report")
 }
 
 func runPanel() {
-        http.HandleFunc("/controlpanel", handler)
-        http.HandleFunc("/getreport", handlerGetReport)
-        log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s",CP.GetPort()), nil))
+	http.HandleFunc("/controlpanel", handler)
+	http.HandleFunc("/getreport", handlerGetReport)
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", CP.GetPort()), nil))
 }

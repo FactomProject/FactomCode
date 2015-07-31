@@ -46,8 +46,7 @@ func (pl *ProcessList) AddToProcessList(pli *ProcessListItem) error {
 	}
 
 	pl.plItems[pli.Ack.Index] = pli
-	
-	
+
 	return nil
 }
 

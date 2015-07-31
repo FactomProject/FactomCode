@@ -1,8 +1,8 @@
 package consensus
 
 import (
+	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/btcd/wire"
-	"github.com/FactomProject/FactomCode/common"	
 	"sync"
 )
 
@@ -15,7 +15,7 @@ type ProcessListMgr struct {
 
 	NextDBlockHeight uint32
 	//Server Private key and Public key for milestone 1
-	serverPrivKey common.PrivateKey	
+	serverPrivKey common.PrivateKey
 
 	// Orphan process list map to hold our of order confirmation messages
 	// key: MsgAcknowledgement.MsgHash.String()
@@ -36,7 +36,6 @@ func NewProcessListMgr(height uint32, otherPLSize int, plSizeHint uint, privKey 
 
 	return plMgr
 }
-
 
 // Add a ProcessListItem into the corresponding process list
 /*func (plMgr *ProcessListMgr) AddToProcessList(plItem *ProcessListItem) error {
@@ -68,7 +67,7 @@ func (plMgr *ProcessListMgr) AddToOrphanProcessList(plItem *ProcessListItem) err
 // Add a factom transaction to the my process list
 // Each of the federated servers has one MyProcessList
 /*func (plMgr *ProcessListMgr) AddToMyProcessList(plItem *ProcessListItem, msgType byte) error {
-	
+
 	// Come up with the right process list index for the new item
 	index := uint32(len(plMgr.MyProcessList.plItems))
 	if index > 0 {
@@ -81,12 +80,12 @@ func (plMgr *ProcessListMgr) AddToOrphanProcessList(plItem *ProcessListItem) err
 		}
 	}
 	msgAck := wire.NewMsgAcknowledgement(plMgr.NextDBlockHeight, index, plItem.MsgHash, msgType)
-	
+
 	//msgAck.Affirmation = plItem.msgHash.Bytes
 	plItem.Ack = msgAck
-	
+
 	//Add the item into my process list
-	plMgr.MyProcessList.AddToProcessList(plItem)	
+	plMgr.MyProcessList.AddToProcessList(plItem)
 
 	//Broadcast the plitem into the network??
 
@@ -111,7 +110,7 @@ func (plMgr *ProcessListMgr) InitProcessListFromOrphanMap() error {
 // Create a new process list item and add it to the MyProcessList
 func (plMgr *ProcessListMgr) AddMyProcessListItem(msg wire.FtmInternalMsg, hash *wire.ShaHash, msgType byte) (ack *wire.MsgAcknowledgement, err error) {
 
-	ack = wire.NewMsgAcknowledgement(plMgr.NextDBlockHeight, uint32(plMgr.MyProcessList.nextIndex), hash, msgType) 
+	ack = wire.NewMsgAcknowledgement(plMgr.NextDBlockHeight, uint32(plMgr.MyProcessList.nextIndex), hash, msgType)
 	// Sign the ack using server private keys
 	bytes, _ := ack.GetBinaryForSignature()
 	ack.Signature = *plMgr.SignAck(bytes).Sig
@@ -128,7 +127,7 @@ func (plMgr *ProcessListMgr) AddMyProcessListItem(msg wire.FtmInternalMsg, hash 
 	return ack, nil
 }
 
-// Sign the Ack -- 
+// Sign the Ack --
 //TODO: to be moved into util package
 func (plMgr *ProcessListMgr) SignAck(bytes []byte) (sig common.Signature) {
 	sig = plMgr.serverPrivKey.Sign(bytes)
@@ -138,6 +137,6 @@ func (plMgr *ProcessListMgr) SignAck(bytes []byte) (sig common.Signature) {
 // Check if the number of process list items is exceeding the size limit
 func (plMgr *ProcessListMgr) IsMyPListExceedingLimit() bool {
 
- return (plMgr.MyProcessList.totalItems >= common.MAX_PLIST_SIZE)
+	return (plMgr.MyProcessList.totalItems >= common.MAX_PLIST_SIZE)
 
 }
