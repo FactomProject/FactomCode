@@ -18,13 +18,14 @@ var FactoidState = stateinit.NewFactoidState("/tmp/factoid_bolt.db")
 
 // factoid Chain
 type FctChain struct {
-	Printable `json:"-"`
-	ChainID   *Hash `json:"-"`
+	ChainID *Hash
 
 	NextBlock       block.IFBlock
 	NextBlockHeight uint32
 	BlockMutex      sync.Mutex
 }
+
+var _ Printable = (*FctChain)(nil)
 
 func (e *FctChain) JSONByte() ([]byte, error) {
 	return EncodeJSON(e)

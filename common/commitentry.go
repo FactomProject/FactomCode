@@ -20,9 +20,6 @@ const (
 )
 
 type CommitEntry struct {
-	Printable          `json:"-"`
-	BinaryMarshallable `json:"-"`
-
 	Version   uint8
 	MilliTime *[6]byte
 	EntryHash *Hash
@@ -30,6 +27,9 @@ type CommitEntry struct {
 	ECPubKey  *[32]byte
 	Sig       *[64]byte
 }
+
+var _ Printable = (*CommitEntry)(nil)
+var _ BinaryMarshallable = (*CommitEntry)(nil)
 
 func NewCommitEntry() *CommitEntry {
 	c := new(CommitEntry)

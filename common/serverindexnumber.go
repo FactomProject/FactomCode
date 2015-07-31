@@ -13,11 +13,11 @@ const (
 )
 
 type ServerIndexNumber struct {
-	Printable          `json:"-"`
-	BinaryMarshallable `json:"-"`
-
 	Number uint8
 }
+
+var _ Printable = (*ServerIndexNumber)(nil)
+var _ BinaryMarshallable = (*ServerIndexNumber)(nil)
 
 func NewServerIndexNumber() *ServerIndexNumber {
 	return new(ServerIndexNumber)

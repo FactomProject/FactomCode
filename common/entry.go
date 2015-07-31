@@ -15,14 +15,14 @@ import (
 // An Entry is the element which carries user data
 // https://github.com/FactomProject/FactomDocs/blob/master/factomDataStructureDetails.md#entry
 type Entry struct {
-	Printable          `json:"-"`
-	BinaryMarshallable `json:"-"`
-
 	Version uint8
 	ChainID *Hash
 	ExtIDs  [][]byte
 	Content []byte
 }
+
+var _ Printable = (*Entry)(nil)
+var _ BinaryMarshallable = (*Entry)(nil)
 
 func NewEntry() *Entry {
 	e := new(Entry)

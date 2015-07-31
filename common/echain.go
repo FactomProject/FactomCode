@@ -10,14 +10,14 @@ import (
 )
 
 type EChain struct {
-	BinaryMarshallable
-
 	ChainID         *Hash
 	FirstEntry      *Entry
 	NextBlock       *EBlock
 	NextBlockHeight uint32
 	BlockMutex      sync.Mutex
 }
+
+var _ BinaryMarshallable = (*EChain)(nil)
 
 func NewEChain() *EChain {
 	e := new(EChain)
