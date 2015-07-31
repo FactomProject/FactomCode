@@ -60,8 +60,11 @@ func main() {
 		0)
 
 	if !isCompilerVersionOK() {
-		fmt.Println("\n\n === WARNING: unsupported compiler version !!! ===\n\n")
+		for i := 0; i < 30; i++ {
+			fmt.Println("=== ERROR: unsupported compiler version !!! ===")
+		}
 		time.Sleep(time.Second)
+		os.Exit(1)
 	}
 
 	// Load configuration file and send settings to components
