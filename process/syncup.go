@@ -62,7 +62,7 @@ func processFBlock(msg *wire.MsgFBlock) error {
 		return errors.New("Server received msg:" + msg.Command())
 	}
 
-	key, _ := msg.SC.GetHash().MarshalText()
+	key, _ := msg.SC.GetHash().CustomMarshalText()
 	//Add it to mem pool before saving it in db
 	fMemPool.addBlockMsg(msg, string(key)) // stored in mem pool with the MR as the key
 
