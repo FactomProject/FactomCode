@@ -6,6 +6,7 @@ package process
 
 import (
 	"errors"
+    "encoding/hex"
 	"github.com/FactomProject/FactomCode/common"
 	cp "github.com/FactomProject/FactomCode/controlpanel"
 	"github.com/FactomProject/FactomCode/database"
@@ -62,7 +63,7 @@ func processFBlock(msg *wire.MsgFBlock) error {
 		return errors.New("Server received msg:" + msg.Command())
 	}
 
-	key, _ := msg.SC.GetHash().CustomMarshalText()
+	key := hex.EncodeToString(msg.SC.GetHash().Bytes())
 	//Add it to mem pool before saving it in db
 	fMemPool.addBlockMsg(msg, string(key)) // stored in mem pool with the MR as the key
 
