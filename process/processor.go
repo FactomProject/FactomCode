@@ -568,6 +568,12 @@ func processCommitEntry(msg *wire.MsgCommitEntry) error {
 		return fmt.Errorf("Cannot commit entry, entry has already been commited")
 	}
 
+	// deduct the entry credits from the eCreditMap
+	if eCreditMap[string(c.ECPubKey[:])] < int32(c.Credits) {
+		return fmt.Errorf("Not enough credits for CommitEntry")
+	}
+	eCreditMap[string(c.ECPubKey[:])] -= int32(c.Credits)
+
 	// add to the commitEntryMap
 	commitEntryMap[c.EntryHash.String()] = c
 
