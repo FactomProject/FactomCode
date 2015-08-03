@@ -351,7 +351,8 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		if nodeMode == common.SERVER_NODE {
 			//			util.Trace("server mode")
 			t := (msg.(*wire.MsgFactoidTX)).Transaction
-			if common.FactoidState.AddTransaction(t) == nil {
+			txnum := len(common.FactoidState.GetCurrentBlock().GetTransactions())
+			if common.FactoidState.AddTransaction(txnum,t) == nil {
 				for _, ecout := range t.GetECOutputs() {
 
 					pub := new([32]byte)
