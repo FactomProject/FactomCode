@@ -8,13 +8,13 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/FactomProject/factoid/block"
-	"github.com/FactomProject/factoid/state/stateinit"
+	"github.com/FactomProject/factoid/state"
 	"sync"
 )
 
 var _ = fmt.Println
 
-var FactoidState = stateinit.NewFactoidState("/tmp/factoid_bolt.db")
+var FactoidState state.IFactoidState 
 
 // factoid Chain
 type FctChain struct {
