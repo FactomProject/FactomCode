@@ -60,7 +60,7 @@ var page = `
         div {
             font-family: "Times New Roman", Georgia, Serif;
             font-size: 1em;
-            width: 40.3em;
+            width: 55.3em;
             padding: 8px 8px; 
             border: 2px solid #2B1B17;
             border-radius: 10px;
