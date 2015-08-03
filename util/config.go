@@ -13,7 +13,7 @@ type FactomdConfig struct {
 	App struct {
 		PortNumber              int
 		LdbPath                 string // should be removed, and default to $defaultDataDir/ldb9
-		BoltDBPath              string // should be removed, and default to $defaultDataDir/ldb9		
+		BoltDBPath              string // should be removed, 		
 		DataStorePath           string // should be removed, and default to $defaultDataDir/store
 		DirectoryBlockInSeconds int
 		NodeMode                string
