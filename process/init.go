@@ -13,8 +13,9 @@ import (
 	"github.com/FactomProject/FactomCode/factomlog"
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd/wire"
-	fct "github.com/FactomProject/factoid"
-	"github.com/davecgh/go-spew/spew"
+    fct "github.com/FactomProject/factoid"
+    "github.com/FactomProject/factoid/block"
+    "github.com/davecgh/go-spew/spew"
 	"sort"
 	"strconv"
 )
@@ -180,7 +181,8 @@ func initFctChain() {
 	//Create an empty block and append to the chain
 	if len(fBlocks) == 0 || dchain.NextDBHeight == 0 {
 		fchain.NextBlockHeight = 0
-		fchain.NextBlock = getGenesisFBlock()
+		// func GetGenesisFBlock(ftime uint64, ExRate uint64, addressCnt int, Factoids uint64 ) IFBlock {
+		fchain.NextBlock = block.GetGenesisFBlock(0, FactoshisPerCredit, 10, 200000000000)
 		fmt.Println(fchain.NextBlock)
 	} else {
 		fchain.NextBlockHeight = dchain.NextDBHeight
