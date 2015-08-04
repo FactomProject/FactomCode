@@ -13,6 +13,7 @@ type FactomdConfig struct {
 	App struct {
 		PortNumber              int
 		LdbPath                 string // should be removed, and default to $defaultDataDir/ldb9
+		BoltDBPath              string // should be removed, 		
 		DataStorePath           string // should be removed, and default to $defaultDataDir/store
 		DirectoryBlockInSeconds int
 		NodeMode                string
@@ -66,6 +67,7 @@ const defaultConfig = `
 [app]
 PortNumber				= 8088
 LdbPath					= "/tmp/ldb9"
+BoltDBPath				= "/tmp/"
 DataStorePath			= "/tmp/store/seed/"
 DirectoryBlockInSeconds	= 60
 ;---- NodeMode - FULL,SERVER,LIGHT -----
