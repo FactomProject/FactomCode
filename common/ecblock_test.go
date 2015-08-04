@@ -51,11 +51,6 @@ func TestECBlockMarshal(t *testing.T) {
 	// add the IncreaseBalance
 	ecb1.AddEntry(ib)
 
-	// add the MinuteNumber
-	min := common.NewMinuteNumber()
-	min.Number = 3
-	ecb1.AddEntry(min)
-
 	ecb2 := common.NewECBlock()
 	if p, err := ecb1.MarshalBinary(); err != nil {
 		t.Error(err)
