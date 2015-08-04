@@ -37,8 +37,8 @@ func EncodeVarInt(out *bytes.Buffer, v uint64) error {
 	start := false
 
 	if 0x8000000000000000&h != 0 { // Deal with the high bit set; Zero
-		out.WriteByte(0x81) // doesn't need this, only when set.
-		start = true        // Going the whole 10 byte path!
+		out.WriteByte(0x81)        // doesn't need this, only when set.
+		start = true               // Going the whole 10 byte path!
 	}
 
 	for i := 0; i < 9; i++ {
