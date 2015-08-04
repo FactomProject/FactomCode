@@ -6,7 +6,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/FactomProject/FactomCode/common"
 	cp "github.com/FactomProject/FactomCode/controlpanel"
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/database/ldb"
@@ -121,7 +120,7 @@ func factomdMain() error {
 	}
 
 	// Start the factoid (btcd) component and P2P component
-	btcd.Start_btcd(db, inMsgQueue, outMsgQueue, inCtlMsgQueue, outCtlMsgQueue, process.FactomdUser, process.FactomdPass, common.SERVER_NODE != cfg.App.NodeMode)
+	btcd.Start_btcd(db, inMsgQueue, outMsgQueue, inCtlMsgQueue, outCtlMsgQueue, process.FactomdUser, process.FactomdPass)
 
 	return nil
 }
