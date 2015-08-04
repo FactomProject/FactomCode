@@ -40,7 +40,7 @@ func NewECBlock() *ECBlock {
 func NextECBlock(prev *ECBlock) *ECBlock {
 	e := NewECBlock()
 	e.Header.PrevHeaderHash = prev.HeaderHash()
-	e.Header.PrevFullHash = prev.Hash()
+	e.Header.PrevLedgerKeyMR = prev.Hash()
 	e.Header.DBHeight = prev.Header.DBHeight + 1
 	return e
 }
@@ -151,7 +151,7 @@ func (e *ECBlock) marshalHeaderBinary() ([]byte, error) {
 	buf.Write(e.Header.PrevHeaderHash.Bytes())
 
 	// 32 byte Previous Full Hash
-	buf.Write(e.Header.PrevFullHash.Bytes())
+	buf.Write(e.Header.PrevLedgerKeyMR.Bytes())
 
 	// 4 byte Directory Block Height
 	if err := binary.Write(buf, binary.BigEndian, e.Header.DBHeight); err != nil {
@@ -288,7 +288,7 @@ func (e *ECBlock) unmarshalHeaderBinaryData(data []byte) (newData []byte, err er
 	if _, err = buf.Read(hash); err != nil {
 		return
 	} else {
-		e.Header.PrevFullHash.SetBytes(hash)
+		e.Header.PrevLedgerKeyMR.SetBytes(hash)
 	}
 
 	if err = binary.Read(buf, binary.BigEndian, &e.Header.DBHeight); err != nil {
@@ -377,7 +377,7 @@ type ECBlockHeader struct {
 	ECChainID           *Hash
 	BodyHash            *Hash
 	PrevHeaderHash      *Hash
-	PrevFullHash        *Hash
+	PrevLedgerKeyMR        *Hash
 	DBHeight            uint32
 	HeaderExpansionArea []byte
 	ObjectCount         uint64
@@ -390,7 +390,7 @@ func NewECBlockHeader() *ECBlockHeader {
 	h.ECChainID.SetBytes(EC_CHAINID)
 	h.BodyHash = NewHash()
 	h.PrevHeaderHash = NewHash()
-	h.PrevFullHash = NewHash()
+	h.PrevLedgerKeyMR = NewHash()
 	h.HeaderExpansionArea = make([]byte, 0)
 	return h
 }

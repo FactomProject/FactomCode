@@ -984,7 +984,7 @@ func newAdminBlock(chain *common.AdminChain) *common.AdminBlock {
 	if err != nil {
 		panic(err)
 	}
-	_, err = block.FullHash()
+	_, err = block.LedgerKeyMR()
 	if err != nil {
 		panic(err)
 	}

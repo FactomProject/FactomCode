@@ -132,7 +132,7 @@ type DBlockHeader struct {
 
 	BodyMR       *Hash
 	PrevKeyMR    *Hash
-	PrevFullHash *Hash
+	PrevLedgerKeyMR *Hash
 
 	Timestamp  uint32
 	DBHeight   uint32
@@ -143,7 +143,7 @@ func NewDBlockHeader() *DBlockHeader {
 	d := new(DBlockHeader)
 	d.BodyMR = NewHash()
 	d.PrevKeyMR = NewHash()
-	d.PrevFullHash = NewHash()
+	d.PrevLedgerKeyMR = NewHash()
 
 	return d
 }
@@ -298,7 +298,7 @@ func (b *DBlockHeader) EncodableFields() map[string]reflect.Value {
 		`DBHeight`:     reflect.ValueOf(b.DBHeight),
 		`BlockCount`:   reflect.ValueOf(b.BlockCount),
 		`BodyMR`:       reflect.ValueOf(b.BodyMR),
-		`PrevFullHash`: reflect.ValueOf(b.PrevFullHash),
+		`PrevLedgerKeyMR`: reflect.ValueOf(b.PrevLedgerKeyMR),
 	}
 	return fields
 }
@@ -325,7 +325,7 @@ func (b *DBlockHeader) MarshalBinary() (data []byte, err error) {
 	}
 	buf.Write(data)
 
-	data, err = b.PrevFullHash.MarshalBinary()
+	data, err = b.PrevLedgerKeyMR.MarshalBinary()
 	if err != nil {
 		return
 	}
@@ -377,8 +377,8 @@ func (b *DBlockHeader) UnmarshalBinaryData(data []byte) (newData []byte, err err
 		return
 	}
 
-	b.PrevFullHash = new(Hash)
-	newData, err = b.PrevFullHash.UnmarshalBinaryData(newData)
+	b.PrevLedgerKeyMR = new(Hash)
+	newData, err = b.PrevLedgerKeyMR.UnmarshalBinaryData(newData)
 	if err != nil {
 		return
 	}
@@ -408,10 +408,10 @@ func CreateDBlock(chain *DChain, prev *DirectoryBlock, cap uint) (b *DirectoryBl
 	b.Header.Version = VERSION_0
 
 	if prev == nil {
-		b.Header.PrevFullHash = NewHash()
+		b.Header.PrevLedgerKeyMR = NewHash()
 		b.Header.PrevKeyMR = NewHash()
 	} else {
-		b.Header.PrevFullHash, err = CreateHash(prev)
+		b.Header.PrevLedgerKeyMR, err = CreateHash(prev)
 		if prev.KeyMR == nil {
 			prev.BuildKeyMerkleRoot()
 		}

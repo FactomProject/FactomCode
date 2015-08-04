@@ -25,7 +25,7 @@ type EBlock struct {
 }
 
 // MakeEBlock creates a new Entry Block belonging to the provieded Entry Chain.
-// Its PrevKeyMR and PrevFullHash are populated by the provided previous Entry
+// Its PrevKeyMR and PrevLedgerKeyMR are populated by the provided previous Entry
 // Block. If The previous Entry Block is nil (the new Entry Block is first in
 // the Chain) the relevent Entry Block Header fields will contain zeroed Hashes.
 func MakeEBlock(echain *EChain, prev *EBlock) *EBlock {
@@ -33,7 +33,7 @@ func MakeEBlock(echain *EChain, prev *EBlock) *EBlock {
 	e.Header.ChainID = echain.ChainID
 	if prev != nil {
 		e.Header.PrevKeyMR = prev.KeyMR()
-		e.Header.PrevFullHash = prev.Hash()
+		e.Header.PrevLedgerKeyMR = prev.Hash()
 	}
 	e.Header.EBSequence = echain.NextBlockHeight
 	return e
@@ -76,7 +76,7 @@ func (e *EBlock) BuildHeader() error {
 }
 
 // Hash returns the simple Sha256 hash of the serialized Entry Block. Hash is
-// used to provide the PrevFullHash to the next Entry Block in a Chain.
+// used to provide the PrevLedgerKeyMR to the next Entry Block in a Chain.
 func (e *EBlock) Hash() *Hash {
 	p, err := e.MarshalBinary()
 	if err != nil {
@@ -170,7 +170,7 @@ func (e *EBlock) marshalHeaderBinary() ([]byte, error) {
 	buf.Write(e.Header.PrevKeyMR.Bytes())
 
 	// 32 byte Previous Full Hash
-	buf.Write(e.Header.PrevFullHash.Bytes())
+	buf.Write(e.Header.PrevLedgerKeyMR.Bytes())
 
 	if err := binary.Write(buf, binary.BigEndian, e.Header.EBSequence); err != nil {
 		return buf.Bytes(), err
@@ -238,7 +238,7 @@ func (e *EBlock) unmarshalHeaderBinaryData(data []byte) (newData []byte, err err
 	if _, err = buf.Read(hash); err != nil {
 		return
 	} else {
-		e.Header.PrevFullHash.SetBytes(hash)
+		e.Header.PrevLedgerKeyMR.SetBytes(hash)
 	}
 
 	if err = binary.Read(buf, binary.BigEndian, &e.Header.EBSequence); err != nil {
@@ -323,7 +323,7 @@ type EBlockHeader struct {
 	ChainID      *Hash
 	BodyMR       *Hash
 	PrevKeyMR    *Hash
-	PrevFullHash *Hash
+	PrevLedgerKeyMR *Hash
 	EBSequence   uint32
 	DBHeight     uint32
 	EntryCount   uint32
@@ -335,7 +335,7 @@ func NewEBlockHeader() *EBlockHeader {
 	e.ChainID = NewHash()
 	e.BodyMR = NewHash()
 	e.PrevKeyMR = NewHash()
-	e.PrevFullHash = NewHash()
+	e.PrevLedgerKeyMR = NewHash()
 	return e
 }
 

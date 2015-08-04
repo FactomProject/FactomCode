@@ -42,7 +42,7 @@ type AdminBlock struct {
 	partialHash *Hash //SHA256
 }
 
-func (ab *AdminBlock) FullHash() (*Hash, error) {
+func (ab *AdminBlock) LedgerKeyMR() (*Hash, error) {
 	if ab.fullHash == nil {
 		err := ab.buildFullBHash()
 		if err != nil {
@@ -76,9 +76,9 @@ func CreateAdminBlock(chain *AdminChain, prev *AdminBlock, cap uint) (b *AdminBl
 	b.Header.AdminChainID = chain.ChainID
 
 	if prev == nil {
-		b.Header.PrevFullHash = NewHash()
+		b.Header.PrevLedgerKeyMR = NewHash()
 	} else {
-		b.Header.PrevFullHash, err = prev.FullHash()
+		b.Header.PrevLedgerKeyMR, err = prev.LedgerKeyMR()
 		if err != nil {
 			return
 		}
@@ -225,7 +225,7 @@ type ABlockHeader struct {
 	BinaryMarshallable `json:"-"`
 
 	AdminChainID *Hash
-	PrevFullHash *Hash
+	PrevLedgerKeyMR *Hash
 	DBHeight     uint32
 
 	HeaderExpansionSize uint64
@@ -245,7 +245,7 @@ func (b *ABlockHeader) MarshalBinary() (data []byte, err error) {
 	}
 	buf.Write(data)
 
-	data, err = b.PrevFullHash.MarshalBinary()
+	data, err = b.PrevLedgerKeyMR.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
@@ -266,7 +266,7 @@ func (b *ABlockHeader) MarshalledSize() uint64 {
 	var size uint64 = 0
 
 	size += uint64(HASH_LENGTH)                         //AdminChainID
-	size += uint64(HASH_LENGTH)                         //PrevFullHash
+	size += uint64(HASH_LENGTH)                         //PrevLedgerKeyMR
 	size += 4                                           //DBHeight
 	size += uint64(VarIntLength(b.HeaderExpansionSize)) //HeaderExpansionSize
 	size += b.HeaderExpansionSize                       //HeadderExpansionArea
@@ -289,8 +289,8 @@ func (b *ABlockHeader) UnmarshalBinaryData(data []byte) (newData []byte, err err
 		return
 	}
 
-	b.PrevFullHash = new(Hash)
-	newData, err = b.PrevFullHash.UnmarshalBinaryData(newData)
+	b.PrevLedgerKeyMR = new(Hash)
+	newData, err = b.PrevLedgerKeyMR.UnmarshalBinaryData(newData)
 	if err != nil {
 		return
 	}

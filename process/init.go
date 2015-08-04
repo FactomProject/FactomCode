@@ -60,7 +60,7 @@ func initDChain() {
 		dchain.NextDBHeight = uint32(len(dchain.Blocks))
 		dchain.NextBlock, _ = common.CreateDBlock(dchain, dchain.Blocks[len(dchain.Blocks)-1], 10)
 		// Update dir block height cache in db
-		db.UpdateBlockHeightCache(dchain.NextDBHeight-1, dchain.NextBlock.Header.PrevFullHash)
+		db.UpdateBlockHeightCache(dchain.NextDBHeight-1, dchain.NextBlock.Header.PrevLedgerKeyMR)
 	}
 
 	exportDChain(dchain)
@@ -326,7 +326,7 @@ func validateDChain(c *common.DChain) error {
 	}
 
 	for i := 1; i < len(c.Blocks); i++ {
-		if !prevBlkHash.IsSameAs(c.Blocks[i].Header.PrevFullHash) {
+		if !prevBlkHash.IsSameAs(c.Blocks[i].Header.PrevLedgerKeyMR) {
 			return errors.New("Previous block hash not matching for Dir block: " + strconv.Itoa(i))
 		}
 		if !prevMR.IsSameAs(c.Blocks[i].Header.PrevKeyMR) {
