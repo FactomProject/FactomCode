@@ -265,13 +265,13 @@ func (b *ABlockHeader) MarshalBinary() (data []byte, err error) {
 func (b *ABlockHeader) MarshalledSize() uint64 {
 	var size uint64 = 0
 
-	size += uint64(HASH_LENGTH)                         //AdminChainID
-	size += uint64(HASH_LENGTH)                         //PrevLedgerKeyMR
-	size += 4                                           //DBHeight
-	size += uint64(VarIntLength(b.HeaderExpansionSize)) //HeaderExpansionSize
-	size += b.HeaderExpansionSize                       //HeadderExpansionArea
-	size += 4                                           //MessageCount
-	size += 4                                           //BodySize
+	size += uint64(HASH_LENGTH)                 //AdminChainID
+	size += uint64(HASH_LENGTH)                 //PrevFullHash
+	size += 4                                   //DBHeight
+	size += VarIntLength(b.HeaderExpansionSize) //HeaderExpansionSize
+	size += b.HeaderExpansionSize               //HeadderExpansionArea
+	size += 4                                   //MessageCount
+	size += 4                                   //BodySize
 
 	return size
 }

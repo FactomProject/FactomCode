@@ -159,7 +159,7 @@ func (e *ECBlock) marshalHeaderBinary() ([]byte, error) {
 	}
 
 	// variable Header Expansion Size
-	if _, err := WriteVarInt(buf,
+	if err := EncodeVarInt(buf,
 		uint64(len(e.Header.HeaderExpansionArea))); err != nil {
 		return buf.Bytes(), err
 	}
@@ -296,7 +296,8 @@ func (e *ECBlock) unmarshalHeaderBinaryData(data []byte) (newData []byte, err er
 	}
 
 	// read the Header Expansion Area
-	hesize := ReadVarInt(buf)
+	hesize, tmp := DecodeVarInt(buf.Bytes())
+	buf = bytes.NewBuffer(tmp)
 	e.Header.HeaderExpansionArea = make([]byte, hesize)
 	if _, err = buf.Read(e.Header.HeaderExpansionArea); err != nil {
 		return
