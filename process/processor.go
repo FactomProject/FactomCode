@@ -66,6 +66,8 @@ var (
 
 	FactomdUser string
 	FactomdPass string
+	
+	zeroHash = common.NewHash()
 )
 
 var (
@@ -158,6 +160,7 @@ func initProcessor() {
 			dchain.IsValidated = false
 		}
 	}
+	
 }
 
 // Started from factomd
@@ -473,6 +476,12 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 	e := msg.Entry
 	bin, _ := e.MarshalBinary()
 	h, _ := wire.NewShaHash(e.Hash().Bytes())
+	
+	// Check if the chain id is valid
+	if e.ChainID.IsSameAs(zeroHash) || e.ChainID.IsSameAs(dchain.ChainID) || e.ChainID.IsSameAs(achain.ChainID) || 
+		e.ChainID.IsSameAs(ecchain.ChainID) || e.ChainID.IsSameAs(fchain.ChainID) {
+			return fmt.Errorf("This entry chain is not supported: %s", e.ChainID.String())		
+	}
 
 	if c, ok := commitEntryMap[e.Hash().String()]; ok {
 		if chainIDMap[e.ChainID.String()] == nil {
