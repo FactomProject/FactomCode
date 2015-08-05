@@ -20,8 +20,7 @@ var _ Printable = (*MinuteNumber)(nil)
 var _ BinaryMarshallable = (*MinuteNumber)(nil)
 
 func (c *MinuteNumber) MarshalledSize() uint64 {
-	panic("Function not implemented")
-	return 0
+	return uint64(MinuteNumberSize)
 }
 
 func NewMinuteNumber() *MinuteNumber {

@@ -25,8 +25,7 @@ var _ Printable = (*EBlock)(nil)
 var _ BinaryMarshallable = (*EBlock)(nil)
 
 func (c *EBlock) MarshalledSize() uint64 {
-	panic("Function not implemented")
-	return 0
+	return uint64(EBHeaderSize)
 }
 
 // MakeEBlock creates a new Entry Block belonging to the provieded Entry Chain.

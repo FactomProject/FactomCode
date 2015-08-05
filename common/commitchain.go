@@ -34,8 +34,7 @@ var _ Printable = (*CommitChain)(nil)
 var _ BinaryMarshallable = (*CommitChain)(nil)
 
 func (c *CommitChain) MarshalledSize() uint64 {
-	panic("Function not implemented")
-	return 0
+	return uint64(CommitChainSize)
 }
 
 func NewCommitChain() *CommitChain {

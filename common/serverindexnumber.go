@@ -20,8 +20,7 @@ var _ Printable = (*ServerIndexNumber)(nil)
 var _ BinaryMarshallable = (*ServerIndexNumber)(nil)
 
 func (c *ServerIndexNumber) MarshalledSize() uint64 {
-	panic("Function not implemented")
-	return 0
+	return uint64(ServerIndexNumberSize)
 }
 
 func NewServerIndexNumber() *ServerIndexNumber {
