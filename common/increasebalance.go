@@ -11,14 +11,20 @@ import (
 var IncreaseBalanceSize int = 32 + 4 + 32
 
 type IncreaseBalance struct {
-	Printable          `json:"-"`
-	BinaryMarshallable `json:"-"`
 	ECBlockEntry
 
 	ECPubKey *[32]byte
 	TXID     *Hash
 	Index    uint64
 	NumEC    uint64
+}
+
+var _ Printable = (*IncreaseBalance)(nil)
+var _ BinaryMarshallable = (*IncreaseBalance)(nil)
+
+func (c *IncreaseBalance) MarshalledSize() uint64 {
+	panic("Function not implemented")
+	return 0
 }
 
 func MakeIncreaseBalance(pubkey *[32]byte, facTX *Hash, credits int32) *IncreaseBalance {

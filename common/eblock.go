@@ -17,11 +17,16 @@ const (
 // Root is written into the Directory Blocks. Each Entry Block represents all
 // of the entries for a paticular Chain during a 10 minute period.
 type EBlock struct {
-	Printable          `json:"-"`
-	BinaryMarshallable `json:"-"`
-
 	Header *EBlockHeader
 	Body   *EBlockBody
+}
+
+var _ Printable = (*EBlock)(nil)
+var _ BinaryMarshallable = (*EBlock)(nil)
+
+func (c *EBlock) MarshalledSize() uint64 {
+	panic("Function not implemented")
+	return 0
 }
 
 // MakeEBlock creates a new Entry Block belonging to the provieded Entry Chain.
@@ -281,10 +286,10 @@ func (e *EBlock) Spew() string {
 
 // EBlockBody is the series of Hashes that form the Entry Block Body.
 type EBlockBody struct {
-	Printable `json:"-"`
-
 	EBEntries []*Hash
 }
+
+var _ Printable = (*EBlockBody)(nil)
 
 // NewEBlockBody initalizes an empty Entry Block Body.
 func NewEBlockBody() *EBlockBody {
@@ -328,6 +333,8 @@ type EBlockHeader struct {
 	DBHeight     uint32
 	EntryCount   uint32
 }
+
+var _ Printable = (*EBlockHeader)(nil)
 
 // NewEBlockHeader initializes a new empty Entry Block Header.
 func NewEBlockHeader() *EBlockHeader {

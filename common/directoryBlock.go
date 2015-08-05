@@ -34,9 +34,6 @@ func NewDChain() *DChain {
 }
 
 type DirectoryBlock struct {
-	Printable          `json:"-"`
-	BinaryMarshallable `json:"-"`
-
 	//Marshalized
 	Header    *DBlockHeader
 	DBEntries []*DBEntry
@@ -48,6 +45,14 @@ type DirectoryBlock struct {
 	KeyMR       *Hash
 	IsSavedInDB bool
 	IsValidated bool
+}
+
+var _ Printable = (*DirectoryBlock)(nil)
+var _ BinaryMarshallable = (*DirectoryBlock)(nil)
+
+func (c *DirectoryBlock) MarshalledSize() uint64 {
+	panic("Function not implemented")
+	return 0
 }
 
 func NewDirectoryBlock() *DirectoryBlock {
@@ -82,8 +87,6 @@ func (e *DirectoryBlock) Spew() string {
 }
 
 type DirBlockInfo struct {
-	Printable `json:"-"`
-
 	// Serial hash for the directory block
 	DBHash *Hash
 
@@ -107,6 +110,8 @@ type DirBlockInfo struct {
 	BTCConfirmed bool
 }
 
+var _ Printable = (*DirBlockInfo)(nil)
+
 func (e *DirBlockInfo) JSONByte() ([]byte, error) {
 	return EncodeJSON(e)
 }
@@ -124,9 +129,6 @@ func (e *DirBlockInfo) Spew() string {
 }
 
 type DBlockHeader struct {
-	Printable          `json:"-"`
-	BinaryMarshallable `json:"-"`
-
 	Version   byte
 	NetworkID uint32
 
@@ -138,6 +140,9 @@ type DBlockHeader struct {
 	DBHeight   uint32
 	BlockCount uint32
 }
+
+var _ Printable = (*DBlockHeader)(nil)
+var _ BinaryMarshallable = (*DBlockHeader)(nil)
 
 func NewDBlockHeader() *DBlockHeader {
 	d := new(DBlockHeader)
@@ -165,11 +170,16 @@ func (e *DBlockHeader) Spew() string {
 }
 
 type DBEntry struct {
-	Printable          `json:"-"`
-	BinaryMarshallable `json:"-"`
-
 	ChainID *Hash
 	KeyMR   *Hash // Different MR in EBlockHeader
+}
+
+var _ Printable = (*DBEntry)(nil)
+var _ BinaryMarshallable = (*DBEntry)(nil)
+
+func (c *DBEntry) MarshalledSize() uint64 {
+	panic("Function not implemented")
+	return 0
 }
 
 func NewDBEntry(eb *EBlock) *DBEntry {

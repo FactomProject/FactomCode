@@ -10,13 +10,18 @@ import (
 )
 
 type EChain struct {
-	BinaryMarshallable
-
 	ChainID         *Hash
 	FirstEntry      *Entry
 	NextBlock       *EBlock
 	NextBlockHeight uint32
 	BlockMutex      sync.Mutex
+}
+
+var _ BinaryMarshallable = (*EChain)(nil)
+
+func (c *EChain) MarshalledSize() uint64 {
+	panic("Function not implemented")
+	return 0
 }
 
 func NewEChain() *EChain {
