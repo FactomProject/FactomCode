@@ -32,15 +32,22 @@ func (c *EBlock) MarshalledSize() uint64 {
 // Its PrevKeyMR and PrevLedgerKeyMR are populated by the provided previous Entry
 // Block. If The previous Entry Block is nil (the new Entry Block is first in
 // the Chain) the relevent Entry Block Header fields will contain zeroed Hashes.
-func MakeEBlock(echain *EChain, prev *EBlock) *EBlock {
+func MakeEBlock(echain *EChain, prev *EBlock) (*EBlock, error) {
 	e := NewEBlock()
 	e.Header.ChainID = echain.ChainID
 	if prev != nil {
-		e.Header.PrevKeyMR = prev.KeyMR()
-		e.Header.PrevLedgerKeyMR = prev.Hash()
+		var err error
+		e.Header.PrevKeyMR, err = prev.KeyMR()
+		if err!=nil {
+			return nil, err
+		}
+		e.Header.PrevLedgerKeyMR, err = prev.Hash()
+		if err!=nil {
+			return nil, err
+		}
 	}
 	e.Header.EBSequence = echain.NextBlockHeight
-	return e
+	return e, nil
 }
 
 // NewEBlock returns a blank initialized Entry Block with all of its fields
@@ -81,27 +88,27 @@ func (e *EBlock) BuildHeader() error {
 
 // Hash returns the simple Sha256 hash of the serialized Entry Block. Hash is
 // used to provide the PrevLedgerKeyMR to the next Entry Block in a Chain.
-func (e *EBlock) Hash() *Hash {
+func (e *EBlock) Hash() (*Hash, error) {
 	p, err := e.MarshalBinary()
 	if err != nil {
-		return NewHash()
+		return nil, err
 	}
-	return Sha(p)
+	return Sha(p), nil
 }
 
 // KeyMR returns the hash of the hash of the Entry Block Header concatinated
 // with the Merkle Root of the Entry Block Body. The Body Merkle Root is
 // calculated by the func (e *EBlockBody) MR() which is called by the func
 // (e *EBlock) BuildHeader().
-func (e *EBlock) KeyMR() *Hash {
+func (e *EBlock) KeyMR() (*Hash, error) {
 	// Sha(Sha(header) + BodyMR)
 	e.BuildHeader()
 	header, err := e.marshalHeaderBinary()
 	if err != nil {
-		return NewHash()
+		return nil, err
 	}
 	h := Sha(header)
-	return Sha(append(h.Bytes(), e.Header.BodyMR.Bytes()...))
+	return Sha(append(h.Bytes(), e.Header.BodyMR.Bytes()...)), nil
 }
 
 // MarshalBinary returns the serialized binary form of the Entry Block.

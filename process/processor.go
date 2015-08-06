@@ -949,7 +949,12 @@ func newEntryBlock(chain *common.EChain) *common.EBlock {
 	block.Header.EntryCount = uint32(len(block.Body.EBEntries))
 
 	chain.NextBlockHeight++
-	chain.NextBlock = common.MakeEBlock(chain, block)
+	var err error
+	chain.NextBlock, err = common.MakeEBlock(chain, block)
+	if err!=nil {
+		procLog.Debug("EntryBlock Error: " + err.Error())
+		return nil
+	}
 
 	//Store the block in db
 	db.ProcessEBlockBatch(block)
@@ -972,7 +977,12 @@ func newEntryCreditBlock(chain *common.ECChain) *common.ECBlock {
 	// Create the block and add a new block for new coming entries
 	chain.BlockMutex.Lock()
 	chain.NextBlockHeight++
-	chain.NextBlock = common.NextECBlock(block)
+	var err error
+	chain.NextBlock, err = common.NextECBlock(block)
+	if err!=nil {
+		procLog.Debug("EntryCreditBlock Error: " + err.Error())
+		return nil
+	}
 	chain.NextBlock.AddEntry(serverIndex)
 	chain.BlockMutex.Unlock()
 

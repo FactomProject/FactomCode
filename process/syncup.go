@@ -104,7 +104,11 @@ func procesECBlock(msg *wire.MsgECBlock) error {
 	}
 
 	//Add it to mem pool before saving it in db
-	fMemPool.addBlockMsg(msg, msg.ECBlock.HeaderHash().String())
+	hash, err:=msg.ECBlock.HeaderHash()
+	if err!=nil {
+		return err
+	}
+	fMemPool.addBlockMsg(msg, hash.String())
 
 	procLog.Debug("SyncUp: MsgCBlock DBHeight=", msg.ECBlock.Header.DBHeight)
 
@@ -125,7 +129,11 @@ func processEBlock(msg *wire.MsgEBlock) error {
 		}
 	*/
 	//Add it to mem pool before saving it in db
-	fMemPool.addBlockMsg(msg, msg.EBlk.KeyMR().String()) // store it in mem pool with MR as the key
+	keyMR, err:=msg.EBlk.KeyMR()
+	if err!=nil{
+		return err
+	}
+	fMemPool.addBlockMsg(msg, keyMR.String()) // store it in mem pool with MR as the key
 
 	procLog.Debug("SyncUp: MsgEBlock DBHeight=", msg.EBlk.Header.DBHeight)
 

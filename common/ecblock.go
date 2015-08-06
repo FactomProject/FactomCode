@@ -42,32 +42,39 @@ func NewECBlock() *ECBlock {
 	return e
 }
 
-func NextECBlock(prev *ECBlock) *ECBlock {
+func NextECBlock(prev *ECBlock) (*ECBlock, error) {
 	e := NewECBlock()
-	e.Header.PrevHeaderHash = prev.HeaderHash()
-	e.Header.PrevLedgerKeyMR = prev.Hash()
+	var err error
+	e.Header.PrevHeaderHash, err = prev.HeaderHash()
+	if err!=nil {
+		return nil, err
+	}
+	e.Header.PrevLedgerKeyMR, err = prev.Hash()
+	if err!=nil {
+		return nil, err
+	}
 	e.Header.DBHeight = prev.Header.DBHeight + 1
-	return e
+	return e, nil
 }
 
 func (e *ECBlock) AddEntry(entries ...ECBlockEntry) {
 	e.Body.Entries = append(e.Body.Entries, entries...)
 }
 
-func (e *ECBlock) Hash() *Hash {
+func (e *ECBlock) Hash() (*Hash, error) {
 	p, err := e.MarshalBinary()
 	if err != nil {
-		return NewHash()
+		return nil, err
 	}
-	return Sha(p)
+	return Sha(p), nil
 }
 
-func (e *ECBlock) HeaderHash() *Hash {
+func (e *ECBlock) HeaderHash() (*Hash, error) {
 	p, err := e.marshalHeaderBinary()
 	if err != nil {
-		return NewHash()
+		return nil, err
 	}
-	return Sha(p)
+	return Sha(p), nil
 }
 
 func (e *ECBlock) MarshalBinary() ([]byte, error) {

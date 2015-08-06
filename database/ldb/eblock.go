@@ -30,13 +30,28 @@ func (db *LevelDb) ProcessEBlockBatch(eblock *common.EBlock) error {
 
 		// Insert the binary entry block
 		var key []byte = []byte{byte(TBL_EB)}
-		key = append(key, eblock.Hash().Bytes()...)
+		hash, err:=eblock.Hash()
+		if err!=nil {
+			return err
+		}
+		key = append(key, hash.Bytes()...)
 		db.lbatch.Put(key, binaryEblock)
 
 		// Insert the entry block merkle root cross reference
 		key = []byte{byte(TBL_EB_MR)}
-		key = append(key, eblock.KeyMR().Bytes()...)
-		binaryEBHash, _ := eblock.Hash().MarshalBinary()
+		keyMR, err:=eblock.KeyMR()
+		if err!=nil {
+			return err
+		}
+		key = append(key, keyMR.Bytes()...)
+		eBlockHash, err := eblock.Hash()
+		if err!=nil {
+			return err
+		}
+		binaryEBHash, err := eBlockHash.MarshalBinary()
+		if err!=nil {
+			return err
+		}
 		db.lbatch.Put(key, binaryEBHash)
 
 		// Insert the entry block number cross reference
@@ -50,7 +65,11 @@ func (db *LevelDb) ProcessEBlockBatch(eblock *common.EBlock) error {
 		// Update the chain head reference
 		key = []byte{byte(TBL_CHAIN_HEAD)}
 		key = append(key, eblock.Header.ChainID.Bytes()...)
-		db.lbatch.Put(key, eblock.KeyMR().Bytes())
+		keyMR, err = eblock.KeyMR()
+		if err!=nil {
+			return err
+		}
+		db.lbatch.Put(key, keyMR.Bytes())
 
 		err = db.lDb.Write(db.lbatch, db.wo)
 		if err != nil {

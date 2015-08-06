@@ -100,7 +100,11 @@ func initECChain() {
 	} else {
 		// Entry Credit Chain should have the same height as the dir chain
 		ecchain.NextBlockHeight = dchain.NextDBHeight
-		ecchain.NextBlock = common.NextECBlock(&ecBlocks[ecchain.NextBlockHeight-1])
+		var err error
+		ecchain.NextBlock, err = common.NextECBlock(&ecBlocks[ecchain.NextBlockHeight-1])
+		if err!=nil {
+			panic(err)
+		}
 	}
 
 	// create a backup copy before processing entries
@@ -270,12 +274,19 @@ func initEChainFromDB(chain *common.EChain) {
 		}
 	}
 
+	var err error
 	if len(*eBlocks) == 0 {
 		chain.NextBlockHeight = 0
-		chain.NextBlock = common.MakeEBlock(chain, nil)
+		chain.NextBlock, err = common.MakeEBlock(chain, nil)
+		if err!=nil {
+			panic(err)
+		}
 	} else {
 		chain.NextBlockHeight = uint32(len(*eBlocks))
-		chain.NextBlock = common.MakeEBlock(chain, &(*eBlocks)[len(*eBlocks)-1])
+		chain.NextBlock, err = common.MakeEBlock(chain, &(*eBlocks)[len(*eBlocks)-1])
+		if err!=nil {
+			panic(err)
+		}
 	}
 
 	// Initialize chain with the first entry (Name and rules) for non-server mode
@@ -425,13 +436,19 @@ func validateFBlockByMR(mr *common.Hash) error {
 // Validate Entry Block by merkle root
 func validateEBlockByMR(cid *common.Hash, mr *common.Hash) error {
 
-	eb, _ := db.FetchEBlockByMR(mr)
+	eb, err := db.FetchEBlockByMR(mr)
+	if err!=nil {
+		return err
+	}
 
 	if eb == nil {
 		return errors.New("Entry block not found in db for merkle root: " + mr.String())
 	}
-
-	if !mr.IsSameAs(eb.KeyMR()) {
+	keyMR, err:=eb.KeyMR()
+	if err!=nil {
+		return err
+	}
+	if !mr.IsSameAs(keyMR) {
 		return errors.New("Entry block's merkle root does not match with: " + mr.String())
 	}
 

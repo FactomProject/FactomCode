@@ -182,22 +182,30 @@ func (c *DBEntry) MarshalledSize() uint64 {
 	return 0
 }
 
-func NewDBEntry(eb *EBlock) *DBEntry {
+func NewDBEntry(eb *EBlock) (*DBEntry, error) {
 	e := new(DBEntry)
 
 	e.ChainID = eb.Header.ChainID
-	e.KeyMR = eb.KeyMR()
+	var err error
+	e.KeyMR, err = eb.KeyMR()
+	if err!=nil {
+		return nil, err
+	}
 
-	return e
+	return e, nil
 }
 
-func NewDBEntryFromECBlock(cb *ECBlock) *DBEntry {
+func NewDBEntryFromECBlock(cb *ECBlock) (*DBEntry, error) {
 	e := &DBEntry{}
 
 	e.ChainID = cb.Header.ECChainID
-	e.KeyMR = cb.HeaderHash()
+	var err error
+	e.KeyMR, err = cb.HeaderHash()
+	if err!=nil {
+		return nil, err
+	}
 
-	return e
+	return e, nil
 }
 
 func NewDBEntryFromABlock(b *AdminBlock) *DBEntry {
@@ -439,7 +447,10 @@ func CreateDBlock(chain *DChain, prev *DirectoryBlock, cap uint) (b *DirectoryBl
 // Add DBEntry from an Entry Block
 func (c *DChain) AddEBlockToDBEntry(eb *EBlock) (err error) {
 
-	dbEntry := NewDBEntry(eb)
+	dbEntry, err := NewDBEntry(eb)
+	if err!=nil {
+		return err
+	}
 	c.BlockMutex.Lock()
 	c.NextBlock.DBEntries = append(c.NextBlock.DBEntries, dbEntry)
 	c.BlockMutex.Unlock()
@@ -450,7 +461,10 @@ func (c *DChain) AddEBlockToDBEntry(eb *EBlock) (err error) {
 // Add DBEntry from an Entry Credit Block
 func (c *DChain) AddECBlockToDBEntry(ecb *ECBlock) (err error) {
 
-	dbEntry := NewDBEntryFromECBlock(ecb)
+	dbEntry, err := NewDBEntryFromECBlock(ecb)
+	if err!=nil {
+		return err
+	}
 
 	if len(c.NextBlock.DBEntries) < 3 {
 		panic("1 DBEntries not initialized properly for block: " + string(c.NextDBHeight))
