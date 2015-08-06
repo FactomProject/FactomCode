@@ -436,7 +436,7 @@ func validateFBlockByMR(mr *common.Hash) error {
 
 	// check that we used the KeyMR to store the block...
 	if !bytes.Equal(b.GetKeyMR().Bytes(), mr.Bytes()) {
-        return errors.New("blk: "+string(b.GetDBHeight())+" The hash of the Factoid block doesn't match the hash expected:"+ mr.String())
+        return errors.New(fmt.Sprint("blk: ", b.GetDBHeight(), " The hash of the Factoid block doesn't match the hash expected:"+ mr.String()))
     }
     
 	return nil
