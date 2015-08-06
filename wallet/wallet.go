@@ -17,7 +17,8 @@ var (
 	keyManager KeyManager
 )
 
-func init() {
+func OLD_init() {
+	fmt.Println("4444")
 	util.Trace()
 	loadConfigurations()
 	loadKeys()
