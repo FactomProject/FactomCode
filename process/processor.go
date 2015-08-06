@@ -111,7 +111,7 @@ func initProcessor() {
 	wire.FChainID = common.NewHash()
 	wire.FChainID.SetBytes(common.FACTOID_CHAINID)
 
-	FactoshisPerCredit = 66666 // .001 / .15 * 100000000 (assuming a Factoid is .15 cents, entry credit = .1 cents
+	FactoshisPerCredit = 666666 // .001 / .15 * 100000000 (assuming a Factoid is .15 cents, entry credit = .1 cents
 
 	// init Directory Block Chain
 	initDChain()
