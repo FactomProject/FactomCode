@@ -23,11 +23,16 @@ const (
 // of primarily Commits and Balance Increases with Minute Markers and Server
 // Markers distributed throughout.
 type ECBlock struct {
-	Printable          `json:"-"`
-	BinaryMarshallable `json:"-"`
-
 	Header *ECBlockHeader
 	Body   *ECBlockBody
+}
+
+var _ Printable = (*ECBlock)(nil)
+var _ BinaryMarshallable = (*ECBlock)(nil)
+
+func (c *ECBlock) MarshalledSize() uint64 {
+	panic("Function not implemented")
+	return 0
 }
 
 func NewECBlock() *ECBlock {
@@ -37,32 +42,39 @@ func NewECBlock() *ECBlock {
 	return e
 }
 
-func NextECBlock(prev *ECBlock) *ECBlock {
+func NextECBlock(prev *ECBlock) (*ECBlock, error) {
 	e := NewECBlock()
-	e.Header.PrevHeaderHash = prev.HeaderHash()
-	e.Header.PrevFullHash = prev.Hash()
+	var err error
+	e.Header.PrevHeaderHash, err = prev.HeaderHash()
+	if err!=nil {
+		return nil, err
+	}
+	e.Header.PrevLedgerKeyMR, err = prev.Hash()
+	if err!=nil {
+		return nil, err
+	}
 	e.Header.DBHeight = prev.Header.DBHeight + 1
-	return e
+	return e, nil
 }
 
 func (e *ECBlock) AddEntry(entries ...ECBlockEntry) {
 	e.Body.Entries = append(e.Body.Entries, entries...)
 }
 
-func (e *ECBlock) Hash() *Hash {
+func (e *ECBlock) Hash() (*Hash, error) {
 	p, err := e.MarshalBinary()
 	if err != nil {
-		return NewHash()
+		return nil, err
 	}
-	return Sha(p)
+	return Sha(p), nil
 }
 
-func (e *ECBlock) HeaderHash() *Hash {
+func (e *ECBlock) HeaderHash() (*Hash, error) {
 	p, err := e.marshalHeaderBinary()
 	if err != nil {
-		return NewHash()
+		return nil, err
 	}
-	return Sha(p)
+	return Sha(p), nil
 }
 
 func (e *ECBlock) MarshalBinary() ([]byte, error) {
@@ -151,7 +163,7 @@ func (e *ECBlock) marshalHeaderBinary() ([]byte, error) {
 	buf.Write(e.Header.PrevHeaderHash.Bytes())
 
 	// 32 byte Previous Full Hash
-	buf.Write(e.Header.PrevFullHash.Bytes())
+	buf.Write(e.Header.PrevLedgerKeyMR.Bytes())
 
 	// 4 byte Directory Block Height
 	if err := binary.Write(buf, binary.BigEndian, e.Header.DBHeight); err != nil {
@@ -159,7 +171,7 @@ func (e *ECBlock) marshalHeaderBinary() ([]byte, error) {
 	}
 
 	// variable Header Expansion Size
-	if _, err := WriteVarInt(buf,
+	if err := EncodeVarInt(buf,
 		uint64(len(e.Header.HeaderExpansionArea))); err != nil {
 		return buf.Bytes(), err
 	}
@@ -288,7 +300,7 @@ func (e *ECBlock) unmarshalHeaderBinaryData(data []byte) (newData []byte, err er
 	if _, err = buf.Read(hash); err != nil {
 		return
 	} else {
-		e.Header.PrevFullHash.SetBytes(hash)
+		e.Header.PrevLedgerKeyMR.SetBytes(hash)
 	}
 
 	if err = binary.Read(buf, binary.BigEndian, &e.Header.DBHeight); err != nil {
@@ -296,7 +308,8 @@ func (e *ECBlock) unmarshalHeaderBinaryData(data []byte) (newData []byte, err er
 	}
 
 	// read the Header Expansion Area
-	hesize := ReadVarInt(buf)
+	hesize, tmp := DecodeVarInt(buf.Bytes())
+	buf = bytes.NewBuffer(tmp)
 	e.Header.HeaderExpansionArea = make([]byte, hesize)
 	if _, err = buf.Read(e.Header.HeaderExpansionArea); err != nil {
 		return
@@ -336,10 +349,10 @@ func (e *ECBlock) Spew() string {
 }
 
 type ECBlockBody struct {
-	Printable `json:"-"`
-
 	Entries []ECBlockEntry
 }
+
+var _ Printable = (*ECBlockBody)(nil)
 
 func NewECBlockBody() *ECBlockBody {
 	b := new(ECBlockBody)
@@ -372,17 +385,17 @@ type ECBlockEntry interface {
 }
 
 type ECBlockHeader struct {
-	Printable `json:"-"`
-
 	ECChainID           *Hash
 	BodyHash            *Hash
 	PrevHeaderHash      *Hash
-	PrevFullHash        *Hash
+	PrevLedgerKeyMR        *Hash
 	DBHeight            uint32
 	HeaderExpansionArea []byte
 	ObjectCount         uint64
 	BodySize            uint64
 }
+
+var _ Printable = (*ECBlockHeader)(nil)
 
 func NewECBlockHeader() *ECBlockHeader {
 	h := new(ECBlockHeader)
@@ -390,7 +403,7 @@ func NewECBlockHeader() *ECBlockHeader {
 	h.ECChainID.SetBytes(EC_CHAINID)
 	h.BodyHash = NewHash()
 	h.PrevHeaderHash = NewHash()
-	h.PrevFullHash = NewHash()
+	h.PrevLedgerKeyMR = NewHash()
 	h.HeaderExpansionArea = make([]byte, 0)
 	return h
 }

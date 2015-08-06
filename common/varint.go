@@ -6,136 +6,62 @@ package common
 
 import (
 	"bytes"
-	"io"
 )
 
+// Decode a varaible integer from the given data buffer.
+// We use the algorithm used by Go, only BigEndian.
 func DecodeVarInt(data []byte) (uint64, []byte) {
-	buf := bytes.NewBuffer(data)
-	resp, err := ReadVarIntWithError(buf)
-	if err != nil {
-		panic(err)
-	}
-	return resp, buf.Bytes()
-}
+	var (
+		v   uint64
+		cnt int
+		b   byte
+	)
 
-func VarIntLength(v uint64) int {
-	switch {
-	case v < 0xfd:
-		return 1
-	case v <= 0xFFFF:
-		return 3
-	case v <= 0xFFFFFFFF:
-		return 5
-	default:
-		return 9
+	for cnt, b = range data {
+		v = v << 7
+		v += uint64(b) & 0x7F
+		if b < 0x80 {
+			break
+		}
 	}
-	return -1
+
+	return v, data[cnt+1:]
 }
 
 // Encode an integer as a variable int into the given data buffer.
 func EncodeVarInt(out *bytes.Buffer, v uint64) error {
-	_, err := WriteVarInt(out, v)
-	return err
-}
-
-func ReadVarIntWithError(buf *bytes.Buffer) (uint64, error) {
-	b, err := buf.ReadByte()
-	if err != nil {
-		return 0, err
+	if v == 0 {
+		out.WriteByte(0)
 	}
-	if b < 0xfd {
-		return uint64(b), nil
+	h := v
+	start := false
+
+	if 0x8000000000000000&h != 0 { // Deal with the high bit set; Zero
+		out.WriteByte(0x81)        // doesn't need this, only when set.
+		start = true               // Going the whole 10 byte path!
 	}
 
-	var v uint64
-
-	if buf.Len() < 2 {
-		return 0, io.EOF
-	}
-
-	if p := buf.Next(2); p != nil {
-		v = (uint64(p[0]) << 8) | uint64(p[1])
-	}
-	if b == 0xfd {
-		return v, nil
-	}
-
-	if buf.Len() < 2 {
-		return 0, io.EOF
-	}
-	v = v << 16
-	if p := buf.Next(2); p != nil {
-		v = v | (uint64(p[0]) << 8) | uint64(p[1])
-	}
-	if b == 0xfe {
-		return v, nil
-	}
-
-	if buf.Len() < 2 {
-		return 0, io.EOF
-	}
-	v = v << 16
-	if p := buf.Next(2); p != nil {
-		v = v | (uint64(p[0]) << 8) | uint64(p[1])
-	}
-	if buf.Len() < 2 {
-		return 0, io.EOF
-	}
-	v = v << 16
-	if p := buf.Next(2); p != nil {
-		v = v | (uint64(p[0]) << 8) | uint64(p[1])
-	}
-	return v, nil
-
-}
-
-func ReadVarInt(buf *bytes.Buffer) uint64 {
-	u, _ := ReadVarIntWithError(buf)
-	return u
-}
-
-func WriteVarInt(buf *bytes.Buffer, v uint64) (n int, err error) {
-	switch {
-	case v < 0xfd:
-		err = buf.WriteByte(byte(v))
-		if err != nil {
-			return n, err
-		}
-		n += 1
-	case v <= 0xFFFF:
-		buf.WriteByte(0xfd)
-		err = buf.WriteByte(byte(v >> 8))
-		if err != nil {
-			return n, err
-		}
-		n += 1
-		err = buf.WriteByte(byte(v))
-		if err != nil {
-			return n, err
-		}
-		n += 1
-	case v <= 0xFFFFFFFF:
-		buf.WriteByte(0xfe)
-		n += 1
-		for i := 0; i < 4; i++ {
-			v = (v>>24)&0xFF + v<<8
-			err = buf.WriteByte(byte(v))
-			if err != nil {
-				return n, err
+	for i := 0; i < 9; i++ {
+		b := byte(h >> 56) // Get the top 7 bits
+		if b != 0 || start {
+			start = true
+			if i != 8 {
+				b = b | 0x80
+			} else {
+				b = b & 0x7F
 			}
-			n += 1
+			out.WriteByte(b)
 		}
-	default:
-		buf.WriteByte(0xff)
-		n += 1
-		for i := 0; i < 8; i++ {
-			v = (v>>56)&0xFF + v<<8
-			err = buf.WriteByte(byte(v))
-			if err != nil {
-				return n, err
-			}
-			n += 1
-		}
+		h = h << 7
 	}
-	return n, nil
+
+	return nil
+}
+
+func VarIntLength(v uint64) uint64 {
+	buf := new(bytes.Buffer)
+	
+	EncodeVarInt(buf, v)
+	
+	return uint64(len(buf.Bytes()))
 }

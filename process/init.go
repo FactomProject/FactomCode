@@ -7,6 +7,8 @@ package process
 import (
 	"errors"
 	"fmt"
+    "bytes"
+    "runtime/debug"
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/consensus"
 	cp "github.com/FactomProject/FactomCode/controlpanel"
@@ -19,6 +21,8 @@ import (
 	"sort"
 	"strconv"
 )
+
+var _ = debug.PrintStack
 
 // Initialize Directory Block Chain from database
 func initDChain() {
@@ -60,7 +64,7 @@ func initDChain() {
 		dchain.NextDBHeight = uint32(len(dchain.Blocks))
 		dchain.NextBlock, _ = common.CreateDBlock(dchain, dchain.Blocks[len(dchain.Blocks)-1], 10)
 		// Update dir block height cache in db
-		db.UpdateBlockHeightCache(dchain.NextDBHeight-1, dchain.NextBlock.Header.PrevFullHash)
+		db.UpdateBlockHeightCache(dchain.NextDBHeight-1, dchain.NextBlock.Header.PrevLedgerKeyMR)
 	}
 
 	exportDChain(dchain)
@@ -100,7 +104,11 @@ func initECChain() {
 	} else {
 		// Entry Credit Chain should have the same height as the dir chain
 		ecchain.NextBlockHeight = dchain.NextDBHeight
-		ecchain.NextBlock = common.NextECBlock(&ecBlocks[ecchain.NextBlockHeight-1])
+		var err error
+		ecchain.NextBlock, err = common.NextECBlock(&ecBlocks[ecchain.NextBlockHeight-1])
+		if err!=nil {
+			panic(err)
+		}
 	}
 
 	// create a backup copy before processing entries
@@ -270,12 +278,19 @@ func initEChainFromDB(chain *common.EChain) {
 		}
 	}
 
+	var err error
 	if len(*eBlocks) == 0 {
 		chain.NextBlockHeight = 0
-		chain.NextBlock = common.MakeEBlock(chain, nil)
+		chain.NextBlock, err = common.MakeEBlock(chain, nil)
+		if err!=nil {
+			panic(err)
+		}
 	} else {
 		chain.NextBlockHeight = uint32(len(*eBlocks))
-		chain.NextBlock = common.MakeEBlock(chain, &(*eBlocks)[len(*eBlocks)-1])
+		chain.NextBlock, err = common.MakeEBlock(chain, &(*eBlocks)[len(*eBlocks)-1])
+		if err!=nil {
+			panic(err)
+		}
 	}
 
 	// Initialize chain with the first entry (Name and rules) for non-server mode
@@ -326,7 +341,7 @@ func validateDChain(c *common.DChain) error {
 	}
 
 	for i := 1; i < len(c.Blocks); i++ {
-		if !prevBlkHash.IsSameAs(c.Blocks[i].Header.PrevFullHash) {
+		if !prevBlkHash.IsSameAs(c.Blocks[i].Header.PrevLedgerKeyMR) {
 			return errors.New("Previous block hash not matching for Dir block: " + strconv.Itoa(i))
 		}
 		if !prevMR.IsSameAs(c.Blocks[i].Header.PrevKeyMR) {
@@ -416,22 +431,33 @@ func validateFBlockByMR(mr *common.Hash) error {
 	b, _ := db.FetchFBlockByHash(mr)
 
 	if b == nil {
-		return errors.New("Simple Coin block not found in db for merkle root: " + mr.String())
+		return errors.New("Factoid block not found in db for merkle root: \n" + mr.String())
 	}
 
+	// check that we used the KeyMR to store the block...
+	if !bytes.Equal(b.GetKeyMR().Bytes(), mr.Bytes()) {
+        return errors.New("blk: "+string(b.GetDBHeight())+" The hash of the Factoid block doesn't match the hash expected:"+ mr.String())
+    }
+    
 	return nil
 }
 
 // Validate Entry Block by merkle root
 func validateEBlockByMR(cid *common.Hash, mr *common.Hash) error {
 
-	eb, _ := db.FetchEBlockByMR(mr)
+	eb, err := db.FetchEBlockByMR(mr)
+	if err!=nil {
+		return err
+	}
 
 	if eb == nil {
 		return errors.New("Entry block not found in db for merkle root: " + mr.String())
 	}
-
-	if !mr.IsSameAs(eb.KeyMR()) {
+	keyMR, err:=eb.KeyMR()
+	if err!=nil {
+		return err
+	}
+	if !mr.IsSameAs(keyMR) {
 		return errors.New("Entry block's merkle root does not match with: " + mr.String())
 	}
 

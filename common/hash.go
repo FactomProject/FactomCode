@@ -13,10 +13,14 @@ import (
 )
 
 type Hash struct {
-	Printable          `json:"-"`
-	BinaryMarshallable `json:"-"`
+	bytes [HASH_LENGTH]byte
+}
 
-	bytes [HASH_LENGTH]byte `json:"bytes"`
+var _ Printable = (*Hash)(nil)
+var _ BinaryMarshallable = (*Hash)(nil)
+
+func (c *Hash) MarshalledSize() uint64 {
+	return uint64(HASH_LENGTH)
 }
 
 func (h *Hash) MarshalText() ([]byte, error) {

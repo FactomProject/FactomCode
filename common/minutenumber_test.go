@@ -8,9 +8,7 @@ import (
 )
 
 func TestMinuteNumberMarshalUnmarshal(t *testing.T) {
-	fmt.Printf("\n---\nTestMinuteNumberMarshalUnmarshal\n---\n")
-
-	mn := new(MinuteNumber)
+	mn := NewMinuteNumber()
 	mn.Number = 5
 	b, err := mn.MarshalBinary()
 	if err != nil {

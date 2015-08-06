@@ -10,7 +10,7 @@ import (
 )
 
 func TestECBlockMarshal(t *testing.T) {
-	ecb := common.NewECBlock()
+	ecb1 := common.NewECBlock()
 
 	// build a CommitChain for testing
 	cc := common.NewCommitChain()
@@ -37,41 +37,34 @@ func TestECBlockMarshal(t *testing.T) {
 	ib := common.MakeIncreaseBalance(pub, facTX, 12)
 
 	// create a ECBlock for testing
-	ecb.Header.ECChainID.SetBytes(byteof(0x11))
-	ecb.Header.BodyHash.SetBytes(byteof(0x22))
-	ecb.Header.PrevHeaderHash.SetBytes(byteof(0x33))
-	ecb.Header.PrevFullHash.SetBytes(byteof(0x44))
-	ecb.Header.DBHeight = 10
-	ecb.Header.HeaderExpansionArea = byteof(0x55)
-	ecb.Header.ObjectCount = 0
+	ecb1.Header.ECChainID.SetBytes(byteof(0x11))
+	ecb1.Header.BodyHash.SetBytes(byteof(0x22))
+	ecb1.Header.PrevHeaderHash.SetBytes(byteof(0x33))
+	ecb1.Header.PrevLedgerKeyMR.SetBytes(byteof(0x44))
+	ecb1.Header.DBHeight = 10
+	ecb1.Header.HeaderExpansionArea = byteof(0x55)
+	ecb1.Header.ObjectCount = 0
 
 	// add the CommitChain to the ECBlock
-	ecb.AddEntry(cc)
+	ecb1.AddEntry(cc)
 
 	// add the IncreaseBalance
-	ecb.AddEntry(ib)
-
-	// add the MinuteNumber
-	min := common.NewMinuteNumber()
-	min.Number = 3
-	ecb.AddEntry(min)
-
-	t.Log(spew.Sdump(ecb))
+	ecb1.AddEntry(ib)
 
 	ecb2 := common.NewECBlock()
-	if p, err := ecb.MarshalBinary(); err != nil {
+	if p, err := ecb1.MarshalBinary(); err != nil {
 		t.Error(err)
 	} else {
-		t.Logf("%x\n", p)
 		if err := ecb2.UnmarshalBinary(p); err != nil {
 			t.Error(err)
 		}
+		t.Log(spew.Sdump(ecb2))
 		if q, err := ecb2.MarshalBinary(); err != nil {
 			t.Error(err)
 		} else if string(p) != string(q) {
-			t.Errorf("ecb = %x\necb2 = %x\n", p, q)
+			t.Errorf("ecb1 = %x\n", p)
+			t.Errorf("ecb2 = %x\n", q)
 		}
-		t.Log(spew.Sdump(ecb2))
 	}
 }
 

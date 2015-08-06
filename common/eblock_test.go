@@ -13,7 +13,7 @@ func TestEBlockMarshal(t *testing.T) {
 	eb.Header.ChainID.SetBytes(byteof(0x11))
 	eb.Header.BodyMR.SetBytes(byteof(0x22))
 	eb.Header.PrevKeyMR.SetBytes(byteof(0x33))
-	eb.Header.PrevFullHash.SetBytes(byteof(0x44))
+	eb.Header.PrevLedgerKeyMR.SetBytes(byteof(0x44))
 	eb.Header.EBSequence = 5
 	eb.Header.DBHeight = 6
 	eb.Header.EntryCount = 7

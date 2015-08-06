@@ -66,6 +66,8 @@ var (
 
 	FactomdUser string
 	FactomdPass string
+	
+	zeroHash = common.NewHash()
 )
 
 var (
@@ -109,7 +111,7 @@ func initProcessor() {
 	wire.FChainID = common.NewHash()
 	wire.FChainID.SetBytes(common.FACTOID_CHAINID)
 
-	FactoshisPerCredit = 66666 // .001 / .15 * 100000000 (assuming a Factoid is .15 cents, entry credit = .1 cents
+	FactoshisPerCredit = 666666 // .001 / .15 * 100000000 (assuming a Factoid is .15 cents, entry credit = .1 cents
 
 	// init Directory Block Chain
 	initDChain()
@@ -158,6 +160,7 @@ func initProcessor() {
 			dchain.IsValidated = false
 		}
 	}
+	
 }
 
 // Started from factomd
@@ -473,6 +476,12 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 	e := msg.Entry
 	bin, _ := e.MarshalBinary()
 	h, _ := wire.NewShaHash(e.Hash().Bytes())
+	
+	// Check if the chain id is valid
+	if e.ChainID.IsSameAs(zeroHash) || e.ChainID.IsSameAs(dchain.ChainID) || e.ChainID.IsSameAs(achain.ChainID) || 
+		e.ChainID.IsSameAs(ecchain.ChainID) || e.ChainID.IsSameAs(fchain.ChainID) {
+			return fmt.Errorf("This entry chain is not supported: %s", e.ChainID.String())		
+	}
 
 	if c, ok := commitEntryMap[e.Hash().String()]; ok {
 		if chainIDMap[e.ChainID.String()] == nil {
@@ -567,6 +576,12 @@ func processCommitEntry(msg *wire.MsgCommitEntry) error {
 	if _, exist := commitEntryMap[c.EntryHash.String()]; exist {
 		return fmt.Errorf("Cannot commit entry, entry has already been commited")
 	}
+
+	// deduct the entry credits from the eCreditMap
+	if eCreditMap[string(c.ECPubKey[:])] < int32(c.Credits) {
+		return fmt.Errorf("Not enough credits for CommitEntry")
+	}
+	eCreditMap[string(c.ECPubKey[:])] -= int32(c.Credits)
 
 	// add to the commitEntryMap
 	commitEntryMap[c.EntryHash.String()] = c
@@ -789,6 +804,7 @@ func buildGenesisBlocks() error {
 	exportAChain(achain)
 
 	// factoid Genesis Address
+    fchain.NextBlock = block.GetGenesisFBlock(0, FactoshisPerCredit, 10, 200000000000)
 	FBlock := newFactoidBlock(fchain)
 	data, _ := FBlock.MarshalBinary()
 	procLog.Debugf("\n\n ", common.Sha(data).String(), "\n\n")
@@ -933,7 +949,12 @@ func newEntryBlock(chain *common.EChain) *common.EBlock {
 	block.Header.EntryCount = uint32(len(block.Body.EBEntries))
 
 	chain.NextBlockHeight++
-	chain.NextBlock = common.MakeEBlock(chain, block)
+	var err error
+	chain.NextBlock, err = common.MakeEBlock(chain, block)
+	if err!=nil {
+		procLog.Debug("EntryBlock Error: " + err.Error())
+		return nil
+	}
 
 	//Store the block in db
 	db.ProcessEBlockBatch(block)
@@ -956,7 +977,12 @@ func newEntryCreditBlock(chain *common.ECChain) *common.ECBlock {
 	// Create the block and add a new block for new coming entries
 	chain.BlockMutex.Lock()
 	chain.NextBlockHeight++
-	chain.NextBlock = common.NextECBlock(block)
+	var err error
+	chain.NextBlock, err = common.NextECBlock(block)
+	if err!=nil {
+		procLog.Debug("EntryCreditBlock Error: " + err.Error())
+		return nil
+	}
 	chain.NextBlock.AddEntry(serverIndex)
 	chain.BlockMutex.Unlock()
 
@@ -983,7 +1009,7 @@ func newAdminBlock(chain *common.AdminChain) *common.AdminBlock {
 	if err != nil {
 		panic(err)
 	}
-	_, err = block.FullHash()
+	_, err = block.LedgerKeyMR()
 	if err != nil {
 		panic(err)
 	}

@@ -220,7 +220,7 @@ func createTestDirectoryBlockHeader() *DBlockHeader {
 	header.BodyMR = NewHash()
 	header.BlockCount = 0
 	header.NetworkID = 9
-	header.PrevFullHash = NewHash()
+	header.PrevLedgerKeyMR = NewHash()
 	header.PrevKeyMR = NewHash()
 	header.Timestamp = 1234
 	header.Version = 1

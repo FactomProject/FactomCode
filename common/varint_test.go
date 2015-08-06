@@ -1,88 +1,65 @@
 package common_test
 
 import (
-	"bytes"
-	"fmt"
+    "fmt"
+    "bytes"
 	"math/rand"
-	"testing"
+    "testing"
 
-	. "github.com/FactomProject/FactomCode/common"
+	"github.com/FactomProject/FactomCode/common"
 )
 
-func mix(v []uint64) {
-	for i := 0; i < 100; i++ {
-		v1 := rand.Int() % len(v)
-		v2 := rand.Int() % len(v)
-		t := v[v1]
-		v[v1] = v[v2]
-		v[v2] = t
-	}
-}
+func TestVarInt(t *testing.T) {
+	for i := 0; i < 1000; i++ {
+		var out bytes.Buffer
 
-func TestVarIntLength(t *testing.T) {
-	fmt.Println("VarInt")
+		v := make([]uint64, 10)
 
-	if VarIntLength(0) != 1 {
-		t.Error("Wrong length for 0")
-	}
-	if VarIntLength(1) != 1 {
-		t.Error("Wrong length for 1")
-	}
-	if VarIntLength(0xfc) != 1 {
-		t.Error("Wrong length for 0xfc")
-	}
-	if VarIntLength(0xfd) != 3 {
-		t.Error("Wrong length for 0xfd")
-	}
-	if VarIntLength(0xFFFF) != 3 {
-		t.Error("Wrong length for 0xFFFF")
-	}
-	if VarIntLength(0x010000) != 5 {
-		t.Error("Wrong length for 0x010000")
-	}
-	if VarIntLength(0xFFFFFFFF) != 5 {
-		t.Error("Wrong length for 0xFFFFFFFF")
-	}
-	if VarIntLength(0x0100000000) != 9 {
-		t.Error("Wrong length for 0x0100000000")
-	}
-	if VarIntLength(0xFFFFFFFFFF) != 9 {
-		t.Error("Wrong length for 0xFFFFFFFFFF")
-	}
-}
-
-func TestReadVarIntWithError(t *testing.T) {
-	buffers := []*bytes.Buffer{
-		bytes.NewBuffer([]byte{}),
-		bytes.NewBuffer([]byte{0xFD}),
-		bytes.NewBuffer([]byte{0xFD, 0x00}),
-		bytes.NewBuffer([]byte{0xFE}),
-		bytes.NewBuffer([]byte{0xFE, 0x00}),
-		bytes.NewBuffer([]byte{0xFE, 0x00, 0x00}),
-		bytes.NewBuffer([]byte{0xFE, 0x00, 0x00, 0x00}),
-		bytes.NewBuffer([]byte{0xFF}),
-		bytes.NewBuffer([]byte{0xFF, 0x00}),
-		bytes.NewBuffer([]byte{0xFF, 0x00, 0x00}),
-		bytes.NewBuffer([]byte{0xFF, 0x00, 0x00, 0x00}),
-		bytes.NewBuffer([]byte{0xFF, 0x00, 0x00, 0x00, 0x00}),
-		bytes.NewBuffer([]byte{0xFF, 0x00, 0x00, 0x00, 0x00, 0x00}),
-		bytes.NewBuffer([]byte{0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}),
-	}
-
-	for _, buf := range buffers {
-
-		v, err := ReadVarIntWithError(buf)
-		if err == nil {
-			t.Error("We expected errors but we didn't get any")
+		for j := 0; j < len(v); j++ {
+			var m uint64           // 64 bit mask
+			sw := rand.Int63() % 4 // Pick a random choice
+			switch sw {
+			case 0:
+				m = 0xFF // Random byte
+			case 1:
+				m = 0xFFFF // Random 16 bit integer
+			case 2:
+				m = 0xFFFFFFFF // Random 32 bit integer
+			case 3:
+				m = 0xFFFFFFFFFFFFFFFF // Random 64 bit integer
+			}
+			n := uint64(rand.Int63() + (rand.Int63() << 32))
+			v[j] = n & m
 		}
-		if v != 0 {
-			t.Error("Invalid response")
+
+		for j := 0; j < len(v); j++ { // Encode our entire array of numbers
+			err := common.EncodeVarInt(&out, v[j])
+			if err != nil {
+				fmt.Println(err)
+				t.Fail()
+				return
+			}
+			//              fmt.Printf("%x ",v[j])
+		}
+		//          fmt.Println( "Length: ",out.Len())
+
+		data := out.Bytes()
+
+		//          PrtData(data)
+		//          fmt.Println()
+		sdata := data // Decode our entire array of numbers, and
+		var dv uint64 // check we got them back correctly.
+		for k := 0; k < 1000; k++ {
+			data = sdata
+			for j := 0; j < len(v); j++ {
+				dv, data = common.DecodeVarInt(data)
+				if dv != v[j] {
+					fmt.Printf("Values don't match: decode:%x expected:%x (%d)\n", dv, v[j], j)
+					t.Fail()
+					return
+				}
+			}
 		}
 	}
-
-	buf := bytes.NewBuffer([]byte{0x01})
-	v, err := ReadVarIntWithError(buf)
-	if err != nil || v != 1 {
-		t.Error("Invalid response")
-	}
 }
+    

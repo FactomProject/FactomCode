@@ -19,7 +19,7 @@ func TestAdminBlockPreviousHash(t *testing.T) {
 		t.Error(err)
 	}
 
-	fullHash, err := block.FullHash()
+	fullHash, err := block.LedgerKeyMR()
 	if err != nil {
 		t.Error(err)
 	}
@@ -47,7 +47,7 @@ func TestAdminBlockPreviousHash(t *testing.T) {
 		t.Error(err)
 	}
 
-	fullHash2, err := block2.FullHash()
+	fullHash2, err := block2.LedgerKeyMR()
 	if err != nil {
 		t.Error(err)
 	}
@@ -58,7 +58,7 @@ func TestAdminBlockPreviousHash(t *testing.T) {
 	}
 
 	t.Logf("Second hashes - %s, %s", fullHash2.String(), partialHash2.String())
-	t.Logf("Previous hash - %s", block2.Header.PrevFullHash.String())
+	t.Logf("Previous hash - %s", block2.Header.PrevLedgerKeyMR.String())
 
 	marshalled, err := block2.MarshalBinary()
 	if err != nil {
@@ -66,8 +66,8 @@ func TestAdminBlockPreviousHash(t *testing.T) {
 	}
 	t.Logf("Marshalled - %X", marshalled)
 
-	if block2.Header.PrevFullHash.String() != fullHash.String() {
-		t.Error("PrevFullHash does not match ABHash")
+	if block2.Header.PrevLedgerKeyMR.String() != fullHash.String() {
+		t.Error("PrevLedgerKeyMR does not match ABHash")
 	}
 }
 
@@ -140,8 +140,8 @@ func TestABlockHeaderMarshalUnmarshal(t *testing.T) {
 		t.Error("AdminChainIDs are not identical")
 	}
 
-	if bytes.Compare(header.PrevFullHash.Bytes(), header2.PrevFullHash.Bytes()) != 0 {
-		t.Error("PrevFullHashes are not identical")
+	if bytes.Compare(header.PrevLedgerKeyMR.Bytes(), header2.PrevLedgerKeyMR.Bytes()) != 0 {
+		t.Error("PrevLedgerKeyMRes are not identical")
 	}
 
 	if header.DBHeight != header2.DBHeight {
@@ -327,7 +327,7 @@ func createTestAdminHeader() *ABlockHeader {
 	header.AdminChainID = hash
 	p, _ = hex.DecodeString("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
 	hash, _ = NewShaHash(p)
-	header.PrevFullHash = hash
+	header.PrevLedgerKeyMR = hash
 	header.DBHeight = 123
 
 	header.HeaderExpansionSize = 5
@@ -346,7 +346,7 @@ func createSmallTestAdminHeader() *ABlockHeader {
 	header.AdminChainID = hash
 	p, _ = hex.DecodeString("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
 	hash, _ = NewShaHash(p)
-	header.PrevFullHash = hash
+	header.PrevLedgerKeyMR = hash
 	header.DBHeight = 123
 
 	header.HeaderExpansionSize = 0

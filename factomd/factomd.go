@@ -19,6 +19,7 @@ import (
 	"runtime"
 	"strings"
 	"time"
+	"github.com/FactomProject/factoid/state/stateinit"	
 )
 
 var (
@@ -26,6 +27,7 @@ var (
 	cfg             *util.FactomdConfig
 	shutdownChannel = make(chan struct{})
 	ldbpath         = ""
+	boltDBpath		= ""
 	db              database.Db                           // database
 	inMsgQueue      = make(chan wire.FtmInternalMsg, 100) //incoming message queue for factom application messages
 	outMsgQueue     = make(chan wire.FtmInternalMsg, 100) //outgoing message queue for factom application messages
@@ -131,6 +133,7 @@ func loadConfigurations() {
 	cfg = util.ReadConfig()
 
 	ldbpath = cfg.App.LdbPath
+	boltDBpath = cfg.App.BoltDBPath
 	process.LoadConfigurations(cfg)
 
 }
@@ -138,6 +141,10 @@ func loadConfigurations() {
 // Initialize the level db and share it with other components
 func initDB() {
 
+	//init factoid_bolt db
+	fmt.Println("boltDBpath:", boltDBpath)
+	common.FactoidState = stateinit.NewFactoidState(boltDBpath + "factoid_bolt.db")	
+	 
 	//init db
 	var err error
 	db, err = ldb.OpenLevelDB(ldbpath, false)
