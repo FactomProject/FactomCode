@@ -114,7 +114,7 @@ Address          				= localhost
 Port             				= 8089
 DataFile         				= /tmp/fctwallet.dat
 RefreshInSeconds 				= 60
-BoltDBPath 						= /tmp/store/
+BoltDBPath 						= /tmp/
 `
 
 var cfg *FactomdConfig
