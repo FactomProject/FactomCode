@@ -7,6 +7,8 @@ package process
 import (
 	"errors"
 	"fmt"
+    "bytes"
+    "runtime/debug"
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/consensus"
 	cp "github.com/FactomProject/FactomCode/controlpanel"
@@ -19,6 +21,8 @@ import (
 	"sort"
 	"strconv"
 )
+
+var _ = debug.PrintStack
 
 // Initialize Directory Block Chain from database
 func initDChain() {
@@ -427,9 +431,14 @@ func validateFBlockByMR(mr *common.Hash) error {
 	b, _ := db.FetchFBlockByHash(mr)
 
 	if b == nil {
-		return errors.New("Simple Coin block not found in db for merkle root: " + mr.String())
+		return errors.New("Factoid block not found in db for merkle root: \n" + mr.String())
 	}
 
+	// check that we used the KeyMR to store the block...
+	if !bytes.Equal(b.GetKeyMR().Bytes(), mr.Bytes()) {
+        return errors.New("blk: "+string(b.GetDBHeight())+" The hash of the Factoid block doesn't match the hash expected:"+ mr.String())
+    }
+    
 	return nil
 }
 
