@@ -5,19 +5,19 @@
 package process
 
 import (
+	"bytes"
 	"errors"
-    "bytes"
 	"fmt"
-    "runtime/debug"
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/consensus"
 	cp "github.com/FactomProject/FactomCode/controlpanel"
 	"github.com/FactomProject/FactomCode/factomlog"
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd/wire"
-    fct "github.com/FactomProject/factoid"
-    "github.com/FactomProject/factoid/block"
-    "github.com/davecgh/go-spew/spew"
+	fct "github.com/FactomProject/factoid"
+	"github.com/FactomProject/factoid/block"
+	"github.com/davecgh/go-spew/spew"
+	"runtime/debug"
 	"sort"
 	"strconv"
 )
@@ -106,7 +106,7 @@ func initECChain() {
 		ecchain.NextBlockHeight = dchain.NextDBHeight
 		var err error
 		ecchain.NextBlock, err = common.NextECBlock(&ecBlocks[ecchain.NextBlockHeight-1])
-		if err!=nil {
+		if err != nil {
 			panic(err)
 		}
 	}
@@ -282,13 +282,13 @@ func initEChainFromDB(chain *common.EChain) {
 	if len(*eBlocks) == 0 {
 		chain.NextBlockHeight = 0
 		chain.NextBlock, err = common.MakeEBlock(chain, nil)
-		if err!=nil {
+		if err != nil {
 			panic(err)
 		}
 	} else {
 		chain.NextBlockHeight = uint32(len(*eBlocks))
 		chain.NextBlock, err = common.MakeEBlock(chain, &(*eBlocks)[len(*eBlocks)-1])
-		if err!=nil {
+		if err != nil {
 			panic(err)
 		}
 	}
@@ -436,12 +436,12 @@ func validateFBlockByMR(mr *common.Hash) error {
 
 	// check that we used the KeyMR to store the block...
 	if !bytes.Equal(b.GetKeyMR().Bytes(), mr.Bytes()) {
-        return fmt.Errorf("Factoid block match failure: block %d \n%s\n%s",
-            b.GetDBHeight(),
-            "Key in the database:   "+ mr.String(),
-            "Hash of the blk found: "+ b.GetKeyMR().String())
-    }
-    
+		return fmt.Errorf("Factoid block match failure: block %d \n%s\n%s",
+			b.GetDBHeight(),
+			"Key in the database:   "+mr.String(),
+			"Hash of the blk found: "+b.GetKeyMR().String())
+	}
+
 	return nil
 }
 
@@ -449,15 +449,15 @@ func validateFBlockByMR(mr *common.Hash) error {
 func validateEBlockByMR(cid *common.Hash, mr *common.Hash) error {
 
 	eb, err := db.FetchEBlockByMR(mr)
-	if err!=nil {
+	if err != nil {
 		return err
 	}
 
 	if eb == nil {
 		return errors.New("Entry block not found in db for merkle root: " + mr.String())
 	}
-	keyMR, err:=eb.KeyMR()
-	if err!=nil {
+	keyMR, err := eb.KeyMR()
+	if err != nil {
 		return err
 	}
 	if !mr.IsSameAs(keyMR) {

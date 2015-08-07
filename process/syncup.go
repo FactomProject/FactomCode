@@ -5,8 +5,8 @@
 package process
 
 import (
+	"encoding/hex"
 	"errors"
-    "encoding/hex"
 	"github.com/FactomProject/FactomCode/common"
 	cp "github.com/FactomProject/FactomCode/controlpanel"
 	"github.com/FactomProject/FactomCode/database"
@@ -104,8 +104,8 @@ func procesECBlock(msg *wire.MsgECBlock) error {
 	}
 
 	//Add it to mem pool before saving it in db
-	hash, err:=msg.ECBlock.HeaderHash()
-	if err!=nil {
+	hash, err := msg.ECBlock.HeaderHash()
+	if err != nil {
 		return err
 	}
 	fMemPool.addBlockMsg(msg, hash.String())
@@ -129,8 +129,8 @@ func processEBlock(msg *wire.MsgEBlock) error {
 		}
 	*/
 	//Add it to mem pool before saving it in db
-	keyMR, err:=msg.EBlk.KeyMR()
-	if err!=nil{
+	keyMR, err := msg.EBlk.KeyMR()
+	if err != nil {
 		return err
 	}
 	fMemPool.addBlockMsg(msg, keyMR.String()) // store it in mem pool with MR as the key

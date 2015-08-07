@@ -66,7 +66,7 @@ var (
 
 	FactomdUser string
 	FactomdPass string
-	
+
 	zeroHash = common.NewHash()
 )
 
@@ -160,7 +160,7 @@ func initProcessor() {
 			dchain.IsValidated = false
 		}
 	}
-	
+
 }
 
 // Started from factomd
@@ -355,7 +355,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 			//			util.Trace("server mode")
 			t := (msg.(*wire.MsgFactoidTX)).Transaction
 			txnum := len(common.FactoidState.GetCurrentBlock().GetTransactions())
-			if common.FactoidState.AddTransaction(txnum,t) == nil {
+			if common.FactoidState.AddTransaction(txnum, t) == nil {
 				for _, ecout := range t.GetECOutputs() {
 
 					pub := new([32]byte)
@@ -476,11 +476,11 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 	e := msg.Entry
 	bin, _ := e.MarshalBinary()
 	h, _ := wire.NewShaHash(e.Hash().Bytes())
-	
+
 	// Check if the chain id is valid
-	if e.ChainID.IsSameAs(zeroHash) || e.ChainID.IsSameAs(dchain.ChainID) || e.ChainID.IsSameAs(achain.ChainID) || 
+	if e.ChainID.IsSameAs(zeroHash) || e.ChainID.IsSameAs(dchain.ChainID) || e.ChainID.IsSameAs(achain.ChainID) ||
 		e.ChainID.IsSameAs(ecchain.ChainID) || e.ChainID.IsSameAs(fchain.ChainID) {
-			return fmt.Errorf("This entry chain is not supported: %s", e.ChainID.String())		
+		return fmt.Errorf("This entry chain is not supported: %s", e.ChainID.String())
 	}
 
 	if c, ok := commitEntryMap[e.Hash().String()]; ok {
@@ -804,7 +804,7 @@ func buildGenesisBlocks() error {
 	exportAChain(achain)
 
 	// factoid Genesis Address
-    fchain.NextBlock = block.GetGenesisFBlock(0, FactoshisPerCredit, 10, 200000000000)
+	fchain.NextBlock = block.GetGenesisFBlock(0, FactoshisPerCredit, 10, 200000000000)
 	FBlock := newFactoidBlock(fchain)
 	data, _ := FBlock.MarshalBinary()
 	procLog.Debugf("\n\n ", common.Sha(data).String(), "\n\n")
@@ -951,7 +951,7 @@ func newEntryBlock(chain *common.EChain) *common.EBlock {
 	chain.NextBlockHeight++
 	var err error
 	chain.NextBlock, err = common.MakeEBlock(chain, block)
-	if err!=nil {
+	if err != nil {
 		procLog.Debug("EntryBlock Error: " + err.Error())
 		return nil
 	}
@@ -979,7 +979,7 @@ func newEntryCreditBlock(chain *common.ECChain) *common.ECBlock {
 	chain.NextBlockHeight++
 	var err error
 	chain.NextBlock, err = common.NextECBlock(block)
-	if err!=nil {
+	if err != nil {
 		procLog.Debug("EntryCreditBlock Error: " + err.Error())
 		return nil
 	}
