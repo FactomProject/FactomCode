@@ -6,6 +6,7 @@ package process
 
 import (
 	"errors"
+    "bytes"
 	"fmt"
     "runtime/debug"
 	"github.com/FactomProject/FactomCode/common"
@@ -433,7 +434,6 @@ func validateFBlockByMR(mr *common.Hash) error {
 		return errors.New("Factoid block not found in db for merkle root: \n" + mr.String())
 	}
 
-/*
 	// check that we used the KeyMR to store the block...
 	if !bytes.Equal(b.GetKeyMR().Bytes(), mr.Bytes()) {
         return fmt.Errorf("Factoid block match failure: block %d \n%s\n%s",
@@ -441,7 +441,7 @@ func validateFBlockByMR(mr *common.Hash) error {
             "Key in the database:   "+ mr.String(),
             "Hash of the blk found: "+ b.GetKeyMR().String())
     }
-*/    
+    
 	return nil
 }
 
