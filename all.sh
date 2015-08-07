@@ -130,6 +130,7 @@ echo "
 compile factoid/fctwallet 
 compile factom-cli  
 compile FactomCode/factomd 
+compile btcd/cmd/fctctl
 echo ""
 echo "
 *******************************************************
