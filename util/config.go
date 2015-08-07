@@ -48,7 +48,14 @@ type FactomdConfig struct {
 		LogPath  string
 		LogLevel string
 	}
-
+	Wallet struct {
+		Address          string
+		Port             int
+		DataFile         string
+		RefreshInSeconds string
+		BoltDBPath       string
+	}
+	
 	//	AddPeers     []string `short:"a" long:"addpeer" description:"Add a peer to connect with at startup"`
 	//	ConnectPeers []string `long:"connect" description:"Connect only to the specified peers at startup"`
 
@@ -101,6 +108,13 @@ RefreshInSeconds		= 60
 [log]
 LogLevel 				= warning
 LogPath					= /tmp/factomd.log
+
+[Wallet]
+Address          				= localhost
+Port             				= 8089
+DataFile         				= /tmp/fctwallet.dat
+RefreshInSeconds 				= 60
+BoltDBPath 						= /tmp/
 `
 
 var cfg *FactomdConfig

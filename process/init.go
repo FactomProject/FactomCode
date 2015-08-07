@@ -432,6 +432,7 @@ func validateFBlockByMR(mr *common.Hash) error {
 	if b == nil {
 		return errors.New("Factoid block not found in db for merkle root: \n" + mr.String())
 	}
+
 /*
 	// check that we used the KeyMR to store the block...
 	if !bytes.Equal(b.GetKeyMR().Bytes(), mr.Bytes()) {
