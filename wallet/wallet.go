@@ -1,12 +1,12 @@
 package wallet
 
 import (
-	"log"
-	"os"
-	//"fmt"
 	"code.google.com/p/gcfg"
+	"fmt"
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/util"
+	"log"
+	"os"
 )
 
 var (
