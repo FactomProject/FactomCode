@@ -228,11 +228,11 @@ func initializeECreditMap(block *common.ECBlock) {
 		switch entry.ECID() {
 		case common.ECIDChainCommit:
 			e := entry.(*common.CommitChain)
-			eCreditMap[string(e.ECPubKey[:])] += int32(e.Credits)
+			eCreditMap[string(e.ECPubKey[:])] -= int32(e.Credits)
 			common.FactoidState.UpdateECBalance(fct.NewAddress(e.ECPubKey[:]), int64(e.Credits))
 		case common.ECIDEntryCommit:
 			e := entry.(*common.CommitEntry)
-			eCreditMap[string(e.ECPubKey[:])] += int32(e.Credits)
+			eCreditMap[string(e.ECPubKey[:])] -= int32(e.Credits)
 			common.FactoidState.UpdateECBalance(fct.NewAddress(e.ECPubKey[:]), int64(e.Credits))
 		case common.ECIDBalanceIncrease:
 			e := entry.(*common.IncreaseBalance)

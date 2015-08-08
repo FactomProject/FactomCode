@@ -654,7 +654,7 @@ func processCommitChain(msg *wire.MsgCommitChain) error {
 func processBuyEntryCredit(pubKey *[32]byte, credits int32, factoidTxHash *common.Hash) error {
 
 	// Update the credit balance in memory
-	balance, _ := eCreditMap[string(pubKey[:])]
+	balance := eCreditMap[string(pubKey[:])]
 	eCreditMap[string(pubKey[:])] = balance + credits
 
 	return nil
