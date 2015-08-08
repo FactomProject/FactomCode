@@ -90,34 +90,6 @@ func (b *IncreaseBalance) UnmarshalBinary(data []byte) (err error) {
 	return
 }
 
-//func (b *IncreaseBalance) readUnmarshal(buf *bytes.Buffer) (err error) {
-//	hash := make([]byte, 32)
-//
-//	_, err = buf.Read(hash)
-//	if err != nil {
-//		return
-//	}
-//	b.ECPubKey = new([32]byte)
-//	copy(b.ECPubKey[:], hash)
-//
-//	_, err = buf.Read(hash)
-//	if err != nil {
-//		return
-//	}
-//	if b.TXID == nil {
-//		b.TXID = NewHash()
-//	}
-//	b.TXID.SetBytes(hash)
-//
-//	tmp := make([]byte, 0)
-//	b.Index, tmp = DecodeVarInt(buf.Bytes())
-//
-//	b.NumEC, tmp = DecodeVarInt(tmp)
-//	buf = bytes.NewBuffer(tmp)
-//
-//	return
-//}
-
 func (e *IncreaseBalance) JSONByte() ([]byte, error) {
 	return EncodeJSON(e)
 }
