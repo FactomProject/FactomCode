@@ -5,6 +5,8 @@
 package common
 
 import (
+	"fmt" // DEBUG
+
 	"bytes"
 )
 
@@ -38,11 +40,13 @@ func (m *MinuteNumber) MarshalBinary() ([]byte, error) {
 }
 
 func (m *MinuteNumber) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+	fmt.Printf("DEBUG: Unmarshaling: %x\n", data)
 	buf := bytes.NewBuffer(data)
 	var c byte
 	if c, err = buf.ReadByte(); err != nil {
 		return
 	} else {
+		fmt.Printf("DEBUG: Number: %x\n", c)
 		m.Number = c
 	}
 	newData = buf.Bytes()

@@ -1,6 +1,7 @@
 package common_test
 
 import (
+	"fmt" // DEBUG
 	"crypto/rand"
 	"testing"
 
@@ -34,7 +35,8 @@ func TestECBlockMarshal(t *testing.T) {
 	copy(pub[:], byteof(0xaa))
 	facTX := common.NewHash()
 	facTX.SetBytes(byteof(0xbb))
-	ib := common.MakeIncreaseBalance(pub, facTX, 12)
+	ib := common.MakeIncreaseBalance(pub, facTX, 13)
+	ib.Index = 6 // DEBUG
 
 	// create a ECBlock for testing
 	ecb1.Header.ECChainID.SetBytes(byteof(0x11))
@@ -47,9 +49,17 @@ func TestECBlockMarshal(t *testing.T) {
 
 	// add the CommitChain to the ECBlock
 	ecb1.AddEntry(cc)
+	
+	m1 := common.NewMinuteNumber()
+	m1.Number = 0x01
+	ecb1.AddEntry(m1)
 
 	// add the IncreaseBalance
 	ecb1.AddEntry(ib)
+	
+	m2 := common.NewMinuteNumber()
+	m2.Number = 0x02
+	ecb1.AddEntry(m2)
 
 	ecb2 := common.NewECBlock()
 	if p, err := ecb1.MarshalBinary(); err != nil {
@@ -58,7 +68,8 @@ func TestECBlockMarshal(t *testing.T) {
 		if err := ecb2.UnmarshalBinary(p); err != nil {
 			t.Error(err)
 		}
-		t.Log(spew.Sdump(ecb2))
+		fmt.Println(spew.Sdump(ecb1))
+		fmt.Println(spew.Sdump(ecb2))
 		if q, err := ecb2.MarshalBinary(); err != nil {
 			t.Error(err)
 		} else if string(p) != string(q) {

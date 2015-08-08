@@ -11,8 +11,6 @@ import (
 var IncreaseBalanceSize int = 32 + 4 + 32
 
 type IncreaseBalance struct {
-	ECBlockEntry
-
 	ECPubKey *[32]byte
 	TXID     *Hash
 	Index    uint64
@@ -27,7 +25,7 @@ func (c *IncreaseBalance) MarshalledSize() uint64 {
 }
 
 func MakeIncreaseBalance(pubkey *[32]byte, facTX *Hash, credits int32) *IncreaseBalance {
-	b := new(IncreaseBalance)
+	b := NewIncreaseBalance()
 	b.ECPubKey = pubkey
 	b.TXID = facTX
 	b.NumEC = uint64(credits)
@@ -60,20 +58,6 @@ func (b *IncreaseBalance) MarshalBinary() ([]byte, error) {
 
 func (b *IncreaseBalance) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	buf := bytes.NewBuffer(data)
-	if err = b.readUnmarshal(buf); err != nil {
-		return
-	}
-	newData = buf.Bytes()
-	return
-}
-
-func (b *IncreaseBalance) UnmarshalBinary(data []byte) (err error) {
-	_, err = b.UnmarshalBinaryData(data)
-	return
-}
-
-func (b *IncreaseBalance) readUnmarshal(buf *bytes.Buffer) (err error) {
-	tmp := make([]byte, 0)
 	hash := make([]byte, 32)
 
 	_, err = buf.Read(hash)
@@ -92,14 +76,47 @@ func (b *IncreaseBalance) readUnmarshal(buf *bytes.Buffer) (err error) {
 	}
 	b.TXID.SetBytes(hash)
 
+	tmp := make([]byte, 0)
 	b.Index, tmp = DecodeVarInt(buf.Bytes())
-	buf = bytes.NewBuffer(tmp)
 
-	b.NumEC, tmp = DecodeVarInt(buf.Bytes())
-	buf = bytes.NewBuffer(tmp)
+	b.NumEC, tmp = DecodeVarInt(tmp)
 
+	newData = tmp
 	return
 }
+
+func (b *IncreaseBalance) UnmarshalBinary(data []byte) (err error) {
+	_, err = b.UnmarshalBinaryData(data)
+	return
+}
+
+//func (b *IncreaseBalance) readUnmarshal(buf *bytes.Buffer) (err error) {
+//	hash := make([]byte, 32)
+//
+//	_, err = buf.Read(hash)
+//	if err != nil {
+//		return
+//	}
+//	b.ECPubKey = new([32]byte)
+//	copy(b.ECPubKey[:], hash)
+//
+//	_, err = buf.Read(hash)
+//	if err != nil {
+//		return
+//	}
+//	if b.TXID == nil {
+//		b.TXID = NewHash()
+//	}
+//	b.TXID.SetBytes(hash)
+//
+//	tmp := make([]byte, 0)
+//	b.Index, tmp = DecodeVarInt(buf.Bytes())
+//
+//	b.NumEC, tmp = DecodeVarInt(tmp)
+//	buf = bytes.NewBuffer(tmp)
+//
+//	return
+//}
 
 func (e *IncreaseBalance) JSONByte() ([]byte, error) {
 	return EncodeJSON(e)
