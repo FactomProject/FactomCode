@@ -81,7 +81,6 @@ func TestECBlockMarshal(t *testing.T) {
 			t.Errorf("ecb1 = %x\n", p)
 			t.Errorf("ecb2 = %x\n", q)
 		}
-		fmt.Printf("%x\n", p)
 	}
 }
 

@@ -754,7 +754,6 @@ func buildRevealChain(msg *wire.MsgRevealEntry) {
 // Loop through the Process List items and get the touched chains
 // Put End-Of-Minute marker in the entry chains
 func buildEndOfMinute(pl *consensus.ProcessList, pli *consensus.ProcessListItem) {
-	fmt.Println("DEBUG: buildEndOfMinute")
 	tempChainMap := make(map[string]*common.EChain)
 	items := pl.GetPLItems()
 	for i := pli.Ack.Index; i >= 0; i-- {
@@ -770,12 +769,9 @@ func buildEndOfMinute(pl *consensus.ProcessList, pli *consensus.ProcessListItem)
 	}
 
 	// Add it to the entry credit chain
-	entries := ecchain.NextBlock.Body.Entries
-	if entries[len(entries)-1].ECID() != common.ECIDMinuteNumber {
-		cbEntry := common.NewMinuteNumber()
-		cbEntry.Number = pli.Ack.Type
-		ecchain.NextBlock.AddEntry(cbEntry)
-	}
+	cbEntry := common.NewMinuteNumber()
+	cbEntry.Number = pli.Ack.Type
+	ecchain.NextBlock.AddEntry(cbEntry)
 
 	// Add it to the admin chain
 	abEntries := achain.NextBlock.ABEntries
