@@ -19,6 +19,11 @@ type FactomdConfig struct {
 		NodeMode                string
 		ServerPrivKey           string
 	}
+	Anchor struct {
+		ServerECKey         	string
+		AnchorChainID         	string		
+		ConfirmationsNeeded 	int	
+	}
 	Btc struct {
 		BTCPubAddr         string
 		SendToBTCinSeconds int
@@ -80,6 +85,11 @@ DirectoryBlockInSeconds	= 60
 ;---- NodeMode - FULL,SERVER,LIGHT -----
 NodeMode				= FULL
 ServerPrivKey			= ""
+
+[anchor]
+ServerECKey						= 54f7875aaa589126b1111d45d5bbd43ba03512d34d0501d6a05c0aee84d0846294bb4165350cdb7b9e4a7b3b2e7b6e110e4176c7714e53561b8818c3c78d1721
+AnchorChainID					= sdkajf;akdjf;ajfl;j
+ConfirmationsNeeded				= 20
 
 [btc]
 BTCPubAddr				= "movaFTARmsaTMk3j71MpX8HtMURpsKhdra"

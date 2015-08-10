@@ -40,6 +40,11 @@ var (
 	fee              btcutil.Amount                  // tx fee for written into btc
 	dirBlockInfoMap  map[string]*common.DirBlockInfo //dbHash string as key
 	db               database.Db
+	//Server Entry Credit private key
+	serverECKey common.PrivateKey	
+	//Anchor chain ID
+	anchorChainID common.Hash	
+	confirmationsNeeded int
 )
 
 type balance struct {
@@ -316,7 +321,7 @@ func createBtcdNotificationHandlers() btcrpcclient.NotificationHandlers {
 
 // InitAnchor inits rpc clients for factom
 // and load up unconfirmed DirBlockInfo from leveldb
-func InitAnchor(ldb database.Db) {
+func InitAnchor(ldb database.Db, serverECKey common.PrivateKey, anchorChainID common.Hash) {
 	anchorLog.Debug("InitAnchor")
 	db = ldb
 	var err error

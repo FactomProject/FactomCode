@@ -61,7 +61,7 @@ var (
 	//Server Private key and Public key for milestone 1
 	serverPrivKey common.PrivateKey
 	serverPubKey  common.PublicKey
-
+	
 	FactoshisPerCredit uint64 // .001 / .15 * 100000000 (assuming a Factoid is .15 cents, entry credit = .1 cents
 
 	FactomdUser string
