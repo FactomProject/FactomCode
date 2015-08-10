@@ -143,6 +143,9 @@ func (e *ECBlock) marshalBodyBinary() ([]byte, error) {
 		if err != nil {
 			return buf.Bytes(), err
 		}
+		if v.ECID() == ECIDMinuteNumber {
+			fmt.Printf("DEBUG: writing minute number: %x\n", p)
+		}
 		buf.WriteByte(v.ECID())
 		buf.Write(p)
 	}
