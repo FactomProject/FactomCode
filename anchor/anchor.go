@@ -43,7 +43,7 @@ var (
 	//Server Entry Credit private key
 	serverECKey common.PrivateKey	
 	//Anchor chain ID
-	anchorChainID common.Hash	
+	anchorChainID *common.Hash	
 	confirmationsNeeded int
 )
 
