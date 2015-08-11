@@ -554,6 +554,12 @@ func saveDirBlockInfo(transaction *btcutil.Tx, details *btcjson.BlockDetails) {
 			anchorRec.Bitcoin.BlockHash, _ = wire.NewShaHashFromStr(details.Hash)
 			anchorRec.Bitcoin.Offset = int32(details.Index)
 			anchorLog.Info("anchor.record saved: " + spew.Sdump(anchorRec))
+			
+			//Submit the anchor record to the anchor chain (entry chain)
+			err := submitEntryToAnchorChain(anchorRec)
+			if err != nil {
+				anchorLog.Error("Error in writing anchor into anchor chain: ", err.Error())
+			}			
 
 			break
 		}
@@ -579,11 +585,23 @@ func UpdateDirBlockInfoMap(dirBlockInfo *common.DirBlockInfo) {
 
 
 //Construct the entry and submit it to the server
-func SubmitEntry(entryContent []byte) error {
+func submitEntryToAnchorChain(aRecord *anchorRecord) error {
 
+	//Marshal aRecord into json
+	jsonARecord, err := json.Marshal(aRecord)
+	if err != nil {
+		return err
+	}	
+	bufARecord := new(bytes.Buffer)	
+	bufARecord.Write(jsonARecord)
+	//Sign the json aRecord with the server key 
+	aRecordSig := serverPrivKey.Sign(jsonARecord)	
+	bufARecord.Write(aRecordSig.Sig[:])
+	
+	//Create a new entry
 	entry := common.NewEntry()	
 	entry.ChainID = anchorChainID
-	entry.Content = entryContent
+	entry.Content = bufARecord.Bytes()
 
 	buf := new(bytes.Buffer)
 	// 1 byte version
@@ -605,7 +623,7 @@ func SubmitEntry(entryContent []byte) error {
 	buf.Write(sig.Sig[:])
 	
 	commit := common.NewCommitEntry()
-	err := commit.UnmarshalBinary(buf.Bytes())
+	err = commit.UnmarshalBinary(buf.Bytes())
 	if err != nil {
 		return err
 	}
@@ -624,7 +642,7 @@ func SubmitEntry(entryContent []byte) error {
 	return nil
 }
 
-// milliTime returns a 6 byte slice representing the unix time in milliseconds
+// MilliTime returns a 6 byte slice representing the unix time in milliseconds
 func milliTime() (r []byte) {
 	buf := new(bytes.Buffer)
 	t := time.Now().UnixNano()
@@ -633,6 +651,7 @@ func milliTime() (r []byte) {
 	return buf.Bytes()[2:]
 }
 
+// Calculate the entry credits needed for the entry
 func entryCost(e *common.Entry) (int8, error) {
 	p, err := e.MarshalBinary()
 	if err != nil {
