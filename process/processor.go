@@ -15,6 +15,9 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"sort"
+	"strconv"
+
 	"github.com/FactomProject/FactomCode/anchor"
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/consensus"
@@ -24,8 +27,6 @@ import (
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/factoid/block"
 	"github.com/davecgh/go-spew/spew"
-	"sort"
-	"strconv"
 )
 
 var _ = (*block.FBlock)(nil)
@@ -61,7 +62,7 @@ var (
 	//Server Private key and Public key for milestone 1
 	serverPrivKey common.PrivateKey
 	serverPubKey  common.PublicKey
-	
+
 	FactoshisPerCredit uint64 // .001 / .15 * 100000000 (assuming a Factoid is .15 cents, entry credit = .1 cents
 
 	FactomdUser string
@@ -1118,7 +1119,7 @@ func placeAnchor(dbBlock *common.DirectoryBlock) error {
 	if nodeMode == common.SERVER_NODE && dbBlock != nil {
 		// todo: need to make anchor as a go routine, independent of factomd
 		// same as blockmanager to btcd
-		go anchor.SendRawTransactionToBTC(dbBlock.KeyMR, uint64(dbBlock.Header.DBHeight))
+		go anchor.SendRawTransactionToBTC(dbBlock.KeyMR, dbBlock.Header.DBHeight)
 	}
 	return nil
 }
