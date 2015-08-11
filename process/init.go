@@ -178,6 +178,8 @@ func initFctChain() {
 				fchain.ChainID.String() + " block:" +
 				fmt.Sprintf("%v", fBlocks[i].GetDBHeight())))
 		} else {
+            FactoshisPerCredit = fBlocks[i].GetExchRate()
+            common.FactoidState.SetFactoshisPerEC(FactoshisPerCredit)
 			// initialize the FactoidState in sequence
 			err := common.FactoidState.AddTransactionBlock(fBlocks[i])
 			if err != nil {
@@ -188,6 +190,7 @@ func initFctChain() {
 
 	//Create an empty block and append to the chain
 	if len(fBlocks) == 0 || dchain.NextDBHeight == 0 {
+        common.FactoidState.SetFactoshisPerEC(FactoshisPerCredit)
 		fchain.NextBlockHeight = 0
 		// func GetGenesisFBlock(ftime uint64, ExRate uint64, addressCnt int, Factoids uint64 ) IFBlock {
 		fchain.NextBlock = block.GetGenesisFBlock(0, FactoshisPerCredit, 10, 200000000000)
