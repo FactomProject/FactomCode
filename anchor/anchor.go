@@ -17,7 +17,6 @@ import (
 	"io/ioutil"
 	"log"
 	"path/filepath"
-	"strconv"
 	"time"
 
 	"github.com/btcsuitereleases/btcd/btcjson"
@@ -52,6 +51,7 @@ var (
 	confirmationsNeeded int
 	//InmsgQ for submitting the entry to server
 	inMsgQ chan factomwire.FtmInternalMsg	
+
 )
 
 type balance struct {
@@ -60,10 +60,25 @@ type balance struct {
 	wif           *btcutil.WIF
 }
 
+type anchorRecord struct {
+	AnchorRecordVer int
+	DBHeight        uint32
+	KeyMR           *common.Hash
+	RecordHeight    uint32
+
+	Bitcoin struct {
+		Address     string        //"1HLoD9E4SDFFPDiYfNYnkBLQ85Y51J3Zb1",
+		TXID        *wire.ShaHash //"9b0fc92260312ce44e74ef369f5c66bbb85848f2eddd5a7a1cde251e54ccfdd5",
+		BlockHeight int32         //345678,
+		BlockHash   *wire.ShaHash //"00000000000000000cc14eacfc7057300aea87bed6fee904fd8e1c1f3dc008d4",
+		Offset      int32         //87
+	}
+}
+
 // SendRawTransactionToBTC is the main function used to anchor factom
 // dir block hash to bitcoin blockchain
-func SendRawTransactionToBTC(hash *common.Hash, blockHeight uint64) (*wire.ShaHash, error) {
-	anchorLog.Debug("SendRawTransactionToBTC: hash=", hash.String(), ", dir block height=", strconv.FormatUint(blockHeight, 10))
+func SendRawTransactionToBTC(hash *common.Hash, blockHeight uint32) (*wire.ShaHash, error) {
+	anchorLog.Debug("SendRawTransactionToBTC: hash=", hash.String(), ", dir block height=", blockHeight) //strconv.FormatUint(blockHeight, 10))
 	dirBlockInfo, err := sanityCheck(hash)
 	if err != nil {
 		return nil, err
@@ -71,7 +86,7 @@ func SendRawTransactionToBTC(hash *common.Hash, blockHeight uint64) (*wire.ShaHa
 	return doTransaction(hash, blockHeight, dirBlockInfo)
 }
 
-func doTransaction(hash *common.Hash, blockHeight uint64, dirBlockInfo *common.DirBlockInfo) (*wire.ShaHash, error) {
+func doTransaction(hash *common.Hash, blockHeight uint32, dirBlockInfo *common.DirBlockInfo) (*wire.ShaHash, error) {
 	b := balances[0]
 	i := copy(balances, balances[1:])
 	balances[i] = b
@@ -88,7 +103,9 @@ func doTransaction(hash *common.Hash, blockHeight uint64, dirBlockInfo *common.D
 	// for test purpose
 	if dirBlockInfo != nil {
 		dirBlockInfo.BTCTxHash = toHash(shaHash)
+		dirBlockInfo.DBHeight = blockHeight
 	}
+
 	return shaHash, nil
 }
 
@@ -117,7 +134,7 @@ func sanityCheck(hash *common.Hash) (*common.DirBlockInfo, error) {
 	return dirBlockInfo, nil
 }
 
-func createRawTransaction(b balance, hash []byte, blockHeight uint64) (*wire.MsgTx, error) {
+func createRawTransaction(b balance, hash []byte, blockHeight uint32) (*wire.MsgTx, error) {
 	msgtx := wire.NewMsgTx()
 
 	if err := addTxOuts(msgtx, b, hash, blockHeight); err != nil {
@@ -167,10 +184,10 @@ func addTxIn(msgtx *wire.MsgTx, b balance) error {
 	return nil
 }
 
-func addTxOuts(msgtx *wire.MsgTx, b balance, hash []byte, blockHeight uint64) error {
+func addTxOuts(msgtx *wire.MsgTx, b balance, hash []byte, blockHeight uint32) error {
 	anchorHash, err := prependBlockHeight(blockHeight, hash)
 	if err != nil {
-		anchorLog.Error("ScriptBuilder error: %v\n", err)
+		anchorLog.Errorf("ScriptBuilder error: %v\n", err)
 	}
 
 	builder := txscript.NewScriptBuilder()
@@ -181,7 +198,7 @@ func addTxOuts(msgtx *wire.MsgTx, b balance, hash []byte, blockHeight uint64) er
 	opReturn, err := builder.Script()
 	msgtx.AddTxOut(wire.NewTxOut(0, opReturn))
 	if err != nil {
-		anchorLog.Error("ScriptBuilder error: %v\n", err)
+		anchorLog.Errorf("ScriptBuilder error: %v\n", err)
 	}
 
 	amount, _ := btcutil.NewAmount(b.unspentResult.Amount)
@@ -240,11 +257,11 @@ func validateMsgTx(msgtx *wire.MsgTx, inputs []btcjson.ListUnspentResult) error 
 		//engine, err := txscript.NewScript(txin.SignatureScript, scriptPubKey, i, msgtx, flags)
 		engine, err := txscript.NewEngine(scriptPubKey, msgtx, i, flags)
 		if err != nil {
-			anchorLog.Error("cannot create script engine: %s\n", err)
+			anchorLog.Errorf("cannot create script engine: %s\n", err)
 			return fmt.Errorf("cannot create script engine: %s", err)
 		}
 		if err = engine.Execute(); err != nil {
-			anchorLog.Error("cannot execute script engine: %s\n", err)
+			anchorLog.Errorf("cannot execute script engine: %s\n", err)
 			return fmt.Errorf("cannot validate transaction: %s", err)
 		}
 	}
@@ -490,17 +507,19 @@ func shutdown(client *btcrpcclient.Client) {
 	client.WaitForShutdown()
 }
 
-func prependBlockHeight(height uint64, hash []byte) ([]byte, error) {
+func prependBlockHeight(height uint32, hash []byte) ([]byte, error) {
 	// dir block genesis block height starts with 0, for now
 	// similar to bitcoin genesis block
 	//if (0 == height) || (0xFFFFFFFFFFFF&height != height) {
-	if 0xFFFFFFFFFFFF&height != height {
+	//if 0xFFFFFFFFFFFF&height != height {
+	h := uint64(height)
+	if 0xFFFFFFFFFFFF&h != h {
 		return nil, errors.New("bad block height")
 	}
 
 	header := []byte{'F', 'a'}
 	big := make([]byte, 8)
-	binary.BigEndian.PutUint64(big, height)
+	binary.BigEndian.PutUint64(big, h) //height)
 
 	newdata := append(big[2:8], hash...)
 	newdata = append(header, newdata...)
@@ -515,11 +534,27 @@ func saveDirBlockInfo(transaction *btcutil.Tx, details *btcjson.BlockDetails) {
 			bytes.Compare(dirBlockInfo.BTCTxHash.Bytes(), transaction.Sha().Bytes()) == 0 {
 			dirBlockInfo.BTCTxOffset = int32(details.Index)
 			dirBlockInfo.BTCBlockHeight = details.Height
+			btcBlockHash, _ := wire.NewShaHashFromStr(details.Hash)
+			dirBlockInfo.BTCBlockHash = toHash(btcBlockHash)
 			dirBlockInfo.BTCConfirmed = true
 			db.InsertDirBlockInfo(dirBlockInfo)
 			delete(dirBlockInfoMap, dirBlockInfo.DBMerkleRoot.String())
 			anchorLog.Info("In saveDirBlockInfo, dirBlockInfo:%+v saved to db\n", dirBlockInfo)
 			saved = true
+
+			anchorRec := new(anchorRecord)
+			anchorRec.AnchorRecordVer = 1
+			anchorRec.DBHeight = dirBlockInfo.DBHeight
+			anchorRec.KeyMR = dirBlockInfo.DBMerkleRoot
+			_, recordHeight, _ := db.FetchBlockHeightCache()
+			anchorRec.RecordHeight = uint32(recordHeight)
+			anchorRec.Bitcoin.Address = balances[0].address.String()
+			anchorRec.Bitcoin.TXID = transaction.Sha()
+			anchorRec.Bitcoin.BlockHeight = details.Height
+			anchorRec.Bitcoin.BlockHash, _ = wire.NewShaHashFromStr(details.Hash)
+			anchorRec.Bitcoin.Offset = int32(details.Index)
+			anchorLog.Info("anchor.record saved: " + spew.Sdump(anchorRec))
+
 			break
 		}
 	}
