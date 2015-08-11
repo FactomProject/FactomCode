@@ -130,8 +130,10 @@ func initProcessor() {
 	//common.FactoidState.LoadState()
 	procLog.Info("Loaded ", fchain.NextBlockHeight, " factoid blocks for chain: "+fchain.ChainID.String())
 
-	anchor.InitAnchor(db)
-
+	//Init anchor for server
+	if nodeMode == common.SERVER_NODE {
+		anchor.InitAnchor(db, inMsgQueue, serverPrivKey)
+	}
 	// build the Genesis blocks if the current height is 0
 	if dchain.NextDBHeight == 0 && nodeMode == common.SERVER_NODE {
 		buildGenesisBlocks()

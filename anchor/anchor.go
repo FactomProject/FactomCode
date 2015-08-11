@@ -31,6 +31,7 @@ import (
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/util"
+	factomwire "github.com/FactomProject/btcd/wire"	
 )
 
 var (
@@ -40,11 +41,17 @@ var (
 	fee              btcutil.Amount                  // tx fee for written into btc
 	dirBlockInfoMap  map[string]*common.DirBlockInfo //dbHash string as key
 	db               database.Db
+
+	//Server Private key for milestone 1
+	serverPrivKey common.PrivateKey
+		
 	//Server Entry Credit private key
-	serverECKey common.PrivateKey	
+	serverECKey common.PrivateKey
 	//Anchor chain ID
 	anchorChainID *common.Hash	
 	confirmationsNeeded int
+	//InmsgQ for submitting the entry to server
+	inMsgQ chan factomwire.FtmInternalMsg	
 )
 
 type balance struct {
@@ -321,9 +328,12 @@ func createBtcdNotificationHandlers() btcrpcclient.NotificationHandlers {
 
 // InitAnchor inits rpc clients for factom
 // and load up unconfirmed DirBlockInfo from leveldb
-func InitAnchor(ldb database.Db, serverECKey common.PrivateKey, anchorChainID common.Hash) {
+func InitAnchor(ldb database.Db, q chan factomwire.FtmInternalMsg, serverKey common.PrivateKey) {
 	anchorLog.Debug("InitAnchor")
 	db = ldb
+	inMsgQ = q
+	serverPrivKey = serverKey
+	
 	var err error
 	dirBlockInfoMap, err = db.FetchAllUnconfirmedDirBlockInfo()
 	if err != nil {
@@ -337,6 +347,18 @@ func InitAnchor(ldb database.Db, serverECKey common.PrivateKey, anchorChainID co
 	}
 	//defer shutdown(dclient)
 	//defer shutdown(wclient)
+	
+	//Added anchor parameters
+	serverECKey, err = common.NewPrivateKeyFromHex(cfg.Anchor.ServerECKey)
+	if err != nil {
+		panic("Cannot parse Server EC Key from configuration file: " + err.Error())
+	}	
+	anchorChainID, err = common.HexToHash(cfg.Anchor.AnchorChainID)
+	if err != nil {
+		panic("Cannot parse Server AnchorChainID from configuration file: " + err.Error())
+	}
+	confirmationsNeeded = cfg.Anchor.ConfirmationsNeeded
+		
 
 	if err = initWallet(); err != nil {
 		anchorLog.Error(err.Error())
@@ -355,7 +377,8 @@ func initRPCClient() error {
 	rpcClientPass := cfg.Btc.RpcClientPass
 	certHomePathBtcd := cfg.Btc.CertHomePathBtcd
 	rpcBtcdHost := cfg.Btc.RpcBtcdHost
-
+	
+	
 	// Connect to local btcwallet RPC server using websockets.
 	ntfnHandlers := createBtcwalletNotificationHandlers()
 	certHomeDir := btcutil.AppDataDir(certHomePath, false)
@@ -517,4 +540,77 @@ func toHash(txHash *wire.ShaHash) *common.Hash {
 func UpdateDirBlockInfoMap(dirBlockInfo *common.DirBlockInfo) {
 	anchorLog.Debug(spew.Sdump(dirBlockInfo))
 	dirBlockInfoMap[dirBlockInfo.DBMerkleRoot.String()] = dirBlockInfo
+}
+
+
+//Construct the entry and submit it to the server
+func SubmitEntry(entryContent []byte) error {
+
+	entry := common.NewEntry()	
+	entry.ChainID = anchorChainID
+	entry.Content = entryContent
+
+	buf := new(bytes.Buffer)
+	// 1 byte version
+	buf.Write([]byte{0})
+	// 6 byte milliTimestamp (truncated unix time)
+	buf.Write(milliTime())
+	// 32 byte Entry Hash
+	buf.Write(entry.Hash().Bytes())
+	// 1 byte number of entry credits to pay
+	if c, err := entryCost(entry); err != nil {
+		return err
+	} else {
+		buf.WriteByte(byte(c))
+	}	
+	tmp := buf.Bytes()
+	sig := serverECKey.Sign(tmp)
+	buf = bytes.NewBuffer(tmp)
+	buf.Write(serverECKey.Pub.Key[:])
+	buf.Write(sig.Sig[:])
+	
+	commit := common.NewCommitEntry()
+	err := commit.UnmarshalBinary(buf.Bytes())
+	if err != nil {
+		return err
+	}
+
+	// create a CommitEntry msg and send it to the local inmsgQ
+	cm := factomwire.NewMsgCommitEntry()
+	cm.CommitEntry = commit
+	inMsgQ <- cm
+
+	// create a RevealEntry msg and send it to the local inmsgQ
+	rm := factomwire.NewMsgRevealEntry()
+	rm.Entry = entry
+	inMsgQ <- rm
+	
+	
+	return nil
+}
+
+// milliTime returns a 6 byte slice representing the unix time in milliseconds
+func milliTime() (r []byte) {
+	buf := new(bytes.Buffer)
+	t := time.Now().UnixNano()
+	m := t / 1e6
+	binary.Write(buf, binary.BigEndian, m)
+	return buf.Bytes()[2:]
+}
+
+func entryCost(e *common.Entry) (int8, error) {
+	p, err := e.MarshalBinary()
+	if err != nil {
+		return 0, err
+	}
+	// n is the capacity of the entry payment in KB
+	r := len(p) % 1024
+	n := int8(len(p) / 1024)
+	if r > 0 {
+		n += 1
+	}
+	if n > 10 {
+		return n, fmt.Errorf("Cannot make a payment for Entry larger than 10KB")
+	}
+	return n, nil
 }
