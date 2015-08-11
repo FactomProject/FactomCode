@@ -294,7 +294,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 					return err
 				}
 
-			} else if msgEom.EOM_Type >= wire.END_MINUTE_1 && msgEom.EOM_Type < wire.END_MINUTE_10 {
+			} else if wire.END_MINUTE_1 <= msgEom.EOM_Type && msgEom.EOM_Type < wire.END_MINUTE_10 {
 				ack, err := plMgr.AddMyProcessListItem(msgEom, nil, msgEom.EOM_Type)
 				if err != nil {
 					return err
@@ -715,20 +715,6 @@ func buildCommitChain(msg *wire.MsgCommitChain) {
 	ecchain.NextBlock.AddEntry(msg.CommitChain)
 }
 
-/*
-func buildFactoidObj(msg *wire.MsgInt_FactoidObj) {
-	factoidTxHash := common.NewHash()
-	factoidTxHash.SetBytes(msg.TxSha.Bytes())
-
-	for k, v := range msg.EntryCredits {
-		pubkey := new([32]byte)
-		copy(pubkey[:], k.Bytes())
-		cbEntry := common.NewIncreaseBalance(pubkey, factoidTxHash, int32(v))
-		ecchain.NextBlock.AddEntry(cbEntry)
-	}
-}
-*/
-
 func buildRevealChain(msg *wire.MsgRevealEntry) {
 	chain := chainIDMap[msg.Entry.ChainID.String()]
 
@@ -759,6 +745,7 @@ func buildEndOfMinute(pl *consensus.ProcessList, pli *consensus.ProcessListItem)
 			break
 		} else if (items[i].Ack.Type == wire.ACK_REVEAL_ENTRY || items[i].Ack.Type == wire.ACK_REVEAL_CHAIN) && tempChainMap[items[i].Ack.ChainID.String()] == nil {
 			chain := chainIDMap[items[i].Ack.ChainID.String()]
+			fmt.Printf("DEBUG: adding eom %x to eblock", pli.Ack.Type)
 			chain.NextBlock.AddEndOfMinuteMarker(pli.Ack.Type)
 			// Add the new chain in the tempChainMap
 			tempChainMap[chain.ChainID.String()] = chain
