@@ -108,6 +108,9 @@ func EntryByHash(hash string) (*common.Entry, error) {
 	}
 	r, err := db.FetchEntryByHash(h)
 	if err != nil {
+		return r, err
+	}
+	if r == nil {
 		return r, fmt.Errorf("Entry not found")
 	}
 	return r, nil
