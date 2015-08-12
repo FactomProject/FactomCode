@@ -741,7 +741,8 @@ func buildEndOfMinute(pl *consensus.ProcessList,
 	pli *consensus.ProcessListItem) {
 	tmpChains := make(map[string]*common.EChain)
 	for _, v := range pl.GetPLItems()[:pli.Ack.Index] {
-		if v.Ack.Type == wire.ACK_REVEAL_ENTRY {
+		if v.Ack.Type == wire.ACK_REVEAL_ENTRY ||
+			v.Ack.Type == wire.ACK_REVEAL_ENTRY {
 			cid := v.Msg.(*wire.MsgRevealEntry).Entry.ChainID.String()
 			tmpChains[cid] = chainIDMap[cid]
 		} else if wire.END_MINUTE_1 <= v.Ack.Type &&
