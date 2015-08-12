@@ -7,11 +7,28 @@ import (
 	. "github.com/FactomProject/FactomCode/common"
 )
 
-/*
-func TestIncreaseBalanceMarshalUnmarshal(t *testing.T) {
-	fmt.Printf("\n---\nTestIncreaseBalanceMarshalUnmarshal\n---\n")
 
-}*/
+func TestIncreaseBalanceMarshalUnmarshal(t *testing.T) {
+	pub := new([32]byte)
+	facTX := NewHash()
+	facTX.SetBytes(byteof(0xbb))
+	ib1 := MakeIncreaseBalance(pub, facTX, 12)
+	p, err := ib1.MarshalBinary()
+	if err != nil {
+		t.Error(err)
+	}
+	ib2 := NewIncreaseBalance()
+	ib2.UnmarshalBinary(p)
+	
+	q, err := ib2.MarshalBinary()
+	if err != nil {
+		t.Error(err)
+	}
+	if string(p) != string(q) {
+		t.Errorf("ib1 = %x\n", p)
+		t.Errorf("ib2 = %x\n", q)
+	}
+}
 
 func TestInvalidIncreaseBalanceUnmarshal(t *testing.T) {
 	fmt.Printf("\n---\nTestInvalidIncreaseBalanceUnmarshal\n---\n")

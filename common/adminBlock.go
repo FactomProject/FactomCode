@@ -30,9 +30,6 @@ type AdminChain struct {
 // For more details, please go to:
 // https://github.com/FactomProject/FactomDocs/blob/master/factomDataStructureDetails.md#administrative-block
 type AdminBlock struct {
-	Printable          `json:"-"`
-	BinaryMarshallable `json:"-"`
-
 	//Marshalized
 	Header    *ABlockHeader
 	ABEntries []ABEntry //Interface
@@ -41,6 +38,9 @@ type AdminBlock struct {
 	fullHash    *Hash //SHA512Half
 	partialHash *Hash //SHA256
 }
+
+var _ Printable = (*AdminBlock)(nil)
+var _ BinaryMarshallable = (*AdminBlock)(nil)
 
 func (ab *AdminBlock) LedgerKeyMR() (*Hash, error) {
 	if ab.fullHash == nil {
@@ -221,9 +221,6 @@ func (e *AdminBlock) Spew() string {
 
 // Admin Block Header
 type ABlockHeader struct {
-	Printable          `json:"-"`
-	BinaryMarshallable `json:"-"`
-
 	AdminChainID *Hash
 	PrevLedgerKeyMR *Hash
 	DBHeight     uint32
@@ -234,6 +231,9 @@ type ABlockHeader struct {
 	MessageCount uint32
 	BodySize     uint32
 }
+
+var _ Printable = (*ABlockHeader)(nil)
+var _ BinaryMarshallable = (*ABlockHeader)(nil)
 
 // Write out the ABlockHeader to binary.
 func (b *ABlockHeader) MarshalBinary() (data []byte, err error) {
@@ -265,13 +265,13 @@ func (b *ABlockHeader) MarshalBinary() (data []byte, err error) {
 func (b *ABlockHeader) MarshalledSize() uint64 {
 	var size uint64 = 0
 
-	size += uint64(HASH_LENGTH)                         //AdminChainID
-	size += uint64(HASH_LENGTH)                         //PrevLedgerKeyMR
-	size += 4                                           //DBHeight
-	size += uint64(VarIntLength(b.HeaderExpansionSize)) //HeaderExpansionSize
-	size += b.HeaderExpansionSize                       //HeadderExpansionArea
-	size += 4                                           //MessageCount
-	size += 4                                           //BodySize
+	size += uint64(HASH_LENGTH)                 //AdminChainID
+	size += uint64(HASH_LENGTH)                 //PrevFullHash
+	size += 4                                   //DBHeight
+	size += VarIntLength(b.HeaderExpansionSize) //HeaderExpansionSize
+	size += b.HeaderExpansionSize               //HeadderExpansionArea
+	size += 4                                   //MessageCount
+	size += 4                                   //BodySize
 
 	return size
 }
@@ -353,14 +353,14 @@ func (s *Sig) UnmarshalText(b []byte) error {
 
 // DB Signature Entry -------------------------
 type DBSignatureEntry struct {
-	ABEntry            `json:"-"` //interface
-	BinaryMarshallable `json:"-"`
-
 	entryType            byte
 	IdentityAdminChainID *Hash
 	PubKey               PublicKey
 	PrevDBSig            *Sig
 }
+
+var _ ABEntry = (*DBSignatureEntry)(nil)
+var _ BinaryMarshallable = (*DBSignatureEntry)(nil)
 
 // Create a new DB Signature Entry
 func NewDBSignatureEntry(identityAdminChainID *Hash, sig Signature) (e *DBSignatureEntry) {
@@ -459,12 +459,12 @@ func (e *DBSignatureEntry) Spew() string {
 }
 
 type EndOfMinuteEntry struct {
-	Printable          `json:"-"`
-	BinaryMarshallable `json:"-"`
-
 	entryType byte
 	EOM_Type  byte
 }
+
+var _ Printable = (*EndOfMinuteEntry)(nil)
+var _ BinaryMarshallable = (*EndOfMinuteEntry)(nil)
 
 func (m *EndOfMinuteEntry) Type() byte {
 	return m.entryType

@@ -11,7 +11,7 @@ func getGenesisFBlock() block.IFBlock {
 	if err != nil {
 		panic(err)
 	}
-    err = block.UnmarshalBinary(data)
+	err = block.UnmarshalBinary(data)
 	if err != nil {
 		panic(err)
 	}

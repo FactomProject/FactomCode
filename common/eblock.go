@@ -17,26 +17,37 @@ const (
 // Root is written into the Directory Blocks. Each Entry Block represents all
 // of the entries for a paticular Chain during a 10 minute period.
 type EBlock struct {
-	Printable          `json:"-"`
-	BinaryMarshallable `json:"-"`
-
 	Header *EBlockHeader
 	Body   *EBlockBody
+}
+
+var _ Printable = (*EBlock)(nil)
+var _ BinaryMarshallable = (*EBlock)(nil)
+
+func (c *EBlock) MarshalledSize() uint64 {
+	return uint64(EBHeaderSize)
 }
 
 // MakeEBlock creates a new Entry Block belonging to the provieded Entry Chain.
 // Its PrevKeyMR and PrevLedgerKeyMR are populated by the provided previous Entry
 // Block. If The previous Entry Block is nil (the new Entry Block is first in
 // the Chain) the relevent Entry Block Header fields will contain zeroed Hashes.
-func MakeEBlock(echain *EChain, prev *EBlock) *EBlock {
+func MakeEBlock(echain *EChain, prev *EBlock) (*EBlock, error) {
 	e := NewEBlock()
 	e.Header.ChainID = echain.ChainID
 	if prev != nil {
-		e.Header.PrevKeyMR = prev.KeyMR()
-		e.Header.PrevLedgerKeyMR = prev.Hash()
+		var err error
+		e.Header.PrevKeyMR, err = prev.KeyMR()
+		if err!=nil {
+			return nil, err
+		}
+		e.Header.PrevLedgerKeyMR, err = prev.Hash()
+		if err!=nil {
+			return nil, err
+		}
 	}
 	e.Header.EBSequence = echain.NextBlockHeight
-	return e
+	return e, nil
 }
 
 // NewEBlock returns a blank initialized Entry Block with all of its fields
@@ -77,27 +88,27 @@ func (e *EBlock) BuildHeader() error {
 
 // Hash returns the simple Sha256 hash of the serialized Entry Block. Hash is
 // used to provide the PrevLedgerKeyMR to the next Entry Block in a Chain.
-func (e *EBlock) Hash() *Hash {
+func (e *EBlock) Hash() (*Hash, error) {
 	p, err := e.MarshalBinary()
 	if err != nil {
-		return NewHash()
+		return nil, err
 	}
-	return Sha(p)
+	return Sha(p), nil
 }
 
 // KeyMR returns the hash of the hash of the Entry Block Header concatinated
 // with the Merkle Root of the Entry Block Body. The Body Merkle Root is
 // calculated by the func (e *EBlockBody) MR() which is called by the func
 // (e *EBlock) BuildHeader().
-func (e *EBlock) KeyMR() *Hash {
+func (e *EBlock) KeyMR() (*Hash, error) {
 	// Sha(Sha(header) + BodyMR)
 	e.BuildHeader()
 	header, err := e.marshalHeaderBinary()
 	if err != nil {
-		return NewHash()
+		return nil, err
 	}
 	h := Sha(header)
-	return Sha(append(h.Bytes(), e.Header.BodyMR.Bytes()...))
+	return Sha(append(h.Bytes(), e.Header.BodyMR.Bytes()...)), nil
 }
 
 // MarshalBinary returns the serialized binary form of the Entry Block.
@@ -281,10 +292,10 @@ func (e *EBlock) Spew() string {
 
 // EBlockBody is the series of Hashes that form the Entry Block Body.
 type EBlockBody struct {
-	Printable `json:"-"`
-
 	EBEntries []*Hash
 }
+
+var _ Printable = (*EBlockBody)(nil)
 
 // NewEBlockBody initalizes an empty Entry Block Body.
 func NewEBlockBody() *EBlockBody {
@@ -328,6 +339,8 @@ type EBlockHeader struct {
 	DBHeight     uint32
 	EntryCount   uint32
 }
+
+var _ Printable = (*EBlockHeader)(nil)
 
 // NewEBlockHeader initializes a new empty Entry Block Header.
 func NewEBlockHeader() *EBlockHeader {

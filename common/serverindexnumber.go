@@ -13,10 +13,14 @@ const (
 )
 
 type ServerIndexNumber struct {
-	Printable          `json:"-"`
-	BinaryMarshallable `json:"-"`
-
 	Number uint8
+}
+
+var _ Printable = (*ServerIndexNumber)(nil)
+var _ BinaryMarshallable = (*ServerIndexNumber)(nil)
+
+func (c *ServerIndexNumber) MarshalledSize() uint64 {
+	return uint64(ServerIndexNumberSize)
 }
 
 func NewServerIndexNumber() *ServerIndexNumber {

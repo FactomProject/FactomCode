@@ -5,6 +5,7 @@
 package process
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"github.com/FactomProject/FactomCode/common"
@@ -13,12 +14,15 @@ import (
 	"github.com/FactomProject/FactomCode/factomlog"
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd/wire"
-    fct "github.com/FactomProject/factoid"
-    "github.com/FactomProject/factoid/block"
-    "github.com/davecgh/go-spew/spew"
+	fct "github.com/FactomProject/factoid"
+	"github.com/FactomProject/factoid/block"
+	"github.com/davecgh/go-spew/spew"
+	"runtime/debug"
 	"sort"
 	"strconv"
 )
+
+var _ = debug.PrintStack
 
 // Initialize Directory Block Chain from database
 func initDChain() {
@@ -100,7 +104,11 @@ func initECChain() {
 	} else {
 		// Entry Credit Chain should have the same height as the dir chain
 		ecchain.NextBlockHeight = dchain.NextDBHeight
-		ecchain.NextBlock = common.NextECBlock(&ecBlocks[ecchain.NextBlockHeight-1])
+		var err error
+		ecchain.NextBlock, err = common.NextECBlock(&ecBlocks[ecchain.NextBlockHeight-1])
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	// create a backup copy before processing entries
@@ -184,11 +192,17 @@ func initFctChain() {
 		// func GetGenesisFBlock(ftime uint64, ExRate uint64, addressCnt int, Factoids uint64 ) IFBlock {
 		fchain.NextBlock = block.GetGenesisFBlock(0, FactoshisPerCredit, 10, 200000000000)
 		fmt.Println(fchain.NextBlock)
+		gb:=fchain.NextBlock
+        err := common.FactoidState.AddTransactionBlock(gb)
+        if err != nil { 
+            panic(err)
+        }
+
 	} else {
 		fchain.NextBlockHeight = dchain.NextDBHeight
+		common.FactoidState.ProcessEndOfBlock2(dchain.NextDBHeight)
+		fchain.NextBlock = common.FactoidState.GetCurrentBlock()
 	}
-	common.FactoidState.ProcessEndOfBlock2(dchain.NextDBHeight)
-	fchain.NextBlock = common.FactoidState.GetCurrentBlock()
 
 	exportFctChain(fchain)
 
@@ -220,11 +234,11 @@ func initializeECreditMap(block *common.ECBlock) {
 		switch entry.ECID() {
 		case common.ECIDChainCommit:
 			e := entry.(*common.CommitChain)
-			eCreditMap[string(e.ECPubKey[:])] += int32(e.Credits)
+			eCreditMap[string(e.ECPubKey[:])] -= int32(e.Credits)
 			common.FactoidState.UpdateECBalance(fct.NewAddress(e.ECPubKey[:]), int64(e.Credits))
 		case common.ECIDEntryCommit:
 			e := entry.(*common.CommitEntry)
-			eCreditMap[string(e.ECPubKey[:])] += int32(e.Credits)
+			eCreditMap[string(e.ECPubKey[:])] -= int32(e.Credits)
 			common.FactoidState.UpdateECBalance(fct.NewAddress(e.ECPubKey[:]), int64(e.Credits))
 		case common.ECIDBalanceIncrease:
 			e := entry.(*common.IncreaseBalance)
@@ -270,12 +284,19 @@ func initEChainFromDB(chain *common.EChain) {
 		}
 	}
 
+	var err error
 	if len(*eBlocks) == 0 {
 		chain.NextBlockHeight = 0
-		chain.NextBlock = common.MakeEBlock(chain, nil)
+		chain.NextBlock, err = common.MakeEBlock(chain, nil)
+		if err != nil {
+			panic(err)
+		}
 	} else {
 		chain.NextBlockHeight = uint32(len(*eBlocks))
-		chain.NextBlock = common.MakeEBlock(chain, &(*eBlocks)[len(*eBlocks)-1])
+		chain.NextBlock, err = common.MakeEBlock(chain, &(*eBlocks)[len(*eBlocks)-1])
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	// Initialize chain with the first entry (Name and rules) for non-server mode
@@ -416,7 +437,15 @@ func validateFBlockByMR(mr *common.Hash) error {
 	b, _ := db.FetchFBlockByHash(mr)
 
 	if b == nil {
-		return errors.New("Simple Coin block not found in db for merkle root: " + mr.String())
+		return errors.New("Factoid block not found in db for merkle root: \n" + mr.String())
+	}
+
+	// check that we used the KeyMR to store the block...
+	if !bytes.Equal(b.GetKeyMR().Bytes(), mr.Bytes()) {
+		return fmt.Errorf("Factoid block match failure: block %d \n%s\n%s",
+			b.GetDBHeight(),
+			"Key in the database:   "+mr.String(),
+			"Hash of the blk found: "+b.GetKeyMR().String())
 	}
 
 	return nil
@@ -425,13 +454,19 @@ func validateFBlockByMR(mr *common.Hash) error {
 // Validate Entry Block by merkle root
 func validateEBlockByMR(cid *common.Hash, mr *common.Hash) error {
 
-	eb, _ := db.FetchEBlockByMR(mr)
+	eb, err := db.FetchEBlockByMR(mr)
+	if err != nil {
+		return err
+	}
 
 	if eb == nil {
 		return errors.New("Entry block not found in db for merkle root: " + mr.String())
 	}
-
-	if !mr.IsSameAs(eb.KeyMR()) {
+	keyMR, err := eb.KeyMR()
+	if err != nil {
+		return err
+	}
+	if !mr.IsSameAs(keyMR) {
 		return errors.New("Entry block's merkle root does not match with: " + mr.String())
 	}
 

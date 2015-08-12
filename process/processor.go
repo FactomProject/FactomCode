@@ -66,6 +66,8 @@ var (
 
 	FactomdUser string
 	FactomdPass string
+
+	zeroHash = common.NewHash()
 )
 
 var (
@@ -109,7 +111,7 @@ func initProcessor() {
 	wire.FChainID = common.NewHash()
 	wire.FChainID.SetBytes(common.FACTOID_CHAINID)
 
-	FactoshisPerCredit = 66666 // .001 / .15 * 100000000 (assuming a Factoid is .15 cents, entry credit = .1 cents
+	FactoshisPerCredit = 666666 // .001 / .15 * 100000000 (assuming a Factoid is .15 cents, entry credit = .1 cents
 
 	// init Directory Block Chain
 	initDChain()
@@ -158,6 +160,7 @@ func initProcessor() {
 			dchain.IsValidated = false
 		}
 	}
+
 }
 
 // Started from factomd
@@ -301,8 +304,6 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 				}
 				// Broadcast the ack to the network if no errors
 				//outMsgQueue <- ack
-
-				plMgr.AddMyProcessListItem(msgEom, nil, msgEom.EOM_Type)
 			}
 
 			cp.CP.AddUpdate(
@@ -352,7 +353,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 			//			util.Trace("server mode")
 			t := (msg.(*wire.MsgFactoidTX)).Transaction
 			txnum := len(common.FactoidState.GetCurrentBlock().GetTransactions())
-			if common.FactoidState.AddTransaction(txnum,t) == nil {
+			if common.FactoidState.AddTransaction(txnum, t) == nil {
 				for _, ecout := range t.GetECOutputs() {
 
 					pub := new([32]byte)
@@ -473,6 +474,12 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 	e := msg.Entry
 	bin, _ := e.MarshalBinary()
 	h, _ := wire.NewShaHash(e.Hash().Bytes())
+
+	// Check if the chain id is valid
+	if e.ChainID.IsSameAs(zeroHash) || e.ChainID.IsSameAs(dchain.ChainID) || e.ChainID.IsSameAs(achain.ChainID) ||
+		e.ChainID.IsSameAs(ecchain.ChainID) || e.ChainID.IsSameAs(fchain.ChainID) {
+		return fmt.Errorf("This entry chain is not supported: %s", e.ChainID.String())
+	}
 
 	if c, ok := commitEntryMap[e.Hash().String()]; ok {
 		if chainIDMap[e.ChainID.String()] == nil {
@@ -645,8 +652,7 @@ func processCommitChain(msg *wire.MsgCommitChain) error {
 func processBuyEntryCredit(pubKey *[32]byte, credits int32, factoidTxHash *common.Hash) error {
 
 	// Update the credit balance in memory
-	balance, _ := eCreditMap[string(pubKey[:])]
-	eCreditMap[string(pubKey[:])] = balance + credits
+	eCreditMap[string(pubKey[:])] += credits
 
 	return nil
 }
@@ -752,7 +758,6 @@ func buildEndOfMinute(pl *consensus.ProcessList, pli *consensus.ProcessListItem)
 		if wire.END_MINUTE_1 <= items[i].Ack.Type && items[i].Ack.Type <= wire.END_MINUTE_10 {
 			break
 		} else if (items[i].Ack.Type == wire.ACK_REVEAL_ENTRY || items[i].Ack.Type == wire.ACK_REVEAL_CHAIN) && tempChainMap[items[i].Ack.ChainID.String()] == nil {
-
 			chain := chainIDMap[items[i].Ack.ChainID.String()]
 			chain.NextBlock.AddEndOfMinuteMarker(pli.Ack.Type)
 			// Add the new chain in the tempChainMap
@@ -761,12 +766,9 @@ func buildEndOfMinute(pl *consensus.ProcessList, pli *consensus.ProcessListItem)
 	}
 
 	// Add it to the entry credit chain
-	entries := ecchain.NextBlock.Body.Entries
-	if len(entries) > 0 && entries[len(entries)-1].ECID() != common.ECIDMinuteNumber {
-		cbEntry := common.NewMinuteNumber()
-		cbEntry.Number = pli.Ack.Type
-		ecchain.NextBlock.AddEntry(cbEntry)
-	}
+	cbEntry := common.NewMinuteNumber()
+	cbEntry.Number = pli.Ack.Type
+	ecchain.NextBlock.AddEntry(cbEntry)
 
 	// Add it to the admin chain
 	abEntries := achain.NextBlock.ABEntries
@@ -795,7 +797,7 @@ func buildGenesisBlocks() error {
 	exportAChain(achain)
 
 	// factoid Genesis Address
-    fchain.NextBlock = block.GetGenesisFBlock(0, FactoshisPerCredit, 10, 200000000000)
+	fchain.NextBlock = block.GetGenesisFBlock(0, FactoshisPerCredit, 10, 200000000000)
 	FBlock := newFactoidBlock(fchain)
 	data, _ := FBlock.MarshalBinary()
 	procLog.Debugf("\n\n ", common.Sha(data).String(), "\n\n")
@@ -940,7 +942,12 @@ func newEntryBlock(chain *common.EChain) *common.EBlock {
 	block.Header.EntryCount = uint32(len(block.Body.EBEntries))
 
 	chain.NextBlockHeight++
-	chain.NextBlock = common.MakeEBlock(chain, block)
+	var err error
+	chain.NextBlock, err = common.MakeEBlock(chain, block)
+	if err != nil {
+		procLog.Debug("EntryBlock Error: " + err.Error())
+		return nil
+	}
 
 	//Store the block in db
 	db.ProcessEBlockBatch(block)
@@ -963,7 +970,12 @@ func newEntryCreditBlock(chain *common.ECChain) *common.ECBlock {
 	// Create the block and add a new block for new coming entries
 	chain.BlockMutex.Lock()
 	chain.NextBlockHeight++
-	chain.NextBlock = common.NextECBlock(block)
+	var err error
+	chain.NextBlock, err = common.NextECBlock(block)
+	if err != nil {
+		procLog.Debug("EntryCreditBlock Error: " + err.Error())
+		return nil
+	}
 	chain.NextBlock.AddEntry(serverIndex)
 	chain.BlockMutex.Unlock()
 

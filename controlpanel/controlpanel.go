@@ -58,8 +58,6 @@ type CPEntry struct {
 }
 
 type ControlPanel struct {
-	IControlPanel
-
 	running bool // Set to true if the control panel is running.
 
 	title string // Goes in the Tab in the Browser
@@ -69,6 +67,8 @@ type ControlPanel struct {
 
 	lastCommunication time.Time // The last time the application updated data on the app.
 }
+
+var _ IControlPanel = (*ControlPanel)(nil)
 
 func (cp *ControlPanel) SetPort(port string) {
 	cp.port = port

@@ -20,15 +20,19 @@ const (
 )
 
 type CommitEntry struct {
-	Printable          `json:"-"`
-	BinaryMarshallable `json:"-"`
-
 	Version   uint8
 	MilliTime *[6]byte
 	EntryHash *Hash
 	Credits   uint8
 	ECPubKey  *[32]byte
 	Sig       *[64]byte
+}
+
+var _ Printable = (*CommitEntry)(nil)
+var _ BinaryMarshallable = (*CommitEntry)(nil)
+
+func (c *CommitEntry) MarshalledSize() uint64 {
+	return uint64(CommitEntrySize)
 }
 
 func NewCommitEntry() *CommitEntry {

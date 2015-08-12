@@ -13,10 +13,14 @@ const (
 )
 
 type MinuteNumber struct {
-	Printable          `json:"-"`
-	BinaryMarshallable `json:"-"`
-
 	Number uint8
+}
+
+var _ Printable = (*MinuteNumber)(nil)
+var _ BinaryMarshallable = (*MinuteNumber)(nil)
+
+func (c *MinuteNumber) MarshalledSize() uint64 {
+	return uint64(MinuteNumberSize)
 }
 
 func NewMinuteNumber() *MinuteNumber {

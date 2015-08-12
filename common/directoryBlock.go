@@ -34,9 +34,6 @@ func NewDChain() *DChain {
 }
 
 type DirectoryBlock struct {
-	Printable          `json:"-"`
-	BinaryMarshallable `json:"-"`
-
 	//Marshalized
 	Header    *DBlockHeader
 	DBEntries []*DBEntry
@@ -48,6 +45,14 @@ type DirectoryBlock struct {
 	KeyMR       *Hash
 	IsSavedInDB bool
 	IsValidated bool
+}
+
+var _ Printable = (*DirectoryBlock)(nil)
+var _ BinaryMarshallable = (*DirectoryBlock)(nil)
+
+func (c *DirectoryBlock) MarshalledSize() uint64 {
+	panic("Function not implemented")
+	return 0
 }
 
 func NewDirectoryBlock() *DirectoryBlock {
@@ -82,8 +87,6 @@ func (e *DirectoryBlock) Spew() string {
 }
 
 type DirBlockInfo struct {
-	Printable `json:"-"`
-
 	// Serial hash for the directory block
 	DBHash *Hash
 
@@ -107,6 +110,8 @@ type DirBlockInfo struct {
 	BTCConfirmed bool
 }
 
+var _ Printable = (*DirBlockInfo)(nil)
+
 func (e *DirBlockInfo) JSONByte() ([]byte, error) {
 	return EncodeJSON(e)
 }
@@ -124,9 +129,6 @@ func (e *DirBlockInfo) Spew() string {
 }
 
 type DBlockHeader struct {
-	Printable          `json:"-"`
-	BinaryMarshallable `json:"-"`
-
 	Version   byte
 	NetworkID uint32
 
@@ -138,6 +140,9 @@ type DBlockHeader struct {
 	DBHeight   uint32
 	BlockCount uint32
 }
+
+var _ Printable = (*DBlockHeader)(nil)
+var _ BinaryMarshallable = (*DBlockHeader)(nil)
 
 func NewDBlockHeader() *DBlockHeader {
 	d := new(DBlockHeader)
@@ -165,29 +170,42 @@ func (e *DBlockHeader) Spew() string {
 }
 
 type DBEntry struct {
-	Printable          `json:"-"`
-	BinaryMarshallable `json:"-"`
-
 	ChainID *Hash
 	KeyMR   *Hash // Different MR in EBlockHeader
 }
 
-func NewDBEntry(eb *EBlock) *DBEntry {
+var _ Printable = (*DBEntry)(nil)
+var _ BinaryMarshallable = (*DBEntry)(nil)
+
+func (c *DBEntry) MarshalledSize() uint64 {
+	panic("Function not implemented")
+	return 0
+}
+
+func NewDBEntry(eb *EBlock) (*DBEntry, error) {
 	e := new(DBEntry)
 
 	e.ChainID = eb.Header.ChainID
-	e.KeyMR = eb.KeyMR()
+	var err error
+	e.KeyMR, err = eb.KeyMR()
+	if err!=nil {
+		return nil, err
+	}
 
-	return e
+	return e, nil
 }
 
-func NewDBEntryFromECBlock(cb *ECBlock) *DBEntry {
+func NewDBEntryFromECBlock(cb *ECBlock) (*DBEntry, error) {
 	e := &DBEntry{}
 
 	e.ChainID = cb.Header.ECChainID
-	e.KeyMR = cb.HeaderHash()
+	var err error
+	e.KeyMR, err = cb.HeaderHash()
+	if err!=nil {
+		return nil, err
+	}
 
-	return e
+	return e, nil
 }
 
 func NewDBEntryFromABlock(b *AdminBlock) *DBEntry {
@@ -429,7 +447,10 @@ func CreateDBlock(chain *DChain, prev *DirectoryBlock, cap uint) (b *DirectoryBl
 // Add DBEntry from an Entry Block
 func (c *DChain) AddEBlockToDBEntry(eb *EBlock) (err error) {
 
-	dbEntry := NewDBEntry(eb)
+	dbEntry, err := NewDBEntry(eb)
+	if err!=nil {
+		return err
+	}
 	c.BlockMutex.Lock()
 	c.NextBlock.DBEntries = append(c.NextBlock.DBEntries, dbEntry)
 	c.BlockMutex.Unlock()
@@ -440,7 +461,10 @@ func (c *DChain) AddEBlockToDBEntry(eb *EBlock) (err error) {
 // Add DBEntry from an Entry Credit Block
 func (c *DChain) AddECBlockToDBEntry(ecb *ECBlock) (err error) {
 
-	dbEntry := NewDBEntryFromECBlock(ecb)
+	dbEntry, err := NewDBEntryFromECBlock(ecb)
+	if err!=nil {
+		return err
+	}
 
 	if len(c.NextBlock.DBEntries) < 3 {
 		panic("1 DBEntries not initialized properly for block: " + string(c.NextDBHeight))

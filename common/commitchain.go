@@ -20,9 +20,6 @@ const (
 )
 
 type CommitChain struct {
-	Printable          `json:"-"`
-	BinaryMarshallable `json:"-"`
-
 	Version     uint8
 	MilliTime   *[6]byte
 	ChainIDHash *Hash
@@ -31,6 +28,13 @@ type CommitChain struct {
 	Credits     uint8
 	ECPubKey    *[32]byte
 	Sig         *[64]byte
+}
+
+var _ Printable = (*CommitChain)(nil)
+var _ BinaryMarshallable = (*CommitChain)(nil)
+
+func (c *CommitChain) MarshalledSize() uint64 {
+	return uint64(CommitChainSize)
 }
 
 func NewCommitChain() *CommitChain {

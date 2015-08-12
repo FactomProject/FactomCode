@@ -8,9 +8,7 @@ import (
 )
 
 func TestMinuteNumberMarshalUnmarshal(t *testing.T) {
-	fmt.Printf("\n---\nTestMinuteNumberMarshalUnmarshal\n---\n")
-
-	mn := new(MinuteNumber)
+	mn := NewMinuteNumber()
 	mn.Number = 5
 	b, err := mn.MarshalBinary()
 	if err != nil {
@@ -23,7 +21,7 @@ func TestMinuteNumberMarshalUnmarshal(t *testing.T) {
 	if b[0] != 5 {
 		t.Error("Invalid byte")
 	}
-	mn2 := new(MinuteNumber)
+	mn2 := NewMinuteNumber()
 	err = mn2.UnmarshalBinary(b)
 	if err != nil {
 		t.Error(err)
