@@ -101,6 +101,12 @@ func initECChain() {
 	if len(ecBlocks) == 0 || dchain.NextDBHeight == 0 {
 		ecchain.NextBlockHeight = 0
 		ecchain.NextBlock = common.NewECBlock()
+        ecchain.NextBlock.AddEntry(serverIndex)
+        for i:=0;i<10;i++ {
+            marker := common.NewMinuteNumber()
+            marker.Number = uint8(i+1)
+            ecchain.NextBlock.AddEntry(marker)
+        }
 	} else {
 		// Entry Credit Chain should have the same height as the dir chain
 		ecchain.NextBlockHeight = dchain.NextDBHeight
