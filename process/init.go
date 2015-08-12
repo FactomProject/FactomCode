@@ -101,6 +101,12 @@ func initECChain() {
 	if len(ecBlocks) == 0 || dchain.NextDBHeight == 0 {
 		ecchain.NextBlockHeight = 0
 		ecchain.NextBlock = common.NewECBlock()
+        ecchain.NextBlock.AddEntry(serverIndex)
+        for i:=0;i<10;i++ {
+            marker := common.NewMinuteNumber()
+            marker.Number = uint8(i+1)
+            ecchain.NextBlock.AddEntry(marker)
+        }
 	} else {
 		// Entry Credit Chain should have the same height as the dir chain
 		ecchain.NextBlockHeight = dchain.NextDBHeight
@@ -178,6 +184,8 @@ func initFctChain() {
 				fchain.ChainID.String() + " block:" +
 				fmt.Sprintf("%v", fBlocks[i].GetDBHeight())))
 		} else {
+            FactoshisPerCredit = fBlocks[i].GetExchRate()
+            common.FactoidState.SetFactoshisPerEC(FactoshisPerCredit)
 			// initialize the FactoidState in sequence
 			err := common.FactoidState.AddTransactionBlock(fBlocks[i])
 			if err != nil {
@@ -188,15 +196,23 @@ func initFctChain() {
 
 	//Create an empty block and append to the chain
 	if len(fBlocks) == 0 || dchain.NextDBHeight == 0 {
+        common.FactoidState.SetFactoshisPerEC(FactoshisPerCredit)
 		fchain.NextBlockHeight = 0
 		// func GetGenesisFBlock(ftime uint64, ExRate uint64, addressCnt int, Factoids uint64 ) IFBlock {
-		fchain.NextBlock = block.GetGenesisFBlock(0, FactoshisPerCredit, 10, 200000000000)
+		//fchain.NextBlock = block.GetGenesisFBlock(0, FactoshisPerCredit, 10, 200000000000)
+		fchain.NextBlock = block.GetGenesisFBlock()
 		fmt.Println(fchain.NextBlock)
+		gb:=fchain.NextBlock
+        err := common.FactoidState.AddTransactionBlock(gb)
+        if err != nil { 
+            panic(err)
+        }
+
 	} else {
 		fchain.NextBlockHeight = dchain.NextDBHeight
+		common.FactoidState.ProcessEndOfBlock2(dchain.NextDBHeight)
+		fchain.NextBlock = common.FactoidState.GetCurrentBlock()
 	}
-	common.FactoidState.ProcessEndOfBlock2(dchain.NextDBHeight)
-	fchain.NextBlock = common.FactoidState.GetCurrentBlock()
 
 	exportFctChain(fchain)
 
