@@ -787,14 +787,9 @@ func buildGenesisBlocks() error {
 	// factoid Genesis Address
 	//fchain.NextBlock = block.GetGenesisFBlock(0, FactoshisPerCredit, 10, 200000000000)
 	fchain.NextBlock = block.GetGenesisFBlock()
-	FBlock := newFactoidBlock(fchain)
-	data, _ := FBlock.MarshalBinary()
-	procLog.Debugf("\n\n ", common.Sha(data).String(), "\n\n")
+    FBlock := newFactoidBlock(fchain)
 	dchain.AddFBlockToDBEntry(FBlock)
-	procLog.Debugf("Factoid genesis block hash: %v\n", FBlock.GetHash())
 	exportFctChain(fchain)
-	// Add transactions from genesis block to factoid balances
-	common.FactoidState.AddTransactionBlock(FBlock)
 
 	// Directory Block chain
 	procLog.Debug("in buildGenesisBlocks")
