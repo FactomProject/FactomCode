@@ -738,19 +738,33 @@ func buildRevealChain(msg *wire.MsgRevealEntry) {
 // Loop through the Process List items and get the touched chains
 // Put End-Of-Minute marker in the entry chains
 func buildEndOfMinute(pl *consensus.ProcessList, pli *consensus.ProcessListItem) {
-	tempChainMap := make(map[string]*common.EChain)
-	items := pl.GetPLItems()
-	for i := pli.Ack.Index; i >= 0; i-- {
-		if wire.END_MINUTE_1 <= items[i].Ack.Type && items[i].Ack.Type <= wire.END_MINUTE_10 {
-			break
-		} else if (items[i].Ack.Type == wire.ACK_REVEAL_ENTRY || items[i].Ack.Type == wire.ACK_REVEAL_CHAIN) && tempChainMap[items[i].Ack.ChainID.String()] == nil {
-			chain := chainIDMap[items[i].Ack.ChainID.String()]
-			fmt.Printf("DEBUG: adding eom %x to eblock", pli.Ack.Type)
-			chain.NextBlock.AddEndOfMinuteMarker(pli.Ack.Type)
-			// Add the new chain in the tempChainMap
-			tempChainMap[chain.ChainID.String()] = chain
+	fmt.Println("DEBUG: eom:", pli.Ack.Type)
+	tmpChains := make(map[string]*common.EChain)
+	for _, v := range pl.GetPLItems()[:pli.Ack.Index] {
+		if v.Ack.Type == wire.ACK_REVEAL_ENTRY {
+			cid := v.Msg.(*wire.MsgRevealEntry).Entry.ChainID.String()
+			tmpChains[cid] = chainIDMap[cid]
+		} else if wire.END_MINUTE_1 <= v.Ack.Type && v.Ack.Type <= wire.END_MINUTE_10 {
+			tmpChains = make(map[string]*common.EChain)
 		}
 	}
+	for _, v := range tmpChains {
+		v.NextBlock.AddEndOfMinuteMarker(pli.Ack.Type)
+	}
+		
+//	tempChainMap := make(map[string]*common.EChain)
+//	items := pl.GetPLItems()
+//	for i := pli.Ack.Index; i >= 0; i-- {
+//		if wire.END_MINUTE_1 <= items[i].Ack.Type && items[i].Ack.Type <= wire.END_MINUTE_10 {
+//			break
+//		} else if (items[i].Ack.Type == wire.ACK_REVEAL_ENTRY || items[i].Ack.Type == wire.ACK_REVEAL_CHAIN) && tempChainMap[items[i].Ack.ChainID.String()] == nil {
+//			chain := chainIDMap[items[i].Ack.ChainID.String()]
+//			fmt.Printf("DEBUG: adding eom %x to eblock", pli.Ack.Type)
+//			chain.NextBlock.AddEndOfMinuteMarker(pli.Ack.Type)
+//			// Add the new chain in the tempChainMap
+//			tempChainMap[chain.ChainID.String()] = chain
+//		}
+//	}
 
 	// Add it to the entry credit chain
 	cbEntry := common.NewMinuteNumber()
