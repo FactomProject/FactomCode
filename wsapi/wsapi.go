@@ -327,13 +327,10 @@ func handleEntryBlock(ctx *web.Context, keymr string) {
 		estack := make([]entryaddr, 0)
 		for _, v := range block.Body.EBEntries {
 			if n, exist := mins[v.String()]; exist {
-				fmt.Println("DEBUG: found minute marker", n)
 				// the entry is a minute marker. add time to all of the
 				// previous entries for the minute
 				t := e.Header.TimeStamp + 60 * uint32(n)
-				fmt.Println("DEBUG: new timestamp is", t)
 				for _, w := range estack {
-					fmt.Println("DEBUG: adding timestamp to entry", t, w)
 					w.TimeStamp = t
 					e.EntryList = append(e.EntryList, w)
 				}
