@@ -737,13 +737,15 @@ func buildRevealChain(msg *wire.MsgRevealEntry) {
 
 // Loop through the Process List items and get the touched chains
 // Put End-Of-Minute marker in the entry chains
-func buildEndOfMinute(pl *consensus.ProcessList, pli *consensus.ProcessListItem) {
+func buildEndOfMinute(pl *consensus.ProcessList,
+	pli *consensus.ProcessListItem) {
 	tmpChains := make(map[string]*common.EChain)
 	for _, v := range pl.GetPLItems()[:pli.Ack.Index] {
 		if v.Ack.Type == wire.ACK_REVEAL_ENTRY {
 			cid := v.Msg.(*wire.MsgRevealEntry).Entry.ChainID.String()
 			tmpChains[cid] = chainIDMap[cid]
-		} else if wire.END_MINUTE_1 <= v.Ack.Type && v.Ack.Type <= wire.END_MINUTE_10 {
+		} else if wire.END_MINUTE_1 <= v.Ack.Type &&
+			v.Ack.Type <= wire.END_MINUTE_10 {
 			tmpChains = make(map[string]*common.EChain)
 		}
 	}
