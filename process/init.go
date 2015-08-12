@@ -195,11 +195,17 @@ func initFctChain() {
 		// func GetGenesisFBlock(ftime uint64, ExRate uint64, addressCnt int, Factoids uint64 ) IFBlock {
 		fchain.NextBlock = block.GetGenesisFBlock(0, FactoshisPerCredit, 10, 200000000000)
 		fmt.Println(fchain.NextBlock)
+		gb:=fchain.NextBlock
+        err := common.FactoidState.AddTransactionBlock(gb)
+        if err != nil { 
+            panic(err)
+        }
+
 	} else {
 		fchain.NextBlockHeight = dchain.NextDBHeight
+		common.FactoidState.ProcessEndOfBlock2(dchain.NextDBHeight)
+		fchain.NextBlock = common.FactoidState.GetCurrentBlock()
 	}
-	common.FactoidState.ProcessEndOfBlock2(dchain.NextDBHeight)
-	fchain.NextBlock = common.FactoidState.GetCurrentBlock()
 
 	exportFctChain(fchain)
 
