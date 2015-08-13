@@ -297,7 +297,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 					return err
 				}
 
-			} else if msgEom.EOM_Type >= wire.END_MINUTE_1 && msgEom.EOM_Type < wire.END_MINUTE_10 {
+			} else if wire.END_MINUTE_1 <= msgEom.EOM_Type && msgEom.EOM_Type < wire.END_MINUTE_10 {
 				ack, err := plMgr.AddMyProcessListItem(msgEom, nil, msgEom.EOM_Type)
 				if err != nil {
 					return err
@@ -307,8 +307,6 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 				}
 				// Broadcast the ack to the network if no errors
 				//outMsgQueue <- ack
-
-				plMgr.AddMyProcessListItem(msgEom, nil, msgEom.EOM_Type)
 			}
 
 			cp.CP.AddUpdate(
@@ -657,8 +655,7 @@ func processCommitChain(msg *wire.MsgCommitChain) error {
 func processBuyEntryCredit(pubKey *[32]byte, credits int32, factoidTxHash *common.Hash) error {
 
 	// Update the credit balance in memory
-	balance := eCreditMap[string(pubKey[:])]
-	eCreditMap[string(pubKey[:])] = balance + credits
+	eCreditMap[string(pubKey[:])] += credits
 
 	return nil
 }
@@ -721,20 +718,6 @@ func buildCommitChain(msg *wire.MsgCommitChain) {
 	ecchain.NextBlock.AddEntry(msg.CommitChain)
 }
 
-/*
-func buildFactoidObj(msg *wire.MsgInt_FactoidObj) {
-	factoidTxHash := common.NewHash()
-	factoidTxHash.SetBytes(msg.TxSha.Bytes())
-
-	for k, v := range msg.EntryCredits {
-		pubkey := new([32]byte)
-		copy(pubkey[:], k.Bytes())
-		cbEntry := common.NewIncreaseBalance(pubkey, factoidTxHash, int32(v))
-		ecchain.NextBlock.AddEntry(cbEntry)
-	}
-}
-*/
-
 func buildRevealChain(msg *wire.MsgRevealEntry) {
 	chain := chainIDMap[msg.Entry.ChainID.String()]
 
@@ -757,28 +740,27 @@ func buildRevealChain(msg *wire.MsgRevealEntry) {
 
 // Loop through the Process List items and get the touched chains
 // Put End-Of-Minute marker in the entry chains
-func buildEndOfMinute(pl *consensus.ProcessList, pli *consensus.ProcessListItem) {
-	tempChainMap := make(map[string]*common.EChain)
-	items := pl.GetPLItems()
-	for i := pli.Ack.Index; i >= 0; i-- {
-		if wire.END_MINUTE_1 <= items[i].Ack.Type && items[i].Ack.Type <= wire.END_MINUTE_10 {
-			break
-		} else if (items[i].Ack.Type == wire.ACK_REVEAL_ENTRY || items[i].Ack.Type == wire.ACK_REVEAL_CHAIN) && tempChainMap[items[i].Ack.ChainID.String()] == nil {
-
-			chain := chainIDMap[items[i].Ack.ChainID.String()]
-			chain.NextBlock.AddEndOfMinuteMarker(pli.Ack.Type)
-			// Add the new chain in the tempChainMap
-			tempChainMap[chain.ChainID.String()] = chain
+func buildEndOfMinute(pl *consensus.ProcessList,
+	pli *consensus.ProcessListItem) {
+	tmpChains := make(map[string]*common.EChain)
+	for _, v := range pl.GetPLItems()[:pli.Ack.Index] {
+		if v.Ack.Type == wire.ACK_REVEAL_ENTRY ||
+			v.Ack.Type == wire.ACK_REVEAL_ENTRY {
+			cid := v.Msg.(*wire.MsgRevealEntry).Entry.ChainID.String()
+			tmpChains[cid] = chainIDMap[cid]
+		} else if wire.END_MINUTE_1 <= v.Ack.Type &&
+			v.Ack.Type <= wire.END_MINUTE_10 {
+			tmpChains = make(map[string]*common.EChain)
 		}
 	}
-
-	// Add it to the entry credit chain
-	entries := ecchain.NextBlock.Body.Entries
-	if len(entries) > 0 && entries[len(entries)-1].ECID() != common.ECIDMinuteNumber {
-		cbEntry := common.NewMinuteNumber()
-		cbEntry.Number = pli.Ack.Type
-		ecchain.NextBlock.AddEntry(cbEntry)
+	for _, v := range tmpChains {
+		v.NextBlock.AddEndOfMinuteMarker(pli.Ack.Type)
 	}
+		
+	// Add it to the entry credit chain
+	cbEntry := common.NewMinuteNumber()
+	cbEntry.Number = pli.Ack.Type
+	ecchain.NextBlock.AddEntry(cbEntry)
 
 	// Add it to the admin chain
 	abEntries := achain.NextBlock.ABEntries
@@ -807,15 +789,11 @@ func buildGenesisBlocks() error {
 	exportAChain(achain)
 
 	// factoid Genesis Address
-	fchain.NextBlock = block.GetGenesisFBlock(0, FactoshisPerCredit, 10, 200000000000)
-	FBlock := newFactoidBlock(fchain)
-	data, _ := FBlock.MarshalBinary()
-	procLog.Debugf("\n\n ", common.Sha(data).String(), "\n\n")
+	//fchain.NextBlock = block.GetGenesisFBlock(0, FactoshisPerCredit, 10, 200000000000)
+	fchain.NextBlock = block.GetGenesisFBlock()
+    FBlock := newFactoidBlock(fchain)
 	dchain.AddFBlockToDBEntry(FBlock)
-	procLog.Debugf("Factoid genesis block hash: %v\n", FBlock.GetHash())
 	exportFctChain(fchain)
-	// Add transactions from genesis block to factoid balances
-	common.FactoidState.AddTransactionBlock(FBlock)
 
 	// Directory Block chain
 	procLog.Debug("in buildGenesisBlocks")

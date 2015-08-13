@@ -8,7 +8,7 @@ import (
 	"bytes"
 )
 
-var IncreaseBalanceSize int = 32 + 4 + 32
+//var IncreaseBalanceSize int = 32 + 4 + 32
 
 type IncreaseBalance struct {
 	ECPubKey *[32]byte
@@ -18,11 +18,11 @@ type IncreaseBalance struct {
 }
 
 var _ Printable = (*IncreaseBalance)(nil)
-var _ BinaryMarshallable = (*IncreaseBalance)(nil)
+//var _ BinaryMarshallable = (*IncreaseBalance)(nil)
 
-func (c *IncreaseBalance) MarshalledSize() uint64 {
-	return uint64(IncreaseBalanceSize)
-}
+//func (c *IncreaseBalance) MarshalledSize() uint64 {
+//	return uint64(IncreaseBalanceSize)
+//}
 
 func MakeIncreaseBalance(pubkey *[32]byte, facTX *Hash, credits int32) *IncreaseBalance {
 	b := NewIncreaseBalance()
