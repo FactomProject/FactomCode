@@ -1101,7 +1101,7 @@ func placeAnchor(dbBlock *common.DirectoryBlock) error {
 		// same as blockmanager to btcd
 		go anchor.SendRawTransactionToBTC(dbBlock.KeyMR, dbBlock.Header.DBHeight)
 		
-		//anchor.SendRawTransactionForTesting(dbBlock.KeyMR, dbBlock.Header.DBHeight, dbBlock)
+		anchor.SendRawTransactionForTesting(dbBlock.KeyMR, dbBlock.Header.DBHeight, dbBlock)
 	}
 	return nil
 }

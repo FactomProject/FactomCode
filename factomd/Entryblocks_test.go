@@ -1,0 +1,41 @@
+package main
+
+import (
+	//	"bytes"
+	"fmt"
+	"github.com/FactomProject/FactomCode/common"
+	"github.com/davecgh/go-spew/spew"
+	"testing"
+	"github.com/FactomProject/FactomCode/util"	
+)
+
+var dirBlockHeight uint32 = 1
+
+func TestBlocks(t *testing.T) {
+	fmt.Println("\nTest Blocks===========================================================================")
+
+	loadConfigurations()
+	
+	initDB()
+	
+	cfg := util.ReadConfig()	
+
+	anchorChainID, _ := common.HexToHash(cfg.Anchor.AnchorChainID)
+	t.Log("anchorChainID: ", anchorChainID)
+	
+	// entry blocks ------------------
+	eblocks, _ := db.FetchAllEBlocksByChain(anchorChainID)
+	
+
+	for _, eblock := range *eblocks{
+		t.Logf("eblock=%s\n", spew.Sdump(eblock))		
+		for _, ebEntry := range eblock.Body.EBEntries {
+			entry, _ := db.FetchEntryByHash(ebEntry)	
+			if entry != nil {
+				t.Logf("entry=%s\n", spew.Sdump(entry))
+			}
+			
+		}
+	}
+
+}
