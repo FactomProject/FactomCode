@@ -30,7 +30,6 @@ var (
 	portNumber       = cfg.PortNumber
 	applicationName  = cfg.ApplicationName
 	dataStorePath    = "/tmp/store/seed/csv"
-	refreshInSeconds = cfg.RefreshInSeconds
 )
 
 var _ = fmt.Println
