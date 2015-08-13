@@ -30,7 +30,7 @@ import (
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/util"
-	factomwire "github.com/FactomProject/btcd/wire"	
+	factomwire "github.com/FactomProject/btcd/wire"
 )
 
 var (
@@ -43,15 +43,14 @@ var (
 
 	//Server Private key for milestone 1
 	serverPrivKey common.PrivateKey
-		
+
 	//Server Entry Credit private key
 	serverECKey common.PrivateKey
 	//Anchor chain ID
-	anchorChainID *common.Hash	
+	anchorChainID       *common.Hash
 	confirmationsNeeded int
 	//InmsgQ for submitting the entry to server
-	inMsgQ chan factomwire.FtmInternalMsg	
-
+	inMsgQ chan factomwire.FtmInternalMsg
 )
 
 type balance struct {
@@ -350,7 +349,7 @@ func InitAnchor(ldb database.Db, q chan factomwire.FtmInternalMsg, serverKey com
 	db = ldb
 	inMsgQ = q
 	serverPrivKey = serverKey
-	
+
 	var err error
 	dirBlockInfoMap, err = db.FetchAllUnconfirmedDirBlockInfo()
 	if err != nil {
@@ -364,8 +363,6 @@ func InitAnchor(ldb database.Db, q chan factomwire.FtmInternalMsg, serverKey com
 	}
 	//defer shutdown(dclient)
 	//defer shutdown(wclient)
-	
-		
 
 	if err = initWallet(); err != nil {
 		anchorLog.Error(err.Error())
@@ -384,21 +381,20 @@ func initRPCClient() error {
 	rpcClientPass := cfg.Btc.RpcClientPass
 	certHomePathBtcd := cfg.Btc.CertHomePathBtcd
 	rpcBtcdHost := cfg.Btc.RpcBtcdHost
-	
+
 	//Added anchor parameters
 	var err error
 	serverECKey, err = common.NewPrivateKeyFromHex(cfg.Anchor.ServerECKey)
 	if err != nil {
 		panic("Cannot parse Server EC Key from configuration file: " + err.Error())
-	}	
+	}
 	anchorChainID, err = common.HexToHash(cfg.Anchor.AnchorChainID)
-	anchorLog.Debug("anchorChainID: ", anchorChainID) 		
-	if err != nil || anchorChainID == nil{
+	anchorLog.Debug("anchorChainID: ", anchorChainID)
+	if err != nil || anchorChainID == nil {
 		panic("Cannot parse Server AnchorChainID from configuration file: " + err.Error())
 	}
 	confirmationsNeeded = cfg.Anchor.ConfirmationsNeeded
-	
-	
+
 	// Connect to local btcwallet RPC server using websockets.
 	ntfnHandlers := createBtcwalletNotificationHandlers()
 	certHomeDir := btcutil.AppDataDir(certHomePath, false)
@@ -557,12 +553,15 @@ func saveDirBlockInfo(transaction *btcutil.Tx, details *btcjson.BlockDetails) {
 			anchorRec.Bitcoin.BlockHash, _ = wire.NewShaHashFromStr(details.Hash)
 			anchorRec.Bitcoin.Offset = int32(details.Index)
 			anchorLog.Info("anchor.record saved: " + spew.Sdump(anchorRec))
-			
+
+			jsonARecord, _ := json.Marshal(anchorRec)
+			anchorLog.Debug("jsonARecord: ", string(jsonARecord))
+
 			//Submit the anchor record to the anchor chain (entry chain)
 			err := submitEntryToAnchorChain(anchorRec)
 			if err != nil {
 				anchorLog.Error("Error in writing anchor into anchor chain: ", err.Error())
-			}			
+			}
 
 			break
 		}
@@ -586,12 +585,11 @@ func UpdateDirBlockInfoMap(dirBlockInfo *common.DirBlockInfo) {
 	dirBlockInfoMap[dirBlockInfo.DBMerkleRoot.String()] = dirBlockInfo
 }
 
-
-// for testing
+// SendRawTransactionForTesting is for testing
 func SendRawTransactionForTesting(hash *common.Hash, blockHeight uint32, dirBlock *common.DirectoryBlock) (*wire.ShaHash, error) {
 	anchorLog.Debug("SendRawTransactionForTesting: ") //strconv.FormatUint(blockHeight, 10))
 	dirBlockInfo := common.NewDirBlockInfoFromDBlock(dirBlock)
-	
+
 	anchorRec := new(anchorRecord)
 	anchorRec.AnchorRecordVer = 1
 	anchorRec.DBHeight = dirBlockInfo.DBHeight
@@ -603,14 +601,13 @@ func SendRawTransactionForTesting(hash *common.Hash, blockHeight uint32, dirBloc
 	anchorRec.Bitcoin.BlockHeight = 4
 	anchorRec.Bitcoin.BlockHash = new(wire.ShaHash)
 	anchorRec.Bitcoin.Offset = int32(5)
-	anchorLog.Info("anchor.record saved: " + spew.Sdump(anchorRec))	
-	
+	anchorLog.Info("anchor.record saved: " + spew.Sdump(anchorRec))
+
 	//Submit the anchor record to the anchor chain (entry chain)
 	err := submitEntryToAnchorChain(anchorRec)
 	if err != nil {
 		anchorLog.Error("Error in writing anchor into anchor chain: ", err.Error())
 	}
-	
+
 	return nil, nil
 }
-
