@@ -3,9 +3,10 @@
 // that can be found in the LICENSE file.
 // github.com/alexcesaro/log/golog (MIT License)
 
-// Processor is the engine of Factom
-// It processes all of the incoming messages from the network
-// It syncs up with peers and build blocks based on the process lists and a timed schedule
+// Processor is the engine of Factom.
+// It processes all of the incoming messages from the network.
+// It syncs up with peers and build blocks based on the process lists and a
+// timed schedule.
 // For details, please refer to:
 // https://github.com/FactomProject/FactomDocs/blob/master/FactomLedgerbyConsensus.pdf
 
@@ -15,6 +16,9 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"sort"
+	"strconv"
+
 	"github.com/FactomProject/FactomCode/anchor"
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/consensus"
@@ -24,8 +28,6 @@ import (
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/factoid/block"
 	"github.com/davecgh/go-spew/spew"
-	"sort"
-	"strconv"
 )
 
 var _ = (*block.FBlock)(nil)
@@ -742,7 +744,7 @@ func buildEndOfMinute(pl *consensus.ProcessList,
 	tmpChains := make(map[string]*common.EChain)
 	for _, v := range pl.GetPLItems()[:pli.Ack.Index] {
 		if v.Ack.Type == wire.ACK_REVEAL_ENTRY ||
-			v.Ack.Type == wire.ACK_REVEAL_ENTRY {
+			v.Ack.Type == wire.ACK_REVEAL_CHAIN {
 			cid := v.Msg.(*wire.MsgRevealEntry).Entry.ChainID.String()
 			tmpChains[cid] = chainIDMap[cid]
 		} else if wire.END_MINUTE_1 <= v.Ack.Type &&
