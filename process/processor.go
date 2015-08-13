@@ -1122,6 +1122,8 @@ func placeAnchor(dbBlock *common.DirectoryBlock) error {
 		// todo: need to make anchor as a go routine, independent of factomd
 		// same as blockmanager to btcd
 		go anchor.SendRawTransactionToBTC(dbBlock.KeyMR, dbBlock.Header.DBHeight)
+		
+		//anchor.SendRawTransactionForTesting(dbBlock.KeyMR, dbBlock.Header.DBHeight, dbBlock)
 	}
 	return nil
 }

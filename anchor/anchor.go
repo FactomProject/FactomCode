@@ -365,16 +365,6 @@ func InitAnchor(ldb database.Db, q chan factomwire.FtmInternalMsg, serverKey com
 	//defer shutdown(dclient)
 	//defer shutdown(wclient)
 	
-	//Added anchor parameters
-	serverECKey, err = common.NewPrivateKeyFromHex(cfg.Anchor.ServerECKey)
-	if err != nil {
-		panic("Cannot parse Server EC Key from configuration file: " + err.Error())
-	}	
-	anchorChainID, err = common.HexToHash(cfg.Anchor.AnchorChainID)
-	if err != nil {
-		panic("Cannot parse Server AnchorChainID from configuration file: " + err.Error())
-	}
-	confirmationsNeeded = cfg.Anchor.ConfirmationsNeeded
 		
 
 	if err = initWallet(); err != nil {
@@ -394,6 +384,19 @@ func initRPCClient() error {
 	rpcClientPass := cfg.Btc.RpcClientPass
 	certHomePathBtcd := cfg.Btc.CertHomePathBtcd
 	rpcBtcdHost := cfg.Btc.RpcBtcdHost
+	
+	//Added anchor parameters
+	var err error
+	serverECKey, err = common.NewPrivateKeyFromHex(cfg.Anchor.ServerECKey)
+	if err != nil {
+		panic("Cannot parse Server EC Key from configuration file: " + err.Error())
+	}	
+	anchorChainID, err = common.HexToHash(cfg.Anchor.AnchorChainID)
+	anchorLog.Debug("anchorChainID: ", anchorChainID) 		
+	if err != nil || anchorChainID == nil{
+		panic("Cannot parse Server AnchorChainID from configuration file: " + err.Error())
+	}
+	confirmationsNeeded = cfg.Anchor.ConfirmationsNeeded
 	
 	
 	// Connect to local btcwallet RPC server using websockets.
@@ -584,87 +587,30 @@ func UpdateDirBlockInfoMap(dirBlockInfo *common.DirBlockInfo) {
 }
 
 
-//Construct the entry and submit it to the server
-func submitEntryToAnchorChain(aRecord *anchorRecord) error {
-
-	//Marshal aRecord into json
-	jsonARecord, err := json.Marshal(aRecord)
-	if err != nil {
-		return err
-	}	
-	bufARecord := new(bytes.Buffer)	
-	bufARecord.Write(jsonARecord)
-	//Sign the json aRecord with the server key 
-	aRecordSig := serverPrivKey.Sign(jsonARecord)	
-	bufARecord.Write(aRecordSig.Sig[:])
+// for testing
+func SendRawTransactionForTesting(hash *common.Hash, blockHeight uint32, dirBlock *common.DirectoryBlock) (*wire.ShaHash, error) {
+	anchorLog.Debug("SendRawTransactionForTesting: ") //strconv.FormatUint(blockHeight, 10))
+	dirBlockInfo := common.NewDirBlockInfoFromDBlock(dirBlock)
 	
-	//Create a new entry
-	entry := common.NewEntry()	
-	entry.ChainID = anchorChainID
-	entry.Content = bufARecord.Bytes()
-
-	buf := new(bytes.Buffer)
-	// 1 byte version
-	buf.Write([]byte{0})
-	// 6 byte milliTimestamp (truncated unix time)
-	buf.Write(milliTime())
-	// 32 byte Entry Hash
-	buf.Write(entry.Hash().Bytes())
-	// 1 byte number of entry credits to pay
-	if c, err := entryCost(entry); err != nil {
-		return err
-	} else {
-		buf.WriteByte(byte(c))
-	}	
-	tmp := buf.Bytes()
-	sig := serverECKey.Sign(tmp)
-	buf = bytes.NewBuffer(tmp)
-	buf.Write(serverECKey.Pub.Key[:])
-	buf.Write(sig.Sig[:])
+	anchorRec := new(anchorRecord)
+	anchorRec.AnchorRecordVer = 1
+	anchorRec.DBHeight = dirBlockInfo.DBHeight
+	anchorRec.KeyMR = dirBlockInfo.DBMerkleRoot
+	_, recordHeight, _ := db.FetchBlockHeightCache()
+	anchorRec.RecordHeight = uint32(recordHeight)
+	anchorRec.Bitcoin.Address = "sdaffadfAddress"
+	anchorRec.Bitcoin.TXID = new(wire.ShaHash)
+	anchorRec.Bitcoin.BlockHeight = 4
+	anchorRec.Bitcoin.BlockHash = new(wire.ShaHash)
+	anchorRec.Bitcoin.Offset = int32(5)
+	anchorLog.Info("anchor.record saved: " + spew.Sdump(anchorRec))	
 	
-	commit := common.NewCommitEntry()
-	err = commit.UnmarshalBinary(buf.Bytes())
+	//Submit the anchor record to the anchor chain (entry chain)
+	err := submitEntryToAnchorChain(anchorRec)
 	if err != nil {
-		return err
+		anchorLog.Error("Error in writing anchor into anchor chain: ", err.Error())
 	}
-
-	// create a CommitEntry msg and send it to the local inmsgQ
-	cm := factomwire.NewMsgCommitEntry()
-	cm.CommitEntry = commit
-	inMsgQ <- cm
-
-	// create a RevealEntry msg and send it to the local inmsgQ
-	rm := factomwire.NewMsgRevealEntry()
-	rm.Entry = entry
-	inMsgQ <- rm
 	
-	
-	return nil
+	return nil, nil
 }
 
-// MilliTime returns a 6 byte slice representing the unix time in milliseconds
-func milliTime() (r []byte) {
-	buf := new(bytes.Buffer)
-	t := time.Now().UnixNano()
-	m := t / 1e6
-	binary.Write(buf, binary.BigEndian, m)
-	return buf.Bytes()[2:]
-}
-
-// Calculate the entry credits needed for the entry
-func entryCost(e *common.Entry) (int8, error) {
-	p, err := e.MarshalBinary()
-	if err != nil {
-		return 0, err
-	}
-	// n is the capacity of the entry payment in KB
-	r := len(p) % 1024
-	n := int8(len(p) / 1024)
-	if r > 0 {
-		n += 1
-	}
-	if n > 10 {
-		return n, fmt.Errorf("Cannot make a payment for Entry larger than 10KB")
-	}
-	return n, nil
-}
