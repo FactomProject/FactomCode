@@ -497,7 +497,11 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 				msg.Entry.ChainID.String())
 		}
 
-		cred := int32(binary.Size(bin)/1024 + 1)
+		r := binary.Size(bin) % 1024
+		cred := int32(binary.Size(bin)/1024)
+		if r > 0 {
+			cred += 1
+		}
 		if int32(c.Credits) < cred {
 			fMemPool.addOrphanMsg(msg, h)
 			return fmt.Errorf("Credit needs to paid first before an entry is revealed: %s", e.Hash().String())
@@ -702,7 +706,6 @@ func processFromOrphanPool() error {
 }
 
 func buildRevealEntry(msg *wire.MsgRevealEntry) {
-
 	chain := chainIDMap[msg.Entry.ChainID.String()]
 
 	// store the new entry in db
