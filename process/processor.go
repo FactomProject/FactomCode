@@ -356,17 +356,24 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 			t := (msg.(*wire.MsgFactoidTX)).Transaction
 			txnum := len(common.FactoidState.GetCurrentBlock().GetTransactions())
 			if common.FactoidState.AddTransaction(txnum, t) == nil {
-				for _, ecout := range t.GetECOutputs() {
+				for i, ecout := range t.GetECOutputs() {
+					ib := common.NewIncreaseBalance()
 
 					pub := new([32]byte)
 					copy(pub[:], ecout.GetAddress().Bytes())
+					ib.ECPubKey = pub
+
 					th := common.NewHash()
 					th.SetBytes(t.GetHash().Bytes())
-					credits := int32(ecout.GetAmount() / uint64(FactoshisPerCredit))
-					processBuyEntryCredit(pub, credits, th)
-					incBal := common.MakeIncreaseBalance(pub, th, credits)
+					ib.TXID = th
 
-					ecchain.NextBlock.AddEntry(incBal)
+					cred := int32(ecout.GetAmount() / uint64(FactoshisPerCredit))
+					ib.NumEC = uint64(cred)
+
+					ib.Index = uint64(i)
+
+					processBuyEntryCredit(pub, cred, th)
+					ecchain.NextBlock.AddEntry(ib)
 				}
 			}
 		} else {
