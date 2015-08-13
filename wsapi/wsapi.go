@@ -248,7 +248,7 @@ func handleDirectoryBlock(ctx *web.Context, keymr string) {
 		Header struct {
 			PrevBlockKeyMR string
 			SequenceNumber uint32
-			TimeStamp      uint32
+			Timestamp      uint32
 		}
 		EntryBlockList []eblockaddr
 	}
@@ -262,7 +262,7 @@ func handleDirectoryBlock(ctx *web.Context, keymr string) {
 	} else {
 		d.Header.PrevBlockKeyMR = block.Header.PrevKeyMR.String()
 		d.Header.SequenceNumber = block.Header.DBHeight
-		d.Header.TimeStamp = block.Header.Timestamp * 60
+		d.Header.Timestamp = block.Header.Timestamp * 60
 		for _, v := range block.DBEntries {
 			l := new(eblockaddr)
 			l.ChainID = v.ChainID.String()
@@ -286,7 +286,7 @@ func handleDirectoryBlock(ctx *web.Context, keymr string) {
 func handleEntryBlock(ctx *web.Context, keymr string) {
 	type entryaddr struct {
 		EntryHash string
-		TimeStamp uint32
+		Timestamp uint32
 	}
 
 	type eblock struct {
@@ -294,7 +294,7 @@ func handleEntryBlock(ctx *web.Context, keymr string) {
 			BlockSequenceNumber uint32
 			ChainID             string
 			PrevKeyMR           string
-			TimeStamp           uint32
+			Timestamp           uint32
 		}
 		EntryList []entryaddr
 	}
@@ -311,7 +311,7 @@ func handleEntryBlock(ctx *web.Context, keymr string) {
 		e.Header.PrevKeyMR = block.Header.PrevKeyMR.String()
 
 		if dblock, err := dbase.FetchDBlockByHeight(block.Header.DBHeight); err == nil {
-			e.Header.TimeStamp = dblock.Header.Timestamp * 60
+			e.Header.Timestamp = dblock.Header.Timestamp * 60
 		}
 		
 		// create a map of possible minute markers that may be found in the
@@ -328,9 +328,9 @@ func handleEntryBlock(ctx *web.Context, keymr string) {
 			if n, exist := mins[v.String()]; exist {
 				// the entry is a minute marker. add time to all of the
 				// previous entries for the minute
-				t := e.Header.TimeStamp + 60 * uint32(n)
+				t := e.Header.Timestamp + 60 * uint32(n)
 				for _, w := range estack {
-					w.TimeStamp = t
+					w.Timestamp = t
 					e.EntryList = append(e.EntryList, w)
 				}
 				estack = make([]entryaddr, 0)
