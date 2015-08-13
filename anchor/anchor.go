@@ -125,8 +125,13 @@ func sanityCheck(hash *common.Hash) (*common.DirBlockInfo, error) {
 		anchorLog.Error(s)
 		return nil, errors.New(s)
 	}
-	if dclient == nil || wclient == nil || balances == nil {
+	if dclient == nil || wclient == nil {
 		s := fmt.Sprintf("\n\n$$$ WARNING: rpc clients and/or wallet are not initiated successfully. No anchoring for now.\n")
+		anchorLog.Warning(s)
+		return nil, errors.New(s)
+	}
+	if balances == nil || len(balances) == 0 {
+		s := fmt.Sprintf("\n\n$$$ WARNING: No balance in your wallet. No anchoring for now.\n")
 		anchorLog.Warning(s)
 		return nil, errors.New(s)
 	}
@@ -153,7 +158,7 @@ func createRawTransaction(b balance, hash []byte, blockHeight uint32) (*wire.Msg
 
 func addTxIn(msgtx *wire.MsgTx, b balance) error {
 	output := b.unspentResult
-	anchorLog.Info("unspentResult: %#v\n", output)
+	anchorLog.Infof("unspentResult: %s\n", spew.Sdump(output))
 	prevTxHash, err := wire.NewShaHashFromStr(output.TxID)
 	if err != nil {
 		return fmt.Errorf("cannot get sha hash from str: %s", err)
@@ -356,6 +361,7 @@ func InitAnchor(ldb database.Db, q chan factomwire.FtmInternalMsg, serverKey com
 		anchorLog.Error("InitAnchor error - " + err.Error())
 		return
 	}
+	anchorLog.Debug("init dirBlockInfoMap.len=", len(dirBlockInfoMap))
 
 	if err = initRPCClient(); err != nil {
 		anchorLog.Error(err.Error())
@@ -381,6 +387,7 @@ func initRPCClient() error {
 	rpcClientPass := cfg.Btc.RpcClientPass
 	certHomePathBtcd := cfg.Btc.CertHomePathBtcd
 	rpcBtcdHost := cfg.Btc.RpcBtcdHost
+	confirmationsNeeded = cfg.Anchor.ConfirmationsNeeded
 
 	//Added anchor parameters
 	var err error
@@ -481,7 +488,7 @@ func initWallet() error {
 			return fmt.Errorf("cannot get WIF: %s", err)
 		}
 		balances[i].wif = wif
-		anchorLog.Info("balance[%d]=%s", i, spew.Sdump(balances[i]))
+		anchorLog.Infof("balance[%d]=%s \n", i, spew.Sdump(balances[i]))
 	}
 
 	time.Sleep(1 * time.Second)
@@ -538,7 +545,7 @@ func saveDirBlockInfo(transaction *btcutil.Tx, details *btcjson.BlockDetails) {
 			dirBlockInfo.BTCConfirmed = true
 			db.InsertDirBlockInfo(dirBlockInfo)
 			delete(dirBlockInfoMap, dirBlockInfo.DBMerkleRoot.String())
-			anchorLog.Info("In saveDirBlockInfo, dirBlockInfo:%+v saved to db\n", dirBlockInfo)
+			anchorLog.Infof("In saveDirBlockInfo, dirBlockInfo:%s saved to db\n", spew.Sdump(dirBlockInfo))
 			saved = true
 
 			anchorRec := new(anchorRecord)
@@ -555,7 +562,7 @@ func saveDirBlockInfo(transaction *btcutil.Tx, details *btcjson.BlockDetails) {
 			anchorLog.Info("anchor.record saved: " + spew.Sdump(anchorRec))
 
 			jsonARecord, _ := json.Marshal(anchorRec)
-			anchorLog.Debug("jsonARecord: ", string(jsonARecord))
+			anchorLog.Debug("jsonAnchorRecord: ", string(jsonARecord))
 
 			//Submit the anchor record to the anchor chain (entry chain)
 			err := submitEntryToAnchorChain(anchorRec)
