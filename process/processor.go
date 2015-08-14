@@ -349,36 +349,12 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		}
 
 	case wire.CmdFactoidTX:
-		//		util.Trace("some mode: CmdFactoidTX")
-
-		if nodeMode == common.SERVER_NODE {
-			//			util.Trace("server mode")
-			t := (msg.(*wire.MsgFactoidTX)).Transaction
-			txnum := len(common.FactoidState.GetCurrentBlock().GetTransactions())
-			if common.FactoidState.AddTransaction(txnum, t) == nil {
-				for i, ecout := range t.GetECOutputs() {
-					ib := common.NewIncreaseBalance()
-
-					pub := new([32]byte)
-					copy(pub[:], ecout.GetAddress().Bytes())
-					ib.ECPubKey = pub
-
-					th := common.NewHash()
-					th.SetBytes(t.GetHash().Bytes())
-					ib.TXID = th
-
-					cred := int32(ecout.GetAmount() / uint64(FactoshisPerCredit))
-					ib.NumEC = uint64(cred)
-
-					ib.Index = uint64(i)
-
-					processBuyEntryCredit(pub, cred, th)
-					ecchain.NextBlock.AddEntry(ib)
-				}
+		msgFactoidTX, ok := msg.(*wire.MsgFactoidTX)
+		if ok && msgFactoidTX.IsValid() {
+			if err := processBuyEntryCredit(msgFactoidTX); err != nil {
+				return err
 			}
 		} else {
-			// client-mode, milestone 1 - transmit to the server node
-			//			util.Trace("client mode; TODO")
 			outMsgQueue <- msg
 		}
 
@@ -662,10 +638,30 @@ func processCommitChain(msg *wire.MsgCommitChain) error {
 }
 
 // processBuyEntryCredit validates the MsgCommitChain and adds it to processlist
-func processBuyEntryCredit(pubKey *[32]byte, credits int32, factoidTxHash *common.Hash) error {
-
+func processBuyEntryCredit(msg *wire.MsgFactoidTX) error {
 	// Update the credit balance in memory
-	eCreditMap[string(pubKey[:])] += credits
+	for _, v := range msg.Transaction.GetECOutputs() {
+		pub := new([32]byte)
+		copy(pub[:], v.GetAddress().Bytes())
+		
+		cred := int32(v.GetAmount() / uint64(FactoshisPerCredit))
+		
+		eCreditMap[string(pub[:])] += cred
+
+	}
+
+	if nodeMode == common.SERVER_NODE {
+		h, _ := msg.Sha()
+		if plMgr.IsMyPListExceedingLimit() {
+			procLog.Warning("Exceeding MyProcessList size limit!")
+			return fMemPool.addOrphanMsg(msg, &h)
+		}
+		
+		if _, err := plMgr.AddMyProcessListItem(msg, &h, wire.ACK_FACTOID_TX);
+			err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
@@ -719,6 +715,31 @@ func buildRevealEntry(msg *wire.MsgRevealEntry) {
 
 }
 
+func buildIncreaseBalance(msg *wire.MsgFactoidTX) {
+	t := msg.Transaction
+	txnum := len(common.FactoidState.GetCurrentBlock().GetTransactions())
+	if common.FactoidState.AddTransaction(txnum, t) == nil {
+		for i, ecout := range t.GetECOutputs() {
+			ib := common.NewIncreaseBalance()
+
+			pub := new([32]byte)
+			copy(pub[:], ecout.GetAddress().Bytes())
+			ib.ECPubKey = pub
+
+			th := common.NewHash()
+			th.SetBytes(t.GetHash().Bytes())
+			ib.TXID = th
+
+			cred := int32(ecout.GetAmount() / uint64(FactoshisPerCredit))
+			ib.NumEC = uint64(cred)
+
+			ib.Index = uint64(i)
+
+			ecchain.NextBlock.AddEntry(ib)
+		}
+	}
+}
+
 func buildCommitEntry(msg *wire.MsgCommitEntry) {
 	ecchain.NextBlock.AddEntry(msg.CommitEntry)
 }
@@ -749,8 +770,7 @@ func buildRevealChain(msg *wire.MsgRevealEntry) {
 
 // Loop through the Process List items and get the touched chains
 // Put End-Of-Minute marker in the entry chains
-func buildEndOfMinute(pl *consensus.ProcessList,
-	pli *consensus.ProcessListItem) {
+func buildEndOfMinute(pl *consensus.ProcessList, pli *consensus.ProcessListItem) {
 	tmpChains := make(map[string]*common.EChain)
 	for _, v := range pl.GetPLItems()[:pli.Ack.Index] {
 		if v.Ack.Type == wire.ACK_REVEAL_ENTRY ||
@@ -908,6 +928,8 @@ func buildFromProcessList(pl *consensus.ProcessList) error {
 	for _, pli := range pl.GetPLItems() {
 		if pli.Ack.Type == wire.ACK_COMMIT_CHAIN {
 			buildCommitChain(pli.Msg.(*wire.MsgCommitChain))
+		} else if pli.Ack.Type == wire.ACK_FACTOID_TX {
+			buildIncreaseBalance(pli.Msg.(*wire.MsgFactoidTX))
 		} else if pli.Ack.Type == wire.ACK_COMMIT_ENTRY {
 			buildCommitEntry(pli.Msg.(*wire.MsgCommitEntry))
 		} else if pli.Ack.Type == wire.ACK_REVEAL_CHAIN {
