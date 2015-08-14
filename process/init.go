@@ -101,12 +101,12 @@ func initECChain() {
 	if len(ecBlocks) == 0 || dchain.NextDBHeight == 0 {
 		ecchain.NextBlockHeight = 0
 		ecchain.NextBlock = common.NewECBlock()
-        ecchain.NextBlock.AddEntry(serverIndex)
-        for i:=0;i<10;i++ {
-            marker := common.NewMinuteNumber()
-            marker.Number = uint8(i+1)
-            ecchain.NextBlock.AddEntry(marker)
-        }
+		ecchain.NextBlock.AddEntry(serverIndex)
+		for i := 0; i < 10; i++ {
+			marker := common.NewMinuteNumber()
+			marker.Number = uint8(i + 1)
+			ecchain.NextBlock.AddEntry(marker)
+		}
 	} else {
 		// Entry Credit Chain should have the same height as the dir chain
 		ecchain.NextBlockHeight = dchain.NextDBHeight
@@ -184,8 +184,8 @@ func initFctChain() {
 				fchain.ChainID.String() + " block:" +
 				fmt.Sprintf("%v", fBlocks[i].GetDBHeight())))
 		} else {
-            FactoshisPerCredit = fBlocks[i].GetExchRate()
-            common.FactoidState.SetFactoshisPerEC(FactoshisPerCredit)
+			FactoshisPerCredit = fBlocks[i].GetExchRate()
+			common.FactoidState.SetFactoshisPerEC(FactoshisPerCredit)
 			// initialize the FactoidState in sequence
 			err := common.FactoidState.AddTransactionBlock(fBlocks[i])
 			if err != nil {
@@ -196,17 +196,17 @@ func initFctChain() {
 
 	//Create an empty block and append to the chain
 	if len(fBlocks) == 0 || dchain.NextDBHeight == 0 {
-        common.FactoidState.SetFactoshisPerEC(FactoshisPerCredit)
+		common.FactoidState.SetFactoshisPerEC(FactoshisPerCredit)
 		fchain.NextBlockHeight = 0
 		// func GetGenesisFBlock(ftime uint64, ExRate uint64, addressCnt int, Factoids uint64 ) IFBlock {
 		//fchain.NextBlock = block.GetGenesisFBlock(0, FactoshisPerCredit, 10, 200000000000)
 		fchain.NextBlock = block.GetGenesisFBlock()
 		fmt.Println(fchain.NextBlock)
-		gb:=fchain.NextBlock
-        err := common.FactoidState.AddTransactionBlock(gb)
-        if err != nil { 
-            panic(err)
-        }
+		gb := fchain.NextBlock
+		err := common.FactoidState.AddTransactionBlock(gb)
+		if err != nil {
+			panic(err)
+		}
 
 	} else {
 		fchain.NextBlockHeight = dchain.NextDBHeight
@@ -481,12 +481,12 @@ func validateEBlockByMR(cid *common.Hash, mr *common.Hash) error {
 	}
 
 	for _, ebEntry := range eb.Body.EBEntries {
-        if !bytes.Equal(ebEntry.Bytes()[:31],common.ZERO_HASH[:31]) {
-            entry, _ := db.FetchEntryByHash(ebEntry)
-            if entry == nil {
-                return errors.New("Entry not found in db for entry hash: " + ebEntry.String())
-            }
-        } // Else ... we could do a bit more validation of the minute markers.
+		if !bytes.Equal(ebEntry.Bytes()[:31], common.ZERO_HASH[:31]) {
+			entry, _ := db.FetchEntryByHash(ebEntry)
+			if entry == nil {
+				return errors.New("Entry not found in db for entry hash: " + ebEntry.String())
+			}
+		} // Else ... we could do a bit more validation of the minute markers.
 	}
 
 	return nil
