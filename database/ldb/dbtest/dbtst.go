@@ -19,7 +19,7 @@ type tst struct {
 
 const dbpath = "/tmp/ldb"
 
-func main() { 
+func main() {
 
 	ro := &opt.ReadOptions{}
 	//wo := &opt.WriteOptions{}
@@ -53,7 +53,7 @@ func main() {
 		elice = append(elice, t)
 
 	}
- 
+
 	fmt.Printf("len(elice):%v", len(elice))
 	fmt.Printf("completed\n")
 	ldb.Close()

@@ -5,8 +5,8 @@
 package common_test
 
 import (
-	"testing"
 	"github.com/FactomProject/FactomCode/common"
+	"testing"
 )
 
 func TestServerIndexMarshalUnmarshal(t *testing.T) {
@@ -22,7 +22,7 @@ func TestServerIndexMarshalUnmarshal(t *testing.T) {
 	if b[0] != 3 {
 		t.Error("Invalid byte")
 	}
-	
+
 	si2 := common.NewServerIndexNumber()
 	err = si2.UnmarshalBinary(b)
 	if err != nil {

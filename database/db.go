@@ -5,9 +5,9 @@
 package database
 
 import (
-    "github.com/FactomProject/factoid/block"
-    "github.com/FactomProject/FactomCode/common"
-	"github.com/FactomProject/btcd/wire"	    
+	"github.com/FactomProject/FactomCode/common"
+	"github.com/FactomProject/btcd/wire"
+	"github.com/FactomProject/factoid/block"
 )
 
 // AllShas is a special value that can be used as the final sha when requesting
@@ -96,29 +96,29 @@ type Db interface {
 
 	// ProcessDBlockBatche inserts the EBlock and update all it's ebentries in DB
 	ProcessDBlockBatch(block *common.DirectoryBlock) error
-	
+
 	// FetchHeightRange looks up a range of blocks by the start and ending
 	// heights.  Fetch is inclusive of the start height and exclusive of the
 	// ending height. To fetch all hashes from the start height until no
 	// more are present, use the special id `AllShas'.
-	FetchHeightRange(startHeight, endHeight int64) (rshalist []wire.ShaHash, err error) 	
-	
+	FetchHeightRange(startHeight, endHeight int64) (rshalist []wire.ShaHash, err error)
+
 	// FetchBlockHeightBySha returns the block height for the given hash.  This is
 	// part of the database.Db interface implementation.
-	FetchBlockHeightBySha(sha *wire.ShaHash) (int64, error) 	
+	FetchBlockHeightBySha(sha *wire.ShaHash) (int64, error)
 
 	// FetchAllECBlocks gets all of the entry credit blocks
 	FetchAllECBlocks() (cBlocks []common.ECBlock, err error)
 
 	// FetchAllFBInfo gets all of the fbInfo
 	FetchAllDBlocks() (fBlocks []common.DirectoryBlock, err error)
-	
+
 	// FetchDBHashByHeight gets a dBlockHash from the database.
-	FetchDBHashByHeight(dBlockHeight uint32) (dBlockHash *common.Hash, err error) 
+	FetchDBHashByHeight(dBlockHeight uint32) (dBlockHash *common.Hash, err error)
 
 	// FetchDBlockByHeight gets an directory block by height from the database.
-	FetchDBlockByHeight(dBlockHeight uint32) (dBlock *common.DirectoryBlock, err error) 
-	
+	FetchDBlockByHeight(dBlockHeight uint32) (dBlock *common.DirectoryBlock, err error)
+
 	// ProcessECBlockBatche inserts the ECBlock and update all it's ecbentries in DB
 	ProcessECBlockBatch(block *common.ECBlock) (err error)
 
@@ -136,28 +136,28 @@ type Db interface {
 
 	// FetchAllABlocks gets all of the admin blocks
 	FetchAllABlocks() (aBlocks []common.AdminBlock, err error)
-    
-    // ProcessABlockBatch inserts the AdminBlock
-    ProcessFBlockBatch(block.IFBlock) error
-    
-    // FetchABlockByHash gets an admin block by hash from the database.
-    FetchFBlockByHash(*common.Hash) (block.IFBlock, error)
-    
-    // FetchAllABlocks gets all of the admin blocks
-    FetchAllFBlocks() ([]block.IFBlock, error)
-    
+
+	// ProcessABlockBatch inserts the AdminBlock
+	ProcessFBlockBatch(block.IFBlock) error
+
+	// FetchABlockByHash gets an admin block by hash from the database.
+	FetchFBlockByHash(*common.Hash) (block.IFBlock, error)
+
+	// FetchAllABlocks gets all of the admin blocks
+	FetchAllFBlocks() ([]block.IFBlock, error)
+
 	// UpdateBlockHeightCache updates the dir block height cache in db
 	UpdateBlockHeightCache(dirBlkHeigh uint32, dirBlkHash *common.Hash) error
-	
+
 	// FetchBlockHeightCache returns the hash and block height of the most recent dir block
-	FetchBlockHeightCache() ( sha *wire.ShaHash, height int64, err error)	
-	
+	FetchBlockHeightCache() (sha *wire.ShaHash, height int64, err error)
+
 	// UpdateNextBlockHeightCache updates the next dir block height cache (from server) in db
-	UpdateNextBlockHeightCache(dirBlkHeigh uint32) error 
-    
+	UpdateNextBlockHeightCache(dirBlkHeigh uint32) error
+
 	// FetchNextBlockHeightCache returns the next block height from server
-	FetchNextBlockHeightCache() (height int64) 
-   
+	FetchNextBlockHeightCache() (height int64)
+
 	// FtchHeadMRByChainID gets a MR of the highest block from the database.
-	FetchHeadMRByChainID(chainID *common.Hash) (blkMR *common.Hash, err error)   
+	FetchHeadMRByChainID(chainID *common.Hash) (blkMR *common.Hash, err error)
 }

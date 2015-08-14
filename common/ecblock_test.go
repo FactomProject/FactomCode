@@ -1,8 +1,8 @@
 package common_test
 
 import (
-	"fmt"
 	"crypto/rand"
+	"fmt"
 	"testing"
 
 	"github.com/FactomProject/FactomCode/common"
@@ -43,7 +43,7 @@ func TestECBlockMarshal(t *testing.T) {
 
 	// add the CommitChain to the ECBlock
 	ecb1.AddEntry(cc)
-	
+
 	m1 := common.NewMinuteNumber()
 	m1.Number = 0x01
 	ecb1.AddEntry(m1)
@@ -52,7 +52,7 @@ func TestECBlockMarshal(t *testing.T) {
 	si1 := common.NewServerIndexNumber()
 	si1.Number = 3
 	ecb1.AddEntry(si1)
-	
+
 	// create an IncreaseBalance for testing
 	ib := common.NewIncreaseBalance()
 	pub := new([32]byte)
@@ -62,7 +62,7 @@ func TestECBlockMarshal(t *testing.T) {
 	ib.NumEC = uint64(13)
 	// add the IncreaseBalance
 	ecb1.AddEntry(ib)
-	
+
 	m2 := common.NewMinuteNumber()
 	m2.Number = 0x02
 	ecb1.AddEntry(m2)

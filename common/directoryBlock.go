@@ -132,8 +132,8 @@ type DBlockHeader struct {
 	Version   byte
 	NetworkID uint32
 
-	BodyMR       *Hash
-	PrevKeyMR    *Hash
+	BodyMR          *Hash
+	PrevKeyMR       *Hash
 	PrevLedgerKeyMR *Hash
 
 	Timestamp  uint32
@@ -188,7 +188,7 @@ func NewDBEntry(eb *EBlock) (*DBEntry, error) {
 	e.ChainID = eb.Header.ChainID
 	var err error
 	e.KeyMR, err = eb.KeyMR()
-	if err!=nil {
+	if err != nil {
 		return nil, err
 	}
 
@@ -201,7 +201,7 @@ func NewDBEntryFromECBlock(cb *ECBlock) (*DBEntry, error) {
 	e.ChainID = cb.Header.ECChainID
 	var err error
 	e.KeyMR, err = cb.HeaderHash()
-	if err!=nil {
+	if err != nil {
 		return nil, err
 	}
 
@@ -313,9 +313,9 @@ func (e *DBEntry) Spew() string {
 
 func (b *DBlockHeader) EncodableFields() map[string]reflect.Value {
 	fields := map[string]reflect.Value{
-		`DBHeight`:     reflect.ValueOf(b.DBHeight),
-		`BlockCount`:   reflect.ValueOf(b.BlockCount),
-		`BodyMR`:       reflect.ValueOf(b.BodyMR),
+		`DBHeight`:        reflect.ValueOf(b.DBHeight),
+		`BlockCount`:      reflect.ValueOf(b.BlockCount),
+		`BodyMR`:          reflect.ValueOf(b.BodyMR),
 		`PrevLedgerKeyMR`: reflect.ValueOf(b.PrevLedgerKeyMR),
 	}
 	return fields
@@ -448,7 +448,7 @@ func CreateDBlock(chain *DChain, prev *DirectoryBlock, cap uint) (b *DirectoryBl
 func (c *DChain) AddEBlockToDBEntry(eb *EBlock) (err error) {
 
 	dbEntry, err := NewDBEntry(eb)
-	if err!=nil {
+	if err != nil {
 		return err
 	}
 	c.BlockMutex.Lock()
@@ -462,7 +462,7 @@ func (c *DChain) AddEBlockToDBEntry(eb *EBlock) (err error) {
 func (c *DChain) AddECBlockToDBEntry(ecb *ECBlock) (err error) {
 
 	dbEntry, err := NewDBEntryFromECBlock(ecb)
-	if err!=nil {
+	if err != nil {
 		return err
 	}
 
