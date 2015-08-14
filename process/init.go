@@ -481,10 +481,12 @@ func validateEBlockByMR(cid *common.Hash, mr *common.Hash) error {
 	}
 
 	for _, ebEntry := range eb.Body.EBEntries {
-		entry, _ := db.FetchEntryByHash(ebEntry)
-		if entry == nil {
-			return errors.New("Entry not found in db for entry hash: " + ebEntry.String())
-		}
+        if !bytes.Equal(ebEntry.Bytes()[:31],common.ZERO_HASH[:31]) {
+            entry, _ := db.FetchEntryByHash(ebEntry)
+            if entry == nil {
+                return errors.New("Entry not found in db for entry hash: " + ebEntry.String())
+            }
+        } // Else ... we could do a bit more validation of the minute markers.
 	}
 
 	return nil

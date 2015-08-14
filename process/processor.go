@@ -3,9 +3,10 @@
 // that can be found in the LICENSE file.
 // github.com/alexcesaro/log/golog (MIT License)
 
-// Processor is the engine of Factom
-// It processes all of the incoming messages from the network
-// It syncs up with peers and build blocks based on the process lists and a timed schedule
+// Processor is the engine of Factom.
+// It processes all of the incoming messages from the network.
+// It syncs up with peers and build blocks based on the process lists and a
+// timed schedule.
 // For details, please refer to:
 // https://github.com/FactomProject/FactomDocs/blob/master/FactomLedgerbyConsensus.pdf
 
@@ -357,17 +358,24 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 			t := (msg.(*wire.MsgFactoidTX)).Transaction
 			txnum := len(common.FactoidState.GetCurrentBlock().GetTransactions())
 			if common.FactoidState.AddTransaction(txnum, t) == nil {
-				for _, ecout := range t.GetECOutputs() {
+				for i, ecout := range t.GetECOutputs() {
+					ib := common.NewIncreaseBalance()
 
 					pub := new([32]byte)
 					copy(pub[:], ecout.GetAddress().Bytes())
+					ib.ECPubKey = pub
+
 					th := common.NewHash()
 					th.SetBytes(t.GetHash().Bytes())
-					credits := int32(ecout.GetAmount() / uint64(FactoshisPerCredit))
-					processBuyEntryCredit(pub, credits, th)
-					incBal := common.MakeIncreaseBalance(pub, th, credits)
+					ib.TXID = th
 
-					ecchain.NextBlock.AddEntry(incBal)
+					cred := int32(ecout.GetAmount() / uint64(FactoshisPerCredit))
+					ib.NumEC = uint64(cred)
+
+					ib.Index = uint64(i)
+
+					processBuyEntryCredit(pub, cred, th)
+					ecchain.NextBlock.AddEntry(ib)
 				}
 			}
 		} else {
@@ -491,7 +499,11 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 				msg.Entry.ChainID.String())
 		}
 
-		cred := int32(binary.Size(bin)/1024 + 1)
+		r := binary.Size(bin) % 1024
+		cred := int32(binary.Size(bin)/1024)
+		if r > 0 {
+			cred += 1
+		}
 		if int32(c.Credits) < cred {
 			fMemPool.addOrphanMsg(msg, h)
 			return fmt.Errorf("Credit needs to paid first before an entry is revealed: %s", e.Hash().String())
@@ -696,7 +708,6 @@ func processFromOrphanPool() error {
 }
 
 func buildRevealEntry(msg *wire.MsgRevealEntry) {
-
 	chain := chainIDMap[msg.Entry.ChainID.String()]
 
 	// store the new entry in db
@@ -745,7 +756,7 @@ func buildEndOfMinute(pl *consensus.ProcessList,
 	tmpChains := make(map[string]*common.EChain)
 	for _, v := range pl.GetPLItems()[:pli.Ack.Index] {
 		if v.Ack.Type == wire.ACK_REVEAL_ENTRY ||
-			v.Ack.Type == wire.ACK_REVEAL_ENTRY {
+			v.Ack.Type == wire.ACK_REVEAL_CHAIN {
 			cid := v.Msg.(*wire.MsgRevealEntry).Entry.ChainID.String()
 			tmpChains[cid] = chainIDMap[cid]
 		} else if wire.END_MINUTE_1 <= v.Ack.Type &&

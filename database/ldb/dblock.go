@@ -38,7 +38,7 @@ import (
 			copy(key, iter.Key())
 			dbEntry := new(common.DBEntry)
 
-			dbEntry.SetTimeStamp(key[1:9]) // Timestamp (8 bytes)
+			dbEntry.SetTimestamp(key[1:9]) // Timestamp (8 bytes)
 			cid := key[9:41]
 			dbEntry.ChainID = new(common.Hash)
 			dbEntry.ChainID.Bytes = cid // Chain id (32 bytes)

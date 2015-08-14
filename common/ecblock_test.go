@@ -54,11 +54,12 @@ func TestECBlockMarshal(t *testing.T) {
 	ecb1.AddEntry(si1)
 	
 	// create an IncreaseBalance for testing
+	ib := common.NewIncreaseBalance()
 	pub := new([32]byte)
 	copy(pub[:], byteof(0xaa))
-	facTX := common.NewHash()
-	facTX.SetBytes(byteof(0xbb))
-	ib := common.MakeIncreaseBalance(pub, facTX, 13)
+	ib.ECPubKey = pub
+	ib.TXID.SetBytes(byteof(0xbb))
+	ib.NumEC = uint64(13)
 	// add the IncreaseBalance
 	ecb1.AddEntry(ib)
 	

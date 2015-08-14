@@ -47,7 +47,6 @@ type FactomdConfig struct {
 	Wsapi struct {
 		PortNumber       int
 		ApplicationName  string
-		RefreshInSeconds int
 	}
 	Log struct {
 		LogPath  string
@@ -110,7 +109,6 @@ RpcPass					= ""
 [wsapi]
 ApplicationName			= "Factom/wsapi"
 PortNumber				= 8088
-RefreshInSeconds		= 60
 
 ; ------------------------------------------------------------------------------
 ; LogLevel - debug,info,notice,warning,error,critical,alert,emergency,none

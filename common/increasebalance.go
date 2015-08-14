@@ -24,14 +24,6 @@ var _ Printable = (*IncreaseBalance)(nil)
 //	return uint64(IncreaseBalanceSize)
 //}
 
-func MakeIncreaseBalance(pubkey *[32]byte, facTX *Hash, credits int32) *IncreaseBalance {
-	b := NewIncreaseBalance()
-	b.ECPubKey = pubkey
-	b.TXID = facTX
-	b.NumEC = uint64(credits)
-	return b
-}
-
 func NewIncreaseBalance() *IncreaseBalance {
 	r := new(IncreaseBalance)
 	r.TXID = NewHash()
