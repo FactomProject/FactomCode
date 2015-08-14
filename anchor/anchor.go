@@ -588,7 +588,7 @@ func toHash(txHash *wire.ShaHash) *common.Hash {
 // UpdateDirBlockInfoMap allows factom processor to update DirBlockInfo
 // when a new Directory Block is saved to db
 func UpdateDirBlockInfoMap(dirBlockInfo *common.DirBlockInfo) {
-	anchorLog.Debug(spew.Sdump(dirBlockInfo))
+	anchorLog.Debug("UpdateDirBlockInfoMap: %s", spew.Sdump(dirBlockInfo))
 	dirBlockInfoMap[dirBlockInfo.DBMerkleRoot.String()] = dirBlockInfo
 }
 
