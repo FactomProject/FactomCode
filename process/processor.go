@@ -353,7 +353,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		if ok && msgFactoidTX.IsValid() {
 			t := msgFactoidTX.Transaction
 			txnum := len(common.FactoidState.GetCurrentBlock().GetTransactions())
-			if common.FactoidState.AddTransaction(txnum, t) == nil {	
+			if common.FactoidState.AddTransaction(txnum, t) == nil {
 				if err := processBuyEntryCredit(msgFactoidTX); err != nil {
 					return err
 				}
@@ -477,15 +477,14 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 				msg.Entry.ChainID.String())
 		}
 
-		r := binary.Size(bin) % 1024
-		cred := int32(binary.Size(bin)/1024)
-		if r > 0 {
-			cred += 1
-		}
+		// 37 effectively removes the entry header.  1023 rounds up the credit calucation.
+		cred := (len(bin) - 37 + 1023) / 1024
+
 		if int32(c.Credits) < cred {
 			fMemPool.addOrphanMsg(msg, h)
 			return fmt.Errorf("Credit needs to paid first before an entry is revealed: %s", e.Hash().String())
 		}
+
 		// Add the msg to the Mem pool
 		fMemPool.addMsg(msg, h)
 
@@ -648,21 +647,20 @@ func processBuyEntryCredit(msg *wire.MsgFactoidTX) error {
 		for _, v := range msg.Transaction.GetECOutputs() {
 			pub := new([32]byte)
 			copy(pub[:], v.GetAddress().Bytes())
-			
+
 			cred := int32(v.GetAmount() / uint64(FactoshisPerCredit))
-			
+
 			eCreditMap[string(pub[:])] += cred
-	
+
 		}
-	
+
 		h, _ := msg.Sha()
 		if plMgr.IsMyPListExceedingLimit() {
 			procLog.Warning("Exceeding MyProcessList size limit!")
 			return fMemPool.addOrphanMsg(msg, &h)
 		}
-		
-		if _, err := plMgr.AddMyProcessListItem(msg, &h, wire.ACK_FACTOID_TX);
-			err != nil {
+
+		if _, err := plMgr.AddMyProcessListItem(msg, &h, wire.ACK_FACTOID_TX); err != nil {
 			return err
 		}
 	}
@@ -786,7 +784,7 @@ func buildEndOfMinute(pl *consensus.ProcessList, pli *consensus.ProcessListItem)
 	for _, v := range tmpChains {
 		v.NextBlock.AddEndOfMinuteMarker(pli.Ack.Type)
 	}
-		
+
 	// Add it to the entry credit chain
 	cbEntry := common.NewMinuteNumber()
 	cbEntry.Number = pli.Ack.Type
@@ -821,7 +819,7 @@ func buildGenesisBlocks() error {
 	// factoid Genesis Address
 	//fchain.NextBlock = block.GetGenesisFBlock(0, FactoshisPerCredit, 10, 200000000000)
 	fchain.NextBlock = block.GetGenesisFBlock()
-    FBlock := newFactoidBlock(fchain)
+	FBlock := newFactoidBlock(fchain)
 	dchain.AddFBlockToDBEntry(FBlock)
 	exportFctChain(fchain)
 
