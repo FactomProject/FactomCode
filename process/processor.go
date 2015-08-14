@@ -351,8 +351,12 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 	case wire.CmdFactoidTX:
 		msgFactoidTX, ok := msg.(*wire.MsgFactoidTX)
 		if ok && msgFactoidTX.IsValid() {
-			if err := processBuyEntryCredit(msgFactoidTX); err != nil {
-				return err
+			t := msgFactoidTX.Transaction
+			txnum := len(common.FactoidState.GetCurrentBlock().GetTransactions())
+			if common.FactoidState.AddTransaction(txnum, t) == nil {	
+				if err := processBuyEntryCredit(msgFactoidTX); err != nil {
+					return err
+				}
 			}
 		} else {
 			outMsgQueue <- msg
@@ -639,18 +643,18 @@ func processCommitChain(msg *wire.MsgCommitChain) error {
 
 // processBuyEntryCredit validates the MsgCommitChain and adds it to processlist
 func processBuyEntryCredit(msg *wire.MsgFactoidTX) error {
-	// Update the credit balance in memory
-	for _, v := range msg.Transaction.GetECOutputs() {
-		pub := new([32]byte)
-		copy(pub[:], v.GetAddress().Bytes())
-		
-		cred := int32(v.GetAmount() / uint64(FactoshisPerCredit))
-		
-		eCreditMap[string(pub[:])] += cred
-
-	}
-
 	if nodeMode == common.SERVER_NODE {
+		// Update the credit balance in memory
+		for _, v := range msg.Transaction.GetECOutputs() {
+			pub := new([32]byte)
+			copy(pub[:], v.GetAddress().Bytes())
+			
+			cred := int32(v.GetAmount() / uint64(FactoshisPerCredit))
+			
+			eCreditMap[string(pub[:])] += cred
+	
+		}
+	
 		h, _ := msg.Sha()
 		if plMgr.IsMyPListExceedingLimit() {
 			procLog.Warning("Exceeding MyProcessList size limit!")
@@ -717,26 +721,23 @@ func buildRevealEntry(msg *wire.MsgRevealEntry) {
 
 func buildIncreaseBalance(msg *wire.MsgFactoidTX) {
 	t := msg.Transaction
-	txnum := len(common.FactoidState.GetCurrentBlock().GetTransactions())
-	if common.FactoidState.AddTransaction(txnum, t) == nil {
-		for i, ecout := range t.GetECOutputs() {
-			ib := common.NewIncreaseBalance()
+	for i, ecout := range t.GetECOutputs() {
+		ib := common.NewIncreaseBalance()
 
-			pub := new([32]byte)
-			copy(pub[:], ecout.GetAddress().Bytes())
-			ib.ECPubKey = pub
+		pub := new([32]byte)
+		copy(pub[:], ecout.GetAddress().Bytes())
+		ib.ECPubKey = pub
 
-			th := common.NewHash()
-			th.SetBytes(t.GetHash().Bytes())
-			ib.TXID = th
+		th := common.NewHash()
+		th.SetBytes(t.GetHash().Bytes())
+		ib.TXID = th
 
-			cred := int32(ecout.GetAmount() / uint64(FactoshisPerCredit))
-			ib.NumEC = uint64(cred)
+		cred := int32(ecout.GetAmount() / uint64(FactoshisPerCredit))
+		ib.NumEC = uint64(cred)
 
-			ib.Index = uint64(i)
+		ib.Index = uint64(i)
 
-			ecchain.NextBlock.AddEntry(ib)
-		}
+		ecchain.NextBlock.AddEntry(ib)
 	}
 }
 
