@@ -39,11 +39,11 @@ func MakeEBlock(echain *EChain, prev *EBlock) (*EBlock, error) {
 	if prev != nil {
 		var err error
 		e.Header.PrevKeyMR, err = prev.KeyMR()
-		if err!=nil {
+		if err != nil {
 			return nil, err
 		}
 		e.Header.PrevLedgerKeyMR, err = prev.Hash()
-		if err!=nil {
+		if err != nil {
 			return nil, err
 		}
 	}
@@ -332,13 +332,13 @@ func (e *EBlockBody) Spew() string {
 // EBlockHeader holds relevent metadata about the Entry Block and the data
 // nessisary to verify the previous block in the Entry Block Chain.
 type EBlockHeader struct {
-	ChainID      *Hash
-	BodyMR       *Hash
-	PrevKeyMR    *Hash
+	ChainID         *Hash
+	BodyMR          *Hash
+	PrevKeyMR       *Hash
 	PrevLedgerKeyMR *Hash
-	EBSequence   uint32
-	DBHeight     uint32
-	EntryCount   uint32
+	EBSequence      uint32
+	DBHeight        uint32
+	EntryCount      uint32
 }
 
 var _ Printable = (*EBlockHeader)(nil)

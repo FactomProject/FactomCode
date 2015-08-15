@@ -4,11 +4,11 @@ package main
 import (
 	"fmt"
 
+	"bytes"
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/goleveldb/leveldb"
 	"github.com/FactomProject/goleveldb/leveldb/opt"
 	"github.com/FactomProject/goleveldb/leveldb/util"
-	"bytes"
 	//"encoding/binary"
 )
 
@@ -21,7 +21,7 @@ const dbpath = "/tmp/ldb"
 const dbpath2 = "/tmp/ldb9"
 
 // This program is used to compare two databases - one from server and the other one from client
-func main() { 
+func main() {
 
 	ro := &opt.ReadOptions{}
 	//wo := &opt.WriteOptions{}
@@ -41,7 +41,6 @@ func main() {
 		return
 	}
 
-
 	elice := make([]*tst, 0, 10)
 
 	iter := ldb.NewIterator(&util.Range{Start: nil, Limit: nil}, ro)
@@ -51,8 +50,8 @@ func main() {
 		value := iter.Value()
 		t := new(tst)
 
-		value2, _ := ldb2.Get(key, ro)		
-		
+		value2, _ := ldb2.Get(key, ro)
+
 		if value2 == nil {
 			fmt.Printf("key:%v\n", common.EncodeBinary(&key))
 		} else if bytes.Compare(value, value2) != 0 {

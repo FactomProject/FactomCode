@@ -1,10 +1,10 @@
 package common_test
 
 import (
-    "fmt"
-    "bytes"
+	"bytes"
+	"fmt"
 	"math/rand"
-    "testing"
+	"testing"
 
 	"github.com/FactomProject/FactomCode/common"
 )
@@ -62,4 +62,3 @@ func TestVarInt(t *testing.T) {
 		}
 	}
 }
-    
