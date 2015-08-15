@@ -13,7 +13,7 @@ type FactomdConfig struct {
 	App struct {
 		PortNumber              int
 		LdbPath                 string // should be removed, and default to $defaultDataDir/ldb9
-		BoltDBPath              string // should be removed, 		
+		BoltDBPath              string // should be removed,
 		DataStorePath           string // should be removed, and default to $defaultDataDir/store
 		DirectoryBlockInSeconds int
 		NodeMode                string
@@ -45,8 +45,8 @@ type FactomdConfig struct {
 		RefreshInSeconds int
 	}
 	Wsapi struct {
-		PortNumber       int
-		ApplicationName  string
+		PortNumber      int
+		ApplicationName string
 	}
 	Log struct {
 		LogPath  string
@@ -59,7 +59,7 @@ type FactomdConfig struct {
 		RefreshInSeconds string
 		BoltDBPath       string
 	}
-	
+
 	//	AddPeers     []string `short:"a" long:"addpeer" description:"Add a peer to connect with at startup"`
 	//	ConnectPeers []string `long:"connect" description:"Connect only to the specified peers at startup"`
 

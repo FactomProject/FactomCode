@@ -46,11 +46,11 @@ func NextECBlock(prev *ECBlock) (*ECBlock, error) {
 	e := NewECBlock()
 	var err error
 	e.Header.PrevHeaderHash, err = prev.HeaderHash()
-	if err!=nil {
+	if err != nil {
 		return nil, err
 	}
 	e.Header.PrevLedgerKeyMR, err = prev.Hash()
-	if err!=nil {
+	if err != nil {
 		return nil, err
 	}
 	e.Header.DBHeight = prev.Header.DBHeight + 1
@@ -389,7 +389,7 @@ type ECBlockHeader struct {
 	ECChainID           *Hash
 	BodyHash            *Hash
 	PrevHeaderHash      *Hash
-	PrevLedgerKeyMR        *Hash
+	PrevLedgerKeyMR     *Hash
 	DBHeight            uint32
 	HeaderExpansionArea []byte
 	ObjectCount         uint64

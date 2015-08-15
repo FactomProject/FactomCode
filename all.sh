@@ -101,6 +101,7 @@ compile() {
 checkout FactomCode   $branch $default
 checkout btcd         $branch $default
 checkout factoid      $branch $default
+checkout fctwallet    $branch $default
 checkout factom       $branch $default
 checkout factom-cli   $branch $default
 checkout Testing      $branch $default
@@ -127,7 +128,7 @@ echo "
 *     Compiling fctwallet, the cli, and factomd
 ******************************************************** 
 "
-compile factoid/fctwallet 
+compile fctwallet 
 compile factom-cli  
 compile FactomCode/factomd 
 compile btcd/cmd/fctctl

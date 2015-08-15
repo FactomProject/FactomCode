@@ -18,6 +18,7 @@ type IncreaseBalance struct {
 }
 
 var _ Printable = (*IncreaseBalance)(nil)
+
 //var _ BinaryMarshallable = (*IncreaseBalance)(nil)
 
 //func (c *IncreaseBalance) MarshalledSize() uint64 {

@@ -26,10 +26,10 @@ const (
 )
 
 var (
-	cfg              = util.ReadConfig().Wsapi
-	portNumber       = cfg.PortNumber
-	applicationName  = cfg.ApplicationName
-	dataStorePath    = "/tmp/store/seed/csv"
+	cfg             = util.ReadConfig().Wsapi
+	portNumber      = cfg.PortNumber
+	applicationName = cfg.ApplicationName
+	dataStorePath   = "/tmp/store/seed/csv"
 )
 
 var _ = fmt.Println
@@ -313,7 +313,7 @@ func handleEntryBlock(ctx *web.Context, keymr string) {
 		if dblock, err := dbase.FetchDBlockByHeight(block.Header.DBHeight); err == nil {
 			e.Header.Timestamp = dblock.Header.Timestamp * 60
 		}
-		
+
 		// create a map of possible minute markers that may be found in the
 		// EBlock Body
 		mins := make(map[string]uint8)
@@ -322,13 +322,13 @@ func handleEntryBlock(ctx *web.Context, keymr string) {
 			h[len(h)-1] = i
 			mins[hex.EncodeToString(h)] = i
 		}
-		
+
 		estack := make([]entryaddr, 0)
 		for _, v := range block.Body.EBEntries {
 			if n, exist := mins[v.String()]; exist {
 				// the entry is a minute marker. add time to all of the
 				// previous entries for the minute
-				t := e.Header.Timestamp + 60 * uint32(n)
+				t := e.Header.Timestamp + 60*uint32(n)
 				for _, w := range estack {
 					w.Timestamp = t
 					e.EntryList = append(e.EntryList, w)
