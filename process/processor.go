@@ -477,8 +477,8 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 				msg.Entry.ChainID.String())
 		}
 
-		// 37 effectively removes the entry header.  1023 rounds up the credit calucation.
-		cred := int32((len(bin) - 37 + 1023) / 1024)
+		// 35 effectively removes the entry header.  1023 rounds up the credit calucation.
+		cred := int32((len(bin) - 35 + 1023) / 1024)
 
 		if int32(c.Credits) < cred {
 			fMemPool.addOrphanMsg(msg, h)
