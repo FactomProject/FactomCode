@@ -273,7 +273,7 @@ func validateMsgTx(msgtx *wire.MsgTx, inputs []btcjson.ListUnspentResult) error 
 }
 
 func sendRawTransaction(msgtx *wire.MsgTx) (*wire.ShaHash, error) {
-	anchorLog.Debug()
+	anchorLog.Debug("sendRawTransaction: msgTx=", spew.Sdump(msgtx))
 	buf := bytes.Buffer{}
 	buf.Grow(msgtx.SerializeSize())
 	if err := msgtx.BtcEncode(&buf, wire.ProtocolVersion); err != nil {
@@ -588,7 +588,7 @@ func toHash(txHash *wire.ShaHash) *common.Hash {
 // UpdateDirBlockInfoMap allows factom processor to update DirBlockInfo
 // when a new Directory Block is saved to db
 func UpdateDirBlockInfoMap(dirBlockInfo *common.DirBlockInfo) {
-	anchorLog.Debug("UpdateDirBlockInfoMap: %s", spew.Sdump(dirBlockInfo))
+	anchorLog.Debug("UpdateDirBlockInfoMap: ", spew.Sdump(dirBlockInfo))
 	dirBlockInfoMap[dirBlockInfo.DBMerkleRoot.String()] = dirBlockInfo
 }
 

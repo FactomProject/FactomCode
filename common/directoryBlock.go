@@ -223,6 +223,7 @@ func NewDBEntryFromABlock(b *AdminBlock) *DBEntry {
 func NewDirBlockInfoFromDBlock(b *DirectoryBlock) *DirBlockInfo {
 	e := &DirBlockInfo{}
 	e.DBHash = b.DBHash
+	e.DBHeight = b.Header.DBHeight
 	e.DBMerkleRoot = b.KeyMR
 	e.BTCConfirmed = false
 	e.BTCTxHash = NewHash()
