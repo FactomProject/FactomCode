@@ -40,6 +40,7 @@ var (
 	fee              btcutil.Amount                  // tx fee for written into btc
 	dirBlockInfoMap  map[string]*common.DirBlockInfo //dbHash string as key
 	db               database.Db
+	walletLocked     bool
 
 	//Server Private key for milestone 1
 	serverPrivKey common.PrivateKey
@@ -87,8 +88,12 @@ func SendRawTransactionToBTC(hash *common.Hash, blockHeight uint32) (*wire.ShaHa
 
 func doTransaction(hash *common.Hash, blockHeight uint32, dirBlockInfo *common.DirBlockInfo) (*wire.ShaHash, error) {
 	b := balances[0]
-	i := copy(balances, balances[1:])
-	balances[i] = b
+	balances = balances[1:]
+	anchorLog.Info("new balances.len=", len(balances))
+	if len(balances) == 0 {
+		anchorLog.Info("start rescan UTXO *** ")
+		updateUTXO()
+	}
 
 	msgtx, err := createRawTransaction(b, hash.Bytes(), blockHeight)
 	if err != nil {
@@ -100,10 +105,10 @@ func doTransaction(hash *common.Hash, blockHeight uint32, dirBlockInfo *common.D
 		return nil, fmt.Errorf("cannot send Raw Transaction: %s", err)
 	}
 	// for test purpose
-	if dirBlockInfo != nil {
-		dirBlockInfo.BTCTxHash = toHash(shaHash)
-		dirBlockInfo.DBHeight = blockHeight
-	}
+	//if dirBlockInfo != nil {
+	//dirBlockInfo.BTCTxHash = toHash(shaHash)
+	//dirBlockInfo.DBHeight = blockHeight
+	//}
 
 	return shaHash, nil
 }
@@ -158,7 +163,7 @@ func createRawTransaction(b balance, hash []byte, blockHeight uint32) (*wire.Msg
 
 func addTxIn(msgtx *wire.MsgTx, b balance) error {
 	output := b.unspentResult
-	anchorLog.Infof("unspentResult: %s\n", spew.Sdump(output))
+	//anchorLog.Infof("unspentResult: %s\n", spew.Sdump(output))
 	prevTxHash, err := wire.NewShaHashFromStr(output.TxID)
 	if err != nil {
 		return fmt.Errorf("cannot get sha hash from str: %s", err)
@@ -304,7 +309,8 @@ func createBtcwalletNotificationHandlers() btcrpcclient.NotificationHandlers {
 		},
 
 		OnWalletLockState: func(locked bool) {
-			//anchorLog.Info("wclient: OnWalletLockState, locked=", locked)
+			anchorLog.Info("wclient: OnWalletLockState, locked=", locked)
+			walletLocked = locked
 		},
 
 		OnUnknownNotification: func(method string, params []json.RawMessage) {
@@ -321,7 +327,7 @@ func createBtcdNotificationHandlers() btcrpcclient.NotificationHandlers {
 	ntfnHandlers := btcrpcclient.NotificationHandlers{
 
 		OnBlockConnected: func(hash *wire.ShaHash, height int32) {
-			anchorLog.Info("dclient: OnBlockConnected: hash=", hash, ", height=", height)
+			//anchorLog.Info("dclient: OnBlockConnected: hash=", hash, ", height=", height)
 			//go newBlock(hash, height)	// no need
 		},
 
@@ -448,22 +454,31 @@ func unlockWallet(timeoutSecs int64) error {
 	if err != nil {
 		return fmt.Errorf("cannot unlock wallet with passphrase: %s", err)
 	}
+	walletLocked = false
 	return nil
 }
 
 func initWallet() error {
-	balances = make([]balance, 0, 100)
+	balances = make([]balance, 0, 200)
 	fee, _ = btcutil.NewAmount(cfg.Btc.BtcTransFee)
-	err := unlockWallet(int64(600))
-	if err != nil {
-		return fmt.Errorf("%s", err)
+	walletLocked = true
+	return updateUTXO()
+}
+
+func updateUTXO() error {
+	anchorLog.Info("updateUTXO: walletLocked=", walletLocked)
+	if walletLocked {
+		err := unlockWallet(int64(600))
+		if err != nil {
+			return fmt.Errorf("%s", err)
+		}
 	}
 
-	unspentResults, err := wclient.ListUnspent() //minConf=1
+	unspentResults, err := wclient.ListUnspentMin(8) //confirmationsNeeded) //minConf=1
 	if err != nil {
 		return fmt.Errorf("cannot list unspent. %s", err)
 	}
-	anchorLog.Info("unspentResults.len=", len(unspentResults))
+	anchorLog.Info("updateUTXO: unspentResults.len=", len(unspentResults))
 
 	if len(unspentResults) > 0 {
 		var i int
@@ -474,7 +489,7 @@ func initWallet() error {
 			}
 		}
 	}
-	anchorLog.Info("balances.len=", len(balances))
+	anchorLog.Info("updateUTXO: balances.len=", len(balances))
 
 	for i, b := range balances {
 		addr, err := btcutil.DecodeAddress(b.unspentResult.Address, &chaincfg.TestNet3Params)
@@ -488,7 +503,7 @@ func initWallet() error {
 			return fmt.Errorf("cannot get WIF: %s", err)
 		}
 		balances[i].wif = wif
-		anchorLog.Infof("balance[%d]=%s \n", i, spew.Sdump(balances[i]))
+		//anchorLog.Infof("balance[%d]=%s \n", i, spew.Sdump(balances[i]))
 	}
 
 	time.Sleep(1 * time.Second)
@@ -533,7 +548,7 @@ func prependBlockHeight(height uint32, hash []byte) ([]byte, error) {
 }
 
 func saveDirBlockInfo(transaction *btcutil.Tx, details *btcjson.BlockDetails) {
-	anchorLog.Debug("to save dir block hash to btc.")
+	anchorLog.Debug("in saveDirBlockInfo")
 	var saved = false
 	for _, dirBlockInfo := range dirBlockInfoMap {
 		if dirBlockInfo.BTCTxHash != nil &&
