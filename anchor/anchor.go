@@ -90,10 +90,14 @@ func doTransaction(hash *common.Hash, blockHeight uint32, dirBlockInfo *common.D
 	b := balances[0]
 	balances = balances[1:]
 	anchorLog.Info("new balances.len=", len(balances))
-	if len(balances) == 0 {
-		anchorLog.Info("start rescan UTXO *** ")
-		updateUTXO()
-	}
+	/*	if len(balances) == 0 {
+			anchorLog.Info("start rescan UTXO *** ")
+			updateUTXO()
+		}
+		if len(balances) == 0 {
+			anchorLog.Info("**** No balance in wallet for anchoring.")
+			return nil, fmt.Errorf("No balance in wallet for anchoring.")
+		}*/
 
 	msgtx, err := createRawTransaction(b, hash.Bytes(), blockHeight)
 	if err != nil {
@@ -135,7 +139,11 @@ func sanityCheck(hash *common.Hash) (*common.DirBlockInfo, error) {
 		anchorLog.Warning(s)
 		return nil, errors.New(s)
 	}
-	if balances == nil || len(balances) == 0 {
+	if len(balances) == 0 {
+		anchorLog.Warning("len(balances) == 0, start rescan UTXO *** ")
+		updateUTXO()
+	}
+	if len(balances) == 0 {
 		s := fmt.Sprintf("\n\n$$$ WARNING: No balance in your wallet. No anchoring for now.\n")
 		anchorLog.Warning(s)
 		return nil, errors.New(s)
@@ -163,14 +171,20 @@ func createRawTransaction(b balance, hash []byte, blockHeight uint32) (*wire.Msg
 
 func addTxIn(msgtx *wire.MsgTx, b balance) error {
 	output := b.unspentResult
-	//anchorLog.Infof("unspentResult: %s\n", spew.Sdump(output))
+	anchorLog.Infof("unspentResult: %s\n", spew.Sdump(output))
 	prevTxHash, err := wire.NewShaHashFromStr(output.TxID)
 	if err != nil {
 		return fmt.Errorf("cannot get sha hash from str: %s", err)
 	}
+	if prevTxHash == nil {
+		anchorLog.Error("prevTxHash == nil")
+	}
 
 	outPoint := wire.NewOutPoint(prevTxHash, output.Vout)
 	msgtx.AddTxIn(wire.NewTxIn(outPoint, nil))
+	if outPoint == nil {
+		anchorLog.Error("outPoint == nil")
+	}
 
 	// OnRedeemingTx
 	err = dclient.NotifySpent([]*wire.OutPoint{outPoint})
@@ -182,14 +196,19 @@ func addTxIn(msgtx *wire.MsgTx, b balance) error {
 	if err != nil {
 		return fmt.Errorf("cannot decode scriptPubKey: %s", err)
 	}
+	if subscript == nil {
+		anchorLog.Error("subscript == nil")
+	}
 
-	sigScript, err := txscript.SignatureScript(msgtx, 0, subscript,
-		txscript.SigHashAll, b.wif.PrivKey, true) //.ToECDSA(), true)
+	sigScript, err := txscript.SignatureScript(msgtx, 0, subscript, txscript.SigHashAll, b.wif.PrivKey, true)
 	if err != nil {
 		return fmt.Errorf("cannot create scriptSig: %s", err)
 	}
-	msgtx.TxIn[0].SignatureScript = sigScript
+	if sigScript == nil {
+		anchorLog.Error("sigScript == nil")
+	}
 
+	msgtx.TxIn[0].SignatureScript = sigScript
 	return nil
 }
 
@@ -467,14 +486,15 @@ func initWallet() error {
 
 func updateUTXO() error {
 	anchorLog.Info("updateUTXO: walletLocked=", walletLocked)
-	if walletLocked {
-		err := unlockWallet(int64(600))
-		if err != nil {
-			return fmt.Errorf("%s", err)
-		}
+	balances = make([]balance, 0, 200) // for testing
+	//if walletLocked {
+	err := unlockWallet(int64(6)) //600
+	if err != nil {
+		return fmt.Errorf("%s", err)
 	}
+	//}
 
-	unspentResults, err := wclient.ListUnspentMin(8) //confirmationsNeeded) //minConf=1
+	unspentResults, err := wclient.ListUnspentMin(5) //confirmationsNeeded) //minConf=1
 	if err != nil {
 		return fmt.Errorf("cannot list unspent. %s", err)
 	}
