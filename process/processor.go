@@ -478,21 +478,55 @@ func processAcknowledgement(msg *wire.MsgAcknowledgement) error {
 	return nil
 }
 
+var ecnt = 0
+
 // processRevealEntry validates the MsgRevealEntry and adds it to processlist
 func processRevealEntry(msg *wire.MsgRevealEntry) error {
+	ecnt++
+	cp.CP.AddUpdate(
+		"reveal cnt",  // tag
+		"status",   // Category
+		fmt.Sprintf("Entries processed %d",ecnt), // Title
+		"",
+	    0)
+	
 	e := msg.Entry
 	bin, _ := e.MarshalBinary()
 	h, _ := wire.NewShaHash(e.Hash().Bytes())
 
 	// Check if the chain id is valid
-	if e.ChainID.IsSameAs(zeroHash) || e.ChainID.IsSameAs(dchain.ChainID) || e.ChainID.IsSameAs(achain.ChainID) ||
-		e.ChainID.IsSameAs(ecchain.ChainID) || e.ChainID.IsSameAs(fchain.ChainID) {
-		return fmt.Errorf("This entry chain is not supported: %s", e.ChainID.String())
+	if e.ChainID.IsSameAs(zeroHash) || 
+		e.ChainID.IsSameAs(dchain.ChainID) || 
+		e.ChainID.IsSameAs(achain.ChainID) ||
+		e.ChainID.IsSameAs(ecchain.ChainID) || 
+		e.ChainID.IsSameAs(fchain.ChainID) {
+			
+			emsg := fmt.Sprintf("This entry chain is not supported: %s", e.ChainID.String())
+			cp.CP.AddUpdate(
+				"unsupported entry chain",  // tag
+				"error",   // Category
+				"Entry Chain not supported", // Title
+				fmt.Sprintf("%d : %s",dchain.NextDBHeight,emsg),
+				0)
+			
+		return fmt.Errorf(emsg) 
 	}
 
 	if c, ok := commitEntryMap[e.Hash().String()]; ok {
 		if chainIDMap[e.ChainID.String()] == nil {
 			fMemPool.addOrphanMsg(msg, h)
+
+		    emsg := fmt.Sprintf("This chain is not supported: %s",
+				msg.Entry.ChainID.String())
+			
+			cp.CP.AddUpdate(
+				"unsupported chain",  // tag
+				"error",   // Category
+				"Chain not supported", // Title
+				fmt.Sprintf("%d : %s",dchain.NextDBHeight,emsg),
+				0)
+
+			
 			return fmt.Errorf("This chain is not supported: %s",
 				msg.Entry.ChainID.String())
 		}
@@ -502,6 +536,7 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 		if r > 0 {
 			cred += 1
 		}
+		
 		if int32(c.Credits) < cred {
 			fMemPool.addOrphanMsg(msg, h)
 			return fmt.Errorf("Credit needs to paid first before an entry is revealed: %s", e.Hash().String())
@@ -512,6 +547,17 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 		// Add to MyPL if Server Node
 		if nodeMode == common.SERVER_NODE {
 			if plMgr.IsMyPListExceedingLimit() {
+				
+			emsg := fmt.Sprintf("Exceeding MyProcessList size limit!")
+				
+			
+			cp.CP.AddUpdate(
+				"too big",  // tag
+				"error",   // Category
+				"Entry too big", // Title
+				fmt.Sprintf("%d : %s",dchain.NextDBHeight,emsg),
+				0)
+			
 				procLog.Warning("Exceeding MyProcessList size limit!")
 				return fMemPool.addOrphanMsg(msg, h)
 			}
