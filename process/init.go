@@ -203,10 +203,14 @@ func initFctChain() {
 		fchain.NextBlock = block.GetGenesisFBlock()
 		fmt.Println(fchain.NextBlock)
 		gb:=fchain.NextBlock
-        err := common.FactoidState.AddTransactionBlock(gb)
-        if err != nil { 
-            panic(err)
-        }
+        
+        // If a client, this block is going to get downloaded and added.  Don't do it twice.
+        if nodeMode == common.SERVER_NODE {
+			err := common.FactoidState.AddTransactionBlock(gb)
+			if err != nil { 
+				panic(err)
+			}
+		}
 
 	} else {
 		fchain.NextBlockHeight = dchain.NextDBHeight
