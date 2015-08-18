@@ -5,6 +5,7 @@
 package process
 
 import (
+	"bytes"
 	"encoding/hex"
 	"errors"
 	"github.com/FactomProject/FactomCode/common"
@@ -240,10 +241,12 @@ func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, d
 				// validate every entry in EBlock
 				for _, ebEntry := range eBlkMsg.EBlk.Body.EBEntries {
 					if _, foundInMemPool := fMemPool.blockpool[ebEntry.String()]; !foundInMemPool {
-						// continue if the entry arleady exists in db
-						entry, _ := db.FetchEntryByHash(ebEntry)
-						if entry == nil {
-							return false
+						if !bytes.Equal(ebEntry.Bytes()[:31],common.ZERO_HASH[:31]) {
+							// continue if the entry arleady exists in db
+							entry, _ := db.FetchEntryByHash(ebEntry)
+							if entry == nil {
+								return false
+							}
 						}
 					}
 				}
