@@ -587,8 +587,8 @@ func saveDirBlockInfo(transaction *btcutil.Tx, details *btcjson.BlockDetails) {
 			anchorRec.Bitcoin.Offset = int32(details.Index)
 			anchorLog.Info("anchor.record saved: " + spew.Sdump(anchorRec))
 
-			jsonARecord, _ := json.Marshal(anchorRec)
-			anchorLog.Debug("jsonAnchorRecord: ", string(jsonARecord))
+			//jsonARecord, _ := json.Marshal(anchorRec)
+			//anchorLog.Debug("jsonAnchorRecord: ", string(jsonARecord))
 
 			//Submit the anchor record to the anchor chain (entry chain)
 			err := submitEntryToAnchorChain(anchorRec)
@@ -616,11 +616,20 @@ func toHash(txHash *wire.ShaHash) *common.Hash {
 func UpdateDirBlockInfoMap(dirBlockInfo *common.DirBlockInfo) {
 	anchorLog.Debug("UpdateDirBlockInfoMap: ", spew.Sdump(dirBlockInfo))
 	dirBlockInfoMap[dirBlockInfo.DBMerkleRoot.String()] = dirBlockInfo
+
+	// dirty check
+	checkForReAnchor()
 }
 
 func checkForReAnchor() {
-	//timenow := time.Now().Unix()
-
+	timeNow := time.Now().Unix()
+	time0 := 60 * 60 * 10
+	for _, dirBlockInfo := range dirBlockInfoMap {
+		if timeNow-dirBlockInfo.Timestamp > int64(time0) {
+			anchorLog.Debug("re-anchor: ")
+			SendRawTransactionToBTC(dirBlockInfo.DBHash, dirBlockInfo.DBHeight)
+		}
+	}
 }
 
 // SendRawTransactionForTesting is for testing
