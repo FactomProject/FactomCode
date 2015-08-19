@@ -486,13 +486,13 @@ func initWallet() error {
 
 func updateUTXO() error {
 	anchorLog.Info("updateUTXO: walletLocked=", walletLocked)
-	//balances = make([]balance, 0, 200) // for testing
-	if walletLocked {
-		err := unlockWallet(int64(6)) //600
-		if err != nil {
-			return fmt.Errorf("%s", err)
-		}
+	balances = make([]balance, 0, 200)
+	//if walletLocked {
+	err := unlockWallet(int64(6)) //600
+	if err != nil {
+		return fmt.Errorf("%s", err)
 	}
+	//}
 
 	unspentResults, err := wclient.ListUnspentMin(1) //confirmationsNeeded) //minConf=1
 	if err != nil {
