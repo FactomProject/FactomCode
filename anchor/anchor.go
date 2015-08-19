@@ -41,6 +41,7 @@ var (
 	dirBlockInfoMap  map[string]*common.DirBlockInfo //dbHash string as key
 	db               database.Db
 	walletLocked     bool
+	reAnchorAfter    = 10 // every 10 hours to re-anchor hashes left in the map.
 
 	//Server Private key for milestone 1
 	serverPrivKey common.PrivateKey
@@ -162,7 +163,7 @@ func createRawTransaction(b balance, hash []byte, blockHeight uint32) (*wire.Msg
 
 func addTxIn(msgtx *wire.MsgTx, b balance) error {
 	output := b.unspentResult
-	anchorLog.Infof("unspentResult: %s\n", spew.Sdump(output))
+	//anchorLog.Infof("unspentResult: %s\n", spew.Sdump(output))
 	prevTxHash, err := wire.NewShaHashFromStr(output.TxID)
 	if err != nil {
 		return fmt.Errorf("cannot get sha hash from str: %s", err)
@@ -288,7 +289,7 @@ func validateMsgTx(msgtx *wire.MsgTx, inputs []btcjson.ListUnspentResult) error 
 }
 
 func sendRawTransaction(msgtx *wire.MsgTx) (*wire.ShaHash, error) {
-	anchorLog.Debug("sendRawTransaction: msgTx=", spew.Sdump(msgtx))
+	//anchorLog.Debug("sendRawTransaction: msgTx=", spew.Sdump(msgtx))
 	buf := bytes.Buffer{}
 	buf.Grow(msgtx.SerializeSize())
 	if err := msgtx.BtcEncode(&buf, wire.ProtocolVersion); err != nil {
@@ -390,6 +391,14 @@ func InitAnchor(ldb database.Db, q chan factomwire.FtmInternalMsg, serverKey com
 		anchorLog.Error(err.Error())
 		return
 	}
+
+	ticker := time.NewTicker(time.Hour * 1)
+	go func() {
+		for _ = range ticker.C {
+			checkForReAnchor()
+		}
+	}()
+
 	return
 }
 
@@ -477,15 +486,15 @@ func initWallet() error {
 
 func updateUTXO() error {
 	anchorLog.Info("updateUTXO: walletLocked=", walletLocked)
-	balances = make([]balance, 0, 200) // for testing
-	//if walletLocked {
-	err := unlockWallet(int64(6)) //600
-	if err != nil {
-		return fmt.Errorf("%s", err)
+	//balances = make([]balance, 0, 200) // for testing
+	if walletLocked {
+		err := unlockWallet(int64(6)) //600
+		if err != nil {
+			return fmt.Errorf("%s", err)
+		}
 	}
-	//}
 
-	unspentResults, err := wclient.ListUnspentMin(5) //confirmationsNeeded) //minConf=1
+	unspentResults, err := wclient.ListUnspentMin(1) //confirmationsNeeded) //minConf=1
 	if err != nil {
 		return fmt.Errorf("cannot list unspent. %s", err)
 	}
@@ -616,14 +625,11 @@ func toHash(txHash *wire.ShaHash) *common.Hash {
 func UpdateDirBlockInfoMap(dirBlockInfo *common.DirBlockInfo) {
 	anchorLog.Debug("UpdateDirBlockInfoMap: ", spew.Sdump(dirBlockInfo))
 	dirBlockInfoMap[dirBlockInfo.DBMerkleRoot.String()] = dirBlockInfo
-
-	// dirty check
-	checkForReAnchor()
 }
 
 func checkForReAnchor() {
 	timeNow := time.Now().Unix()
-	time0 := 60 * 60 * 10
+	time0 := 60 * 60 * reAnchorAfter
 	for _, dirBlockInfo := range dirBlockInfoMap {
 		if timeNow-dirBlockInfo.Timestamp > int64(time0) {
 			anchorLog.Debug("re-anchor: ")
