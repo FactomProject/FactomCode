@@ -5,19 +5,24 @@
 package process
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
-    "github.com/FactomProject/FactomCode/common"
-    cp "github.com/FactomProject/FactomCode/controlpanel"
-    "github.com/FactomProject/FactomCode/consensus"
+	"github.com/FactomProject/FactomCode/common"
+	"github.com/FactomProject/FactomCode/consensus"
+	cp "github.com/FactomProject/FactomCode/controlpanel"
 	"github.com/FactomProject/FactomCode/factomlog"
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd/wire"
 	fct "github.com/FactomProject/factoid"
+	"github.com/FactomProject/factoid/block"
 	"github.com/davecgh/go-spew/spew"
+	"runtime/debug"
 	"sort"
 	"strconv"
 )
+
+var _ = debug.PrintStack
 
 // Initialize Directory Block Chain from database
 func initDChain() {
@@ -59,7 +64,7 @@ func initDChain() {
 		dchain.NextDBHeight = uint32(len(dchain.Blocks))
 		dchain.NextBlock, _ = common.CreateDBlock(dchain, dchain.Blocks[len(dchain.Blocks)-1], 10)
 		// Update dir block height cache in db
-		db.UpdateBlockHeightCache(dchain.NextDBHeight-1, dchain.NextBlock.Header.PrevFullHash)
+		db.UpdateBlockHeightCache(dchain.NextDBHeight-1, dchain.NextBlock.Header.PrevLedgerKeyMR)
 	}
 
 	exportDChain(dchain)
@@ -96,10 +101,20 @@ func initECChain() {
 	if len(ecBlocks) == 0 || dchain.NextDBHeight == 0 {
 		ecchain.NextBlockHeight = 0
 		ecchain.NextBlock = common.NewECBlock()
+        ecchain.NextBlock.AddEntry(serverIndex)
+        for i:=0;i<10;i++ {
+            marker := common.NewMinuteNumber()
+            marker.Number = uint8(i+1)
+            ecchain.NextBlock.AddEntry(marker)
+        }
 	} else {
 		// Entry Credit Chain should have the same height as the dir chain
 		ecchain.NextBlockHeight = dchain.NextDBHeight
-		ecchain.NextBlock = common.NextECBlock(&ecBlocks[ecchain.NextBlockHeight-1])
+		var err error
+		ecchain.NextBlock, err = common.NextECBlock(&ecBlocks[ecchain.NextBlockHeight-1])
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	// create a backup copy before processing entries
@@ -169,6 +184,8 @@ func initFctChain() {
 				fchain.ChainID.String() + " block:" +
 				fmt.Sprintf("%v", fBlocks[i].GetDBHeight())))
 		} else {
+            FactoshisPerCredit = fBlocks[i].GetExchRate()
+            common.FactoidState.SetFactoshisPerEC(FactoshisPerCredit)
 			// initialize the FactoidState in sequence
 			err := common.FactoidState.AddTransactionBlock(fBlocks[i])
 			if err != nil {
@@ -179,14 +196,27 @@ func initFctChain() {
 
 	//Create an empty block and append to the chain
 	if len(fBlocks) == 0 || dchain.NextDBHeight == 0 {
+        common.FactoidState.SetFactoshisPerEC(FactoshisPerCredit)
 		fchain.NextBlockHeight = 0
-		fchain.NextBlock = getGenesisFBlock()
+		// func GetGenesisFBlock(ftime uint64, ExRate uint64, addressCnt int, Factoids uint64 ) IFBlock {
+		//fchain.NextBlock = block.GetGenesisFBlock(0, FactoshisPerCredit, 10, 200000000000)
+		fchain.NextBlock = block.GetGenesisFBlock()
 		fmt.Println(fchain.NextBlock)
+		gb:=fchain.NextBlock
+        
+        // If a client, this block is going to get downloaded and added.  Don't do it twice.
+        if nodeMode == common.SERVER_NODE {
+			err := common.FactoidState.AddTransactionBlock(gb)
+			if err != nil { 
+				panic(err)
+			}
+		}
+
 	} else {
 		fchain.NextBlockHeight = dchain.NextDBHeight
+		common.FactoidState.ProcessEndOfBlock2(dchain.NextDBHeight)
+		fchain.NextBlock = common.FactoidState.GetCurrentBlock()
 	}
-	common.FactoidState.ProcessEndOfBlock2(dchain.NextDBHeight)
-	fchain.NextBlock = common.FactoidState.GetCurrentBlock()
 
 	exportFctChain(fchain)
 
@@ -218,11 +248,11 @@ func initializeECreditMap(block *common.ECBlock) {
 		switch entry.ECID() {
 		case common.ECIDChainCommit:
 			e := entry.(*common.CommitChain)
-			eCreditMap[string(e.ECPubKey[:])] += int32(e.Credits)
+			eCreditMap[string(e.ECPubKey[:])] -= int32(e.Credits)
 			common.FactoidState.UpdateECBalance(fct.NewAddress(e.ECPubKey[:]), int64(e.Credits))
 		case common.ECIDEntryCommit:
 			e := entry.(*common.CommitEntry)
-			eCreditMap[string(e.ECPubKey[:])] += int32(e.Credits)
+			eCreditMap[string(e.ECPubKey[:])] -= int32(e.Credits)
 			common.FactoidState.UpdateECBalance(fct.NewAddress(e.ECPubKey[:]), int64(e.Credits))
 		case common.ECIDBalanceIncrease:
 			e := entry.(*common.IncreaseBalance)
@@ -268,12 +298,19 @@ func initEChainFromDB(chain *common.EChain) {
 		}
 	}
 
+	var err error
 	if len(*eBlocks) == 0 {
 		chain.NextBlockHeight = 0
-		chain.NextBlock = common.MakeEBlock(chain, nil)
+		chain.NextBlock, err = common.MakeEBlock(chain, nil)
+		if err != nil {
+			panic(err)
+		}
 	} else {
 		chain.NextBlockHeight = uint32(len(*eBlocks))
-		chain.NextBlock = common.MakeEBlock(chain, &(*eBlocks)[len(*eBlocks)-1])
+		chain.NextBlock, err = common.MakeEBlock(chain, &(*eBlocks)[len(*eBlocks)-1])
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	// Initialize chain with the first entry (Name and rules) for non-server mode
@@ -306,25 +343,25 @@ func validateDChain(c *common.DChain) error {
 	//validate the genesis block
 	//prevBlkHash is the block hash for c.Blocks[0]
 	if prevBlkHash == nil || prevBlkHash.String() != common.GENESIS_DIR_BLOCK_HASH {
-		
-        procLog.Errorf("Genesis Block wasn't as expected:\n"+
-        "    Expected: " + common.GENESIS_DIR_BLOCK_HASH +"\n"+
-        "    Found:    " + prevBlkHash.String())
-        
-        str := fmt.Sprintf("<pre>"+
-        "Expected: " + common.GENESIS_DIR_BLOCK_HASH +"<br>"+
-        "Found:    " + prevBlkHash.String() + "</pre><br><br>")
-        cp.CP.AddUpdate(
-            "GenHash",                            // tag
-            "warning",                            // Category 
-            "Genesis Hash doesn't match",         // Title
-            str,                                  // Message
-            0)
-        
+
+		procLog.Errorf("Genesis Block wasn't as expected:\n" +
+			"    Expected: " + common.GENESIS_DIR_BLOCK_HASH + "\n" +
+			"    Found:    " + prevBlkHash.String())
+
+		str := fmt.Sprintf("<pre>" +
+			"Expected: " + common.GENESIS_DIR_BLOCK_HASH + "<br>" +
+			"Found:    " + prevBlkHash.String() + "</pre><br><br>")
+		cp.CP.AddUpdate(
+			"GenHash",                    // tag
+			"warning",                    // Category
+			"Genesis Hash doesn't match", // Title
+			str, // Message
+			0)
+
 	}
 
 	for i := 1; i < len(c.Blocks); i++ {
-		if !prevBlkHash.IsSameAs(c.Blocks[i].Header.PrevFullHash) {
+		if !prevBlkHash.IsSameAs(c.Blocks[i].Header.PrevLedgerKeyMR) {
 			return errors.New("Previous block hash not matching for Dir block: " + strconv.Itoa(i))
 		}
 		if !prevMR.IsSameAs(c.Blocks[i].Header.PrevKeyMR) {
@@ -414,7 +451,15 @@ func validateFBlockByMR(mr *common.Hash) error {
 	b, _ := db.FetchFBlockByHash(mr)
 
 	if b == nil {
-		return errors.New("Simple Coin block not found in db for merkle root: " + mr.String())
+		return errors.New("Factoid block not found in db for merkle root: \n" + mr.String())
+	}
+
+	// check that we used the KeyMR to store the block...
+	if !bytes.Equal(b.GetKeyMR().Bytes(), mr.Bytes()) {
+		return fmt.Errorf("Factoid block match failure: block %d \n%s\n%s",
+			b.GetDBHeight(),
+			"Key in the database:   "+mr.String(),
+			"Hash of the blk found: "+b.GetKeyMR().String())
 	}
 
 	return nil
@@ -423,21 +468,29 @@ func validateFBlockByMR(mr *common.Hash) error {
 // Validate Entry Block by merkle root
 func validateEBlockByMR(cid *common.Hash, mr *common.Hash) error {
 
-	eb, _ := db.FetchEBlockByMR(mr)
+	eb, err := db.FetchEBlockByMR(mr)
+	if err != nil {
+		return err
+	}
 
 	if eb == nil {
 		return errors.New("Entry block not found in db for merkle root: " + mr.String())
 	}
-
-	if !mr.IsSameAs(eb.KeyMR()) {
+	keyMR, err := eb.KeyMR()
+	if err != nil {
+		return err
+	}
+	if !mr.IsSameAs(keyMR) {
 		return errors.New("Entry block's merkle root does not match with: " + mr.String())
 	}
 
 	for _, ebEntry := range eb.Body.EBEntries {
-		entry, _ := db.FetchEntryByHash(ebEntry)
-		if entry == nil {
-			return errors.New("Entry not found in db for entry hash: " + ebEntry.String())
-		}
+        if !bytes.Equal(ebEntry.Bytes()[:31],common.ZERO_HASH[:31]) {
+            entry, _ := db.FetchEntryByHash(ebEntry)
+            if entry == nil {
+                return errors.New("Entry not found in db for entry hash: " + ebEntry.String())
+            }
+        } // Else ... we could do a bit more validation of the minute markers.
 	}
 
 	return nil

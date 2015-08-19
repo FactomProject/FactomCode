@@ -7,6 +7,7 @@ package main
 import (
 	"fmt"
 	"github.com/FactomProject/FactomCode/common"
+	cp "github.com/FactomProject/FactomCode/controlpanel"
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/database/ldb"
 	"github.com/FactomProject/FactomCode/process"
@@ -15,8 +16,10 @@ import (
 	"github.com/FactomProject/btcd"
 	"github.com/FactomProject/btcd/limits"
 	"github.com/FactomProject/btcd/wire"
+	"github.com/FactomProject/factoid/state/stateinit"
 	"os"
 	"runtime"
+	"strings"
 	"time"
 )
 
@@ -25,6 +28,7 @@ var (
 	cfg             *util.FactomdConfig
 	shutdownChannel = make(chan struct{})
 	ldbpath         = ""
+	boltDBpath      = ""
 	db              database.Db                           // database
 	inMsgQueue      = make(chan wire.FtmInternalMsg, 100) //incoming message queue for factom application messages
 	outMsgQueue     = make(chan wire.FtmInternalMsg, 100) //outgoing message queue for factom application messages
@@ -44,6 +48,26 @@ func main() {
 
 	ftmdLog.Warning("Go compiler version: %s", runtime.Version())
 	fmt.Println("Go compiler version: ", runtime.Version())
+	cp.CP.AddUpdate("gocompiler",
+		"system",
+		fmt.Sprintln("Go compiler version: ", runtime.Version()),
+		"",
+		0)
+	cp.CP.AddUpdate("copyright",
+		"system",
+		"Legal",
+		"Copyright 2015 Factom Foundation\n"+
+			"Use of this source code is governed by the MIT\n"+
+			"license that can be found in the LICENSE file.",
+		0)
+
+	if !isCompilerVersionOK() {
+		for i := 0; i < 30; i++ {
+			fmt.Println("!!! !!! !!! ERROR: unsupported compiler version !!! !!! !!!")
+		}
+		time.Sleep(time.Second)
+		os.Exit(1)
+	}
 
 	// Load configuration file and send settings to components
 	loadConfigurations()
@@ -110,12 +134,17 @@ func loadConfigurations() {
 	cfg = util.ReadConfig()
 
 	ldbpath = cfg.App.LdbPath
+	boltDBpath = cfg.App.BoltDBPath
 	process.LoadConfigurations(cfg)
 
 }
 
 // Initialize the level db and share it with other components
 func initDB() {
+
+	//init factoid_bolt db
+	fmt.Println("boltDBpath:", boltDBpath)
+	common.FactoidState = stateinit.NewFactoidState(boltDBpath + "factoid_bolt.db")
 
 	//init db
 	var err error
@@ -136,4 +165,22 @@ func initDB() {
 	}
 	ftmdLog.Info("Database started from: " + ldbpath)
 
+}
+
+func isCompilerVersionOK() bool {
+	goodenough := false
+
+	if strings.Contains(runtime.Version(), "1.4") {
+		goodenough = true
+	}
+
+	if strings.Contains(runtime.Version(), "1.5") {
+		goodenough = true
+	}
+
+	if strings.Contains(runtime.Version(), "1.6") {
+		goodenough = true
+	}
+
+	return goodenough
 }

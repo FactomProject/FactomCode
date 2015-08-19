@@ -21,6 +21,14 @@ type Entry struct {
 	Content []byte
 }
 
+var _ Printable = (*Entry)(nil)
+var _ BinaryMarshallable = (*Entry)(nil)
+
+func (c *Entry) MarshalledSize() uint64 {
+	panic("Function not implemented")
+	return 0
+}
+
 func NewEntry() *Entry {
 	e := new(Entry)
 	e.ChainID = NewHash()
@@ -166,4 +174,20 @@ func (e *Entry) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 func (e *Entry) UnmarshalBinary(data []byte) (err error) {
 	_, err = e.UnmarshalBinaryData(data)
 	return
+}
+
+func (e *Entry) JSONByte() ([]byte, error) {
+	return EncodeJSON(e)
+}
+
+func (e *Entry) JSONString() (string, error) {
+	return EncodeJSONString(e)
+}
+
+func (e *Entry) JSONBuffer(b *bytes.Buffer) error {
+	return EncodeJSONToBuffer(e, b)
+}
+
+func (e *Entry) Spew() string {
+	return Spew(e)
 }

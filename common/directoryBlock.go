@@ -47,6 +47,14 @@ type DirectoryBlock struct {
 	IsValidated bool
 }
 
+var _ Printable = (*DirectoryBlock)(nil)
+var _ BinaryMarshallable = (*DirectoryBlock)(nil)
+
+func (c *DirectoryBlock) MarshalledSize() uint64 {
+	panic("Function not implemented")
+	return 0
+}
+
 func NewDirectoryBlock() *DirectoryBlock {
 	d := new(DirectoryBlock)
 	d.Header = NewDBlockHeader()
@@ -62,8 +70,23 @@ func NewDBlock() *DirectoryBlock {
 	return NewDirectoryBlock()
 }
 
-type DirBlockInfo struct {
+func (e *DirectoryBlock) JSONByte() ([]byte, error) {
+	return EncodeJSON(e)
+}
 
+func (e *DirectoryBlock) JSONString() (string, error) {
+	return EncodeJSONString(e)
+}
+
+func (e *DirectoryBlock) JSONBuffer(b *bytes.Buffer) error {
+	return EncodeJSONToBuffer(e, b)
+}
+
+func (e *DirectoryBlock) Spew() string {
+	return Spew(e)
+}
+
+type DirBlockInfo struct {
 	// Serial hash for the directory block
 	DBHash *Hash
 
@@ -71,7 +94,7 @@ type DirBlockInfo struct {
 	BTCTxHash *Hash // use string or *btcwire.ShaHash ???
 
 	// BTCTxOffset is the index of the TX in this BTC block
-	BTCTxOffset int
+	BTCTxOffset int32
 
 	// BTCBlockHeight is the height of the block where this TX is stored in BTC
 	BTCBlockHeight int32
@@ -87,26 +110,63 @@ type DirBlockInfo struct {
 	BTCConfirmed bool
 }
 
+var _ Printable = (*DirBlockInfo)(nil)
+
+func (e *DirBlockInfo) JSONByte() ([]byte, error) {
+	return EncodeJSON(e)
+}
+
+func (e *DirBlockInfo) JSONString() (string, error) {
+	return EncodeJSONString(e)
+}
+
+func (e *DirBlockInfo) JSONBuffer(b *bytes.Buffer) error {
+	return EncodeJSONToBuffer(e, b)
+}
+
+func (e *DirBlockInfo) Spew() string {
+	return Spew(e)
+}
+
 type DBlockHeader struct {
 	Version   byte
 	NetworkID uint32
 
 	BodyMR       *Hash
 	PrevKeyMR    *Hash
-	PrevFullHash *Hash
+	PrevLedgerKeyMR *Hash
 
 	Timestamp  uint32
 	DBHeight   uint32
 	BlockCount uint32
 }
 
+var _ Printable = (*DBlockHeader)(nil)
+var _ BinaryMarshallable = (*DBlockHeader)(nil)
+
 func NewDBlockHeader() *DBlockHeader {
 	d := new(DBlockHeader)
 	d.BodyMR = NewHash()
 	d.PrevKeyMR = NewHash()
-	d.PrevFullHash = NewHash()
+	d.PrevLedgerKeyMR = NewHash()
 
 	return d
+}
+
+func (e *DBlockHeader) JSONByte() ([]byte, error) {
+	return EncodeJSON(e)
+}
+
+func (e *DBlockHeader) JSONString() (string, error) {
+	return EncodeJSONString(e)
+}
+
+func (e *DBlockHeader) JSONBuffer(b *bytes.Buffer) error {
+	return EncodeJSONToBuffer(e, b)
+}
+
+func (e *DBlockHeader) Spew() string {
+	return Spew(e)
 }
 
 type DBEntry struct {
@@ -114,29 +174,45 @@ type DBEntry struct {
 	KeyMR   *Hash // Different MR in EBlockHeader
 }
 
-func NewDBEntry(eb *EBlock) *DBEntry {
+var _ Printable = (*DBEntry)(nil)
+var _ BinaryMarshallable = (*DBEntry)(nil)
+
+func (c *DBEntry) MarshalledSize() uint64 {
+	panic("Function not implemented")
+	return 0
+}
+
+func NewDBEntry(eb *EBlock) (*DBEntry, error) {
 	e := new(DBEntry)
 
 	e.ChainID = eb.Header.ChainID
-	e.KeyMR = eb.KeyMR()
+	var err error
+	e.KeyMR, err = eb.KeyMR()
+	if err!=nil {
+		return nil, err
+	}
 
-	return e
+	return e, nil
 }
 
-func NewDBEntryFromECBlock(cb *ECBlock) *DBEntry {
+func NewDBEntryFromECBlock(cb *ECBlock) (*DBEntry, error) {
 	e := &DBEntry{}
 
 	e.ChainID = cb.Header.ECChainID
-	e.KeyMR = cb.Header.Hash()
+	var err error
+	e.KeyMR, err = cb.HeaderHash()
+	if err!=nil {
+		return nil, err
+	}
 
-	return e
+	return e, nil
 }
 
 func NewDBEntryFromABlock(b *AdminBlock) *DBEntry {
 	e := &DBEntry{}
 
 	e.ChainID = b.Header.AdminChainID
-	e.KeyMR = b.ABHash
+	e.KeyMR, _ = b.PartialHash()
 
 	return e
 }
@@ -219,12 +295,28 @@ func (e *DBEntry) ShaHash() *Hash {
 	return Sha(byteArray)
 }
 
+func (e *DBEntry) JSONByte() ([]byte, error) {
+	return EncodeJSON(e)
+}
+
+func (e *DBEntry) JSONString() (string, error) {
+	return EncodeJSONString(e)
+}
+
+func (e *DBEntry) JSONBuffer(b *bytes.Buffer) error {
+	return EncodeJSONToBuffer(e, b)
+}
+
+func (e *DBEntry) Spew() string {
+	return Spew(e)
+}
+
 func (b *DBlockHeader) EncodableFields() map[string]reflect.Value {
 	fields := map[string]reflect.Value{
 		`DBHeight`:     reflect.ValueOf(b.DBHeight),
 		`BlockCount`:   reflect.ValueOf(b.BlockCount),
 		`BodyMR`:       reflect.ValueOf(b.BodyMR),
-		`PrevFullHash`: reflect.ValueOf(b.PrevFullHash),
+		`PrevLedgerKeyMR`: reflect.ValueOf(b.PrevLedgerKeyMR),
 	}
 	return fields
 }
@@ -251,7 +343,7 @@ func (b *DBlockHeader) MarshalBinary() (data []byte, err error) {
 	}
 	buf.Write(data)
 
-	data, err = b.PrevFullHash.MarshalBinary()
+	data, err = b.PrevLedgerKeyMR.MarshalBinary()
 	if err != nil {
 		return
 	}
@@ -303,8 +395,8 @@ func (b *DBlockHeader) UnmarshalBinaryData(data []byte) (newData []byte, err err
 		return
 	}
 
-	b.PrevFullHash = new(Hash)
-	newData, err = b.PrevFullHash.UnmarshalBinaryData(newData)
+	b.PrevLedgerKeyMR = new(Hash)
+	newData, err = b.PrevLedgerKeyMR.UnmarshalBinaryData(newData)
 	if err != nil {
 		return
 	}
@@ -334,10 +426,10 @@ func CreateDBlock(chain *DChain, prev *DirectoryBlock, cap uint) (b *DirectoryBl
 	b.Header.Version = VERSION_0
 
 	if prev == nil {
-		b.Header.PrevFullHash = NewHash()
+		b.Header.PrevLedgerKeyMR = NewHash()
 		b.Header.PrevKeyMR = NewHash()
 	} else {
-		b.Header.PrevFullHash, err = CreateHash(prev)
+		b.Header.PrevLedgerKeyMR, err = CreateHash(prev)
 		if prev.KeyMR == nil {
 			prev.BuildKeyMerkleRoot()
 		}
@@ -355,7 +447,10 @@ func CreateDBlock(chain *DChain, prev *DirectoryBlock, cap uint) (b *DirectoryBl
 // Add DBEntry from an Entry Block
 func (c *DChain) AddEBlockToDBEntry(eb *EBlock) (err error) {
 
-	dbEntry := NewDBEntry(eb)
+	dbEntry, err := NewDBEntry(eb)
+	if err!=nil {
+		return err
+	}
 	c.BlockMutex.Lock()
 	c.NextBlock.DBEntries = append(c.NextBlock.DBEntries, dbEntry)
 	c.BlockMutex.Unlock()
@@ -366,7 +461,10 @@ func (c *DChain) AddEBlockToDBEntry(eb *EBlock) (err error) {
 // Add DBEntry from an Entry Credit Block
 func (c *DChain) AddECBlockToDBEntry(ecb *ECBlock) (err error) {
 
-	dbEntry := NewDBEntryFromECBlock(ecb)
+	dbEntry, err := NewDBEntryFromECBlock(ecb)
+	if err!=nil {
+		return err
+	}
 
 	if len(c.NextBlock.DBEntries) < 3 {
 		panic("1 DBEntries not initialized properly for block: " + string(c.NextDBHeight))
@@ -385,7 +483,10 @@ func (c *DChain) AddABlockToDBEntry(b *AdminBlock) (err error) {
 
 	dbEntry := &DBEntry{}
 	dbEntry.ChainID = b.Header.AdminChainID
-	dbEntry.KeyMR = b.ABHash
+	dbEntry.KeyMR, err = b.PartialHash()
+	if err != nil {
+		return
+	}
 
 	if len(c.NextBlock.DBEntries) < 3 {
 		panic("2 DBEntries not initialized properly for block: " + string(c.NextDBHeight))
@@ -632,7 +733,7 @@ func (b *DirBlockInfo) UnmarshalBinaryData(data []byte) (newData []byte, err err
 	b.BTCTxHash = new(Hash)
 	newData, err = b.BTCTxHash.UnmarshalBinaryData(newData)
 
-	b.BTCTxOffset = int(binary.BigEndian.Uint32(newData[:4]))
+	b.BTCTxOffset = int32(binary.BigEndian.Uint32(newData[:4]))
 	newData = newData[4:]
 
 	b.BTCBlockHeight = int32(binary.BigEndian.Uint32(newData[:4]))

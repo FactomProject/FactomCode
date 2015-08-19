@@ -30,7 +30,6 @@ var (
 	portNumber       = cfg.PortNumber
 	applicationName  = cfg.ApplicationName
 	dataStorePath    = "/tmp/store/seed/csv"
-	refreshInSeconds = cfg.RefreshInSeconds
 )
 
 var _ = fmt.Println
@@ -249,7 +248,7 @@ func handleDirectoryBlock(ctx *web.Context, keymr string) {
 		Header struct {
 			PrevBlockKeyMR string
 			SequenceNumber uint32
-			TimeStamp      uint32
+			Timestamp      uint32
 		}
 		EntryBlockList []eblockaddr
 	}
@@ -263,7 +262,7 @@ func handleDirectoryBlock(ctx *web.Context, keymr string) {
 	} else {
 		d.Header.PrevBlockKeyMR = block.Header.PrevKeyMR.String()
 		d.Header.SequenceNumber = block.Header.DBHeight
-		d.Header.TimeStamp = block.Header.Timestamp * 60
+		d.Header.Timestamp = block.Header.Timestamp * 60
 		for _, v := range block.DBEntries {
 			l := new(eblockaddr)
 			l.ChainID = v.ChainID.String()
@@ -287,7 +286,7 @@ func handleDirectoryBlock(ctx *web.Context, keymr string) {
 func handleEntryBlock(ctx *web.Context, keymr string) {
 	type entryaddr struct {
 		EntryHash string
-		TimeStamp uint32
+		Timestamp uint32
 	}
 
 	type eblock struct {
@@ -295,7 +294,7 @@ func handleEntryBlock(ctx *web.Context, keymr string) {
 			BlockSequenceNumber uint32
 			ChainID             string
 			PrevKeyMR           string
-			TimeStamp           uint32
+			Timestamp           uint32
 		}
 		EntryList []entryaddr
 	}
@@ -312,14 +311,34 @@ func handleEntryBlock(ctx *web.Context, keymr string) {
 		e.Header.PrevKeyMR = block.Header.PrevKeyMR.String()
 
 		if dblock, err := dbase.FetchDBlockByHeight(block.Header.DBHeight); err == nil {
-			e.Header.TimeStamp = dblock.Header.Timestamp * 60
+			e.Header.Timestamp = dblock.Header.Timestamp * 60
 		}
-
+		
+		// create a map of possible minute markers that may be found in the
+		// EBlock Body
+		mins := make(map[string]uint8)
+		for i := byte(1); i <= 10; i++ {
+			h := make([]byte, 32)
+			h[len(h)-1] = i
+			mins[hex.EncodeToString(h)] = i
+		}
+		
+		estack := make([]entryaddr, 0)
 		for _, v := range block.Body.EBEntries {
-			l := new(entryaddr)
-			l.EntryHash = v.String()
-			l.TimeStamp = e.Header.TimeStamp
-			e.EntryList = append(e.EntryList, *l)
+			if n, exist := mins[v.String()]; exist {
+				// the entry is a minute marker. add time to all of the
+				// previous entries for the minute
+				t := e.Header.Timestamp + 60 * uint32(n)
+				for _, w := range estack {
+					w.Timestamp = t
+					e.EntryList = append(e.EntryList, w)
+				}
+				estack = make([]entryaddr, 0)
+			} else {
+				l := new(entryaddr)
+				l.EntryHash = v.String()
+				estack = append(estack, *l)
+			}
 		}
 	}
 
@@ -497,7 +516,7 @@ func handleFactoidSubmit(ctx *web.Context) {
 		return
 	}
 
-	err = common.FactoidState.Validate(msg.Transaction)
+	err = common.FactoidState.Validate(1, msg.Transaction)
 	if err != nil {
 		returnMsg(ctx, err.Error(), false)
 		return

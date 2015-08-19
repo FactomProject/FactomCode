@@ -485,7 +485,7 @@ func saveDirBlockInfo(transaction *btcutil.Tx, details *btcjson.BlockDetails) {
 	for _, dirBlockInfo := range dirBlockInfoMap {
 		if dirBlockInfo.BTCTxHash != nil &&
 			bytes.Compare(dirBlockInfo.BTCTxHash.Bytes(), transaction.Sha().Bytes()) == 0 {
-			dirBlockInfo.BTCTxOffset = details.Index
+			dirBlockInfo.BTCTxOffset = int32(details.Index)
 			dirBlockInfo.BTCBlockHeight = details.Height
 			dirBlockInfo.BTCConfirmed = true
 			db.InsertDirBlockInfo(dirBlockInfo)

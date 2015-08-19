@@ -28,6 +28,13 @@ type CommitEntry struct {
 	Sig       *[64]byte
 }
 
+var _ Printable = (*CommitEntry)(nil)
+var _ BinaryMarshallable = (*CommitEntry)(nil)
+
+func (c *CommitEntry) MarshalledSize() uint64 {
+	return uint64(CommitEntrySize)
+}
+
 func NewCommitEntry() *CommitEntry {
 	c := new(CommitEntry)
 	c.Version = 0
@@ -174,4 +181,20 @@ func (c *CommitEntry) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 func (c *CommitEntry) UnmarshalBinary(data []byte) (err error) {
 	_, err = c.UnmarshalBinaryData(data)
 	return
+}
+
+func (e *CommitEntry) JSONByte() ([]byte, error) {
+	return EncodeJSON(e)
+}
+
+func (e *CommitEntry) JSONString() (string, error) {
+	return EncodeJSONString(e)
+}
+
+func (e *CommitEntry) JSONBuffer(b *bytes.Buffer) error {
+	return EncodeJSONToBuffer(e, b)
+}
+
+func (e *CommitEntry) Spew() string {
+	return Spew(e)
 }

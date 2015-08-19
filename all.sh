@@ -101,8 +101,10 @@ compile() {
 checkout FactomCode   $branch $default
 checkout btcd         $branch $default
 checkout factoid      $branch $default
+checkout fctwallet    $branch $default
 checkout factom       $branch $default
 checkout factom-cli   $branch $default
+checkout Testing      $branch $default
 checkout btcrpcclient $branch $default
 checkout btcutil      $branch $default 
 checkout btcws        $branch $default
@@ -110,7 +112,6 @@ checkout gobundle     $branch $default
 checkout goleveldb    $branch $default
 checkout FactomDocs   master  master
 checkout gocoding     master  master
-
 checkout btcjson      $branch $default
 checkout btclog       $branch $default
 checkout dynrsrc      $branch $default
@@ -127,13 +128,21 @@ echo "
 *     Compiling fctwallet, the cli, and factomd
 ******************************************************** 
 "
-compile factoid/fctwallet 
+compile fctwallet 
 compile factom-cli  
 compile FactomCode/factomd 
+compile btcd/cmd/fctctl
 echo ""
 echo "
 *******************************************************
 *     Running Unit Tests    Now safe to Ctrl+C
+*
+*  YOU MUST KILL factomd FOR TESTS TO RUN PROPERLY!
+*
+*  Please run and pass all unit tests before pushing
+*  to development or master!  Protect your code with
+*  unit tests!  If you can!
+*
 *******************************************************
 "
 echo "

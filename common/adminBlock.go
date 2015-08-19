@@ -7,12 +7,9 @@ package common
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/hex"
 	"errors"
 	"fmt"
-	"log"
-	"runtime"
-	"runtime/debug"
-	"strconv"
 	"sync"
 )
 
@@ -38,7 +35,31 @@ type AdminBlock struct {
 	ABEntries []ABEntry //Interface
 
 	//Not Marshalized
-	ABHash *Hash
+	fullHash    *Hash //SHA512Half
+	partialHash *Hash //SHA256
+}
+
+var _ Printable = (*AdminBlock)(nil)
+var _ BinaryMarshallable = (*AdminBlock)(nil)
+
+func (ab *AdminBlock) LedgerKeyMR() (*Hash, error) {
+	if ab.fullHash == nil {
+		err := ab.buildFullBHash()
+		if err != nil {
+			return nil, err
+		}
+	}
+	return ab.fullHash, nil
+}
+
+func (ab *AdminBlock) PartialHash() (*Hash, error) {
+	if ab.partialHash == nil {
+		err := ab.buildPartialHash()
+		if err != nil {
+			return nil, err
+		}
+	}
+	return ab.partialHash, nil
 }
 
 // Create an empty Admin Block
@@ -55,13 +76,12 @@ func CreateAdminBlock(chain *AdminChain, prev *AdminBlock, cap uint) (b *AdminBl
 	b.Header.AdminChainID = chain.ChainID
 
 	if prev == nil {
-		b.Header.PrevFullHash = NewHash()
+		b.Header.PrevLedgerKeyMR = NewHash()
 	} else {
-
-		if prev.ABHash == nil {
-			prev.BuildABHash()
+		b.Header.PrevLedgerKeyMR, err = prev.LedgerKeyMR()
+		if err != nil {
+			return
 		}
-		b.Header.PrevFullHash = prev.ABHash
 	}
 
 	b.Header.DBHeight = chain.NextBlockHeight
@@ -70,12 +90,25 @@ func CreateAdminBlock(chain *AdminChain, prev *AdminBlock, cap uint) (b *AdminBl
 	return b, err
 }
 
-// Build the sha hash for the admin block
-func (b *AdminBlock) BuildABHash() (err error) {
+// Build the SHA512Half hash for the admin block
+func (b *AdminBlock) buildFullBHash() (err error) {
+	var binaryAB []byte
+	binaryAB, err = b.MarshalBinary()
+	if err != nil {
+		return
+	}
+	b.fullHash = Sha512Half(binaryAB)
+	return
+}
 
-	binaryAB, _ := b.MarshalBinary()
-	b.ABHash = Sha512Half(binaryAB)
-
+// Build the SHA256 hash for the admin block
+func (b *AdminBlock) buildPartialHash() (err error) {
+	var binaryAB []byte
+	binaryAB, err = b.MarshalBinary()
+	if err != nil {
+		return
+	}
+	b.partialHash = Sha(binaryAB)
 	return
 }
 
@@ -121,16 +154,6 @@ func (b *AdminBlock) MarshalledSize() uint64 {
 	}
 
 	return size
-}
-
-func Debugf(format string, args ...interface{}) {
-	debug.PrintStack()
-	_, file, line, ok := runtime.Caller(1)
-	if !ok {
-		file = "???"
-		line = 0
-	}
-	log.Printf(file+":"+strconv.Itoa(line)+" - "+format, args...)
 }
 
 func (b *AdminBlock) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
@@ -180,10 +203,26 @@ func (b *AdminBlock) GetDBSignature() ABEntry {
 	return nil
 }
 
+func (e *AdminBlock) JSONByte() ([]byte, error) {
+	return EncodeJSON(e)
+}
+
+func (e *AdminBlock) JSONString() (string, error) {
+	return EncodeJSONString(e)
+}
+
+func (e *AdminBlock) JSONBuffer(b *bytes.Buffer) error {
+	return EncodeJSONToBuffer(e, b)
+}
+
+func (e *AdminBlock) Spew() string {
+	return Spew(e)
+}
+
 // Admin Block Header
 type ABlockHeader struct {
 	AdminChainID *Hash
-	PrevFullHash *Hash
+	PrevLedgerKeyMR *Hash
 	DBHeight     uint32
 
 	HeaderExpansionSize uint64
@@ -192,6 +231,9 @@ type ABlockHeader struct {
 	MessageCount uint32
 	BodySize     uint32
 }
+
+var _ Printable = (*ABlockHeader)(nil)
+var _ BinaryMarshallable = (*ABlockHeader)(nil)
 
 // Write out the ABlockHeader to binary.
 func (b *ABlockHeader) MarshalBinary() (data []byte, err error) {
@@ -203,7 +245,7 @@ func (b *ABlockHeader) MarshalBinary() (data []byte, err error) {
 	}
 	buf.Write(data)
 
-	data, err = b.PrevFullHash.MarshalBinary()
+	data, err = b.PrevLedgerKeyMR.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
@@ -223,13 +265,13 @@ func (b *ABlockHeader) MarshalBinary() (data []byte, err error) {
 func (b *ABlockHeader) MarshalledSize() uint64 {
 	var size uint64 = 0
 
-	size += uint64(HASH_LENGTH)                         //AdminChainID
-	size += uint64(HASH_LENGTH)                         //PrevFullHash
-	size += 4                                           //DBHeight
-	size += uint64(VarIntLength(b.HeaderExpansionSize)) //HeaderExpansionSize
-	size += b.HeaderExpansionSize                       //HeadderExpansionArea
-	size += 4                                           //MessageCount
-	size += 4                                           //BodySize
+	size += uint64(HASH_LENGTH)                 //AdminChainID
+	size += uint64(HASH_LENGTH)                 //PrevFullHash
+	size += 4                                   //DBHeight
+	size += VarIntLength(b.HeaderExpansionSize) //HeaderExpansionSize
+	size += b.HeaderExpansionSize               //HeadderExpansionArea
+	size += 4                                   //MessageCount
+	size += 4                                   //BodySize
 
 	return size
 }
@@ -247,8 +289,8 @@ func (b *ABlockHeader) UnmarshalBinaryData(data []byte) (newData []byte, err err
 		return
 	}
 
-	b.PrevFullHash = new(Hash)
-	newData, err = b.PrevFullHash.UnmarshalBinaryData(newData)
+	b.PrevLedgerKeyMR = new(Hash)
+	newData, err = b.PrevLedgerKeyMR.UnmarshalBinaryData(newData)
 	if err != nil {
 		return
 	}
@@ -270,23 +312,55 @@ func (b *ABlockHeader) UnmarshalBinary(data []byte) (err error) {
 	return
 }
 
+func (e *ABlockHeader) JSONByte() ([]byte, error) {
+	return EncodeJSON(e)
+}
+
+func (e *ABlockHeader) JSONString() (string, error) {
+	return EncodeJSONString(e)
+}
+
+func (e *ABlockHeader) JSONBuffer(b *bytes.Buffer) error {
+	return EncodeJSONToBuffer(e, b)
+}
+
+func (e *ABlockHeader) Spew() string {
+	return Spew(e)
+}
+
 // Generic admin block entry type
 type ABEntry interface {
+	Printable
+	BinaryMarshallable
+
 	Type() byte
-	MarshalBinary() ([]byte, error)
-	MarshalledSize() uint64
-	UnmarshalBinary(data []byte) (err error)
-	UnmarshalBinaryData(data []byte) (newData []byte, err error)
+}
+
+type Sig [64]byte
+
+func (s *Sig) MarshalText() ([]byte, error) {
+	return []byte(hex.EncodeToString(s[:])), nil
+}
+
+func (s *Sig) UnmarshalText(b []byte) error {
+	p, err := hex.DecodeString(string(b))
+	if err != nil {
+		return err
+	}
+	copy(s[:], p)
+	return nil
 }
 
 // DB Signature Entry -------------------------
 type DBSignatureEntry struct {
-	ABEntry              //interface
 	entryType            byte
 	IdentityAdminChainID *Hash
 	PubKey               PublicKey
-	PrevDBSig            *[64]byte
+	PrevDBSig            *Sig
 }
+
+var _ ABEntry = (*DBSignatureEntry)(nil)
+var _ BinaryMarshallable = (*DBSignatureEntry)(nil)
 
 // Create a new DB Signature Entry
 func NewDBSignatureEntry(identityAdminChainID *Hash, sig Signature) (e *DBSignatureEntry) {
@@ -294,7 +368,7 @@ func NewDBSignatureEntry(identityAdminChainID *Hash, sig Signature) (e *DBSignat
 	e.entryType = TYPE_DB_SIGNATURE
 	e.IdentityAdminChainID = identityAdminChainID
 	e.PubKey = sig.Pub
-	e.PrevDBSig = sig.Sig
+	e.PrevDBSig = (*Sig)(sig.Sig)
 	return
 }
 
@@ -355,7 +429,7 @@ func (e *DBSignatureEntry) UnmarshalBinaryData(data []byte) (newData []byte, err
 	copy(e.PubKey.Key[:], newData[:HASH_LENGTH])
 	newData = newData[HASH_LENGTH:]
 
-	e.PrevDBSig = new([SIG_LENGTH]byte)
+	e.PrevDBSig = new(Sig)
 	copy(e.PrevDBSig[:], newData[:SIG_LENGTH])
 
 	newData = newData[SIG_LENGTH:]
@@ -368,10 +442,29 @@ func (e *DBSignatureEntry) UnmarshalBinary(data []byte) (err error) {
 	return
 }
 
+func (e *DBSignatureEntry) JSONByte() ([]byte, error) {
+	return EncodeJSON(e)
+}
+
+func (e *DBSignatureEntry) JSONString() (string, error) {
+	return EncodeJSONString(e)
+}
+
+func (e *DBSignatureEntry) JSONBuffer(b *bytes.Buffer) error {
+	return EncodeJSONToBuffer(e, b)
+}
+
+func (e *DBSignatureEntry) Spew() string {
+	return Spew(e)
+}
+
 type EndOfMinuteEntry struct {
 	entryType byte
 	EOM_Type  byte
 }
+
+var _ Printable = (*EndOfMinuteEntry)(nil)
+var _ BinaryMarshallable = (*EndOfMinuteEntry)(nil)
 
 func (m *EndOfMinuteEntry) Type() byte {
 	return m.entryType
@@ -412,4 +505,20 @@ func (e *EndOfMinuteEntry) UnmarshalBinaryData(data []byte) (newData []byte, err
 func (e *EndOfMinuteEntry) UnmarshalBinary(data []byte) (err error) {
 	_, err = e.UnmarshalBinaryData(data)
 	return
+}
+
+func (e *EndOfMinuteEntry) JSONByte() ([]byte, error) {
+	return EncodeJSON(e)
+}
+
+func (e *EndOfMinuteEntry) JSONString() (string, error) {
+	return EncodeJSONString(e)
+}
+
+func (e *EndOfMinuteEntry) JSONBuffer(b *bytes.Buffer) error {
+	return EncodeJSONToBuffer(e, b)
+}
+
+func (e *EndOfMinuteEntry) Spew() string {
+	return Spew(e)
 }

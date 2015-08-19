@@ -16,6 +16,13 @@ type MinuteNumber struct {
 	Number uint8
 }
 
+var _ Printable = (*MinuteNumber)(nil)
+var _ BinaryMarshallable = (*MinuteNumber)(nil)
+
+func (c *MinuteNumber) MarshalledSize() uint64 {
+	return uint64(MinuteNumberSize)
+}
+
 func NewMinuteNumber() *MinuteNumber {
 	return new(MinuteNumber)
 }
@@ -45,4 +52,20 @@ func (m *MinuteNumber) UnmarshalBinaryData(data []byte) (newData []byte, err err
 func (m *MinuteNumber) UnmarshalBinary(data []byte) (err error) {
 	_, err = m.UnmarshalBinaryData(data)
 	return
+}
+
+func (e *MinuteNumber) JSONByte() ([]byte, error) {
+	return EncodeJSON(e)
+}
+
+func (e *MinuteNumber) JSONString() (string, error) {
+	return EncodeJSONString(e)
+}
+
+func (e *MinuteNumber) JSONBuffer(b *bytes.Buffer) error {
+	return EncodeJSONToBuffer(e, b)
+}
+
+func (e *MinuteNumber) Spew() string {
+	return Spew(e)
 }

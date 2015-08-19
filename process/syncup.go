@@ -5,8 +5,11 @@
 package process
 
 import (
+	"bytes"
+	"encoding/hex"
 	"errors"
 	"github.com/FactomProject/FactomCode/common"
+	cp "github.com/FactomProject/FactomCode/controlpanel"
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/davecgh/go-spew/spew"
@@ -25,7 +28,13 @@ func processDirBlock(msg *wire.MsgDirBlock) error {
 
 	blk, _ := db.FetchDBlockByHeight(msg.DBlk.Header.DBHeight)
 	if blk != nil {
-		procLog.Info("DBlock already existing for height:" + string(msg.DBlk.Header.DBHeight))
+		procLog.Info("DBlock already exists for height:" + string(msg.DBlk.Header.DBHeight))
+		cp.CP.AddUpdate(
+			"DBOverlap",                                                          // tag
+			"warning",                                                            // Category
+			"Directory Block Overlap",                                            // Title
+			"DBlock already exists for height:"+string(msg.DBlk.Header.DBHeight), // Message
+			0) // Expire
 		return nil
 	}
 
@@ -36,6 +45,12 @@ func processDirBlock(msg *wire.MsgDirBlock) error {
 	fMemPool.addBlockMsg(msg, strconv.Itoa(int(msg.DBlk.Header.DBHeight))) // store in mempool with the height as the key
 
 	procLog.Debug("SyncUp: MsgDirBlock DBHeight=", msg.DBlk.Header.DBHeight)
+	cp.CP.AddUpdate(
+		"DBSyncUp", // tag
+		"Status",   // Category
+		"SyncUp:",  // Title
+		"MsgDirBlock DBHeigth=:"+string(msg.DBlk.Header.DBHeight), // Message
+		0) // Expire
 
 	return nil
 }
@@ -49,7 +64,7 @@ func processFBlock(msg *wire.MsgFBlock) error {
 		return errors.New("Server received msg:" + msg.Command())
 	}
 
-	key, _ := msg.SC.GetHash().MarshalText()
+	key := hex.EncodeToString(msg.SC.GetHash().Bytes())
 	//Add it to mem pool before saving it in db
 	fMemPool.addBlockMsg(msg, string(key)) // stored in mem pool with the MR as the key
 
@@ -69,8 +84,11 @@ func processABlock(msg *wire.MsgABlock) error {
 	}
 
 	//Add it to mem pool before saving it in db
-	msg.ABlk.BuildABHash()
-	fMemPool.addBlockMsg(msg, msg.ABlk.ABHash.String()) // store in mem pool with ABHash as key
+	abHash, err := msg.ABlk.PartialHash()
+	if err != nil {
+		return err
+	}
+	fMemPool.addBlockMsg(msg, abHash.String()) // store in mem pool with ABHash as key
 
 	procLog.Debug("SyncUp: MsgABlock DBHeight=", msg.ABlk.Header.DBHeight)
 
@@ -87,7 +105,11 @@ func procesECBlock(msg *wire.MsgECBlock) error {
 	}
 
 	//Add it to mem pool before saving it in db
-	fMemPool.addBlockMsg(msg, msg.ECBlock.Header.Hash().String())
+	hash, err := msg.ECBlock.HeaderHash()
+	if err != nil {
+		return err
+	}
+	fMemPool.addBlockMsg(msg, hash.String())
 
 	procLog.Debug("SyncUp: MsgCBlock DBHeight=", msg.ECBlock.Header.DBHeight)
 
@@ -108,7 +130,11 @@ func processEBlock(msg *wire.MsgEBlock) error {
 		}
 	*/
 	//Add it to mem pool before saving it in db
-	fMemPool.addBlockMsg(msg, msg.EBlk.KeyMR().String()) // store it in mem pool with MR as the key
+	keyMR, err := msg.EBlk.KeyMR()
+	if err != nil {
+		return err
+	}
+	fMemPool.addBlockMsg(msg, keyMR.String()) // store it in mem pool with MR as the key
 
 	procLog.Debug("SyncUp: MsgEBlock DBHeight=", msg.EBlk.Header.DBHeight)
 
@@ -183,7 +209,7 @@ func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, d
 		if h.String() != common.GENESIS_DIR_BLOCK_HASH {
 			// panic for milestone 1
 			//panic("Genesis dir block is not as expected: " + h.String())
-			procLog.Errorf("Genesis dir block is not as expected: " + h.String())			
+			procLog.Errorf("Genesis dir block is not as expected: " + h.String())
 		}
 	}
 
@@ -215,10 +241,12 @@ func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, d
 				// validate every entry in EBlock
 				for _, ebEntry := range eBlkMsg.EBlk.Body.EBEntries {
 					if _, foundInMemPool := fMemPool.blockpool[ebEntry.String()]; !foundInMemPool {
-						// continue if the entry arleady exists in db
-						entry, _ := db.FetchEntryByHash(ebEntry)
-						if entry == nil {
-							return false
+						if !bytes.Equal(ebEntry.Bytes()[:31],common.ZERO_HASH[:31]) {
+							// continue if the entry arleady exists in db
+							entry, _ := db.FetchEntryByHash(ebEntry)
+							if entry == nil {
+								return false
+							}
 						}
 					}
 				}
@@ -336,12 +364,12 @@ func deleteBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool) err
 		default:
 			eBlkMsg, _ := fMemPool.blockpool[dbEntry.KeyMR.String()].(*wire.MsgEBlock)
 			for _, ebEntry := range eBlkMsg.EBlk.Body.EBEntries {
-				fMemPool.deleteBlockMsg(ebEntry.String())				
+				fMemPool.deleteBlockMsg(ebEntry.String())
 			}
 			fMemPool.deleteBlockMsg(dbEntry.KeyMR.String())
 		}
 	}
-	fMemPool.deleteBlockMsg(strconv.Itoa(int(b.Header.DBHeight)))	
+	fMemPool.deleteBlockMsg(strconv.Itoa(int(b.Header.DBHeight)))
 
 	return nil
 }
@@ -367,7 +395,7 @@ func validateDBSignature(aBlock *common.AdminBlock, dchain *common.DChain) bool 
 			} else {
 				// validatet the signature
 				bHeader, _ := dblk.Header.MarshalBinary()
-				if !serverPubKey.Verify(bHeader, dbSig.PrevDBSig) {
+				if !serverPubKey.Verify(bHeader, (*[64]byte)(dbSig.PrevDBSig)) {
 					procLog.Infof("No valid signature found in Admin Block = %s\n", spew.Sdump(aBlock))
 					return false
 				}

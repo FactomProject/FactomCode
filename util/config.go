@@ -13,6 +13,7 @@ type FactomdConfig struct {
 	App struct {
 		PortNumber              int
 		LdbPath                 string // should be removed, and default to $defaultDataDir/ldb9
+		BoltDBPath              string // should be removed, 		
 		DataStorePath           string // should be removed, and default to $defaultDataDir/store
 		DirectoryBlockInSeconds int
 		NodeMode                string
@@ -41,13 +42,19 @@ type FactomdConfig struct {
 	Wsapi struct {
 		PortNumber       int
 		ApplicationName  string
-		RefreshInSeconds int
 	}
 	Log struct {
 		LogPath  string
 		LogLevel string
 	}
-
+	Wallet struct {
+		Address          string
+		Port             int
+		DataFile         string
+		RefreshInSeconds string
+		BoltDBPath       string
+	}
+	
 	//	AddPeers     []string `short:"a" long:"addpeer" description:"Add a peer to connect with at startup"`
 	//	ConnectPeers []string `long:"connect" description:"Connect only to the specified peers at startup"`
 
@@ -66,6 +73,7 @@ const defaultConfig = `
 [app]
 PortNumber				= 8088
 LdbPath					= "/tmp/ldb9"
+BoltDBPath				= "/tmp/"
 DataStorePath			= "/tmp/store/seed/"
 DirectoryBlockInSeconds	= 60
 ;---- NodeMode - FULL,SERVER,LIGHT -----
@@ -91,7 +99,6 @@ RpcPass					= ""
 [wsapi]
 ApplicationName			= "Factom/wsapi"
 PortNumber				= 8088
-RefreshInSeconds		= 60
 
 ; ------------------------------------------------------------------------------
 ; LogLevel - debug,info,notice,warning,error,critical,alert,emergency,none
@@ -99,6 +106,13 @@ RefreshInSeconds		= 60
 [log]
 LogLevel 				= warning
 LogPath					= /tmp/factomd.log
+
+[Wallet]
+Address          				= localhost
+Port             				= 8089
+DataFile         				= /tmp/fctwallet.dat
+RefreshInSeconds 				= 60
+BoltDBPath 						= /tmp/
 `
 
 var cfg *FactomdConfig

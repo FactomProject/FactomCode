@@ -73,8 +73,8 @@ func (mp *ftmMemPool) addBlockMsg(msg wire.Message, hash string) error {
 func (mp *ftmMemPool) deleteBlockMsg(hash string) error {
 
 	if mp.blockpool[hash] != nil {
-		mp.Lock()		
-		delete(fMemPool.blockpool, hash)	
+		mp.Lock()
+		delete(fMemPool.blockpool, hash)
 		mp.Unlock()
 	}
 

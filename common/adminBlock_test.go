@@ -9,6 +9,68 @@ import (
 	. "github.com/FactomProject/FactomCode/common"
 )
 
+func TestAdminBlockPreviousHash(t *testing.T) {
+	fmt.Printf("\n---\nTestAdminBlockMarshalUnmarshal\n---\n")
+
+	block := new(AdminBlock)
+	data, _ := hex.DecodeString("000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
+	_, err := block.UnmarshalBinaryData(data)
+	if err != nil {
+		t.Error(err)
+	}
+
+	fullHash, err := block.LedgerKeyMR()
+	if err != nil {
+		t.Error(err)
+	}
+
+	partialHash, err := block.PartialHash()
+	if err != nil {
+		t.Error(err)
+	}
+
+	t.Logf("Current hashes - %s, %s", fullHash.String(), partialHash.String())
+
+	if fullHash.String() != "0a9aa1efbe7d0e8d9c1d460d1c78e3e7b50f984e65a3f3ee7b73100a94189dbf" {
+		t.Error("Invalid fullHash")
+	}
+	if partialHash.String() != "4fb409d5369fad6aa7768dc620f11cd219f9b885956b631ad050962ca934052e" {
+		t.Error("Invalid partialHash")
+	}
+
+	aChain := new(AdminChain)
+	aChain.NextBlockHeight = 1
+	aChain.ChainID = block.Header.AdminChainID
+
+	block2, err := CreateAdminBlock(aChain, block, 5)
+	if err != nil {
+		t.Error(err)
+	}
+
+	fullHash2, err := block2.LedgerKeyMR()
+	if err != nil {
+		t.Error(err)
+	}
+
+	partialHash2, err := block2.PartialHash()
+	if err != nil {
+		t.Error(err)
+	}
+
+	t.Logf("Second hashes - %s, %s", fullHash2.String(), partialHash2.String())
+	t.Logf("Previous hash - %s", block2.Header.PrevLedgerKeyMR.String())
+
+	marshalled, err := block2.MarshalBinary()
+	if err != nil {
+		t.Error(err)
+	}
+	t.Logf("Marshalled - %X", marshalled)
+
+	if block2.Header.PrevLedgerKeyMR.String() != fullHash.String() {
+		t.Error("PrevLedgerKeyMR does not match ABHash")
+	}
+}
+
 func TestAdminBlockMarshalUnmarshal(t *testing.T) {
 	fmt.Printf("\n---\nTestAdminBlockMarshalUnmarshal\n---\n")
 
@@ -78,8 +140,8 @@ func TestABlockHeaderMarshalUnmarshal(t *testing.T) {
 		t.Error("AdminChainIDs are not identical")
 	}
 
-	if bytes.Compare(header.PrevFullHash.Bytes(), header2.PrevFullHash.Bytes()) != 0 {
-		t.Error("PrevFullHashes are not identical")
+	if bytes.Compare(header.PrevLedgerKeyMR.Bytes(), header2.PrevLedgerKeyMR.Bytes()) != 0 {
+		t.Error("PrevLedgerKeyMRes are not identical")
 	}
 
 	if header.DBHeight != header2.DBHeight {
@@ -265,7 +327,7 @@ func createTestAdminHeader() *ABlockHeader {
 	header.AdminChainID = hash
 	p, _ = hex.DecodeString("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
 	hash, _ = NewShaHash(p)
-	header.PrevFullHash = hash
+	header.PrevLedgerKeyMR = hash
 	header.DBHeight = 123
 
 	header.HeaderExpansionSize = 5
@@ -284,7 +346,7 @@ func createSmallTestAdminHeader() *ABlockHeader {
 	header.AdminChainID = hash
 	p, _ = hex.DecodeString("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
 	hash, _ = NewShaHash(p)
-	header.PrevFullHash = hash
+	header.PrevLedgerKeyMR = hash
 	header.DBHeight = 123
 
 	header.HeaderExpansionSize = 0

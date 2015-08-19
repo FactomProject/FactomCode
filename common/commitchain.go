@@ -30,6 +30,13 @@ type CommitChain struct {
 	Sig         *[64]byte
 }
 
+var _ Printable = (*CommitChain)(nil)
+var _ BinaryMarshallable = (*CommitChain)(nil)
+
+func (c *CommitChain) MarshalledSize() uint64 {
+	return uint64(CommitChainSize)
+}
+
 func NewCommitChain() *CommitChain {
 	c := new(CommitChain)
 	c.Version = 0
@@ -204,4 +211,20 @@ func (c *CommitChain) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 func (c *CommitChain) UnmarshalBinary(data []byte) (err error) {
 	_, err = c.UnmarshalBinaryData(data)
 	return
+}
+
+func (e *CommitChain) JSONByte() ([]byte, error) {
+	return EncodeJSON(e)
+}
+
+func (e *CommitChain) JSONString() (string, error) {
+	return EncodeJSONString(e)
+}
+
+func (e *CommitChain) JSONBuffer(b *bytes.Buffer) error {
+	return EncodeJSONToBuffer(e, b)
+}
+
+func (e *CommitChain) Spew() string {
+	return Spew(e)
 }

@@ -13,7 +13,27 @@ import (
 )
 
 type Hash struct {
-	bytes [HASH_LENGTH]byte `json:"bytes"`
+	bytes [HASH_LENGTH]byte
+}
+
+var _ Printable = (*Hash)(nil)
+var _ BinaryMarshallable = (*Hash)(nil)
+
+func (c *Hash) MarshalledSize() uint64 {
+	return uint64(HASH_LENGTH)
+}
+
+func (h *Hash) MarshalText() ([]byte, error) {
+	return []byte(hex.EncodeToString(h.bytes[:])), nil
+}
+
+func (h *Hash) UnmarshalText(b []byte) error {
+	p, err := hex.DecodeString(string(b))
+	if err != nil {
+		return err
+	}
+	copy(h.bytes[:], p)
+	return nil
 }
 
 func (h *Hash) Bytes() []byte {
@@ -152,4 +172,31 @@ func (a *Hash) IsSameAs(b *Hash) bool {
 	}
 
 	return false
+}
+
+// Is the hash a minute marker (the last byte indicates the minute number)
+func (h *Hash) IsMinuteMarker() bool {
+	
+
+	if bytes.Equal(h.bytes[:31], ZERO_HASH[:31]) {
+		return true
+	}
+
+	return false
+}
+
+func (e *Hash) JSONByte() ([]byte, error) {
+	return EncodeJSON(e)
+}
+
+func (e *Hash) JSONString() (string, error) {
+	return EncodeJSONString(e)
+}
+
+func (e *Hash) JSONBuffer(b *bytes.Buffer) error {
+	return EncodeJSONToBuffer(e, b)
+}
+
+func (e *Hash) Spew() string {
+	return Spew(e)
 }
