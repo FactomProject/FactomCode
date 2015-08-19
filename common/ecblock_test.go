@@ -1,6 +1,7 @@
 package common_test
 
 import (
+	"fmt"
 	"crypto/rand"
 	"testing"
 
@@ -8,6 +9,8 @@ import (
 	ed "github.com/FactomProject/ed25519"
 	"github.com/davecgh/go-spew/spew"
 )
+
+var _ = fmt.Sprint("testing")
 
 func TestECBlockMarshal(t *testing.T) {
 	ecb1 := common.NewECBlock()
@@ -29,13 +32,6 @@ func TestECBlockMarshal(t *testing.T) {
 		cc.Sig = ed.Sign(privkey, cc.CommitMsg())
 	}
 
-	// create an IncreaseBalance for testing
-	pub := new([32]byte)
-	copy(pub[:], byteof(0xaa))
-	facTX := common.NewHash()
-	facTX.SetBytes(byteof(0xbb))
-	ib := common.MakeIncreaseBalance(pub, facTX, 12)
-
 	// create a ECBlock for testing
 	ecb1.Header.ECChainID.SetBytes(byteof(0x11))
 	ecb1.Header.BodyHash.SetBytes(byteof(0x22))
@@ -47,9 +43,29 @@ func TestECBlockMarshal(t *testing.T) {
 
 	// add the CommitChain to the ECBlock
 	ecb1.AddEntry(cc)
+	
+	m1 := common.NewMinuteNumber()
+	m1.Number = 0x01
+	ecb1.AddEntry(m1)
 
+	// add a ServerIndexNumber
+	si1 := common.NewServerIndexNumber()
+	si1.Number = 3
+	ecb1.AddEntry(si1)
+	
+	// create an IncreaseBalance for testing
+	ib := common.NewIncreaseBalance()
+	pub := new([32]byte)
+	copy(pub[:], byteof(0xaa))
+	ib.ECPubKey = pub
+	ib.TXID.SetBytes(byteof(0xbb))
+	ib.NumEC = uint64(13)
 	// add the IncreaseBalance
 	ecb1.AddEntry(ib)
+	
+	m2 := common.NewMinuteNumber()
+	m2.Number = 0x02
+	ecb1.AddEntry(m2)
 
 	ecb2 := common.NewECBlock()
 	if p, err := ecb1.MarshalBinary(); err != nil {
@@ -58,6 +74,7 @@ func TestECBlockMarshal(t *testing.T) {
 		if err := ecb2.UnmarshalBinary(p); err != nil {
 			t.Error(err)
 		}
+		t.Log(spew.Sdump(ecb1))
 		t.Log(spew.Sdump(ecb2))
 		if q, err := ecb2.MarshalBinary(); err != nil {
 			t.Error(err)

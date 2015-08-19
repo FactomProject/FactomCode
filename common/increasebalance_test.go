@@ -9,10 +9,12 @@ import (
 
 
 func TestIncreaseBalanceMarshalUnmarshal(t *testing.T) {
+	ib1 := NewIncreaseBalance()
 	pub := new([32]byte)
-	facTX := NewHash()
-	facTX.SetBytes(byteof(0xbb))
-	ib1 := MakeIncreaseBalance(pub, facTX, 12)
+	copy(pub[:], byteof(0xaa))
+	ib1.ECPubKey = pub
+	ib1.TXID.SetBytes(byteof(0xbb))
+	ib1.NumEC = uint64(13)
 	p, err := ib1.MarshalBinary()
 	if err != nil {
 		t.Error(err)

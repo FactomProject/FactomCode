@@ -21,7 +21,7 @@ func TestMinuteNumberMarshalUnmarshal(t *testing.T) {
 	if b[0] != 5 {
 		t.Error("Invalid byte")
 	}
-	mn2 := new(MinuteNumber)
+	mn2 := NewMinuteNumber()
 	err = mn2.UnmarshalBinary(b)
 	if err != nil {
 		t.Error(err)

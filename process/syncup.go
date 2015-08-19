@@ -5,8 +5,9 @@
 package process
 
 import (
+	"bytes"
+	"encoding/hex"
 	"errors"
-    "encoding/hex"
 	"github.com/FactomProject/FactomCode/common"
 	cp "github.com/FactomProject/FactomCode/controlpanel"
 	"github.com/FactomProject/FactomCode/database"
@@ -104,8 +105,8 @@ func procesECBlock(msg *wire.MsgECBlock) error {
 	}
 
 	//Add it to mem pool before saving it in db
-	hash, err:=msg.ECBlock.HeaderHash()
-	if err!=nil {
+	hash, err := msg.ECBlock.HeaderHash()
+	if err != nil {
 		return err
 	}
 	fMemPool.addBlockMsg(msg, hash.String())
@@ -129,8 +130,8 @@ func processEBlock(msg *wire.MsgEBlock) error {
 		}
 	*/
 	//Add it to mem pool before saving it in db
-	keyMR, err:=msg.EBlk.KeyMR()
-	if err!=nil{
+	keyMR, err := msg.EBlk.KeyMR()
+	if err != nil {
 		return err
 	}
 	fMemPool.addBlockMsg(msg, keyMR.String()) // store it in mem pool with MR as the key
@@ -240,10 +241,12 @@ func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, d
 				// validate every entry in EBlock
 				for _, ebEntry := range eBlkMsg.EBlk.Body.EBEntries {
 					if _, foundInMemPool := fMemPool.blockpool[ebEntry.String()]; !foundInMemPool {
-						// continue if the entry arleady exists in db
-						entry, _ := db.FetchEntryByHash(ebEntry)
-						if entry == nil {
-							return false
+						if !bytes.Equal(ebEntry.Bytes()[:31],common.ZERO_HASH[:31]) {
+							// continue if the entry arleady exists in db
+							entry, _ := db.FetchEntryByHash(ebEntry)
+							if entry == nil {
+								return false
+							}
 						}
 					}
 				}

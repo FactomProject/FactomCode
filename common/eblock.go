@@ -29,9 +29,10 @@ func (c *EBlock) MarshalledSize() uint64 {
 }
 
 // MakeEBlock creates a new Entry Block belonging to the provieded Entry Chain.
-// Its PrevKeyMR and PrevLedgerKeyMR are populated by the provided previous Entry
-// Block. If The previous Entry Block is nil (the new Entry Block is first in
-// the Chain) the relevent Entry Block Header fields will contain zeroed Hashes.
+// Its PrevKeyMR and PrevLedgerKeyMR are populated by the provided previous
+// Entry Block. If The previous Entry Block is nil (the new Entry Block is
+// first in the Chain) the relevent Entry Block Header fields will contain
+// zeroed Hashes.
 func MakeEBlock(echain *EChain, prev *EBlock) (*EBlock, error) {
 	e := NewEBlock()
 	e.Header.ChainID = echain.ChainID

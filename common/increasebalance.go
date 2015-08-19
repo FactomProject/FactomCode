@@ -8,11 +8,9 @@ import (
 	"bytes"
 )
 
-var IncreaseBalanceSize int = 32 + 4 + 32
+//var IncreaseBalanceSize int = 32 + 4 + 32
 
 type IncreaseBalance struct {
-	ECBlockEntry
-
 	ECPubKey *[32]byte
 	TXID     *Hash
 	Index    uint64
@@ -20,19 +18,11 @@ type IncreaseBalance struct {
 }
 
 var _ Printable = (*IncreaseBalance)(nil)
-var _ BinaryMarshallable = (*IncreaseBalance)(nil)
+//var _ BinaryMarshallable = (*IncreaseBalance)(nil)
 
-func (c *IncreaseBalance) MarshalledSize() uint64 {
-	return uint64(IncreaseBalanceSize)
-}
-
-func MakeIncreaseBalance(pubkey *[32]byte, facTX *Hash, credits int32) *IncreaseBalance {
-	b := new(IncreaseBalance)
-	b.ECPubKey = pubkey
-	b.TXID = facTX
-	b.NumEC = uint64(credits)
-	return b
-}
+//func (c *IncreaseBalance) MarshalledSize() uint64 {
+//	return uint64(IncreaseBalanceSize)
+//}
 
 func NewIncreaseBalance() *IncreaseBalance {
 	r := new(IncreaseBalance)
@@ -60,20 +50,6 @@ func (b *IncreaseBalance) MarshalBinary() ([]byte, error) {
 
 func (b *IncreaseBalance) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	buf := bytes.NewBuffer(data)
-	if err = b.readUnmarshal(buf); err != nil {
-		return
-	}
-	newData = buf.Bytes()
-	return
-}
-
-func (b *IncreaseBalance) UnmarshalBinary(data []byte) (err error) {
-	_, err = b.UnmarshalBinaryData(data)
-	return
-}
-
-func (b *IncreaseBalance) readUnmarshal(buf *bytes.Buffer) (err error) {
-	tmp := make([]byte, 0)
 	hash := make([]byte, 32)
 
 	_, err = buf.Read(hash)
@@ -92,12 +68,17 @@ func (b *IncreaseBalance) readUnmarshal(buf *bytes.Buffer) (err error) {
 	}
 	b.TXID.SetBytes(hash)
 
+	tmp := make([]byte, 0)
 	b.Index, tmp = DecodeVarInt(buf.Bytes())
-	buf = bytes.NewBuffer(tmp)
 
-	b.NumEC, tmp = DecodeVarInt(buf.Bytes())
-	buf = bytes.NewBuffer(tmp)
+	b.NumEC, tmp = DecodeVarInt(tmp)
 
+	newData = tmp
+	return
+}
+
+func (b *IncreaseBalance) UnmarshalBinary(data []byte) (err error) {
+	_, err = b.UnmarshalBinaryData(data)
 	return
 }
 
