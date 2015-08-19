@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"reflect"
 	"sync"
+	"time"
 
 	"github.com/FactomProject/factoid/block"
 )
@@ -92,6 +93,8 @@ type DirBlockInfo struct {
 	DBHash *Hash
 
 	DBHeight uint32 //directory block height
+	
+	Timestamp int64	// time of this dir block info being created
 
 	// BTCTxHash is the Tx hash returned from rpcclient.SendRawTransaction
 	BTCTxHash *Hash // use string or *btcwire.ShaHash ???
@@ -224,6 +227,7 @@ func NewDirBlockInfoFromDBlock(b *DirectoryBlock) *DirBlockInfo {
 	e := &DirBlockInfo{}
 	e.DBHash = b.DBHash
 	e.DBHeight = b.Header.DBHeight
+	e.Timestamp = time.Now().Unix()
 	e.DBMerkleRoot = b.KeyMR
 	e.BTCConfirmed = false
 	e.BTCTxHash = NewHash()
@@ -691,6 +695,7 @@ func (b *DirBlockInfo) MarshalBinary() (data []byte, err error) {
 	buf.Write(data)
 
 	binary.Write(&buf, binary.BigEndian, b.DBHeight)
+	binary.Write(&buf, binary.BigEndian, uint64(b.Timestamp))
 
 	data, err = b.BTCTxHash.MarshalBinary()
 	if err != nil {
@@ -739,6 +744,9 @@ func (b *DirBlockInfo) UnmarshalBinaryData(data []byte) (newData []byte, err err
 
 	b.DBHeight = uint32(binary.BigEndian.Uint32(newData[:4]))
 	newData = newData[4:]
+
+	b.Timestamp = int64(binary.BigEndian.Uint64(newData[:8]))
+	newData = newData[8:]
 
 	b.BTCTxHash = new(Hash)
 	newData, err = b.BTCTxHash.UnmarshalBinaryData(newData)

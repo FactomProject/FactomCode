@@ -90,14 +90,6 @@ func doTransaction(hash *common.Hash, blockHeight uint32, dirBlockInfo *common.D
 	b := balances[0]
 	balances = balances[1:]
 	anchorLog.Info("new balances.len=", len(balances))
-	/*	if len(balances) == 0 {
-			anchorLog.Info("start rescan UTXO *** ")
-			updateUTXO()
-		}
-		if len(balances) == 0 {
-			anchorLog.Info("**** No balance in wallet for anchoring.")
-			return nil, fmt.Errorf("No balance in wallet for anchoring.")
-		}*/
 
 	msgtx, err := createRawTransaction(b, hash.Bytes(), blockHeight)
 	if err != nil {
@@ -108,11 +100,10 @@ func doTransaction(hash *common.Hash, blockHeight uint32, dirBlockInfo *common.D
 	if err != nil {
 		return nil, fmt.Errorf("cannot send Raw Transaction: %s", err)
 	}
-	// for test purpose
-	//if dirBlockInfo != nil {
-	//dirBlockInfo.BTCTxHash = toHash(shaHash)
-	//dirBlockInfo.DBHeight = blockHeight
-	//}
+
+	if dirBlockInfo != nil {
+		dirBlockInfo.BTCTxHash = toHash(shaHash)
+	}
 
 	return shaHash, nil
 }
@@ -625,6 +616,11 @@ func toHash(txHash *wire.ShaHash) *common.Hash {
 func UpdateDirBlockInfoMap(dirBlockInfo *common.DirBlockInfo) {
 	anchorLog.Debug("UpdateDirBlockInfoMap: ", spew.Sdump(dirBlockInfo))
 	dirBlockInfoMap[dirBlockInfo.DBMerkleRoot.String()] = dirBlockInfo
+}
+
+func checkForReAnchor() {
+	//timenow := time.Now().Unix()
+
 }
 
 // SendRawTransactionForTesting is for testing
