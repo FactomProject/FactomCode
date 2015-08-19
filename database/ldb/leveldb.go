@@ -30,36 +30,36 @@ const (
 const (
 
 	// Directory Block
-	TBL_DB  uint8 = iota
+	TBL_DB uint8 = iota
 	TBL_DB_NUM
 	TBL_DB_MR
 	TBL_DB_INFO
 
 	// Admin Block
 	TBL_AB //4
-	TBL_AB_NUM 
+	TBL_AB_NUM
 
 	TBL_SC
 	TBL_SC_NUM
-	
+
 	// Entry Credit Block
 	TBL_CB //8
 	TBL_CB_NUM
-	TBL_CB_MR	
+	TBL_CB_MR
 
 	// Entry Chain
 	TBL_CHAIN_HASH //11
-	
+
 	// The latest Block MR for chains including special chains
 	TBL_CHAIN_HEAD
-	
+
 	// Entry Block
 	TBL_EB //13
 	TBL_EB_CHAIN_NUM
 	TBL_EB_MR
-	
+
 	//Entry
-	TBL_ENTRY	
+	TBL_ENTRY
 )
 
 // the process status in db
@@ -91,12 +91,13 @@ type LevelDb struct {
 
 	lbatch *leveldb.Batch
 
-	nextDirBlockHeight 		int64
+	nextDirBlockHeight int64
 
-	lastDirBlkShaCached 	bool
-	lastDirBlkSha       	*wire.ShaHash
-	lastDirBlkHeight       	int64 
+	lastDirBlkShaCached bool
+	lastDirBlkSha       *wire.ShaHash
+	lastDirBlkHeight    int64
 }
+
 var CurrentDBVersion int32 = 1
 
 func OpenLevelDB(dbpath string, create bool) (pbdb database.Db, err error) {
@@ -111,10 +112,10 @@ func openDB(dbpath string, create bool) (pbdb database.Db, err error) {
 	defer func() {
 		if err == nil {
 			db.lDb = tlDb
-			
+
 			// Initialize db
 			db.lastDirBlkHeight = -1
-						
+
 			pbdb = &db
 		}
 	}()
@@ -148,7 +149,6 @@ func openDB(dbpath string, create bool) (pbdb database.Db, err error) {
 			dbversion = CurrentDBVersion
 		}
 	}
-
 
 	opts := &opt.Options{
 		Compression: opt.NoCompression,

@@ -14,7 +14,7 @@ import (
 
 var _ = fmt.Println
 
-var FactoidState state.IFactoidState 
+var FactoidState state.IFactoidState
 
 // factoid Chain
 type FctChain struct {

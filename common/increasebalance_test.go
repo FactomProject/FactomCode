@@ -7,7 +7,6 @@ import (
 	. "github.com/FactomProject/FactomCode/common"
 )
 
-
 func TestIncreaseBalanceMarshalUnmarshal(t *testing.T) {
 	ib1 := NewIncreaseBalance()
 	pub := new([32]byte)
@@ -21,7 +20,7 @@ func TestIncreaseBalanceMarshalUnmarshal(t *testing.T) {
 	}
 	ib2 := NewIncreaseBalance()
 	ib2.UnmarshalBinary(p)
-	
+
 	q, err := ib2.MarshalBinary()
 	if err != nil {
 		t.Error(err)

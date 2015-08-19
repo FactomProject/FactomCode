@@ -13,11 +13,16 @@ type FactomdConfig struct {
 	App struct {
 		PortNumber              int
 		LdbPath                 string // should be removed, and default to $defaultDataDir/ldb9
-		BoltDBPath              string // should be removed, 		
+		BoltDBPath              string // should be removed,
 		DataStorePath           string // should be removed, and default to $defaultDataDir/store
 		DirectoryBlockInSeconds int
 		NodeMode                string
 		ServerPrivKey           string
+	}
+	Anchor struct {
+		ServerECKey         	string
+		AnchorChainID         	string		
+		ConfirmationsNeeded 	int	
 	}
 	Btc struct {
 		BTCPubAddr         string
@@ -40,8 +45,8 @@ type FactomdConfig struct {
 		RefreshInSeconds int
 	}
 	Wsapi struct {
-		PortNumber       int
-		ApplicationName  string
+		PortNumber      int
+		ApplicationName string
 	}
 	Log struct {
 		LogPath  string
@@ -54,7 +59,7 @@ type FactomdConfig struct {
 		RefreshInSeconds string
 		BoltDBPath       string
 	}
-	
+
 	//	AddPeers     []string `short:"a" long:"addpeer" description:"Add a peer to connect with at startup"`
 	//	ConnectPeers []string `long:"connect" description:"Connect only to the specified peers at startup"`
 
@@ -79,6 +84,11 @@ DirectoryBlockInSeconds	= 60
 ;---- NodeMode - FULL,SERVER,LIGHT -----
 NodeMode				= FULL
 ServerPrivKey			= ""
+
+[anchor]
+ServerECKey						= 54f7875aaa589126b1111d45d5bbd43ba03512d34d0501d6a05c0aee84d0846294bb4165350cdb7b9e4a7b3b2e7b6e110e4176c7714e53561b8818c3c78d1721
+AnchorChainID					= df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604
+ConfirmationsNeeded				= 20
 
 [btc]
 BTCPubAddr				= "movaFTARmsaTMk3j71MpX8HtMURpsKhdra"

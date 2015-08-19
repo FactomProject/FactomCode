@@ -132,8 +132,10 @@ func initProcessor() {
 	//common.FactoidState.LoadState()
 	procLog.Info("Loaded ", fchain.NextBlockHeight, " factoid blocks for chain: "+fchain.ChainID.String())
 
-	anchor.InitAnchor(db)
-
+	//Init anchor for server
+	if nodeMode == common.SERVER_NODE {
+		anchor.InitAnchor(db, inMsgQueue, serverPrivKey)
+	}
 	// build the Genesis blocks if the current height is 0
 	if dchain.NextDBHeight == 0 && nodeMode == common.SERVER_NODE {
 		buildGenesisBlocks()
@@ -349,36 +351,16 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		}
 
 	case wire.CmdFactoidTX:
-		//		util.Trace("some mode: CmdFactoidTX")
-
-		if nodeMode == common.SERVER_NODE {
-			//			util.Trace("server mode")
-			t := (msg.(*wire.MsgFactoidTX)).Transaction
+		msgFactoidTX, ok := msg.(*wire.MsgFactoidTX)
+		if ok && msgFactoidTX.IsValid() {
+			t := msgFactoidTX.Transaction
 			txnum := len(common.FactoidState.GetCurrentBlock().GetTransactions())
 			if common.FactoidState.AddTransaction(txnum, t) == nil {
-				for i, ecout := range t.GetECOutputs() {
-					ib := common.NewIncreaseBalance()
-
-					pub := new([32]byte)
-					copy(pub[:], ecout.GetAddress().Bytes())
-					ib.ECPubKey = pub
-
-					th := common.NewHash()
-					th.SetBytes(t.GetHash().Bytes())
-					ib.TXID = th
-
-					cred := int32(ecout.GetAmount() / uint64(FactoshisPerCredit))
-					ib.NumEC = uint64(cred)
-
-					ib.Index = uint64(i)
-
-					processBuyEntryCredit(pub, cred, th)
-					ecchain.NextBlock.AddEntry(ib)
+				if err := processBuyEntryCredit(msgFactoidTX); err != nil {
+					return err
 				}
 			}
 		} else {
-			// client-mode, milestone 1 - transmit to the server node
-			//			util.Trace("client mode; TODO")
 			outMsgQueue <- msg
 		}
 
@@ -497,15 +479,14 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 				msg.Entry.ChainID.String())
 		}
 
-		r := binary.Size(bin) % 1024
-		cred := int32(binary.Size(bin)/1024)
-		if r > 0 {
-			cred += 1
-		}
+		// 35 effectively removes the entry header.  1023 rounds up the credit calucation.
+		cred := int32((len(bin) - 35 + 1023) / 1024)
+
 		if int32(c.Credits) < cred {
 			fMemPool.addOrphanMsg(msg, h)
 			return fmt.Errorf("Credit needs to paid first before an entry is revealed: %s", e.Hash().String())
 		}
+
 		// Add the msg to the Mem pool
 		fMemPool.addMsg(msg, h)
 
@@ -662,10 +643,29 @@ func processCommitChain(msg *wire.MsgCommitChain) error {
 }
 
 // processBuyEntryCredit validates the MsgCommitChain and adds it to processlist
-func processBuyEntryCredit(pubKey *[32]byte, credits int32, factoidTxHash *common.Hash) error {
+func processBuyEntryCredit(msg *wire.MsgFactoidTX) error {
+	if nodeMode == common.SERVER_NODE {
+		// Update the credit balance in memory
+		for _, v := range msg.Transaction.GetECOutputs() {
+			pub := new([32]byte)
+			copy(pub[:], v.GetAddress().Bytes())
 
-	// Update the credit balance in memory
-	eCreditMap[string(pubKey[:])] += credits
+			cred := int32(v.GetAmount() / uint64(FactoshisPerCredit))
+
+			eCreditMap[string(pub[:])] += cred
+
+		}
+
+		h, _ := msg.Sha()
+		if plMgr.IsMyPListExceedingLimit() {
+			procLog.Warning("Exceeding MyProcessList size limit!")
+			return fMemPool.addOrphanMsg(msg, &h)
+		}
+
+		if _, err := plMgr.AddMyProcessListItem(msg, &h, wire.ACK_FACTOID_TX); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
@@ -719,6 +719,28 @@ func buildRevealEntry(msg *wire.MsgRevealEntry) {
 
 }
 
+func buildIncreaseBalance(msg *wire.MsgFactoidTX) {
+	t := msg.Transaction
+	for i, ecout := range t.GetECOutputs() {
+		ib := common.NewIncreaseBalance()
+
+		pub := new([32]byte)
+		copy(pub[:], ecout.GetAddress().Bytes())
+		ib.ECPubKey = pub
+
+		th := common.NewHash()
+		th.SetBytes(t.GetHash().Bytes())
+		ib.TXID = th
+
+		cred := int32(ecout.GetAmount() / uint64(FactoshisPerCredit))
+		ib.NumEC = uint64(cred)
+
+		ib.Index = uint64(i)
+
+		ecchain.NextBlock.AddEntry(ib)
+	}
+}
+
 func buildCommitEntry(msg *wire.MsgCommitEntry) {
 	ecchain.NextBlock.AddEntry(msg.CommitEntry)
 }
@@ -749,8 +771,7 @@ func buildRevealChain(msg *wire.MsgRevealEntry) {
 
 // Loop through the Process List items and get the touched chains
 // Put End-Of-Minute marker in the entry chains
-func buildEndOfMinute(pl *consensus.ProcessList,
-	pli *consensus.ProcessListItem) {
+func buildEndOfMinute(pl *consensus.ProcessList, pli *consensus.ProcessListItem) {
 	tmpChains := make(map[string]*common.EChain)
 	for _, v := range pl.GetPLItems()[:pli.Ack.Index] {
 		if v.Ack.Type == wire.ACK_REVEAL_ENTRY ||
@@ -765,7 +786,7 @@ func buildEndOfMinute(pl *consensus.ProcessList,
 	for _, v := range tmpChains {
 		v.NextBlock.AddEndOfMinuteMarker(pli.Ack.Type)
 	}
-		
+
 	// Add it to the entry credit chain
 	cbEntry := common.NewMinuteNumber()
 	cbEntry.Number = pli.Ack.Type
@@ -800,7 +821,7 @@ func buildGenesisBlocks() error {
 	// factoid Genesis Address
 	//fchain.NextBlock = block.GetGenesisFBlock(0, FactoshisPerCredit, 10, 200000000000)
 	fchain.NextBlock = block.GetGenesisFBlock()
-    FBlock := newFactoidBlock(fchain)
+	FBlock := newFactoidBlock(fchain)
 	dchain.AddFBlockToDBEntry(FBlock)
 	exportFctChain(fchain)
 
@@ -908,6 +929,8 @@ func buildFromProcessList(pl *consensus.ProcessList) error {
 	for _, pli := range pl.GetPLItems() {
 		if pli.Ack.Type == wire.ACK_COMMIT_CHAIN {
 			buildCommitChain(pli.Msg.(*wire.MsgCommitChain))
+		} else if pli.Ack.Type == wire.ACK_FACTOID_TX {
+			buildIncreaseBalance(pli.Msg.(*wire.MsgFactoidTX))
 		} else if pli.Ack.Type == wire.ACK_COMMIT_ENTRY {
 			buildCommitEntry(pli.Msg.(*wire.MsgCommitEntry))
 		} else if pli.Ack.Type == wire.ACK_REVEAL_CHAIN {
@@ -1108,7 +1131,9 @@ func placeAnchor(dbBlock *common.DirectoryBlock) error {
 	if nodeMode == common.SERVER_NODE && dbBlock != nil {
 		// todo: need to make anchor as a go routine, independent of factomd
 		// same as blockmanager to btcd
-		go anchor.SendRawTransactionToBTC(dbBlock.KeyMR, uint64(dbBlock.Header.DBHeight))
+		go anchor.SendRawTransactionToBTC(dbBlock.KeyMR, dbBlock.Header.DBHeight)
+		
+		//anchor.SendRawTransactionForTesting(dbBlock.KeyMR, dbBlock.Header.DBHeight, dbBlock)
 	}
 	return nil
 }

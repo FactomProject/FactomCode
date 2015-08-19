@@ -17,7 +17,6 @@ import (
 	"io/ioutil"
 	"log"
 	"path/filepath"
-	"strconv"
 	"time"
 
 	"github.com/btcsuitereleases/btcd/btcjson"
@@ -31,6 +30,7 @@ import (
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/util"
+	factomwire "github.com/FactomProject/btcd/wire"
 )
 
 var (
@@ -40,6 +40,18 @@ var (
 	fee              btcutil.Amount                  // tx fee for written into btc
 	dirBlockInfoMap  map[string]*common.DirBlockInfo //dbHash string as key
 	db               database.Db
+	walletLocked     bool
+
+	//Server Private key for milestone 1
+	serverPrivKey common.PrivateKey
+
+	//Server Entry Credit private key
+	serverECKey common.PrivateKey
+	//Anchor chain ID
+	anchorChainID       *common.Hash
+	confirmationsNeeded int
+	//InmsgQ for submitting the entry to server
+	inMsgQ chan factomwire.FtmInternalMsg
 )
 
 type balance struct {
@@ -48,10 +60,25 @@ type balance struct {
 	wif           *btcutil.WIF
 }
 
+type anchorRecord struct {
+	AnchorRecordVer int
+	DBHeight        uint32
+	KeyMR           *common.Hash
+	RecordHeight    uint32
+
+	Bitcoin struct {
+		Address     string        //"1HLoD9E4SDFFPDiYfNYnkBLQ85Y51J3Zb1",
+		TXID        *wire.ShaHash //"9b0fc92260312ce44e74ef369f5c66bbb85848f2eddd5a7a1cde251e54ccfdd5",
+		BlockHeight int32         //345678,
+		BlockHash   *wire.ShaHash //"00000000000000000cc14eacfc7057300aea87bed6fee904fd8e1c1f3dc008d4",
+		Offset      int32         //87
+	}
+}
+
 // SendRawTransactionToBTC is the main function used to anchor factom
 // dir block hash to bitcoin blockchain
-func SendRawTransactionToBTC(hash *common.Hash, blockHeight uint64) (*wire.ShaHash, error) {
-	anchorLog.Debug("SendRawTransactionToBTC: hash=", hash.String(), ", dir block height=", strconv.FormatUint(blockHeight, 10))
+func SendRawTransactionToBTC(hash *common.Hash, blockHeight uint32) (*wire.ShaHash, error) {
+	anchorLog.Debug("SendRawTransactionToBTC: hash=", hash.String(), ", dir block height=", blockHeight) //strconv.FormatUint(blockHeight, 10))
 	dirBlockInfo, err := sanityCheck(hash)
 	if err != nil {
 		return nil, err
@@ -59,10 +86,10 @@ func SendRawTransactionToBTC(hash *common.Hash, blockHeight uint64) (*wire.ShaHa
 	return doTransaction(hash, blockHeight, dirBlockInfo)
 }
 
-func doTransaction(hash *common.Hash, blockHeight uint64, dirBlockInfo *common.DirBlockInfo) (*wire.ShaHash, error) {
+func doTransaction(hash *common.Hash, blockHeight uint32, dirBlockInfo *common.DirBlockInfo) (*wire.ShaHash, error) {
 	b := balances[0]
-	i := copy(balances, balances[1:])
-	balances[i] = b
+	balances = balances[1:]
+	anchorLog.Info("new balances.len=", len(balances))
 
 	msgtx, err := createRawTransaction(b, hash.Bytes(), blockHeight)
 	if err != nil {
@@ -73,10 +100,11 @@ func doTransaction(hash *common.Hash, blockHeight uint64, dirBlockInfo *common.D
 	if err != nil {
 		return nil, fmt.Errorf("cannot send Raw Transaction: %s", err)
 	}
-	// for test purpose
+
 	if dirBlockInfo != nil {
 		dirBlockInfo.BTCTxHash = toHash(shaHash)
 	}
+
 	return shaHash, nil
 }
 
@@ -97,15 +125,24 @@ func sanityCheck(hash *common.Hash) (*common.DirBlockInfo, error) {
 		anchorLog.Error(s)
 		return nil, errors.New(s)
 	}
-	if dclient == nil || wclient == nil || balances == nil {
+	if dclient == nil || wclient == nil {
 		s := fmt.Sprintf("\n\n$$$ WARNING: rpc clients and/or wallet are not initiated successfully. No anchoring for now.\n")
+		anchorLog.Warning(s)
+		return nil, errors.New(s)
+	}
+	if len(balances) == 0 {
+		anchorLog.Warning("len(balances) == 0, start rescan UTXO *** ")
+		updateUTXO()
+	}
+	if len(balances) == 0 {
+		s := fmt.Sprintf("\n\n$$$ WARNING: No balance in your wallet. No anchoring for now.\n")
 		anchorLog.Warning(s)
 		return nil, errors.New(s)
 	}
 	return dirBlockInfo, nil
 }
 
-func createRawTransaction(b balance, hash []byte, blockHeight uint64) (*wire.MsgTx, error) {
+func createRawTransaction(b balance, hash []byte, blockHeight uint32) (*wire.MsgTx, error) {
 	msgtx := wire.NewMsgTx()
 
 	if err := addTxOuts(msgtx, b, hash, blockHeight); err != nil {
@@ -125,14 +162,20 @@ func createRawTransaction(b balance, hash []byte, blockHeight uint64) (*wire.Msg
 
 func addTxIn(msgtx *wire.MsgTx, b balance) error {
 	output := b.unspentResult
-	anchorLog.Info("unspentResult: %#v\n", output)
+	anchorLog.Infof("unspentResult: %s\n", spew.Sdump(output))
 	prevTxHash, err := wire.NewShaHashFromStr(output.TxID)
 	if err != nil {
 		return fmt.Errorf("cannot get sha hash from str: %s", err)
 	}
+	if prevTxHash == nil {
+		anchorLog.Error("prevTxHash == nil")
+	}
 
 	outPoint := wire.NewOutPoint(prevTxHash, output.Vout)
 	msgtx.AddTxIn(wire.NewTxIn(outPoint, nil))
+	if outPoint == nil {
+		anchorLog.Error("outPoint == nil")
+	}
 
 	// OnRedeemingTx
 	err = dclient.NotifySpent([]*wire.OutPoint{outPoint})
@@ -144,21 +187,26 @@ func addTxIn(msgtx *wire.MsgTx, b balance) error {
 	if err != nil {
 		return fmt.Errorf("cannot decode scriptPubKey: %s", err)
 	}
+	if subscript == nil {
+		anchorLog.Error("subscript == nil")
+	}
 
-	sigScript, err := txscript.SignatureScript(msgtx, 0, subscript,
-		txscript.SigHashAll, b.wif.PrivKey, true) //.ToECDSA(), true)
+	sigScript, err := txscript.SignatureScript(msgtx, 0, subscript, txscript.SigHashAll, b.wif.PrivKey, true)
 	if err != nil {
 		return fmt.Errorf("cannot create scriptSig: %s", err)
 	}
-	msgtx.TxIn[0].SignatureScript = sigScript
+	if sigScript == nil {
+		anchorLog.Error("sigScript == nil")
+	}
 
+	msgtx.TxIn[0].SignatureScript = sigScript
 	return nil
 }
 
-func addTxOuts(msgtx *wire.MsgTx, b balance, hash []byte, blockHeight uint64) error {
+func addTxOuts(msgtx *wire.MsgTx, b balance, hash []byte, blockHeight uint32) error {
 	anchorHash, err := prependBlockHeight(blockHeight, hash)
 	if err != nil {
-		anchorLog.Error("ScriptBuilder error: %v\n", err)
+		anchorLog.Errorf("ScriptBuilder error: %v\n", err)
 	}
 
 	builder := txscript.NewScriptBuilder()
@@ -169,7 +217,7 @@ func addTxOuts(msgtx *wire.MsgTx, b balance, hash []byte, blockHeight uint64) er
 	opReturn, err := builder.Script()
 	msgtx.AddTxOut(wire.NewTxOut(0, opReturn))
 	if err != nil {
-		anchorLog.Error("ScriptBuilder error: %v\n", err)
+		anchorLog.Errorf("ScriptBuilder error: %v\n", err)
 	}
 
 	amount, _ := btcutil.NewAmount(b.unspentResult.Amount)
@@ -228,11 +276,11 @@ func validateMsgTx(msgtx *wire.MsgTx, inputs []btcjson.ListUnspentResult) error 
 		//engine, err := txscript.NewScript(txin.SignatureScript, scriptPubKey, i, msgtx, flags)
 		engine, err := txscript.NewEngine(scriptPubKey, msgtx, i, flags)
 		if err != nil {
-			anchorLog.Error("cannot create script engine: %s\n", err)
+			anchorLog.Errorf("cannot create script engine: %s\n", err)
 			return fmt.Errorf("cannot create script engine: %s", err)
 		}
 		if err = engine.Execute(); err != nil {
-			anchorLog.Error("cannot execute script engine: %s\n", err)
+			anchorLog.Errorf("cannot execute script engine: %s\n", err)
 			return fmt.Errorf("cannot validate transaction: %s", err)
 		}
 	}
@@ -240,7 +288,7 @@ func validateMsgTx(msgtx *wire.MsgTx, inputs []btcjson.ListUnspentResult) error 
 }
 
 func sendRawTransaction(msgtx *wire.MsgTx) (*wire.ShaHash, error) {
-	anchorLog.Debug()
+	anchorLog.Debug("sendRawTransaction: msgTx=", spew.Sdump(msgtx))
 	buf := bytes.Buffer{}
 	buf.Grow(msgtx.SerializeSize())
 	if err := msgtx.BtcEncode(&buf, wire.ProtocolVersion); err != nil {
@@ -271,7 +319,8 @@ func createBtcwalletNotificationHandlers() btcrpcclient.NotificationHandlers {
 		},
 
 		OnWalletLockState: func(locked bool) {
-			//anchorLog.Info("wclient: OnWalletLockState, locked=", locked)
+			anchorLog.Info("wclient: OnWalletLockState, locked=", locked)
+			walletLocked = locked
 		},
 
 		OnUnknownNotification: func(method string, params []json.RawMessage) {
@@ -288,7 +337,7 @@ func createBtcdNotificationHandlers() btcrpcclient.NotificationHandlers {
 	ntfnHandlers := btcrpcclient.NotificationHandlers{
 
 		OnBlockConnected: func(hash *wire.ShaHash, height int32) {
-			anchorLog.Info("dclient: OnBlockConnected: hash=", hash, ", height=", height)
+			//anchorLog.Info("dclient: OnBlockConnected: hash=", hash, ", height=", height)
 			//go newBlock(hash, height)	// no need
 		},
 
@@ -316,15 +365,19 @@ func createBtcdNotificationHandlers() btcrpcclient.NotificationHandlers {
 
 // InitAnchor inits rpc clients for factom
 // and load up unconfirmed DirBlockInfo from leveldb
-func InitAnchor(ldb database.Db) {
+func InitAnchor(ldb database.Db, q chan factomwire.FtmInternalMsg, serverKey common.PrivateKey) {
 	anchorLog.Debug("InitAnchor")
 	db = ldb
+	inMsgQ = q
+	serverPrivKey = serverKey
+
 	var err error
 	dirBlockInfoMap, err = db.FetchAllUnconfirmedDirBlockInfo()
 	if err != nil {
 		anchorLog.Error("InitAnchor error - " + err.Error())
 		return
 	}
+	anchorLog.Debug("init dirBlockInfoMap.len=", len(dirBlockInfoMap))
 
 	if err = initRPCClient(); err != nil {
 		anchorLog.Error(err.Error())
@@ -350,6 +403,20 @@ func initRPCClient() error {
 	rpcClientPass := cfg.Btc.RpcClientPass
 	certHomePathBtcd := cfg.Btc.CertHomePathBtcd
 	rpcBtcdHost := cfg.Btc.RpcBtcdHost
+	confirmationsNeeded = cfg.Anchor.ConfirmationsNeeded
+
+	//Added anchor parameters
+	var err error
+	serverECKey, err = common.NewPrivateKeyFromHex(cfg.Anchor.ServerECKey)
+	if err != nil {
+		panic("Cannot parse Server EC Key from configuration file: " + err.Error())
+	}
+	anchorChainID, err = common.HexToHash(cfg.Anchor.AnchorChainID)
+	anchorLog.Debug("anchorChainID: ", anchorChainID)
+	if err != nil || anchorChainID == nil {
+		panic("Cannot parse Server AnchorChainID from configuration file: " + err.Error())
+	}
+	confirmationsNeeded = cfg.Anchor.ConfirmationsNeeded
 
 	// Connect to local btcwallet RPC server using websockets.
 	ntfnHandlers := createBtcwalletNotificationHandlers()
@@ -397,22 +464,32 @@ func unlockWallet(timeoutSecs int64) error {
 	if err != nil {
 		return fmt.Errorf("cannot unlock wallet with passphrase: %s", err)
 	}
+	walletLocked = false
 	return nil
 }
 
 func initWallet() error {
-	balances = make([]balance, 0, 100)
+	balances = make([]balance, 0, 200)
 	fee, _ = btcutil.NewAmount(cfg.Btc.BtcTransFee)
-	err := unlockWallet(int64(600))
+	walletLocked = true
+	return updateUTXO()
+}
+
+func updateUTXO() error {
+	anchorLog.Info("updateUTXO: walletLocked=", walletLocked)
+	balances = make([]balance, 0, 200) // for testing
+	//if walletLocked {
+	err := unlockWallet(int64(6)) //600
 	if err != nil {
 		return fmt.Errorf("%s", err)
 	}
+	//}
 
-	unspentResults, err := wclient.ListUnspent() //minConf=1
+	unspentResults, err := wclient.ListUnspentMin(5) //confirmationsNeeded) //minConf=1
 	if err != nil {
 		return fmt.Errorf("cannot list unspent. %s", err)
 	}
-	anchorLog.Info("unspentResults.len=", len(unspentResults))
+	anchorLog.Info("updateUTXO: unspentResults.len=", len(unspentResults))
 
 	if len(unspentResults) > 0 {
 		var i int
@@ -423,7 +500,7 @@ func initWallet() error {
 			}
 		}
 	}
-	anchorLog.Info("balances.len=", len(balances))
+	anchorLog.Info("updateUTXO: balances.len=", len(balances))
 
 	for i, b := range balances {
 		addr, err := btcutil.DecodeAddress(b.unspentResult.Address, &chaincfg.TestNet3Params)
@@ -437,7 +514,7 @@ func initWallet() error {
 			return fmt.Errorf("cannot get WIF: %s", err)
 		}
 		balances[i].wif = wif
-		anchorLog.Info("balance[%d]=%s", i, spew.Sdump(balances[i]))
+		//anchorLog.Infof("balance[%d]=%s \n", i, spew.Sdump(balances[i]))
 	}
 
 	time.Sleep(1 * time.Second)
@@ -462,17 +539,19 @@ func shutdown(client *btcrpcclient.Client) {
 	client.WaitForShutdown()
 }
 
-func prependBlockHeight(height uint64, hash []byte) ([]byte, error) {
+func prependBlockHeight(height uint32, hash []byte) ([]byte, error) {
 	// dir block genesis block height starts with 0, for now
 	// similar to bitcoin genesis block
 	//if (0 == height) || (0xFFFFFFFFFFFF&height != height) {
-	if 0xFFFFFFFFFFFF&height != height {
+	//if 0xFFFFFFFFFFFF&height != height {
+	h := uint64(height)
+	if 0xFFFFFFFFFFFF&h != h {
 		return nil, errors.New("bad block height")
 	}
 
 	header := []byte{'F', 'a'}
 	big := make([]byte, 8)
-	binary.BigEndian.PutUint64(big, height)
+	binary.BigEndian.PutUint64(big, h) //height)
 
 	newdata := append(big[2:8], hash...)
 	newdata = append(header, newdata...)
@@ -480,18 +559,43 @@ func prependBlockHeight(height uint64, hash []byte) ([]byte, error) {
 }
 
 func saveDirBlockInfo(transaction *btcutil.Tx, details *btcjson.BlockDetails) {
-	anchorLog.Debug("to save dir block hash to btc.")
+	anchorLog.Debug("in saveDirBlockInfo")
 	var saved = false
 	for _, dirBlockInfo := range dirBlockInfoMap {
 		if dirBlockInfo.BTCTxHash != nil &&
 			bytes.Compare(dirBlockInfo.BTCTxHash.Bytes(), transaction.Sha().Bytes()) == 0 {
 			dirBlockInfo.BTCTxOffset = int32(details.Index)
 			dirBlockInfo.BTCBlockHeight = details.Height
+			btcBlockHash, _ := wire.NewShaHashFromStr(details.Hash)
+			dirBlockInfo.BTCBlockHash = toHash(btcBlockHash)
 			dirBlockInfo.BTCConfirmed = true
 			db.InsertDirBlockInfo(dirBlockInfo)
 			delete(dirBlockInfoMap, dirBlockInfo.DBMerkleRoot.String())
-			anchorLog.Info("In saveDirBlockInfo, dirBlockInfo:%+v saved to db\n", dirBlockInfo)
+			anchorLog.Infof("In saveDirBlockInfo, dirBlockInfo:%s saved to db\n", spew.Sdump(dirBlockInfo))
 			saved = true
+
+			anchorRec := new(anchorRecord)
+			anchorRec.AnchorRecordVer = 1
+			anchorRec.DBHeight = dirBlockInfo.DBHeight
+			anchorRec.KeyMR = dirBlockInfo.DBMerkleRoot
+			_, recordHeight, _ := db.FetchBlockHeightCache()
+			anchorRec.RecordHeight = uint32(recordHeight)
+			anchorRec.Bitcoin.Address = balances[0].address.String()
+			anchorRec.Bitcoin.TXID = transaction.Sha()
+			anchorRec.Bitcoin.BlockHeight = details.Height
+			anchorRec.Bitcoin.BlockHash, _ = wire.NewShaHashFromStr(details.Hash)
+			anchorRec.Bitcoin.Offset = int32(details.Index)
+			anchorLog.Info("anchor.record saved: " + spew.Sdump(anchorRec))
+
+			//jsonARecord, _ := json.Marshal(anchorRec)
+			//anchorLog.Debug("jsonAnchorRecord: ", string(jsonARecord))
+
+			//Submit the anchor record to the anchor chain (entry chain)
+			err := submitEntryToAnchorChain(anchorRec)
+			if err != nil {
+				anchorLog.Error("Error in writing anchor into anchor chain: ", err.Error())
+			}
+
 			break
 		}
 	}
@@ -510,6 +614,47 @@ func toHash(txHash *wire.ShaHash) *common.Hash {
 // UpdateDirBlockInfoMap allows factom processor to update DirBlockInfo
 // when a new Directory Block is saved to db
 func UpdateDirBlockInfoMap(dirBlockInfo *common.DirBlockInfo) {
-	anchorLog.Debug(spew.Sdump(dirBlockInfo))
+	anchorLog.Debug("UpdateDirBlockInfoMap: ", spew.Sdump(dirBlockInfo))
 	dirBlockInfoMap[dirBlockInfo.DBMerkleRoot.String()] = dirBlockInfo
+
+	// dirty check
+	checkForReAnchor()
+}
+
+func checkForReAnchor() {
+	timeNow := time.Now().Unix()
+	time0 := 60 * 60 * 10
+	for _, dirBlockInfo := range dirBlockInfoMap {
+		if timeNow-dirBlockInfo.Timestamp > int64(time0) {
+			anchorLog.Debug("re-anchor: ")
+			SendRawTransactionToBTC(dirBlockInfo.DBHash, dirBlockInfo.DBHeight)
+		}
+	}
+}
+
+// SendRawTransactionForTesting is for testing
+func SendRawTransactionForTesting(hash *common.Hash, blockHeight uint32, dirBlock *common.DirectoryBlock) (*wire.ShaHash, error) {
+	anchorLog.Debug("SendRawTransactionForTesting: ") //strconv.FormatUint(blockHeight, 10))
+	dirBlockInfo := common.NewDirBlockInfoFromDBlock(dirBlock)
+
+	anchorRec := new(anchorRecord)
+	anchorRec.AnchorRecordVer = 1
+	anchorRec.DBHeight = dirBlockInfo.DBHeight
+	anchorRec.KeyMR = dirBlockInfo.DBMerkleRoot
+	_, recordHeight, _ := db.FetchBlockHeightCache()
+	anchorRec.RecordHeight = uint32(recordHeight)
+	anchorRec.Bitcoin.Address = "sdaffadfAddress"
+	anchorRec.Bitcoin.TXID = new(wire.ShaHash)
+	anchorRec.Bitcoin.BlockHeight = 4
+	anchorRec.Bitcoin.BlockHash = new(wire.ShaHash)
+	anchorRec.Bitcoin.Offset = int32(5)
+	anchorLog.Info("anchor.record saved: " + spew.Sdump(anchorRec))
+
+	//Submit the anchor record to the anchor chain (entry chain)
+	err := submitEntryToAnchorChain(anchorRec)
+	if err != nil {
+		anchorLog.Error("Error in writing anchor into anchor chain: ", err.Error())
+	}
+
+	return nil, nil
 }
