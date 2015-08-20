@@ -9,9 +9,10 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/FactomProject/factoid/block"
 	"reflect"
 	"sync"
+
+	"github.com/FactomProject/factoid/block"
 )
 
 const DBlockVersion = 0
@@ -91,7 +92,7 @@ type DirBlockInfo struct {
 	DBHash *Hash
 
 	// BTCTxHash is the Tx hash returned from rpcclient.SendRawTransaction
-	BTCTxHash *Hash // use string or *btcwire.ShaHash ???
+	BTCTxHash *Hash
 
 	// BTCTxOffset is the index of the TX in this BTC block
 	BTCTxOffset int32
@@ -100,7 +101,7 @@ type DirBlockInfo struct {
 	BTCBlockHeight int32
 
 	//BTCBlockHash is the hash of the block where this TX is stored in BTC
-	//BTCBlockHash *Hash // use string or *btcwire.ShaHash ???
+	//BTCBlockHash *Hash
 
 	// DBMerkleRoot is the merkle root of the Directory Block
 	// and is written into BTC as OP_RETURN data
