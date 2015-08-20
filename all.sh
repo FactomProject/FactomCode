@@ -90,12 +90,14 @@ checkout() {
 }
 
 compile() {
+    cerr=0
     current=`pwd`
     cd $1
     echo "Compiling: " $1
     go clean
-    go install
+    go install || cerr=1
     cd $current
+    return $cerr
 }
 
 checkout FactomCode   $branch $default
@@ -128,10 +130,11 @@ echo "
 *     Compiling fctwallet, the cli, and factomd
 ******************************************************** 
 "
-compile fctwallet 
-compile factom-cli  
-compile FactomCode/factomd 
-compile btcd/cmd/fctctl
+compile fctwallet          || exit 1
+compile factom-cli         || exit 1
+compile FactomCode/factomd || exit 1
+compile btcd/cmd/fctctl    || exit 1
+
 echo ""
 echo "
 *******************************************************
