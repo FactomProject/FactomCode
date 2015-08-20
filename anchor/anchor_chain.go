@@ -13,6 +13,7 @@ import (
 	"fmt"	
 	"encoding/binary"	
 	"encoding/json"	
+	"encoding/hex"	
 	"github.com/FactomProject/FactomCode/common"	
 	factomwire "github.com/FactomProject/btcd/wire"		
 )
@@ -29,8 +30,9 @@ func submitEntryToAnchorChain(aRecord *anchorRecord) error {
 	bufARecord := new(bytes.Buffer)	
 	bufARecord.Write(jsonARecord)
 	//Sign the json aRecord with the server key 
-	aRecordSig := serverPrivKey.Sign(jsonARecord)	
-	bufARecord.Write(aRecordSig.Sig[:])
+	aRecordSig := serverPrivKey.Sign(jsonARecord)
+	//Encode sig into Hex string	
+	bufARecord.Write([]byte(hex.EncodeToString(aRecordSig.Sig[:])))
 	
 	//Create a new entry
 	entry := common.NewEntry()	

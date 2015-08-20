@@ -9,7 +9,7 @@ import (
 	"github.com/FactomProject/FactomCode/util"	
 )
 
-var dirBlockHeight uint32 = 1
+var dirBlockHeight uint32 = 11
 
 func TestBlocks(t *testing.T) {
 	fmt.Println("\nTest Blocks===========================================================================")
