@@ -221,9 +221,9 @@ func (e *AdminBlock) Spew() string {
 
 // Admin Block Header
 type ABlockHeader struct {
-	AdminChainID *Hash
+	AdminChainID    *Hash
 	PrevLedgerKeyMR *Hash
-	DBHeight     uint32
+	DBHeight        uint32
 
 	HeaderExpansionSize uint64
 	HeaderExpansionArea []byte
