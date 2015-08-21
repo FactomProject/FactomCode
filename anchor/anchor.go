@@ -64,15 +64,15 @@ type balance struct {
 type anchorRecord struct {
 	AnchorRecordVer int
 	DBHeight        uint32
-	KeyMR           *common.Hash
+	KeyMR           string
 	RecordHeight    uint32
 
 	Bitcoin struct {
-		Address     string        //"1HLoD9E4SDFFPDiYfNYnkBLQ85Y51J3Zb1",
-		TXID        *common.Hash //"9b0fc92260312ce44e74ef369f5c66bbb85848f2eddd5a7a1cde251e54ccfdd5",
-		BlockHeight int32         //345678,
-		BlockHash   *common.Hash //"00000000000000000cc14eacfc7057300aea87bed6fee904fd8e1c1f3dc008d4",
-		Offset      int32         //87
+		Address     string        	//"1HLoD9E4SDFFPDiYfNYnkBLQ85Y51J3Zb1",
+		TXID        string 			//"9b0fc92260312ce44e74ef369f5c66bbb85848f2eddd5a7a1cde251e54ccfdd5", BTC Hash - in reverse byte order
+		BlockHeight int32         	//345678,
+		BlockHash   string 			//"00000000000000000cc14eacfc7057300aea87bed6fee904fd8e1c1f3dc008d4", BTC Hash - in reverse byte order
+		Offset      int32         	//87
 	}
 }
 
@@ -586,20 +586,13 @@ func saveDirBlockInfo(transaction *btcutil.Tx, details *btcjson.BlockDetails) {
 			anchorRec := new(anchorRecord)
 			anchorRec.AnchorRecordVer = 1
 			anchorRec.DBHeight = dirBlockInfo.DBHeight
-			anchorRec.KeyMR = dirBlockInfo.DBMerkleRoot
+			anchorRec.KeyMR = dirBlockInfo.DBMerkleRoot.String()
 			_, recordHeight, _ := db.FetchBlockHeightCache()
 			anchorRec.RecordHeight = uint32(recordHeight)
 			anchorRec.Bitcoin.Address = balances[0].address.String()
-			anchorRec.Bitcoin.TXID = common.NewHash()
-			anchorRec.Bitcoin.TXID.SetBytes(transaction.Sha().Bytes())
+			anchorRec.Bitcoin.TXID = transaction.Sha().String()
 			anchorRec.Bitcoin.BlockHeight = details.Height
-			anchorRec.Bitcoin.BlockHash = common.NewHash()
-			wireHash, err := wire.NewShaHashFromStr(details.Hash)	
-			if err != nil || wireHash == nil {
-				anchorLog.Error("Error in saveDirBlockInfo, dirBlockInfo: Not able to get details.Hash")
-				continue
-			}
-			anchorRec.Bitcoin.BlockHash.SetBytes(wireHash.Bytes())
+			anchorRec.Bitcoin.BlockHash = details.Hash
 			anchorRec.Bitcoin.Offset = int32(details.Index)
 			anchorLog.Info("anchor.record saved: " + spew.Sdump(anchorRec))
 
@@ -607,7 +600,7 @@ func saveDirBlockInfo(transaction *btcutil.Tx, details *btcjson.BlockDetails) {
 			//anchorLog.Debug("jsonAnchorRecord: ", string(jsonARecord))
 
 			//Submit the anchor record to the anchor chain (entry chain)
-			err = submitEntryToAnchorChain(anchorRec)
+			err := submitEntryToAnchorChain(anchorRec)
 			if err != nil {
 				anchorLog.Error("Error in writing anchor into anchor chain: ", err.Error())
 			}
@@ -643,31 +636,4 @@ func checkForReAnchor() {
 			SendRawTransactionToBTC(dirBlockInfo.DBHash, dirBlockInfo.DBHeight)
 		}
 	}
-}
-
-// SendRawTransactionForTesting is for testing
-func SendRawTransactionForTesting(hash *common.Hash, blockHeight uint32, dirBlock *common.DirectoryBlock) (*wire.ShaHash, error) {
-	anchorLog.Debug("SendRawTransactionForTesting: ") //strconv.FormatUint(blockHeight, 10))
-	dirBlockInfo := common.NewDirBlockInfoFromDBlock(dirBlock)
-
-	anchorRec := new(anchorRecord)
-	anchorRec.AnchorRecordVer = 1
-	anchorRec.DBHeight = dirBlockInfo.DBHeight
-	anchorRec.KeyMR = dirBlockInfo.DBMerkleRoot
-	_, recordHeight, _ := db.FetchBlockHeightCache()
-	anchorRec.RecordHeight = uint32(recordHeight)
-	anchorRec.Bitcoin.Address = "sdaffadfAddress"
-	anchorRec.Bitcoin.TXID = common.NewHash()
-	anchorRec.Bitcoin.BlockHeight = 4
-	anchorRec.Bitcoin.BlockHash = common.NewHash()
-	anchorRec.Bitcoin.Offset = int32(5)
-	anchorLog.Info("anchor.record saved: " + spew.Sdump(anchorRec))
-
-	//Submit the anchor record to the anchor chain (entry chain)
-	err := submitEntryToAnchorChain(anchorRec)
-	if err != nil {
-		anchorLog.Error("Error in writing anchor into anchor chain: ", err.Error())
-	}
-
-	return nil, nil
 }
