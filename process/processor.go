@@ -18,7 +18,9 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
+	"strings"
 
+	fct "github.com/FactomProject/factoid"
 	"github.com/FactomProject/FactomCode/anchor"
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/consensus"
@@ -1046,6 +1048,33 @@ func newAdminBlock(chain *common.AdminChain) *common.AdminBlock {
 // Seals the current open block, store it in db and create the next open block
 func newFactoidBlock(chain *common.FctChain) block.IFBlock {
 
+	older := FactoshisPerCredit
+	
+	cfg := util.ReReadConfig()
+	FactoshisPerCredit = cfg.App.ExchangeRate
+	
+	rate  := fmt.Sprintf("Current Exchange rate is %v", 
+					   strings.TrimSpace(fct.ConvertDecimal(FactoshisPerCredit)))
+	if older != FactoshisPerCredit {
+		
+		orate := fmt.Sprintf("The Exchange rate was    %v\n", 
+							 strings.TrimSpace(fct.ConvertDecimal(older)))
+		
+		cp.CP.AddUpdate(
+			"Fee",  // tag
+			"status",   // Category
+			"Entry Credit Exchange Rate Changed", // Title
+			orate+rate,
+			0)
+	}else{
+		cp.CP.AddUpdate(
+			"Fee",  // tag
+			"status",   // Category
+			"Entry Credit Exchange Rate", // Title
+			rate,
+			0)
+	}
+	
 	// acquire the last block
 	currentBlock := chain.NextBlock
 

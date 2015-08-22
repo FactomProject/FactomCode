@@ -18,6 +18,7 @@ type FactomdConfig struct {
 		DirectoryBlockInSeconds int
 		NodeMode                string
 		ServerPrivKey           string
+		ExchangeRate            uint64
 	}
 	Anchor struct {
 		ServerECKey         	string
@@ -81,6 +82,7 @@ LdbPath					= "/tmp/ldb9"
 BoltDBPath				= "/tmp/"
 DataStorePath			= "/tmp/store/seed/"
 DirectoryBlockInSeconds	= 60
+ExchangeRate            = 00666600
 ;---- NodeMode - FULL,SERVER,LIGHT -----
 NodeMode				= FULL
 ServerPrivKey			= ""
@@ -127,20 +129,25 @@ BoltDBPath 						= /tmp/
 
 var cfg *FactomdConfig
 var once sync.Once
+var filename = getHomeDir() + "/.factom/factomd.conf"
 
 // GetConfig reads the default factomd.conf file and returns a FactomConfig
 // object corresponding to the state of the file.
 func ReadConfig() *FactomdConfig {
 	once.Do(func() {
+		log.Println("read factom config file: ", filename)
 		cfg = readConfig()
 	})
 	return cfg
 }
 
+func ReReadConfig() *FactomdConfig {
+	cfg = readConfig()
+	return cfg
+}
+
 func readConfig() *FactomdConfig {
 	cfg := new(FactomdConfig)
-	filename := getHomeDir() + "/.factom/factomd.conf"
-	log.Println("read factom config file: ", filename)
 
 	// This makes factom config file located at
 	//   POSIX (Linux/BSD): ~/.factom/factom.conf
@@ -157,7 +164,7 @@ func readConfig() *FactomdConfig {
 
 	err := gcfg.ReadFileInto(cfg, filename)
 	if err != nil {
-		log.Println("Server starting with default settings...")
+		log.Println("ERROR Reading config file!\nServer starting with default settings...\n",err)
 		gcfg.ReadStringInto(cfg, defaultConfig)
 	}
 	return cfg
