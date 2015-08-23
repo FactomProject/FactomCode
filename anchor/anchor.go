@@ -42,6 +42,7 @@ var (
 	db               database.Db
 	walletLocked     bool
 	reAnchorAfter    = 10 // every 10 hours to re-anchor hashes left in the map.
+	defaultAddress   btcutil.Address
 
 	//Server Private key for milestone 1
 	serverPrivKey common.PrivateKey
@@ -68,11 +69,11 @@ type anchorRecord struct {
 	RecordHeight    uint32
 
 	Bitcoin struct {
-		Address     string        	//"1HLoD9E4SDFFPDiYfNYnkBLQ85Y51J3Zb1",
-		TXID        string 			//"9b0fc92260312ce44e74ef369f5c66bbb85848f2eddd5a7a1cde251e54ccfdd5", BTC Hash - in reverse byte order
-		BlockHeight int32         	//345678,
-		BlockHash   string 			//"00000000000000000cc14eacfc7057300aea87bed6fee904fd8e1c1f3dc008d4", BTC Hash - in reverse byte order
-		Offset      int32         	//87
+		Address     string //"1HLoD9E4SDFFPDiYfNYnkBLQ85Y51J3Zb1",
+		TXID        string //"9b0fc92260312ce44e74ef369f5c66bbb85848f2eddd5a7a1cde251e54ccfdd5", BTC Hash - in reverse byte order
+		BlockHeight int32  //345678,
+		BlockHash   string //"00000000000000000cc14eacfc7057300aea87bed6fee904fd8e1c1f3dc008d4", BTC Hash - in reverse byte order
+		Offset      int32  //87
 	}
 }
 
@@ -481,7 +482,11 @@ func initWallet() error {
 	balances = make([]balance, 0, 200)
 	fee, _ = btcutil.NewAmount(cfg.Btc.BtcTransFee)
 	walletLocked = true
-	return updateUTXO()
+	err := updateUTXO()
+	if err == nil && len(balances) > 0 {
+		defaultAddress = balances[0].address
+	}
+	return err
 }
 
 func updateUTXO() error {
@@ -494,7 +499,7 @@ func updateUTXO() error {
 	}
 	//}
 
-	unspentResults, err := wclient.ListUnspentMin(1) //confirmationsNeeded) //minConf=1
+	unspentResults, err := wclient.ListUnspentMin(confirmationsNeeded) //minConf=1
 	if err != nil {
 		return fmt.Errorf("cannot list unspent. %s", err)
 	}
@@ -526,7 +531,7 @@ func updateUTXO() error {
 		//anchorLog.Infof("balance[%d]=%s \n", i, spew.Sdump(balances[i]))
 	}
 
-	time.Sleep(1 * time.Second)
+	//time.Sleep(1 * time.Second)
 	return nil
 }
 
@@ -589,7 +594,7 @@ func saveDirBlockInfo(transaction *btcutil.Tx, details *btcjson.BlockDetails) {
 			anchorRec.KeyMR = dirBlockInfo.DBMerkleRoot.String()
 			_, recordHeight, _ := db.FetchBlockHeightCache()
 			anchorRec.RecordHeight = uint32(recordHeight)
-			anchorRec.Bitcoin.Address = balances[0].address.String()
+			anchorRec.Bitcoin.Address = defaultAddress.String()
 			anchorRec.Bitcoin.TXID = transaction.Sha().String()
 			anchorRec.Bitcoin.BlockHeight = details.Height
 			anchorRec.Bitcoin.BlockHash = details.Hash
