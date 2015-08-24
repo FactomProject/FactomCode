@@ -18,7 +18,9 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
+	"strings"
 
+	fct "github.com/FactomProject/factoid"
 	"github.com/FactomProject/FactomCode/anchor"
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/consensus"
@@ -26,7 +28,6 @@ import (
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd/wire"
-	fct "github.com/FactomProject/factoid"
 	"github.com/FactomProject/factoid/block"
 	"github.com/davecgh/go-spew/spew"
 )
@@ -1048,32 +1049,32 @@ func newAdminBlock(chain *common.AdminChain) *common.AdminBlock {
 func newFactoidBlock(chain *common.FctChain) block.IFBlock {
 
 	older := FactoshisPerCredit
-
+	
 	cfg := util.ReReadConfig()
 	FactoshisPerCredit = cfg.App.ExchangeRate
-
-	rate := fmt.Sprintf("Current Exchange rate is %v",
-		fct.ConvertDecimalToString(FactoshisPerCredit))
+	
+	rate  := fmt.Sprintf("Current Exchange rate is %v", 
+					   strings.TrimSpace(fct.ConvertDecimal(FactoshisPerCredit)))
 	if older != FactoshisPerCredit {
-
-		orate := fmt.Sprintf("The Exchange rate was    %v\n",
-			fct.ConvertDecimalToString(older))
-
+		
+		orate := fmt.Sprintf("The Exchange rate was    %v\n", 
+							 strings.TrimSpace(fct.ConvertDecimal(older)))
+		
 		cp.CP.AddUpdate(
-			"Fee",    // tag
-			"status", // Category
+			"Fee",  // tag
+			"status",   // Category
 			"Entry Credit Exchange Rate Changed", // Title
 			orate+rate,
 			0)
-	} else {
+	}else{
 		cp.CP.AddUpdate(
-			"Fee",                        // tag
-			"status",                     // Category
+			"Fee",  // tag
+			"status",   // Category
 			"Entry Credit Exchange Rate", // Title
 			rate,
 			0)
 	}
-
+	
 	// acquire the last block
 	currentBlock := chain.NextBlock
 
@@ -1160,7 +1161,7 @@ func placeAnchor(dbBlock *common.DirectoryBlock) error {
 		// todo: need to make anchor as a go routine, independent of factomd
 		// same as blockmanager to btcd
 		go anchor.SendRawTransactionToBTC(dbBlock.KeyMR, dbBlock.Header.DBHeight)
-
+		
 	}
 	return nil
 }
