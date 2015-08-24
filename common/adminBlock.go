@@ -332,8 +332,10 @@ func (e *ABlockHeader) Spew() string {
 type ABEntry interface {
 	Printable
 	BinaryMarshallable
+	ShortInterpretable
 
 	Type() byte
+	Hash() *Hash
 }
 
 type Sig [64]byte
@@ -458,6 +460,22 @@ func (e *DBSignatureEntry) Spew() string {
 	return Spew(e)
 }
 
+func (e *DBSignatureEntry) IsInterpretable() bool {
+	return false
+}
+
+func (e *DBSignatureEntry) Interpret() string {
+	return ""
+}
+
+func (e *DBSignatureEntry) Hash() *Hash {
+	bin, err := e.MarshalBinary()
+	if err != nil {
+		panic(err)
+	}
+	return Sha(bin)
+}
+
 type EndOfMinuteEntry struct {
 	entryType byte
 	EOM_Type  byte
@@ -465,6 +483,7 @@ type EndOfMinuteEntry struct {
 
 var _ Printable = (*EndOfMinuteEntry)(nil)
 var _ BinaryMarshallable = (*EndOfMinuteEntry)(nil)
+var _ ABEntry = (*EndOfMinuteEntry)(nil)
 
 func (m *EndOfMinuteEntry) Type() byte {
 	return m.entryType
@@ -521,4 +540,20 @@ func (e *EndOfMinuteEntry) JSONBuffer(b *bytes.Buffer) error {
 
 func (e *EndOfMinuteEntry) Spew() string {
 	return Spew(e)
+}
+
+func (e *EndOfMinuteEntry) IsInterpretable() bool {
+	return true
+}
+
+func (e *EndOfMinuteEntry) Interpret() string {
+	return fmt.Sprintf("End of Minute %v, %v", e.entryType, e.EOM_Type)
+}
+
+func (e *EndOfMinuteEntry) Hash() *Hash {
+	bin, err := e.MarshalBinary()
+	if err != nil {
+		panic(err)
+	}
+	return Sha(bin)
 }
