@@ -282,8 +282,8 @@ func validateMsgTx(msgtx *wire.MsgTx, inputs []btcjson.ListUnspentResult) error 
 			return fmt.Errorf("cannot create script engine: %s", err)
 		}
 		if err = engine.Execute(); err != nil {
-			anchorLog.Errorf("cannot execute script engine: %s\n", err)
-			return fmt.Errorf("cannot validate transaction: %s", err)
+			anchorLog.Errorf("cannot execute script engine: %s\n  === UnspentResult: %s", err, spew.Sdump(inputs[i]))
+			return fmt.Errorf("cannot execute script engine: %s", err)
 		}
 	}
 	return nil
