@@ -354,12 +354,15 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 
 	case wire.CmdFactoidTX:
 		msgFactoidTX, ok := msg.(*wire.MsgFactoidTX)
-		if ok && msgFactoidTX.IsValid() {
-			t := msgFactoidTX.Transaction
-			txnum := len(common.FactoidState.GetCurrentBlock().GetTransactions())
-			if common.FactoidState.AddTransaction(txnum, t) == nil {
-				if err := processBuyEntryCredit(msgFactoidTX); err != nil {
-					return err
+		
+		if nodeMode == common.SERVER_NODE {
+			if ok && msgFactoidTX.IsValid() {
+				t := msgFactoidTX.Transaction
+				txnum := len(common.FactoidState.GetCurrentBlock().GetTransactions())
+				if common.FactoidState.AddTransaction(txnum, t) == nil {
+					if err := processBuyEntryCredit(msgFactoidTX); err != nil {
+						return err
+					}
 				}
 			}
 		} else {
