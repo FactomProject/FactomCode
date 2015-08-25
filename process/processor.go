@@ -224,7 +224,7 @@ func serveCtlMsgRequest(msg wire.FtmInternalMsg) error {
 	case wire.CmdCommitChain:
 
 	default:
-		return errors.New("1 Message type unsupported:" + fmt.Sprintf("%+v", msg))
+		return errors.New("1 Message type unsupported:" + spew.Sdump(msg))
 	}
 	return nil
 
@@ -242,7 +242,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 				return err
 			}
 		} else {
-			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
+			return errors.New("Error in processing msg:" + spew.Sdump(msg))
 		}
 		// Broadcast the msg to the network if no errors
 		outMsgQueue <- msg
@@ -255,7 +255,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 				return err
 			}
 		} else {
-			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
+			return errors.New("Error in processing msg:" + spew.Sdump(msg))
 		}
 		// Broadcast the msg to the network if no errors
 		outMsgQueue <- msg
@@ -268,7 +268,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 				return err
 			}
 		} else {
-			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
+			return errors.New("Error in processing msg:" + spew.Sdump(msg))
 		}
 		// Broadcast the msg to the network if no errors
 		outMsgQueue <- msg
@@ -278,9 +278,9 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		if nodeMode == common.SERVER_NODE {
 			msgEom, ok := msg.(*wire.MsgInt_EOM)
 			if !ok {
-				return errors.New("Error in build blocks:" + fmt.Sprintf("%+v", msg))
+				return errors.New("Error in build blocks:" +  spew.Sdump(msg))
 			}
-			procLog.Infof("PROCESSOR: End of minute msg - wire.CmdInt_EOM:%+v\n", msg)
+			procLog.Infof("PROCESSOR: End of minute msg - wire.CmdInt_EOM:%+v\n", msg)			
 
 			common.FactoidState.EndOfPeriod(int(msgEom.EOM_Type))
 
