@@ -353,13 +353,15 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		}
 
 	case wire.CmdFactoidTX:
-		msgFactoidTX, ok := msg.(*wire.MsgFactoidTX)
-		if ok && msgFactoidTX.IsValid() {
-			t := msgFactoidTX.Transaction
-			txnum := len(common.FactoidState.GetCurrentBlock().GetTransactions())
-			if common.FactoidState.AddTransaction(txnum, t) == nil {
-				if err := processBuyEntryCredit(msgFactoidTX); err != nil {
-					return err
+		if nodeMode == common.SERVER_NODE {
+			msgFactoidTX, ok := msg.(*wire.MsgFactoidTX)
+			if ok && msgFactoidTX.IsValid() {
+				t := msgFactoidTX.Transaction
+				txnum := len(common.FactoidState.GetCurrentBlock().GetTransactions())
+				if common.FactoidState.AddTransaction(txnum, t) == nil {
+					if err := processBuyEntryCredit(msgFactoidTX); err != nil {
+						return err
+					}
 				}
 			}
 		} else {
@@ -646,27 +648,25 @@ func processCommitChain(msg *wire.MsgCommitChain) error {
 
 // processBuyEntryCredit validates the MsgCommitChain and adds it to processlist
 func processBuyEntryCredit(msg *wire.MsgFactoidTX) error {
-	if nodeMode == common.SERVER_NODE {
-		// Update the credit balance in memory
-		for _, v := range msg.Transaction.GetECOutputs() {
-			pub := new([32]byte)
-			copy(pub[:], v.GetAddress().Bytes())
+	// Update the credit balance in memory
+	for _, v := range msg.Transaction.GetECOutputs() {
+		pub := new([32]byte)
+		copy(pub[:], v.GetAddress().Bytes())
 
-			cred := int32(v.GetAmount() / uint64(FactoshisPerCredit))
+		cred := int32(v.GetAmount() / uint64(FactoshisPerCredit))
 
-			eCreditMap[string(pub[:])] += cred
+		eCreditMap[string(pub[:])] += cred
 
-		}
+	}
 
-		h, _ := msg.Sha()
-		if plMgr.IsMyPListExceedingLimit() {
-			procLog.Warning("Exceeding MyProcessList size limit!")
-			return fMemPool.addOrphanMsg(msg, &h)
-		}
+	h, _ := msg.Sha()
+	if plMgr.IsMyPListExceedingLimit() {
+		procLog.Warning("Exceeding MyProcessList size limit!")
+		return fMemPool.addOrphanMsg(msg, &h)
+	}
 
-		if _, err := plMgr.AddMyProcessListItem(msg, &h, wire.ACK_FACTOID_TX); err != nil {
-			return err
-		}
+	if _, err := plMgr.AddMyProcessListItem(msg, &h, wire.ACK_FACTOID_TX); err != nil {
+		return err
 	}
 
 	return nil
