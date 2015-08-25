@@ -201,7 +201,6 @@ func initFctChain() {
 		// func GetGenesisFBlock(ftime uint64, ExRate uint64, addressCnt int, Factoids uint64 ) IFBlock {
 		//fchain.NextBlock = block.GetGenesisFBlock(0, FactoshisPerCredit, 10, 200000000000)
 		fchain.NextBlock = block.GetGenesisFBlock()
-		fmt.Println(fchain.NextBlock)
 		gb:=fchain.NextBlock
         
         // If a client, this block is going to get downloaded and added.  Don't do it twice.
