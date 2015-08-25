@@ -78,54 +78,55 @@ const defaultConfig = `
 ; App settings
 ; ------------------------------------------------------------------------------
 [app]
-PortNumber				      	= 8088
-HomeDir						= "/tmp/"
-LdbPath					        = "ldb9"
-BoltDBPath					= ""
-DataStorePath			      		= "data/export/"
+PortNumber				      		= 8088
+HomeDir								= "/tmp/"
+LdbPath					        	= "ldb9"
+BoltDBPath							= ""
+DataStorePath			      		= "store/seed/"
 DirectoryBlockInSeconds				= 60
 ; --------------- NodeMode: FULL | SERVER | LIGHT ----------------
-NodeMode				        = FULL
+NodeMode				        	= FULL
 ServerPrivKey			      		= 07c0d52cb74f4ca3106d80c4a70488426886bccc6ebc10c6bafb37bf8a65f4c38cee85c62a9e48039d4ac294da97943c2001be1539809ea5f54721f0c5477a0a
+ExchangeRate                        = 00666600
 
 [anchor]
-ServerECKey					= 397c49e182caa97737c6b394591c614156fbe7998d7bf5d76273961e9fa1edd406ed9e69bfdf85db8aa69820f348d096985bc0b11cc9fc9dcee3b8c68b41dfd5
-AnchorChainID					= df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604
-ConfirmationsNeeded				= 20
+ServerECKey							= 397c49e182caa97737c6b394591c614156fbe7998d7bf5d76273961e9fa1edd406ed9e69bfdf85db8aa69820f348d096985bc0b11cc9fc9dcee3b8c68b41dfd5
+AnchorChainID						= df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604
+ConfirmationsNeeded					= 20
 
 [btc]
-WalletPassphrase 	  			= "lindasilva"
-CertHomePath			  		= "btcwallet"
-RpcClientHost			  		= "localhost:18332"
-RpcClientEndpoint				= "ws"
-RpcClientUser			  		= "testuser"
-RpcClientPass 					= "notarychain"
-BtcTransFee				  		= 0.0001
-CertHomePathBtcd				= "btcd"
-RpcBtcdHost 			  		= "localhost:18334"
-RpcUser						=testuser
-RpcPass						=notarychain
+WalletPassphrase 	  				= "lindasilva"
+CertHomePath			  			= "btcwallet"
+RpcClientHost			  			= "localhost:18332"
+RpcClientEndpoint					= "ws"
+RpcClientUser			  			= "testuser"
+RpcClientPass 						= "notarychain"
+BtcTransFee				  			= 0.0001
+CertHomePathBtcd					= "btcd"
+RpcBtcdHost 			  			= "localhost:18334"
+RpcUser								=testuser
+RpcPass								=notarychain
 
 [wsapi]
-ApplicationName					= "Factom/wsapi"
-PortNumber				  		= 8088
+ApplicationName						= "Factom/wsapi"
+PortNumber				  			= 8088
 
 ; ------------------------------------------------------------------------------
 ; logLevel - allowed values are: debug, info, notice, warning, error, critical, alert, emergency and none
 ; ------------------------------------------------------------------------------
 [log]
-logLevel 					= debug
-LogPath						= "factom-d.log"
+logLevel 							= debug
+LogPath								= "factom-d.log"
 
 ; ------------------------------------------------------------------------------
 ; Configurations for fctwallet
 ; ------------------------------------------------------------------------------
 [Wallet]
-Address          				= localhost
-Port             				= 8089
-DataFile         				= fctwallet.dat
-RefreshInSeconds 				= 60
-BoltDBPath 						= ""
+Address          					= localhost
+Port             					= 8089
+DataFile         					= fctwallet.dat
+RefreshInSeconds 					= 60
+BoltDBPath 							= ""
 `
 
 var cfg *FactomdConfig
