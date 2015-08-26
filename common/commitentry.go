@@ -56,16 +56,19 @@ func (c *CommitEntry) CommitMsg() []byte {
 	return p[:len(p)-64-32]
 }
 
+// Return the timestamp in milliseconds.
+func (c *CommitEntry) GetMilliTime() int64 {
+	a := make([]byte, 2, 8)
+	a = append(a, c.MilliTime[:]...)
+	milli := int64(binary.BigEndian.Uint64(a))
+	return milli
+}
+
 // InTime checks the CommitEntry.MilliTime and returns true if the timestamp is
 // whitin +/- 24 hours of the current time.
 func (c *CommitEntry) InTime() bool {
 	now := time.Now()
-	a := make([]byte, 2, 8)
-	a = append(a, c.MilliTime[:]...)
-	buf := bytes.NewBuffer(a)
-	var sec int64
-	binary.Read(buf, binary.BigEndian, &sec)
-	sec = sec / 1000
+	sec := c.GetMilliTime() / 1000
 	t := time.Unix(sec, 0)
 
 	return t.After(now.Add(-24*time.Hour)) && t.Before(now.Add(24*time.Hour))
@@ -80,6 +83,12 @@ func (c *CommitEntry) IsValid() bool {
 	
 	return ed.VerifyCanonical(c.ECPubKey, c.CommitMsg(), c.Sig)
 }
+
+func (c *CommitEntry)GetHash() *Hash {
+	h,_ :=	c.MarshalBinary()
+	return Sha(h)
+}
+
 
 func (c *CommitEntry) MarshalBinary() ([]byte, error) {
 	buf := new(bytes.Buffer)

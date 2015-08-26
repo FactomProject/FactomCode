@@ -236,6 +236,14 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 	case wire.CmdCommitChain:
 		msgCommitChain, ok := msg.(*wire.MsgCommitChain)
 		if ok && msgCommitChain.IsValid() {
+			
+			h := msgCommitChain.CommitChain.GetHash().Bytes()
+			t := msgCommitChain.CommitChain.GetMilliTime()/1000
+			
+			if ! IsTSValid(h,t) {
+				return fmt.Errorf("Timestamp invalid on Commit Chain")
+			}
+			
 			err := processCommitChain(msgCommitChain)
 			if err != nil {
 				return err
@@ -249,6 +257,15 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 	case wire.CmdCommitEntry:
 		msgCommitEntry, ok := msg.(*wire.MsgCommitEntry)
 		if ok && msgCommitEntry.IsValid() {
+			
+			
+			h := msgCommitEntry.CommitEntry.GetHash().Bytes()
+			t := msgCommitEntry.CommitEntry.GetMilliTime()/1000
+			
+			if ! IsTSValid(h,t) {
+				return fmt.Errorf("Timestamp invalid on Commit Entry")
+			}
+			
 			err := processCommitEntry(msgCommitEntry)
 			if err != nil {
 				return err
@@ -352,9 +369,20 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		}
 
 	case wire.CmdFactoidTX:
+
+		msgFactoidTX, ok := msg.(*wire.MsgFactoidTX)
+				
 		if nodeMode == common.SERVER_NODE {
-			msgFactoidTX, ok := msg.(*wire.MsgFactoidTX)
 			if ok && msgFactoidTX.IsValid() {
+				// prevent replay attacks
+				{
+					h := msgFactoidTX.Transaction.GetHash().Bytes()
+					t := int64(msgFactoidTX.Transaction.GetMilliTimestamp()/1000)
+					
+					if ! IsTSValid(h,t) {
+						return fmt.Errorf("Timestamp invalid on Factoid Transaction")
+					}
+				}
 				t := msgFactoidTX.Transaction
 				txnum := len(common.FactoidState.GetCurrentBlock().GetTransactions())
 				if common.FactoidState.AddTransaction(txnum, t) == nil {
@@ -364,7 +392,9 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 				}
 			}
 		} else {
-			outMsgQueue <- msg
+			if ok && msgFactoidTX.IsValid() {
+				outMsgQueue <- msg
+			}
 		}
 
 	case wire.CmdABlock:
