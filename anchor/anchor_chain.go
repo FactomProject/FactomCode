@@ -10,11 +10,11 @@ package anchor
 import (
 	"bytes"
 	"time"	
-	"fmt"	
 	"encoding/binary"	
 	"encoding/json"	
 	"encoding/hex"	
 	"github.com/FactomProject/FactomCode/common"	
+	"github.com/FactomProject/FactomCode/util"		
 	factomwire "github.com/FactomProject/btcd/wire"		
 )
 
@@ -48,7 +48,12 @@ func submitEntryToAnchorChain(aRecord *anchorRecord) error {
 	// 32 byte Entry Hash
 	buf.Write(entry.Hash().Bytes())
 	// 1 byte number of entry credits to pay
-	if c, err := entryCost(entry); err != nil {
+	binaryEntry, err := entry.MarshalBinary()
+	if err != nil {
+		return err
+	}
+	
+	if c, err := util.EntryCost(binaryEntry); err != nil {
 		return err
 	} else {
 		buf.WriteByte(byte(c))
@@ -88,20 +93,3 @@ func milliTime() (r []byte) {
 	return buf.Bytes()[2:]
 }
 
-// Calculate the entry credits needed for the entry
-func entryCost(e *common.Entry) (int8, error) {
-	p, err := e.MarshalBinary()
-	if err != nil {
-		return 0, err
-	}
-	// n is the capacity of the entry payment in KB
-	r := len(p) % 1024
-	n := int8(len(p) / 1024)
-	if r > 0 {
-		n += 1
-	}
-	if n > 10 {
-		return n, fmt.Errorf("Cannot make a payment for Entry larger than 10KB")
-	}
-	return n, nil
-}

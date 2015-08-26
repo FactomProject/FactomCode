@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-var dirBlockHeight uint32 = 37
+var dirBlockHeight uint32 = 4
 
 func TestBlocks(t *testing.T) {
 	fmt.Println("\nTest Blocks===========================================================================")
@@ -46,6 +46,7 @@ func TestBlocks(t *testing.T) {
 			t.Logf("fblk=%s\n", spew.Sdump(fblk))
 		default:
 			eBlk, _ := db.FetchEBlockByMR(dbEntry.KeyMR)
+			t.Logf("eblk=%s\n", spew.Sdump(eBlk))			
 			// validate every entry in EBlock
 			for _, ebEntry := range eBlk.Body.EBEntries {
 				// continue if the entry arleady exists in db

@@ -13,7 +13,6 @@
 package process
 
 import (
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"sort"
@@ -483,10 +482,11 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 				msg.Entry.ChainID.String())
 		}
 
-		// 35 effectively removes the entry header.  1023 rounds up the credit calucation.
-		cred := int32((len(bin) - 35 + 1023) / 1024)
-
-		if int32(c.Credits) < cred {
+		// Calculate the entry credits required for the entry 
+		cred, err := util.EntryCost(bin)
+		if err != nil { return err }
+		
+		if c.Credits < cred {
 			fMemPool.addOrphanMsg(msg, h)
 			return fmt.Errorf("Credit needs to paid first before an entry is revealed: %s", e.Hash().String())
 		}
@@ -526,8 +526,12 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 		newChain.FirstEntry = e
 		chainIDMap[e.ChainID.String()] = newChain
 
-		cred := int32(binary.Size(bin)/1024 + 1 + 10)
-		if int32(c.Credits) < cred {
+		// Calculate the entry credits required for the entry 
+		cred, err := util.EntryCost(bin)
+		if err != nil { return err }
+		
+		// 10 credit is additional for the chain creation
+		if c.Credits < cred + 10 {
 			fMemPool.addOrphanMsg(msg, h)
 			return fmt.Errorf("Credit needs to paid first before an entry is revealed: %s", e.Hash().String())
 		}
