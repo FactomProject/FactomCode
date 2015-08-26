@@ -201,6 +201,14 @@ func handleRevealEntry(ctx *web.Context) {
 		}
 	}
 
+	err := common.ValidateRevealEntryChainID(entry)
+	if err != nil {
+		wsLog.Error(err)
+		ctx.WriteHeader(httpBad)
+		ctx.Write([]byte(err.Error()))
+		return
+	}
+
 	if err := factomapi.RevealEntry(entry); err != nil {
 		wsLog.Error(err)
 		ctx.WriteHeader(httpBad)

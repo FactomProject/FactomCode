@@ -37,6 +37,17 @@ func NewEntry() *Entry {
 	return e
 }
 
+func ValidateRevealEntryChainID(e *Entry) error {
+	if e == nil {
+		return fmt.Errorf("No entry provided")
+	}
+	expectedChainID := NewChainID(e)
+	if !expectedChainID.IsSameAs(e.ChainID) {
+		return fmt.Errorf("Invalid ChainID.")
+	}
+	return nil
+}
+
 // NewChainID generates a ChainID from an entry. ChainID = Sha(Sha(ExtIDs[0]) +
 // Sha(ExtIDs[1] + ... + Sha(ExtIDs[n]))
 func NewChainID(e *Entry) *Hash {
