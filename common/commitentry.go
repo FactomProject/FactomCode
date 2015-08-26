@@ -90,6 +90,12 @@ func (c *CommitEntry) InTime() bool {
 }
 
 func (c *CommitEntry) IsValid() bool {
+
+	//double check the credits in the commit
+	if c.Credits < 1 {
+		return false
+	}	
+	
 	return ed.VerifyCanonical(c.ECPubKey, c.CommitMsg(), c.Sig)
 }
 
