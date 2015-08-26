@@ -237,6 +237,14 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 	case wire.CmdCommitChain:
 		msgCommitChain, ok := msg.(*wire.MsgCommitChain)
 		if ok && msgCommitChain.IsValid() {
+			
+			h := msgCommitChain.CommitChain.GetHash().Bytes()
+			t := msgCommitChain.CommitChain.GetMilliTime()/1000
+			
+			if ! IsTSValid(h,t) {
+				return fmt.Errorf("Timestamp invalid on Commit Chain")
+			}
+			
 			err := processCommitChain(msgCommitChain)
 			if err != nil {
 				return err
@@ -250,6 +258,15 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 	case wire.CmdCommitEntry:
 		msgCommitEntry, ok := msg.(*wire.MsgCommitEntry)
 		if ok && msgCommitEntry.IsValid() {
+			
+			
+			h := msgCommitEntry.CommitEntry.GetHash().Bytes()
+			t := msgCommitEntry.CommitEntry.GetMilliTime()/1000
+			
+			if ! IsTSValid(h,t) {
+				return fmt.Errorf("Timestamp invalid on Commit Entry")
+			}
+			
 			err := processCommitEntry(msgCommitEntry)
 			if err != nil {
 				return err
@@ -353,10 +370,20 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		}
 
 	case wire.CmdFactoidTX:
+
 		msgFactoidTX, ok := msg.(*wire.MsgFactoidTX)
-		
+				
 		if nodeMode == common.SERVER_NODE {
 			if ok && msgFactoidTX.IsValid() {
+				// prevent replay attacks
+				{
+					h := msgFactoidTX.Transaction.GetHash().Bytes()
+					t := int64(msgFactoidTX.Transaction.GetMilliTimestamp()/1000)
+					
+					if ! IsTSValid(h,t) {
+						return fmt.Errorf("Timestamp invalid on Factoid Transaction")
+					}
+				}
 				t := msgFactoidTX.Transaction
 				txnum := len(common.FactoidState.GetCurrentBlock().GetTransactions())
 				if common.FactoidState.AddTransaction(txnum, t) == nil {
@@ -366,7 +393,9 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 				}
 			}
 		} else {
-			outMsgQueue <- msg
+			if ok && msgFactoidTX.IsValid() {
+				outMsgQueue <- msg
+			}
 		}
 
 	case wire.CmdABlock:
@@ -649,27 +678,25 @@ func processCommitChain(msg *wire.MsgCommitChain) error {
 
 // processBuyEntryCredit validates the MsgCommitChain and adds it to processlist
 func processBuyEntryCredit(msg *wire.MsgFactoidTX) error {
-	if nodeMode == common.SERVER_NODE {
-		// Update the credit balance in memory
-		for _, v := range msg.Transaction.GetECOutputs() {
-			pub := new([32]byte)
-			copy(pub[:], v.GetAddress().Bytes())
+	// Update the credit balance in memory
+	for _, v := range msg.Transaction.GetECOutputs() {
+		pub := new([32]byte)
+		copy(pub[:], v.GetAddress().Bytes())
 
-			cred := int32(v.GetAmount() / uint64(FactoshisPerCredit))
+		cred := int32(v.GetAmount() / uint64(FactoshisPerCredit))
 
-			eCreditMap[string(pub[:])] += cred
+		eCreditMap[string(pub[:])] += cred
 
-		}
+	}
 
-		h, _ := msg.Sha()
-		if plMgr.IsMyPListExceedingLimit() {
-			procLog.Warning("Exceeding MyProcessList size limit!")
-			return fMemPool.addOrphanMsg(msg, &h)
-		}
+	h, _ := msg.Sha()
+	if plMgr.IsMyPListExceedingLimit() {
+		procLog.Warning("Exceeding MyProcessList size limit!")
+		return fMemPool.addOrphanMsg(msg, &h)
+	}
 
-		if _, err := plMgr.AddMyProcessListItem(msg, &h, wire.ACK_FACTOID_TX); err != nil {
-			return err
-		}
+	if _, err := plMgr.AddMyProcessListItem(msg, &h, wire.ACK_FACTOID_TX); err != nil {
+		return err
 	}
 
 	return nil

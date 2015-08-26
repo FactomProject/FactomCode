@@ -34,15 +34,16 @@ import (
 )
 
 var (
-	balances         []balance // unspent balance & address & its WIF
-	cfg              *util.FactomdConfig
-	dclient, wclient *btcrpcclient.Client
-	fee              btcutil.Amount                  // tx fee for written into btc
-	dirBlockInfoMap  map[string]*common.DirBlockInfo //dbHash string as key
-	db               database.Db
-	walletLocked     bool
-	reAnchorAfter    = 10 // every 10 hours to re-anchor hashes left in the map.
-	defaultAddress   btcutil.Address
+	balances           []balance // unspent balance & address & its WIF
+	cfg                *util.FactomdConfig
+	dclient, wclient   *btcrpcclient.Client
+	fee                btcutil.Amount                  // tx fee for written into btc
+	dirBlockInfoMap    map[string]*common.DirBlockInfo //dbHash string as key
+	db                 database.Db
+	walletLocked       bool
+	reAnchorAfter      = 10 // hours. For anchors that do not get bitcoin callback info for over 10 hours, then re-anchor them.
+	reAnchorCheckEvery = 1  // hour. do re-anchor check every 1 hour.
+	defaultAddress     btcutil.Address
 
 	//Server Private key for milestone 1
 	serverPrivKey common.PrivateKey
@@ -393,9 +394,16 @@ func InitAnchor(ldb database.Db, q chan factomwire.FtmInternalMsg, serverKey com
 		return
 	}
 
-	ticker := time.NewTicker(time.Hour * 1)
+	ticker := time.NewTicker(time.Hour * time.Duration(reAnchorCheckEvery))
 	go func() {
 		for _ = range ticker.C {
+			// check init rpc client
+			if dclient == nil || wclient == nil {
+				if err = initRPCClient(); err != nil {
+					anchorLog.Error(err.Error())
+				}
+			}
+
 			checkForReAnchor()
 		}
 	}()
@@ -426,7 +434,6 @@ func initRPCClient() error {
 	if err != nil || anchorChainID == nil {
 		panic("Cannot parse Server AnchorChainID from configuration file: " + err.Error())
 	}
-	confirmationsNeeded = cfg.Anchor.ConfirmationsNeeded
 
 	// Connect to local btcwallet RPC server using websockets.
 	ntfnHandlers := createBtcwalletNotificationHandlers()
@@ -601,8 +608,8 @@ func saveDirBlockInfo(transaction *btcutil.Tx, details *btcjson.BlockDetails) {
 			anchorRec.Bitcoin.Offset = int32(details.Index)
 			anchorLog.Info("anchor.record saved: " + spew.Sdump(anchorRec))
 
-			//jsonARecord, _ := json.Marshal(anchorRec)
-			//anchorLog.Debug("jsonAnchorRecord: ", string(jsonARecord))
+			jsonARecord, _ := json.Marshal(anchorRec)
+			anchorLog.Debug("jsonAnchorRecord: ", string(jsonARecord))
 
 			//Submit the anchor record to the anchor chain (entry chain)
 			err := submitEntryToAnchorChain(anchorRec)
@@ -638,7 +645,7 @@ func checkForReAnchor() {
 	for _, dirBlockInfo := range dirBlockInfoMap {
 		if timeNow-dirBlockInfo.Timestamp > int64(time0) {
 			anchorLog.Debug("re-anchor: ")
-			SendRawTransactionToBTC(dirBlockInfo.DBHash, dirBlockInfo.DBHeight)
+			SendRawTransactionToBTC(dirBlockInfo.DBMerkleRoot, dirBlockInfo.DBHeight)
 		}
 	}
 }
