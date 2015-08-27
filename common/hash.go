@@ -200,3 +200,10 @@ func (e *Hash) JSONBuffer(b *bytes.Buffer) error {
 func (e *Hash) Spew() string {
 	return Spew(e)
 }
+
+// shad Double Sha256 Hash; sha256(sha256(data))
+func DoubleSha(data []byte) []byte {
+	h1 := sha256.Sum256(data)
+	h2 := sha256.Sum256(h1[:])
+	return h2[:]
+}

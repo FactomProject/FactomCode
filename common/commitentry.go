@@ -77,7 +77,7 @@ func (c *CommitEntry) InTime() bool {
 func (c *CommitEntry) IsValid() bool {
 
 	//double check the credits in the commit
-	if c.Credits < 1 {
+	if c.Credits < 1 || c.Version != 0 {
 		return false
 	}	
 	

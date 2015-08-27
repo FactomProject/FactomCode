@@ -18,6 +18,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"bytes"
 
 	fct "github.com/FactomProject/factoid"
 	"github.com/FactomProject/FactomCode/anchor"
@@ -543,7 +544,7 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 
 		delete(commitEntryMap, e.Hash().String())
 		return nil
-	} else if c, ok := commitChainMap[e.Hash().String()]; ok {
+	} else if c, ok := commitChainMap[e.Hash().String()]; ok { //Reveal chain ---------------------------
 		if chainIDMap[e.ChainID.String()] != nil {
 			fMemPool.addOrphanMsg(msg, h)
 			return fmt.Errorf("This chain is not supported: %s",
@@ -565,6 +566,19 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 			fMemPool.addOrphanMsg(msg, h)
 			return fmt.Errorf("Credit needs to paid first before an entry is revealed: %s", e.Hash().String())
 		}
+		
+		//validate chainid hash in the commitChain
+		chainIDHash := common.DoubleSha(e.ChainID.Bytes())
+		if !bytes.Equal(c.ChainIDHash.Bytes()[:], chainIDHash[:]) {
+			return fmt.Errorf("RevealChain's chainid hash does not match with CommitChain: %s", e.Hash().String())
+		}	
+		
+		//validate Weld in the commitChain
+		weld := common.DoubleSha(append(c.EntryHash.Bytes(), e.ChainID.Bytes()...))
+		if !bytes.Equal(c.Weld.Bytes()[:], weld[:]) {
+			return fmt.Errorf("RevealChain's weld does not match with CommitChain: %s", e.Hash().String())
+		}		
+		
 		// Add the msg to the Mem pool
 		fMemPool.addMsg(msg, h)
 
