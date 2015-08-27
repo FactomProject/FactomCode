@@ -566,6 +566,12 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 			fMemPool.addOrphanMsg(msg, h)
 			return fmt.Errorf("Credit needs to paid first before an entry is revealed: %s", e.Hash().String())
 		}
+	
+		//validate chain id for the first entry	
+		expectedChainID := common.NewChainID(e)
+		if !expectedChainID.IsSameAs(e.ChainID) {
+			return fmt.Errorf("Invalid ChainID for entry: %s", e.Hash().String())			
+		}
 		
 		//validate chainid hash in the commitChain
 		chainIDHash := common.DoubleSha(e.ChainID.Bytes())
