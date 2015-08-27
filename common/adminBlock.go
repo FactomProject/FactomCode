@@ -547,7 +547,7 @@ func (e *EndOfMinuteEntry) IsInterpretable() bool {
 }
 
 func (e *EndOfMinuteEntry) Interpret() string {
-	return fmt.Sprintf("End of Minute %v, %v", e.entryType, e.EOM_Type)
+	return fmt.Sprintf("End of Minute %v", e.EOM_Type)
 }
 
 func (e *EndOfMinuteEntry) Hash() *Hash {
