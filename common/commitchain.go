@@ -32,6 +32,8 @@ type CommitChain struct {
 
 var _ Printable = (*CommitChain)(nil)
 var _ BinaryMarshallable = (*CommitChain)(nil)
+var _ ShortInterpretable = (*CommitChain)(nil)
+var _ ECBlockEntry = (*CommitChain)(nil)
 
 func (c *CommitChain) MarshalledSize() uint64 {
 	return uint64(CommitChainSize)
@@ -48,6 +50,22 @@ func NewCommitChain() *CommitChain {
 	c.ECPubKey = new([32]byte)
 	c.Sig = new([64]byte)
 	return c
+}
+
+func (e *CommitChain) Hash() *Hash {
+	bin, err := e.MarshalBinary()
+	if err != nil {
+		panic(err)
+	}
+	return Sha(bin)
+}
+
+func (b *CommitChain) IsInterpretable() bool {
+	return false
+}
+
+func (b *CommitChain) Interpret() string {
+	return ""
 }
 
 // CommitMsg returns the binary marshaled message section of the CommitEntry

@@ -6,6 +6,7 @@ package common
 
 import (
 	"bytes"
+	"fmt"
 )
 
 const (
@@ -18,6 +19,24 @@ type ServerIndexNumber struct {
 
 var _ Printable = (*ServerIndexNumber)(nil)
 var _ BinaryMarshallable = (*ServerIndexNumber)(nil)
+var _ ShortInterpretable = (*ServerIndexNumber)(nil)
+var _ ECBlockEntry = (*ServerIndexNumber)(nil)
+
+func (e *ServerIndexNumber) Hash() *Hash {
+	bin, err := e.MarshalBinary()
+	if err != nil {
+		panic(err)
+	}
+	return Sha(bin)
+}
+
+func (b *ServerIndexNumber) IsInterpretable() bool {
+	return true
+}
+
+func (b *ServerIndexNumber) Interpret() string {
+	return fmt.Sprintf("ServerIndexNumber %v", b.Number)
+}
 
 func (c *ServerIndexNumber) MarshalledSize() uint64 {
 	return uint64(ServerIndexNumberSize)
