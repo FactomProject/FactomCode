@@ -608,8 +608,8 @@ func saveDirBlockInfo(transaction *btcutil.Tx, details *btcjson.BlockDetails) {
 			anchorRec.Bitcoin.Offset = int32(details.Index)
 			anchorLog.Info("anchor.record saved: " + spew.Sdump(anchorRec))
 
-			jsonARecord, _ := json.Marshal(anchorRec)
-			anchorLog.Debug("jsonAnchorRecord: ", string(jsonARecord))
+			//jsonARecord, _ := json.Marshal(anchorRec)
+			//anchorLog.Debug("jsonAnchorRecord: ", string(jsonARecord))
 
 			//Submit the anchor record to the anchor chain (entry chain)
 			err := submitEntryToAnchorChain(anchorRec)

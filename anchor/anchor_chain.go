@@ -9,13 +9,14 @@ package anchor
 
 import (
 	"bytes"
-	"time"	
-	"encoding/binary"	
-	"encoding/json"	
-	"encoding/hex"	
-	"github.com/FactomProject/FactomCode/common"	
-	"github.com/FactomProject/FactomCode/util"		
-	factomwire "github.com/FactomProject/btcd/wire"		
+	"encoding/binary"
+	"encoding/hex"
+	"encoding/json"
+	"time"
+
+	"github.com/FactomProject/FactomCode/common"
+	"github.com/FactomProject/FactomCode/util"
+	factomwire "github.com/FactomProject/btcd/wire"
 )
 
 //Construct the entry and submit it to the server
@@ -23,21 +24,21 @@ func submitEntryToAnchorChain(aRecord *anchorRecord) error {
 
 	//Marshal aRecord into json
 	jsonARecord, err := json.Marshal(aRecord)
-	anchorLog.Debug("jsonARecord: ", string(jsonARecord)) 	
+	anchorLog.Debug("submitEntryToAnchorChain - jsonARecord: ", string(jsonARecord))
 	if err != nil {
 		return err
-	}	
-	bufARecord := new(bytes.Buffer)	
+	}
+	bufARecord := new(bytes.Buffer)
 	bufARecord.Write(jsonARecord)
-	//Sign the json aRecord with the server key 
+	//Sign the json aRecord with the server key
 	aRecordSig := serverPrivKey.Sign(jsonARecord)
-	//Encode sig into Hex string	
+	//Encode sig into Hex string
 	bufARecord.Write([]byte(hex.EncodeToString(aRecordSig.Sig[:])))
-	
+
 	//Create a new entry
-	entry := common.NewEntry()	
+	entry := common.NewEntry()
 	entry.ChainID = anchorChainID
-	anchorLog.Debug("anchorChainID: ", anchorChainID) 	
+	anchorLog.Debug("anchorChainID: ", anchorChainID)
 	entry.Content = bufARecord.Bytes()
 
 	buf := new(bytes.Buffer)
@@ -52,18 +53,18 @@ func submitEntryToAnchorChain(aRecord *anchorRecord) error {
 	if err != nil {
 		return err
 	}
-	
+
 	if c, err := util.EntryCost(binaryEntry); err != nil {
 		return err
 	} else {
 		buf.WriteByte(byte(c))
-	}	
+	}
 	tmp := buf.Bytes()
 	sig := serverECKey.Sign(tmp)
 	buf = bytes.NewBuffer(tmp)
 	buf.Write(serverECKey.Pub.Key[:])
 	buf.Write(sig.Sig[:])
-	
+
 	commit := common.NewCommitEntry()
 	err = commit.UnmarshalBinary(buf.Bytes())
 	if err != nil {
@@ -79,8 +80,7 @@ func submitEntryToAnchorChain(aRecord *anchorRecord) error {
 	rm := factomwire.NewMsgRevealEntry()
 	rm.Entry = entry
 	inMsgQ <- rm
-	
-	
+
 	return nil
 }
 
@@ -92,4 +92,3 @@ func milliTime() (r []byte) {
 	binary.Write(buf, binary.BigEndian, m)
 	return buf.Bytes()[2:]
 }
-
