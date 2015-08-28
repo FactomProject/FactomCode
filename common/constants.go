@@ -20,6 +20,9 @@ const (
 	MAX_TX_POOL_SIZE  = int(50000)    //Transaction mem pool size
 	MAX_BLK_POOL_SIZE = int(500000)   //Block mem bool size
 	MAX_PLIST_SIZE    = int(150000)   //MY Process List size
+	
+	MAX_ENTRY_CREDITS = uint8(10)	  //Max number of entry credits per entry
+	MAX_CHAIN_CREDITS = uint8(20)	  //Max number of entry credits per chain
 
 	//Common constants
 	VERSION_0     = byte(0)

@@ -627,6 +627,10 @@ func processCommitEntry(msg *wire.MsgCommitEntry) error {
 		return fmt.Errorf("Cannot commit entry, entry has already been commited")
 	}
 
+	if c.Credits > common.MAX_ENTRY_CREDITS {
+		return fmt.Errorf("Commit entry exceeds the max entry credit limit:" + c.EntryHash.String() )
+	}
+	
 	// deduct the entry credits from the eCreditMap
 	if eCreditMap[string(c.ECPubKey[:])] < int32(c.Credits) {
 		return fmt.Errorf("Not enough credits for CommitEntry")
@@ -669,7 +673,11 @@ func processCommitChain(msg *wire.MsgCommitChain) error {
 	if _, exist := commitChainMap[c.EntryHash.String()]; exist {
 		return fmt.Errorf("Cannot commit chain, first entry for chain already exists")
 	}
-
+	
+	if c.Credits > common.MAX_CHAIN_CREDITS {
+		return fmt.Errorf("Commit chain exceeds the max entry credit limit:" + c.EntryHash.String())
+	}
+	
 	// deduct the entry credits from the eCreditMap
 	if eCreditMap[string(c.ECPubKey[:])] < int32(c.Credits) {
 		return fmt.Errorf("Not enough credits for CommitChain")
