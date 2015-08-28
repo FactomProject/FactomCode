@@ -279,7 +279,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 
 	case wire.CmdRevealEntry:
 		msgRevealEntry, ok := msg.(*wire.MsgRevealEntry)
-		if ok {
+		if ok && msgRevealEntry.IsValid() {
 			err := processRevealEntry(msgRevealEntry)
 			if err != nil {
 				return err

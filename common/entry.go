@@ -51,6 +51,16 @@ func NewChainID(e *Entry) *Hash {
 	return id
 }
 
+func (e *Entry) IsValid() bool {
+
+	//double check the version
+	if e.Version != 0 {
+		return false
+	}	
+	
+	return true
+}
+
 func (e *Entry) Hash() *Hash {
 	h := NewHash()
 	entry, err := e.MarshalBinary()
