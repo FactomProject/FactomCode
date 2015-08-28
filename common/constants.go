@@ -4,7 +4,9 @@
 
 package common
 
-import ()
+import (
+	"time"
+	)
 
 const (
 
@@ -23,6 +25,8 @@ const (
 	
 	MAX_ENTRY_CREDITS = uint8(10)	  //Max number of entry credits per entry
 	MAX_CHAIN_CREDITS = uint8(20)	  //Max number of entry credits per chain
+	
+	COMMIT_TIME_WINDOW = time.Duration(12)	  //Time windows for commit chain and commit entry +/- 12 hours
 
 	//Common constants
 	VERSION_0     = byte(0)
