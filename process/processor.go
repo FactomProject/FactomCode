@@ -631,17 +631,20 @@ func processCommitEntry(msg *wire.MsgCommitEntry) error {
 		return fmt.Errorf("Commit entry exceeds the max entry credit limit:" + c.EntryHash.String() )
 	}
 	
-	// deduct the entry credits from the eCreditMap
+	// Check the entry credit balance
 	if eCreditMap[string(c.ECPubKey[:])] < int32(c.Credits) {
 		return fmt.Errorf("Not enough credits for CommitEntry")
 	}
-	eCreditMap[string(c.ECPubKey[:])] -= int32(c.Credits)
 
 	// add to the commitEntryMap
 	commitEntryMap[c.EntryHash.String()] = c
 
 	// Server: add to MyPL
 	if nodeMode == common.SERVER_NODE {
+		
+		// deduct the entry credits from the eCreditMap
+		eCreditMap[string(c.ECPubKey[:])] -= int32(c.Credits)
+			
 		h, _ := msg.Sha()
 		if plMgr.IsMyPListExceedingLimit() {
 			procLog.Warning("Exceeding MyProcessList size limit!")
@@ -678,17 +681,19 @@ func processCommitChain(msg *wire.MsgCommitChain) error {
 		return fmt.Errorf("Commit chain exceeds the max entry credit limit:" + c.EntryHash.String())
 	}
 	
-	// deduct the entry credits from the eCreditMap
+	// Check the entry credit balance
 	if eCreditMap[string(c.ECPubKey[:])] < int32(c.Credits) {
 		return fmt.Errorf("Not enough credits for CommitChain")
 	}
-	eCreditMap[string(c.ECPubKey[:])] -= int32(c.Credits)
 
 	// add to the commitChainMap
 	commitChainMap[c.EntryHash.String()] = c
 
 	// Server: add to MyPL
 	if nodeMode == common.SERVER_NODE {
+		// deduct the entry credits from the eCreditMap		
+		eCreditMap[string(c.ECPubKey[:])] -= int32(c.Credits)
+			
 		h, _ := msg.Sha()
 
 		if plMgr.IsMyPListExceedingLimit() {
