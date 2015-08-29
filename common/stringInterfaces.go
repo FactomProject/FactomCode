@@ -6,19 +6,28 @@ import (
 	"github.com/davecgh/go-spew/spew"
 )
 
+//Interface for printing structures into JSON
 type JSONable interface {
 	JSONByte() ([]byte, error)
 	JSONString() (string, error)
 	JSONBuffer(b *bytes.Buffer) error
 }
 
+//Interface for Spewing the structures for debugging
 type Spewable interface {
 	Spew() string
 }
 
+//Interface for both JSON and Spew
 type Printable interface {
 	JSONable
 	Spewable
+}
+
+//Interface for short, reoccuring data structures to interpret themselves into human-friendly form
+type ShortInterpretable interface {
+	IsInterpretable() bool //Whether the structure can interpret itself
+	Interpret() string     //Turns the data encoded int he structure into human-friendly string
 }
 
 func DecodeJSON(data []byte, v interface{}) error {

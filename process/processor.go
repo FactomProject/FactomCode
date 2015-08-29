@@ -13,12 +13,12 @@
 package process
 
 import (
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"sort"
 	"strconv"
 	"strings"
+	"bytes"
 
 	fct "github.com/FactomProject/factoid"
 	"github.com/FactomProject/FactomCode/anchor"
@@ -279,7 +279,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 
 	case wire.CmdRevealEntry:
 		msgRevealEntry, ok := msg.(*wire.MsgRevealEntry)
-		if ok {
+		if ok && msgRevealEntry.IsValid() {
 			err := processRevealEntry(msgRevealEntry)
 			if err != nil {
 				return err
@@ -516,10 +516,11 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 				msg.Entry.ChainID.String())
 		}
 
-		// 35 effectively removes the entry header.  1023 rounds up the credit calucation.
-		cred := int32((len(bin) - 35 + 1023) / 1024)
-
-		if int32(c.Credits) < cred {
+		// Calculate the entry credits required for the entry 
+		cred, err := util.EntryCost(bin)
+		if err != nil { return err }
+		
+		if c.Credits < cred {
 			fMemPool.addOrphanMsg(msg, h)
 			return fmt.Errorf("Credit needs to paid first before an entry is revealed: %s", e.Hash().String())
 		}
@@ -546,7 +547,7 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 
 		delete(commitEntryMap, e.Hash().String())
 		return nil
-	} else if c, ok := commitChainMap[e.Hash().String()]; ok {
+	} else if c, ok := commitChainMap[e.Hash().String()]; ok { //Reveal chain ---------------------------
 		if chainIDMap[e.ChainID.String()] != nil {
 			fMemPool.addOrphanMsg(msg, h)
 			return fmt.Errorf("This chain is not supported: %s",
@@ -559,11 +560,34 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 		newChain.FirstEntry = e
 		chainIDMap[e.ChainID.String()] = newChain
 
-		cred := int32(binary.Size(bin)/1024 + 1 + 10)
-		if int32(c.Credits) < cred {
+		// Calculate the entry credits required for the entry 
+		cred, err := util.EntryCost(bin)
+		if err != nil { return err }
+		
+		// 10 credit is additional for the chain creation
+		if c.Credits < cred + 10 {
 			fMemPool.addOrphanMsg(msg, h)
 			return fmt.Errorf("Credit needs to paid first before an entry is revealed: %s", e.Hash().String())
 		}
+	
+		//validate chain id for the first entry	
+		expectedChainID := common.NewChainID(e)
+		if !expectedChainID.IsSameAs(e.ChainID) {
+			return fmt.Errorf("Invalid ChainID for entry: %s", e.Hash().String())			
+		}
+		
+		//validate chainid hash in the commitChain
+		chainIDHash := common.DoubleSha(e.ChainID.Bytes())
+		if !bytes.Equal(c.ChainIDHash.Bytes()[:], chainIDHash[:]) {
+			return fmt.Errorf("RevealChain's chainid hash does not match with CommitChain: %s", e.Hash().String())
+		}	
+		
+		//validate Weld in the commitChain
+		weld := common.DoubleSha(append(c.EntryHash.Bytes(), e.ChainID.Bytes()...))
+		if !bytes.Equal(c.Weld.Bytes()[:], weld[:]) {
+			return fmt.Errorf("RevealChain's weld does not match with CommitChain: %s", e.Hash().String())
+		}		
+		
 		// Add the msg to the Mem pool
 		fMemPool.addMsg(msg, h)
 
@@ -606,17 +630,24 @@ func processCommitEntry(msg *wire.MsgCommitEntry) error {
 		return fmt.Errorf("Cannot commit entry, entry has already been commited")
 	}
 
-	// deduct the entry credits from the eCreditMap
+	if c.Credits > common.MAX_ENTRY_CREDITS {
+		return fmt.Errorf("Commit entry exceeds the max entry credit limit:" + c.EntryHash.String() )
+	}
+	
+	// Check the entry credit balance
 	if eCreditMap[string(c.ECPubKey[:])] < int32(c.Credits) {
 		return fmt.Errorf("Not enough credits for CommitEntry")
 	}
-	eCreditMap[string(c.ECPubKey[:])] -= int32(c.Credits)
 
 	// add to the commitEntryMap
 	commitEntryMap[c.EntryHash.String()] = c
 
 	// Server: add to MyPL
 	if nodeMode == common.SERVER_NODE {
+		
+		// deduct the entry credits from the eCreditMap
+		eCreditMap[string(c.ECPubKey[:])] -= int32(c.Credits)
+			
 		h, _ := msg.Sha()
 		if plMgr.IsMyPListExceedingLimit() {
 			procLog.Warning("Exceeding MyProcessList size limit!")
@@ -648,18 +679,24 @@ func processCommitChain(msg *wire.MsgCommitChain) error {
 	if _, exist := commitChainMap[c.EntryHash.String()]; exist {
 		return fmt.Errorf("Cannot commit chain, first entry for chain already exists")
 	}
-
-	// deduct the entry credits from the eCreditMap
+	
+	if c.Credits > common.MAX_CHAIN_CREDITS {
+		return fmt.Errorf("Commit chain exceeds the max entry credit limit:" + c.EntryHash.String())
+	}
+	
+	// Check the entry credit balance
 	if eCreditMap[string(c.ECPubKey[:])] < int32(c.Credits) {
 		return fmt.Errorf("Not enough credits for CommitChain")
 	}
-	eCreditMap[string(c.ECPubKey[:])] -= int32(c.Credits)
 
 	// add to the commitChainMap
 	commitChainMap[c.EntryHash.String()] = c
 
 	// Server: add to MyPL
 	if nodeMode == common.SERVER_NODE {
+		// deduct the entry credits from the eCreditMap		
+		eCreditMap[string(c.ECPubKey[:])] -= int32(c.Credits)
+			
 		h, _ := msg.Sha()
 
 		if plMgr.IsMyPListExceedingLimit() {

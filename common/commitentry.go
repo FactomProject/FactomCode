@@ -30,6 +30,8 @@ type CommitEntry struct {
 
 var _ Printable = (*CommitEntry)(nil)
 var _ BinaryMarshallable = (*CommitEntry)(nil)
+var _ ShortInterpretable = (*CommitEntry)(nil)
+var _ ECBlockEntry = (*CommitEntry)(nil)
 
 func (c *CommitEntry) MarshalledSize() uint64 {
 	return uint64(CommitEntrySize)
@@ -44,6 +46,22 @@ func NewCommitEntry() *CommitEntry {
 	c.ECPubKey = new([32]byte)
 	c.Sig = new([64]byte)
 	return c
+}
+
+func (e *CommitEntry) Hash() *Hash {
+	bin, err := e.MarshalBinary()
+	if err != nil {
+		panic(err)
+	}
+	return Sha(bin)
+}
+
+func (b *CommitEntry) IsInterpretable() bool {
+	return false
+}
+
+func (b *CommitEntry) Interpret() string {
+	return ""
 }
 
 // CommitMsg returns the binary marshaled message section of the CommitEntry
@@ -65,19 +83,19 @@ func (c *CommitEntry) GetMilliTime() int64 {
 }
 
 // InTime checks the CommitEntry.MilliTime and returns true if the timestamp is
-// whitin +/- 24 hours of the current time.
+// whitin +/- 12 hours of the current time.
 func (c *CommitEntry) InTime() bool {
 	now := time.Now()
 	sec := c.GetMilliTime() / 1000
 	t := time.Unix(sec, 0)
 
-	return t.After(now.Add(-24*time.Hour)) && t.Before(now.Add(24*time.Hour))
+	return t.After(now.Add(-COMMIT_TIME_WINDOW*time.Hour)) && t.Before(now.Add(COMMIT_TIME_WINDOW*time.Hour))
 }
 
 func (c *CommitEntry) IsValid() bool {
 
 	//double check the credits in the commit
-	if c.Credits < 1 {
+	if c.Credits < 1 || c.Version != 0 {
 		return false
 	}	
 	

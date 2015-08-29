@@ -6,6 +6,7 @@ package common
 
 import (
 	"bytes"
+	"fmt"
 )
 
 const (
@@ -18,6 +19,24 @@ type MinuteNumber struct {
 
 var _ Printable = (*MinuteNumber)(nil)
 var _ BinaryMarshallable = (*MinuteNumber)(nil)
+var _ ShortInterpretable = (*MinuteNumber)(nil)
+var _ ECBlockEntry = (*MinuteNumber)(nil)
+
+func (e *MinuteNumber) Hash() *Hash {
+	bin, err := e.MarshalBinary()
+	if err != nil {
+		panic(err)
+	}
+	return Sha(bin)
+}
+
+func (b *MinuteNumber) IsInterpretable() bool {
+	return true
+}
+
+func (b *MinuteNumber) Interpret() string {
+	return fmt.Sprintf("MinuteNumber %v", b.Number)
+}
 
 func (c *MinuteNumber) MarshalledSize() uint64 {
 	return uint64(MinuteNumberSize)
