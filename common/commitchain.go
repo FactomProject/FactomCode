@@ -94,6 +94,11 @@ func (c *CommitChain) GetHash() *Hash {
 	return Sha(data)
 }
 
+func (c *CommitChain) GetSigHash() *Hash {
+	data := c.CommitMsg()
+	return Sha(data)
+}
+
 func (c *CommitChain) MarshalBinary() ([]byte, error) {
 	buf := new(bytes.Buffer)
 

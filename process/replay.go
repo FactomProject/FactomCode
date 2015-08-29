@@ -6,18 +6,20 @@ package process
 
 import (
 	"time"
+	"fmt"
 )
 
 const numBuckets = 24
 
 var _ = time.Now()
+var _ = fmt.Print
 
 var buckets [numBuckets] map[[32]byte] int64
 
 var lasttime int64 // hours since 1970
 
 func hours(unix int64) int64 {
-		return unix/6
+		return unix/60/60
 }
 
 // Checks if the timestamp is valid.  If the timestamp is too old or 
@@ -26,8 +28,15 @@ func hours(unix int64) int64 {
 // this code remembers hashes tested in the past, and rejects the 
 // second submission of the same hash.
 func IsTSValid(hash[]byte, timestamp int64) bool {
+	return IsTSValid_(hash, timestamp, time.Now().Unix())
+}
 
-	now := hours(time.Now().Unix())
+// To make the function testable, the logic accepts the current time
+// as a parameter.  This way, the test code can manipulate the clock
+// at will.
+func IsTSValid_(hash[]byte, timestamp int64, now int64) bool {
+
+	now = hours(now)
 
 	// If we have no buckets, or more than 24 hours has passed, 
 	// toss all the buckets. We do this by setting lasttime 24 hours
@@ -46,13 +55,11 @@ func IsTSValid(hash[]byte, timestamp int64) bool {
 		lasttime++
 	}
 	
-	
 	t := hours(timestamp)
-	if t > now+int64(numBuckets)/2 || t < now-int64(numBuckets)/2 {
+	index := int(t-now + int64(numBuckets)/2)
+	if index < 0 || index >= numBuckets {
 		return false
 	}
-	
-	index := int(t-now + int64(numBuckets)/2)
 	
 	var h [32]byte 
 	copy(h[:],hash)
