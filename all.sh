@@ -130,10 +130,11 @@ echo "
 *     Compiling fctwallet, the cli, and factomd
 ******************************************************** 
 "
-compile fctwallet          || exit 1
-compile factom-cli         || exit 1
-compile FactomCode/factomd || exit 1
-compile btcd/cmd/fctctl    || exit 1
+compile FactomCode/factomd   || exit 1
+compile fctwallet            || exit 1
+compile factom-cli           || exit 1
+compile btcd/cmd/fctctl      || exit 1
+compile fctwallet/WalletApp  || exit 1
 
 echo ""
 echo "
@@ -175,5 +176,13 @@ echo "
 +================+
 "
 go test -short  ./factom-cli/...
+
+echo "
++================+
+|  fctWallet     |
++================+
+"
+go test -short  ./fctwallet/...
+
 
 cd FactomCode

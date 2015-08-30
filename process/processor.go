@@ -19,6 +19,7 @@ import (
 	"strconv"
 	"strings"
 	"bytes"
+	"time"
 
 	fct "github.com/FactomProject/factoid"
 	"github.com/FactomProject/FactomCode/anchor"
@@ -873,6 +874,13 @@ func buildEndOfMinute(pl *consensus.ProcessList, pli *consensus.ProcessListItem)
 
 // build Genesis blocks
 func buildGenesisBlocks() error {
+	//Set the timestamp for the genesis block
+	t, err :=  time.Parse (time.RFC3339, common.GENESIS_BLK_TIMESTAMP)
+	if err != nil {
+		panic ("Not able to parse the genesis block time stamp")
+	}
+	dchain.NextBlock.Header.Timestamp = uint32(t.Unix() / 60)
+		
 	// Allocate the first two dbentries for ECBlock and Factoid block
 	dchain.AddDBEntry(&common.DBEntry{}) // AdminBlock
 	dchain.AddDBEntry(&common.DBEntry{}) // ECBlock

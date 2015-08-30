@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-var dirBlockHeight uint32 = 4
+var dirBlockHeight uint32 = 0
 
 func TestBlocks(t *testing.T) {
 	fmt.Println("\nTest Blocks===========================================================================")
