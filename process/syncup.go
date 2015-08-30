@@ -208,8 +208,9 @@ func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, d
 		h, _ := common.CreateHash(b)
 		if h.String() != common.GENESIS_DIR_BLOCK_HASH {
 			// panic for milestone 1
-			//panic("Genesis dir block is not as expected: " + h.String())
-			procLog.Errorf("Genesis dir block is not as expected: " + h.String())
+			panic("\nGenesis block hash expected: " + common.GENESIS_DIR_BLOCK_HASH +
+				"\nGenesis block hash found:    " + h.String() + "\n")			
+			//procLog.Errorf("Genesis dir block is not as expected: " + h.String())
 		}
 	}
 
