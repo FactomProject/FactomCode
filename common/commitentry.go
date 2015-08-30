@@ -83,13 +83,13 @@ func (c *CommitEntry) GetMilliTime() int64 {
 }
 
 // InTime checks the CommitEntry.MilliTime and returns true if the timestamp is
-// whitin +/- 24 hours of the current time.
+// whitin +/- 12 hours of the current time.
 func (c *CommitEntry) InTime() bool {
 	now := time.Now()
 	sec := c.GetMilliTime() / 1000
 	t := time.Unix(sec, 0)
 
-	return t.After(now.Add(-24*time.Hour)) && t.Before(now.Add(24*time.Hour))
+	return t.After(now.Add(-COMMIT_TIME_WINDOW*time.Hour)) && t.Before(now.Add(COMMIT_TIME_WINDOW*time.Hour))
 }
 
 func (c *CommitEntry) IsValid() bool {
@@ -106,6 +106,12 @@ func (c *CommitEntry)GetHash() *Hash {
 	h,_ :=	c.MarshalBinary()
 	return Sha(h)
 }
+
+func (c *CommitEntry) GetSigHash() *Hash {
+	data := c.CommitMsg()
+	return Sha(data)
+}
+
 
 
 func (c *CommitEntry) MarshalBinary() ([]byte, error) {

@@ -238,7 +238,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		msgCommitChain, ok := msg.(*wire.MsgCommitChain)
 		if ok && msgCommitChain.IsValid() {
 			
-			h := msgCommitChain.CommitChain.GetHash().Bytes()
+			h := msgCommitChain.CommitChain.GetSigHash().Bytes()
 			t := msgCommitChain.CommitChain.GetMilliTime()/1000
 			
 			if ! IsTSValid(h,t) {
@@ -260,7 +260,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		if ok && msgCommitEntry.IsValid() {
 			
 			
-			h := msgCommitEntry.CommitEntry.GetHash().Bytes()
+			h := msgCommitEntry.CommitEntry.GetSigHash().Bytes()
 			t := msgCommitEntry.CommitEntry.GetMilliTime()/1000
 			
 			if ! IsTSValid(h,t) {
@@ -279,7 +279,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 
 	case wire.CmdRevealEntry:
 		msgRevealEntry, ok := msg.(*wire.MsgRevealEntry)
-		if ok {
+		if ok && msgRevealEntry.IsValid() {
 			err := processRevealEntry(msgRevealEntry)
 			if err != nil {
 				return err
@@ -371,31 +371,34 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 
 	case wire.CmdFactoidTX:
 
+		// First check that the message is good, and is valid.  If not,
+		// continue processing commands.
 		msgFactoidTX, ok := msg.(*wire.MsgFactoidTX)
-				
+		if !ok || !msgFactoidTX.IsValid() {
+			break
+		}
+		// prevent replay attacks
+		{
+			h := msgFactoidTX.Transaction.GetSigHash().Bytes()
+			t := int64(msgFactoidTX.Transaction.GetMilliTimestamp()/1000)
+			
+			if ! IsTSValid(h,t) {
+				return fmt.Errorf("Timestamp invalid on Factoid Transaction")
+			}
+		}
+			
+		// Handle the server case
 		if nodeMode == common.SERVER_NODE {
-			if ok && msgFactoidTX.IsValid() {
-				// prevent replay attacks
-				{
-					h := msgFactoidTX.Transaction.GetHash().Bytes()
-					t := int64(msgFactoidTX.Transaction.GetMilliTimestamp()/1000)
-					
-					if ! IsTSValid(h,t) {
-						return fmt.Errorf("Timestamp invalid on Factoid Transaction")
-					}
-				}
-				t := msgFactoidTX.Transaction
-				txnum := len(common.FactoidState.GetCurrentBlock().GetTransactions())
-				if common.FactoidState.AddTransaction(txnum, t) == nil {
-					if err := processBuyEntryCredit(msgFactoidTX); err != nil {
-						return err
-					}
+			t := msgFactoidTX.Transaction
+			txnum := len(common.FactoidState.GetCurrentBlock().GetTransactions())
+			if common.FactoidState.AddTransaction(txnum, t) == nil {
+				if err := processBuyEntryCredit(msgFactoidTX); err != nil {
+					return err
 				}
 			}
 		} else {
-			if ok && msgFactoidTX.IsValid() {
-				outMsgQueue <- msg
-			}
+			// Handle the client case
+			outMsgQueue <- msg
 		}
 
 	case wire.CmdABlock:
