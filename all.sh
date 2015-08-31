@@ -134,7 +134,7 @@ compile FactomCode/factomd   || exit 1
 compile fctwallet            || exit 1
 compile factom-cli           || exit 1
 compile btcd/cmd/fctctl      || exit 1
-compile fctwallet/WalletApp  || exit 1
+compile fctwallet/walletapp  || exit 1
 
 echo ""
 echo "
