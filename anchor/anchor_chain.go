@@ -37,9 +37,10 @@ func submitEntryToAnchorChain(aRecord *anchorRecord) error {
 	//Create a new entry
 	entry := common.NewEntry()	
 	entry.ChainID = anchorChainID
-	anchorLog.Debug("anchorChainID: ", anchorChainID) 	
 	entry.Content = bufARecord.Bytes()
 
+
+	
 	buf := new(bytes.Buffer)
 	// 1 byte version
 	buf.Write([]byte{0})
@@ -52,6 +53,8 @@ func submitEntryToAnchorChain(aRecord *anchorRecord) error {
 	if err != nil {
 		return err
 	}
+
+	anchorLog.Info("jsonARecord binary entry: ", hex.EncodeToString(binaryEntry)) 	
 	
 	if c, err := util.EntryCost(binaryEntry); err != nil {
 		return err
