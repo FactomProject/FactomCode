@@ -45,9 +45,9 @@ const (
 	//Server public key for milestone 1
 	SERVER_PUB_KEY         = "0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a"
 	//Genesis directory block timestamp in RFC3339 format
-	GENESIS_BLK_TIMESTAMP = "2015-09-01T18:00:00+00:00"
+	GENESIS_BLK_TIMESTAMP = "2015-09-01T20:00:00+00:00"
 	//Genesis directory block hash
-	GENESIS_DIR_BLOCK_HASH = "bd58b38dc9777c587c57915ffe516a0892fd5b7e4fc6493520f0ec2db4688421"
+	GENESIS_DIR_BLOCK_HASH = "126def7e7bd4feade6e9e38ce51f7fc063b6a94330912b105ffcf2cea996fc18"
 
 )
 
