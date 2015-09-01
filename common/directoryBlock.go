@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"reflect"
 	"sync"
-	"time"
 
 	"github.com/FactomProject/factoid/block"
 )
@@ -93,8 +92,8 @@ type DirBlockInfo struct {
 	DBHash *Hash
 
 	DBHeight uint32 //directory block height
-	
-	Timestamp int64	// time of this dir block info being created
+
+	Timestamp int64 // time of this dir block info being created
 
 	// BTCTxHash is the Tx hash returned from rpcclient.SendRawTransaction
 	BTCTxHash *Hash // use string or *btcwire.ShaHash ???
@@ -227,7 +226,7 @@ func NewDirBlockInfoFromDBlock(b *DirectoryBlock) *DirBlockInfo {
 	e := &DirBlockInfo{}
 	e.DBHash = b.DBHash
 	e.DBHeight = b.Header.DBHeight
-	e.Timestamp = time.Now().Unix()
+	e.Timestamp = int64(b.Header.Timestamp * 60) //time.Now().Unix()
 	e.DBMerkleRoot = b.KeyMR
 	e.BTCConfirmed = false
 	e.BTCTxHash = NewHash()
