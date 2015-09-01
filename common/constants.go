@@ -47,7 +47,7 @@ const (
 	//Genesis directory block timestamp in RFC3339 format
 	GENESIS_BLK_TIMESTAMP = "2015-09-01T20:00:00+00:00"
 	//Genesis directory block hash
-	GENESIS_DIR_BLOCK_HASH = "126def7e7bd4feade6e9e38ce51f7fc063b6a94330912b105ffcf2cea996fc18"
+	GENESIS_DIR_BLOCK_HASH = "cbd3d09db6defdc25dfc7d57f3479b339a077183cd67022e6d1ef6c041522b40"
 
 )
 
