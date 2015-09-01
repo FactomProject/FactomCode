@@ -4,7 +4,6 @@ rm -r ~/.factom/logs
 rm ~/.factom/fs_test.db
 rm ~/.factom/bolt_my.db
 rm ~/.factom/fct_test.db
-rm ~/.factom/factoid_wallet_bolt.db
 rm ~/.factom/ldb.ver
 rm ~/.factom/factoid_bolt.db
 rm ~/.factom/factom-d.log
