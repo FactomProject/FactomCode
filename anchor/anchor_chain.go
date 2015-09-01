@@ -20,7 +20,7 @@ import (
 )
 
 //Construct the entry and submit it to the server
-func submitEntryToAnchorChain(aRecord *anchorRecord) error {
+func submitEntryToAnchorChain(aRecord *AnchorRecord) error {
 
 	//Marshal aRecord into json
 	jsonARecord, err := json.Marshal(aRecord)

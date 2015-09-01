@@ -34,16 +34,17 @@ import (
 )
 
 var (
-	balances           []balance // unspent balance & address & its WIF
-	cfg                *util.FactomdConfig
-	dclient, wclient   *btcrpcclient.Client
-	fee                btcutil.Amount                  // tx fee for written into btc
-	dirBlockInfoMap    map[string]*common.DirBlockInfo //dbHash string as key
-	db                 database.Db
-	walletLocked       bool
-	reAnchorAfter      = 10 // hours. For anchors that do not get bitcoin callback info for over 10 hours, then re-anchor them.
-	reAnchorCheckEvery = 1  // hour. do re-anchor check every 1 hour.
-	defaultAddress     btcutil.Address
+	balances            []balance // unspent balance & address & its WIF
+	cfg                 *util.FactomdConfig
+	dclient, wclient    *btcrpcclient.Client
+	fee                 btcutil.Amount                  // tx fee for written into btc
+	dirBlockInfoMap     map[string]*common.DirBlockInfo //dbHash string as key
+	db                  database.Db
+	walletLocked        bool
+	reAnchorAfter       = 10 // hours. For anchors that do not get bitcoin callback info for over 10 hours, then re-anchor them.
+	reAnchorCheckEvery  = 1  // hour. do re-anchor check every 1 hour.
+	defaultAddress      btcutil.Address
+	confirmationsNeeded int
 
 	//Server Private key for milestone 1
 	serverPrivKey common.PrivateKey
@@ -51,8 +52,7 @@ var (
 	//Server Entry Credit private key
 	serverECKey common.PrivateKey
 	//Anchor chain ID
-	anchorChainID       *common.Hash
-	confirmationsNeeded int
+	anchorChainID *common.Hash
 	//InmsgQ for submitting the entry to server
 	inMsgQ chan factomwire.FtmInternalMsg
 )
@@ -63,7 +63,8 @@ type balance struct {
 	wif           *btcutil.WIF
 }
 
-type anchorRecord struct {
+//AnchorRecord is used to construct anchor chain
+type AnchorRecord struct {
 	AnchorRecordVer int
 	DBHeight        uint32
 	KeyMR           string
@@ -595,7 +596,7 @@ func saveDirBlockInfo(transaction *btcutil.Tx, details *btcjson.BlockDetails) {
 			anchorLog.Infof("In saveDirBlockInfo, dirBlockInfo:%s saved to db\n", spew.Sdump(dirBlockInfo))
 			saved = true
 
-			anchorRec := new(anchorRecord)
+			anchorRec := new(AnchorRecord)
 			anchorRec.AnchorRecordVer = 1
 			anchorRec.DBHeight = dirBlockInfo.DBHeight
 			anchorRec.KeyMR = dirBlockInfo.DBMerkleRoot.String()
