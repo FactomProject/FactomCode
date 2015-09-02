@@ -1,7 +1,9 @@
-rm -r /tmp/ldb9
-rm -r /tmp/store
-rm /tmp/fs_test.db
-rm /tmp/bolt_my.db
-rm /tmp/fct_test.db
-rm /tmp/factoid_wallet_bolt.db
-rm /tmp/ldb9.ver
+rm -r ~/.factom/ldb
+rm -r ~/.factom/data
+rm -r ~/.factom/logs
+rm ~/.factom/fs_test.db
+rm ~/.factom/bolt_my.db
+rm ~/.factom/fct_test.db
+rm ~/.factom/ldb.ver
+rm ~/.factom/factoid_bolt.db
+rm ~/.factom/factom-d.log

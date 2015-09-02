@@ -13,12 +13,15 @@
 package process
 
 import (
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"sort"
 	"strconv"
+	"strings"
+	"bytes"
+	"time"
 
+	fct "github.com/FactomProject/factoid"
 	"github.com/FactomProject/FactomCode/anchor"
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/consensus"
@@ -132,8 +135,10 @@ func initProcessor() {
 	//common.FactoidState.LoadState()
 	procLog.Info("Loaded ", fchain.NextBlockHeight, " factoid blocks for chain: "+fchain.ChainID.String())
 
-	anchor.InitAnchor(db)
-
+	//Init anchor for server
+	if nodeMode == common.SERVER_NODE {
+		anchor.InitAnchor(db, inMsgQueue, serverPrivKey)
+	}
 	// build the Genesis blocks if the current height is 0
 	if dchain.NextDBHeight == 0 && nodeMode == common.SERVER_NODE {
 		buildGenesisBlocks()
@@ -220,7 +225,7 @@ func serveCtlMsgRequest(msg wire.FtmInternalMsg) error {
 	case wire.CmdCommitChain:
 
 	default:
-		return errors.New("1 Message type unsupported:" + fmt.Sprintf("%+v", msg))
+		return errors.New("1 Message type unsupported:" + spew.Sdump(msg))
 	}
 	return nil
 
@@ -233,12 +238,20 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 	case wire.CmdCommitChain:
 		msgCommitChain, ok := msg.(*wire.MsgCommitChain)
 		if ok && msgCommitChain.IsValid() {
+
+			h := msgCommitChain.CommitChain.GetSigHash().Bytes()
+			t := msgCommitChain.CommitChain.GetMilliTime()/1000
+
+			if ! IsTSValid(h,t) {
+				return fmt.Errorf("Timestamp invalid on Commit Chain")
+			}
+
 			err := processCommitChain(msgCommitChain)
 			if err != nil {
 				return err
 			}
 		} else {
-			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
+			return errors.New("Error in processing msg:" + spew.Sdump(msg))
 		}
 		// Broadcast the msg to the network if no errors
 		outMsgQueue <- msg
@@ -246,25 +259,34 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 	case wire.CmdCommitEntry:
 		msgCommitEntry, ok := msg.(*wire.MsgCommitEntry)
 		if ok && msgCommitEntry.IsValid() {
+
+
+			h := msgCommitEntry.CommitEntry.GetSigHash().Bytes()
+			t := msgCommitEntry.CommitEntry.GetMilliTime()/1000
+
+			if ! IsTSValid(h,t) {
+				return fmt.Errorf("Timestamp invalid on Commit Entry")
+			}
+
 			err := processCommitEntry(msgCommitEntry)
 			if err != nil {
 				return err
 			}
 		} else {
-			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
+			return errors.New("Error in processing msg:" + spew.Sdump(msg))
 		}
 		// Broadcast the msg to the network if no errors
 		outMsgQueue <- msg
 
 	case wire.CmdRevealEntry:
 		msgRevealEntry, ok := msg.(*wire.MsgRevealEntry)
-		if ok {
+		if ok && msgRevealEntry.IsValid() {
 			err := processRevealEntry(msgRevealEntry)
 			if err != nil {
 				return err
 			}
 		} else {
-			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
+			return errors.New("Error in processing msg:" + spew.Sdump(msg))
 		}
 		// Broadcast the msg to the network if no errors
 		outMsgQueue <- msg
@@ -274,7 +296,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		if nodeMode == common.SERVER_NODE {
 			msgEom, ok := msg.(*wire.MsgInt_EOM)
 			if !ok {
-				return errors.New("Error in build blocks:" + fmt.Sprintf("%+v", msg))
+				return errors.New("Error in build blocks:" +  spew.Sdump(msg))
 			}
 			procLog.Infof("PROCESSOR: End of minute msg - wire.CmdInt_EOM:%+v\n", msg)
 
@@ -349,8 +371,25 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		}
 
 	case wire.CmdFactoidTX:
+
+		// First check that the message is good, and is valid.  If not,
+		// continue processing commands.
 		msgFactoidTX, ok := msg.(*wire.MsgFactoidTX)
-		if ok && msgFactoidTX.IsValid() {
+		if !ok || !msgFactoidTX.IsValid() {
+			break
+		}
+		// prevent replay attacks
+		{
+			h := msgFactoidTX.Transaction.GetSigHash().Bytes()
+			t := int64(msgFactoidTX.Transaction.GetMilliTimestamp()/1000)
+
+			if ! IsTSValid(h,t) {
+				return fmt.Errorf("Timestamp invalid on Factoid Transaction")
+			}
+		}
+
+		// Handle the server case
+		if nodeMode == common.SERVER_NODE {
 			t := msgFactoidTX.Transaction
 			txnum := len(common.FactoidState.GetCurrentBlock().GetTransactions())
 			if common.FactoidState.AddTransaction(txnum, t) == nil {
@@ -359,6 +398,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 				}
 			}
 		} else {
+			// Handle the client case
 			outMsgQueue <- msg
 		}
 
@@ -477,10 +517,11 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 				msg.Entry.ChainID.String())
 		}
 
-		// 35 effectively removes the entry header.  1023 rounds up the credit calucation.
-		cred := int32((len(bin) - 35 + 1023) / 1024)
+		// Calculate the entry credits required for the entry
+		cred, err := util.EntryCost(bin)
+		if err != nil { return err }
 
-		if int32(c.Credits) < cred {
+		if c.Credits < cred {
 			fMemPool.addOrphanMsg(msg, h)
 			return fmt.Errorf("Credit needs to paid first before an entry is revealed: %s", e.Hash().String())
 		}
@@ -507,7 +548,7 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 
 		delete(commitEntryMap, e.Hash().String())
 		return nil
-	} else if c, ok := commitChainMap[e.Hash().String()]; ok {
+	} else if c, ok := commitChainMap[e.Hash().String()]; ok { //Reveal chain ---------------------------
 		if chainIDMap[e.ChainID.String()] != nil {
 			fMemPool.addOrphanMsg(msg, h)
 			return fmt.Errorf("This chain is not supported: %s",
@@ -520,11 +561,34 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 		newChain.FirstEntry = e
 		chainIDMap[e.ChainID.String()] = newChain
 
-		cred := int32(binary.Size(bin)/1024 + 1 + 10)
-		if int32(c.Credits) < cred {
+		// Calculate the entry credits required for the entry
+		cred, err := util.EntryCost(bin)
+		if err != nil { return err }
+
+		// 10 credit is additional for the chain creation
+		if c.Credits < cred + 10 {
 			fMemPool.addOrphanMsg(msg, h)
 			return fmt.Errorf("Credit needs to paid first before an entry is revealed: %s", e.Hash().String())
 		}
+
+		//validate chain id for the first entry
+		expectedChainID := common.NewChainID(e)
+		if !expectedChainID.IsSameAs(e.ChainID) {
+			return fmt.Errorf("Invalid ChainID for entry: %s", e.Hash().String())
+		}
+
+		//validate chainid hash in the commitChain
+		chainIDHash := common.DoubleSha(e.ChainID.Bytes())
+		if !bytes.Equal(c.ChainIDHash.Bytes()[:], chainIDHash[:]) {
+			return fmt.Errorf("RevealChain's chainid hash does not match with CommitChain: %s", e.Hash().String())
+		}
+
+		//validate Weld in the commitChain
+		weld := common.DoubleSha(append(c.EntryHash.Bytes(), e.ChainID.Bytes()...))
+		if !bytes.Equal(c.Weld.Bytes()[:], weld[:]) {
+			return fmt.Errorf("RevealChain's weld does not match with CommitChain: %s", e.Hash().String())
+		}
+
 		// Add the msg to the Mem pool
 		fMemPool.addMsg(msg, h)
 
@@ -567,17 +631,24 @@ func processCommitEntry(msg *wire.MsgCommitEntry) error {
 		return fmt.Errorf("Cannot commit entry, entry has already been commited")
 	}
 
-	// deduct the entry credits from the eCreditMap
+	if c.Credits > common.MAX_ENTRY_CREDITS {
+		return fmt.Errorf("Commit entry exceeds the max entry credit limit:" + c.EntryHash.String() )
+	}
+
+	// Check the entry credit balance
 	if eCreditMap[string(c.ECPubKey[:])] < int32(c.Credits) {
 		return fmt.Errorf("Not enough credits for CommitEntry")
 	}
-	eCreditMap[string(c.ECPubKey[:])] -= int32(c.Credits)
 
 	// add to the commitEntryMap
 	commitEntryMap[c.EntryHash.String()] = c
 
 	// Server: add to MyPL
 	if nodeMode == common.SERVER_NODE {
+
+		// deduct the entry credits from the eCreditMap
+		eCreditMap[string(c.ECPubKey[:])] -= int32(c.Credits)
+
 		h, _ := msg.Sha()
 		if plMgr.IsMyPListExceedingLimit() {
 			procLog.Warning("Exceeding MyProcessList size limit!")
@@ -610,17 +681,23 @@ func processCommitChain(msg *wire.MsgCommitChain) error {
 		return fmt.Errorf("Cannot commit chain, first entry for chain already exists")
 	}
 
-	// deduct the entry credits from the eCreditMap
+	if c.Credits > common.MAX_CHAIN_CREDITS {
+		return fmt.Errorf("Commit chain exceeds the max entry credit limit:" + c.EntryHash.String())
+	}
+
+	// Check the entry credit balance
 	if eCreditMap[string(c.ECPubKey[:])] < int32(c.Credits) {
 		return fmt.Errorf("Not enough credits for CommitChain")
 	}
-	eCreditMap[string(c.ECPubKey[:])] -= int32(c.Credits)
 
 	// add to the commitChainMap
 	commitChainMap[c.EntryHash.String()] = c
 
 	// Server: add to MyPL
 	if nodeMode == common.SERVER_NODE {
+		// deduct the entry credits from the eCreditMap
+		eCreditMap[string(c.ECPubKey[:])] -= int32(c.Credits)
+
 		h, _ := msg.Sha()
 
 		if plMgr.IsMyPListExceedingLimit() {
@@ -642,27 +719,25 @@ func processCommitChain(msg *wire.MsgCommitChain) error {
 
 // processBuyEntryCredit validates the MsgCommitChain and adds it to processlist
 func processBuyEntryCredit(msg *wire.MsgFactoidTX) error {
-	if nodeMode == common.SERVER_NODE {
-		// Update the credit balance in memory
-		for _, v := range msg.Transaction.GetECOutputs() {
-			pub := new([32]byte)
-			copy(pub[:], v.GetAddress().Bytes())
+	// Update the credit balance in memory
+	for _, v := range msg.Transaction.GetECOutputs() {
+		pub := new([32]byte)
+		copy(pub[:], v.GetAddress().Bytes())
 
-			cred := int32(v.GetAmount() / uint64(FactoshisPerCredit))
+		cred := int32(v.GetAmount() / uint64(FactoshisPerCredit))
 
-			eCreditMap[string(pub[:])] += cred
+		eCreditMap[string(pub[:])] += cred
 
-		}
+	}
 
-		h, _ := msg.Sha()
-		if plMgr.IsMyPListExceedingLimit() {
-			procLog.Warning("Exceeding MyProcessList size limit!")
-			return fMemPool.addOrphanMsg(msg, &h)
-		}
+	h, _ := msg.Sha()
+	if plMgr.IsMyPListExceedingLimit() {
+		procLog.Warning("Exceeding MyProcessList size limit!")
+		return fMemPool.addOrphanMsg(msg, &h)
+	}
 
-		if _, err := plMgr.AddMyProcessListItem(msg, &h, wire.ACK_FACTOID_TX); err != nil {
-			return err
-		}
+	if _, err := plMgr.AddMyProcessListItem(msg, &h, wire.ACK_FACTOID_TX); err != nil {
+		return err
 	}
 
 	return nil
@@ -799,6 +874,13 @@ func buildEndOfMinute(pl *consensus.ProcessList, pli *consensus.ProcessListItem)
 
 // build Genesis blocks
 func buildGenesisBlocks() error {
+	//Set the timestamp for the genesis block
+	t, err :=  time.Parse (time.RFC3339, common.GENESIS_BLK_TIMESTAMP)
+	if err != nil {
+		panic ("Not able to parse the genesis block time stamp")
+	}
+	dchain.NextBlock.Header.Timestamp = uint32(t.Unix() / 60)
+
 	// Allocate the first two dbentries for ECBlock and Factoid block
 	dchain.AddDBEntry(&common.DBEntry{}) // AdminBlock
 	dchain.AddDBEntry(&common.DBEntry{}) // ECBlock
@@ -829,8 +911,8 @@ func buildGenesisBlocks() error {
 
 	// Check block hash if genesis block
 	if dbBlock.DBHash.String() != common.GENESIS_DIR_BLOCK_HASH {
-
-		procLog.Errorf("\nGenesis block hash expected: " + common.GENESIS_DIR_BLOCK_HASH +
+		//Panic for Milestone 1
+		panic("\nGenesis block hash expected: " + common.GENESIS_DIR_BLOCK_HASH +
 			"\nGenesis block hash found:    " + dbBlock.DBHash.String() + "\n")
 	}
 
@@ -1044,6 +1126,33 @@ func newAdminBlock(chain *common.AdminChain) *common.AdminBlock {
 // Seals the current open block, store it in db and create the next open block
 func newFactoidBlock(chain *common.FctChain) block.IFBlock {
 
+	older := FactoshisPerCredit
+
+	cfg := util.ReReadConfig()
+	FactoshisPerCredit = cfg.App.ExchangeRate
+
+	rate  := fmt.Sprintf("Current Exchange rate is %v",
+					   strings.TrimSpace(fct.ConvertDecimal(FactoshisPerCredit)))
+	if older != FactoshisPerCredit {
+
+		orate := fmt.Sprintf("The Exchange rate was    %v\n",
+							 strings.TrimSpace(fct.ConvertDecimal(older)))
+
+		cp.CP.AddUpdate(
+			"Fee",  // tag
+			"status",   // Category
+			"Entry Credit Exchange Rate Changed", // Title
+			orate+rate,
+			0)
+	}else{
+		cp.CP.AddUpdate(
+			"Fee",  // tag
+			"status",   // Category
+			"Entry Credit Exchange Rate", // Title
+			rate,
+			0)
+	}
+
 	// acquire the last block
 	currentBlock := chain.NextBlock
 
@@ -1129,7 +1238,8 @@ func placeAnchor(dbBlock *common.DirectoryBlock) error {
 	if nodeMode == common.SERVER_NODE && dbBlock != nil {
 		// todo: need to make anchor as a go routine, independent of factomd
 		// same as blockmanager to btcd
-		go anchor.SendRawTransactionToBTC(dbBlock.KeyMR, uint64(dbBlock.Header.DBHeight))
+		go anchor.SendRawTransactionToBTC(dbBlock.KeyMR, dbBlock.Header.DBHeight)
+
 	}
 	return nil
 }

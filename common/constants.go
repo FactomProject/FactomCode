@@ -4,7 +4,9 @@
 
 package common
 
-import ()
+import (
+	"time"
+	)
 
 const (
 
@@ -19,7 +21,12 @@ const (
 	MAX_ORPHAN_SIZE   = int(5000)     //Prphan mem pool size
 	MAX_TX_POOL_SIZE  = int(50000)    //Transaction mem pool size
 	MAX_BLK_POOL_SIZE = int(500000)   //Block mem bool size
-	MAX_PLIST_SIZE    = int(200000)   //MY Process List size
+	MAX_PLIST_SIZE    = int(150000)   //MY Process List size
+	
+	MAX_ENTRY_CREDITS = uint8(10)	  //Max number of entry credits per entry
+	MAX_CHAIN_CREDITS = uint8(20)	  //Max number of entry credits per chain
+	
+	COMMIT_TIME_WINDOW = time.Duration(12)	  //Time windows for commit chain and commit entry +/- 12 hours
 
 	//Common constants
 	VERSION_0     = byte(0)
@@ -36,8 +43,12 @@ const (
 	LIGHT_NODE  = "LIGHT"
 
 	//Server public key for milestone 1
-	SERVER_PUB_KEY         = "8cee85c62a9e48039d4ac294da97943c2001be1539809ea5f54721f0c5477a0a"
-	GENESIS_DIR_BLOCK_HASH = "fd595909a14187fe35636d97e58fea5f4a29501b6cb3f3a42e167d70477efe4e"
+	SERVER_PUB_KEY         = "0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a"
+	//Genesis directory block timestamp in RFC3339 format
+	GENESIS_BLK_TIMESTAMP = "2015-09-01T20:00:00+00:00"
+	//Genesis directory block hash
+	GENESIS_DIR_BLOCK_HASH = "cbd3d09db6defdc25dfc7d57f3479b339a077183cd67022e6d1ef6c041522b40"
+
 )
 
 //---------------------------------------------------------------

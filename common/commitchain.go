@@ -32,6 +32,8 @@ type CommitChain struct {
 
 var _ Printable = (*CommitChain)(nil)
 var _ BinaryMarshallable = (*CommitChain)(nil)
+var _ ShortInterpretable = (*CommitChain)(nil)
+var _ ECBlockEntry = (*CommitChain)(nil)
 
 func (c *CommitChain) MarshalledSize() uint64 {
 	return uint64(CommitChainSize)
@@ -50,6 +52,22 @@ func NewCommitChain() *CommitChain {
 	return c
 }
 
+func (e *CommitChain) Hash() *Hash {
+	bin, err := e.MarshalBinary()
+	if err != nil {
+		panic(err)
+	}
+	return Sha(bin)
+}
+
+func (b *CommitChain) IsInterpretable() bool {
+	return false
+}
+
+func (b *CommitChain) Interpret() string {
+	return ""
+}
+
 // CommitMsg returns the binary marshaled message section of the CommitEntry
 // that is covered by the CommitEntry.Sig.
 func (c *CommitChain) CommitMsg() []byte {
@@ -60,24 +78,43 @@ func (c *CommitChain) CommitMsg() []byte {
 	return p[:len(p)-64-32]
 }
 
+// Return the timestamp in milliseconds.
+func (c *CommitChain) GetMilliTime() int64 {
+	a := make([]byte, 2, 8)
+	a = append(a, c.MilliTime[:]...)
+	milli := int64(binary.BigEndian.Uint64(a))
+	return milli
+}
+
 // InTime checks the CommitEntry.MilliTime and returns true if the timestamp is
-// whitin +/- 24 hours of the current time.
+// whitin +/- 12 hours of the current time.
 // TODO
 func (c *CommitChain) InTime() bool {
 	now := time.Now()
-	a := make([]byte, 2, 8)
-	a = append(a, c.MilliTime[:]...)
-	buf := bytes.NewBuffer(a)
-	var sec int64
-	binary.Read(buf, binary.BigEndian, &sec)
-	sec = sec / 1000
+	sec := c.GetMilliTime() / 1000
 	t := time.Unix(sec, 0)
 
-	return t.After(now.Add(-24*time.Hour)) && t.Before(now.Add(24*time.Hour))
+	return t.After(now.Add(-COMMIT_TIME_WINDOW*time.Hour)) && t.Before(now.Add(COMMIT_TIME_WINDOW*time.Hour))
 }
 
 func (c *CommitChain) IsValid() bool {
+	
+	//double check the credits in the commit
+	if c.Credits < 1 || c.Version != 0 {
+		return false
+	}
+	
 	return ed.VerifyCanonical(c.ECPubKey, c.CommitMsg(), c.Sig)
+}
+
+func (c *CommitChain) GetHash() *Hash {
+	data, _ := c.MarshalBinary()
+	return Sha(data)
+}
+
+func (c *CommitChain) GetSigHash() *Hash {
+	data := c.CommitMsg()
+	return Sha(data)
 }
 
 func (c *CommitChain) MarshalBinary() ([]byte, error) {

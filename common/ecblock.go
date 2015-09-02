@@ -379,10 +379,12 @@ func (e *ECBlockBody) Spew() string {
 
 type ECBlockEntry interface {
 	Printable
+	ShortInterpretable
 
 	ECID() byte
 	MarshalBinary() ([]byte, error)
 	UnmarshalBinary(data []byte) error
+	Hash() *Hash
 }
 
 type ECBlockHeader struct {

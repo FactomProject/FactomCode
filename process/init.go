@@ -201,7 +201,6 @@ func initFctChain() {
 		// func GetGenesisFBlock(ftime uint64, ExRate uint64, addressCnt int, Factoids uint64 ) IFBlock {
 		//fchain.NextBlock = block.GetGenesisFBlock(0, FactoshisPerCredit, 10, 200000000000)
 		fchain.NextBlock = block.GetGenesisFBlock()
-		fmt.Println(fchain.NextBlock)
 		gb:=fchain.NextBlock
         
         // If a client, this block is going to get downloaded and added.  Don't do it twice.
@@ -344,10 +343,6 @@ func validateDChain(c *common.DChain) error {
 	//prevBlkHash is the block hash for c.Blocks[0]
 	if prevBlkHash == nil || prevBlkHash.String() != common.GENESIS_DIR_BLOCK_HASH {
 
-		procLog.Errorf("Genesis Block wasn't as expected:\n" +
-			"    Expected: " + common.GENESIS_DIR_BLOCK_HASH + "\n" +
-			"    Found:    " + prevBlkHash.String())
-
 		str := fmt.Sprintf("<pre>" +
 			"Expected: " + common.GENESIS_DIR_BLOCK_HASH + "<br>" +
 			"Found:    " + prevBlkHash.String() + "</pre><br><br>")
@@ -357,6 +352,10 @@ func validateDChain(c *common.DChain) error {
 			"Genesis Hash doesn't match", // Title
 			str, // Message
 			0)
+		// panic for Milestone 1
+		panic("Genesis Block wasn't as expected:\n" +
+			"    Expected: " + common.GENESIS_DIR_BLOCK_HASH + "\n" +
+			"    Found:    " + prevBlkHash.String())		
 
 	}
 

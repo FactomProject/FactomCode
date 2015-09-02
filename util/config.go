@@ -12,12 +12,19 @@ import (
 type FactomdConfig struct {
 	App struct {
 		PortNumber              int
-		LdbPath                 string // should be removed, and default to $defaultDataDir/ldb9
-		BoltDBPath              string // should be removed,
-		DataStorePath           string // should be removed, and default to $defaultDataDir/store
+		HomeDir					string 
+		LdbPath                 string 
+		BoltDBPath              string 
+		DataStorePath           string 
 		DirectoryBlockInSeconds int
 		NodeMode                string
 		ServerPrivKey           string
+		ExchangeRate            uint64
+	}
+	Anchor struct {
+		ServerECKey         	string
+		AnchorChainID         	string		
+		ConfirmationsNeeded 	int	
 	}
 	Btc struct {
 		BTCPubAddr         string
@@ -71,66 +78,79 @@ const defaultConfig = `
 ; App settings
 ; ------------------------------------------------------------------------------
 [app]
-PortNumber				= 8088
-LdbPath					= "/tmp/ldb9"
-BoltDBPath				= "/tmp/"
-DataStorePath			= "/tmp/store/seed/"
-DirectoryBlockInSeconds	= 60
-;---- NodeMode - FULL,SERVER,LIGHT -----
-NodeMode				= FULL
-ServerPrivKey			= ""
+PortNumber				      		= 8088
+HomeDir								= "/tmp/"
+LdbPath					        	= "ldb9"
+BoltDBPath							= ""
+DataStorePath			      		= "store/seed/"
+DirectoryBlockInSeconds				= 60
+; --------------- NodeMode: FULL | SERVER | LIGHT ----------------
+NodeMode				        	= FULL
+ServerPrivKey			      		= 07c0d52cb74f4ca3106d80c4a70488426886bccc6ebc10c6bafb37bf8a65f4c38cee85c62a9e48039d4ac294da97943c2001be1539809ea5f54721f0c5477a0a
+ExchangeRate                        = 00666600
+
+[anchor]
+ServerECKey							= 397c49e182caa97737c6b394591c614156fbe7998d7bf5d76273961e9fa1edd406ed9e69bfdf85db8aa69820f348d096985bc0b11cc9fc9dcee3b8c68b41dfd5
+AnchorChainID						= df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604
+ConfirmationsNeeded					= 20
 
 [btc]
-BTCPubAddr				= "movaFTARmsaTMk3j71MpX8HtMURpsKhdra"
-SendToBTCinSeconds  	= 600
-WalletPassphrase 		= "lindasilva"
-CertHomePath			= "btcwallet"
-RpcClientHost			= "localhost:18332"
-RpcClientEndpoint		= "ws"
-RpcClientUser			= "testuser"
-RpcClientPass 			= "notarychain"
-BtcTransFee				= 0.0001
-CertHomePathBtcd		= "btcd"
-RpcBtcdHost 			= "localhost:18334"
-RpcUser					= ""
-RpcPass					= ""
-
+WalletPassphrase 	  				= "lindasilva"
+CertHomePath			  			= "btcwallet"
+RpcClientHost			  			= "localhost:18332"
+RpcClientEndpoint					= "ws"
+RpcClientUser			  			= "testuser"
+RpcClientPass 						= "notarychain"
+BtcTransFee				  			= 0.0001
+CertHomePathBtcd					= "btcd"
+RpcBtcdHost 			  			= "localhost:18334"
+RpcUser								=testuser
+RpcPass								=notarychain
 
 [wsapi]
-ApplicationName			= "Factom/wsapi"
-PortNumber				= 8088
+ApplicationName						= "Factom/wsapi"
+PortNumber				  			= 8088
 
 ; ------------------------------------------------------------------------------
-; LogLevel - debug,info,notice,warning,error,critical,alert,emergency,none
+; logLevel - allowed values are: debug, info, notice, warning, error, critical, alert, emergency and none
 ; ------------------------------------------------------------------------------
 [log]
-LogLevel 				= warning
-LogPath					= /tmp/factomd.log
+logLevel 							= debug
+LogPath								= "factom-d.log"
 
+; ------------------------------------------------------------------------------
+; Configurations for fctwallet
+; ------------------------------------------------------------------------------
 [Wallet]
-Address          				= localhost
-Port             				= 8089
-DataFile         				= /tmp/fctwallet.dat
-RefreshInSeconds 				= 60
-BoltDBPath 						= /tmp/
+Address          					= localhost
+Port             					= 8089
+DataFile         					= fctwallet.dat
+RefreshInSeconds 					= 60
+BoltDBPath 							= ""
 `
 
 var cfg *FactomdConfig
 var once sync.Once
+var filename = getHomeDir() + "/.factom/factomd.conf"
 
 // GetConfig reads the default factomd.conf file and returns a FactomConfig
 // object corresponding to the state of the file.
 func ReadConfig() *FactomdConfig {
 	once.Do(func() {
+		log.Println("read factom config file: ", filename)
 		cfg = readConfig()
 	})
 	return cfg
 }
 
+func ReReadConfig() *FactomdConfig {
+	cfg = readConfig()
+		
+	return cfg
+}
+
 func readConfig() *FactomdConfig {
 	cfg := new(FactomdConfig)
-	filename := getHomeDir() + "/.factom/factomd.conf"
-	log.Println("read factom config file: ", filename)
 
 	// This makes factom config file located at
 	//   POSIX (Linux/BSD): ~/.factom/factom.conf
@@ -147,9 +167,22 @@ func readConfig() *FactomdConfig {
 
 	err := gcfg.ReadFileInto(cfg, filename)
 	if err != nil {
-		log.Println("Server starting with default settings...")
+		log.Println("ERROR Reading config file!\nServer starting with default settings...\n",err)
 		gcfg.ReadStringInto(cfg, defaultConfig)
+	} 
+	
+	// Default to home directory if not set
+	if len(cfg.App.HomeDir) < 1 {
+		cfg.App.HomeDir = getHomeDir() + "/.factom/"
 	}
+	
+	// TODO: improve the paths after milestone 1
+	cfg.App.LdbPath = cfg.App.HomeDir + cfg.App.LdbPath
+	cfg.App.BoltDBPath = cfg.App.HomeDir + cfg.App.BoltDBPath	
+	cfg.App.DataStorePath = cfg.App.HomeDir + cfg.App.DataStorePath
+	cfg.Log.LogPath = cfg.App.HomeDir + cfg.Log.LogPath
+	cfg.Wallet.BoltDBPath = cfg.App.HomeDir + cfg.Wallet.BoltDBPath		
+	
 	return cfg
 }
 

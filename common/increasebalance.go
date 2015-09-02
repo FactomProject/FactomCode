@@ -20,6 +20,8 @@ type IncreaseBalance struct {
 var _ Printable = (*IncreaseBalance)(nil)
 
 //var _ BinaryMarshallable = (*IncreaseBalance)(nil)
+var _ ShortInterpretable = (*IncreaseBalance)(nil)
+var _ ECBlockEntry = (*IncreaseBalance)(nil)
 
 //func (c *IncreaseBalance) MarshalledSize() uint64 {
 //	return uint64(IncreaseBalanceSize)
@@ -31,8 +33,24 @@ func NewIncreaseBalance() *IncreaseBalance {
 	return r
 }
 
+func (e *IncreaseBalance) Hash() *Hash {
+	bin, err := e.MarshalBinary()
+	if err != nil {
+		panic(err)
+	}
+	return Sha(bin)
+}
+
 func (b *IncreaseBalance) ECID() byte {
 	return ECIDBalanceIncrease
+}
+
+func (b *IncreaseBalance) IsInterpretable() bool {
+	return false
+}
+
+func (b *IncreaseBalance) Interpret() string {
+	return ""
 }
 
 func (b *IncreaseBalance) MarshalBinary() ([]byte, error) {

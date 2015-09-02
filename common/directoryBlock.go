@@ -91,8 +91,12 @@ type DirBlockInfo struct {
 	// Serial hash for the directory block
 	DBHash *Hash
 
+	DBHeight uint32 //directory block height
+
+	Timestamp int64 // time of this dir block info being created
+
 	// BTCTxHash is the Tx hash returned from rpcclient.SendRawTransaction
-	BTCTxHash *Hash
+	BTCTxHash *Hash // use string or *btcwire.ShaHash ???
 
 	// BTCTxOffset is the index of the TX in this BTC block
 	BTCTxOffset int32
@@ -101,7 +105,7 @@ type DirBlockInfo struct {
 	BTCBlockHeight int32
 
 	//BTCBlockHash is the hash of the block where this TX is stored in BTC
-	//BTCBlockHash *Hash
+	BTCBlockHash *Hash // use string or *btcwire.ShaHash ???
 
 	// DBMerkleRoot is the merkle root of the Directory Block
 	// and is written into BTC as OP_RETURN data
@@ -221,9 +225,12 @@ func NewDBEntryFromABlock(b *AdminBlock) *DBEntry {
 func NewDirBlockInfoFromDBlock(b *DirectoryBlock) *DirBlockInfo {
 	e := &DirBlockInfo{}
 	e.DBHash = b.DBHash
+	e.DBHeight = b.Header.DBHeight
+	e.Timestamp = int64(b.Header.Timestamp * 60) //time.Now().Unix()
 	e.DBMerkleRoot = b.KeyMR
 	e.BTCConfirmed = false
 	e.BTCTxHash = NewHash()
+	e.BTCBlockHash = NewHash()
 
 	return e
 }
@@ -686,6 +693,9 @@ func (b *DirBlockInfo) MarshalBinary() (data []byte, err error) {
 	}
 	buf.Write(data)
 
+	binary.Write(&buf, binary.BigEndian, b.DBHeight)
+	binary.Write(&buf, binary.BigEndian, uint64(b.Timestamp))
+
 	data, err = b.BTCTxHash.MarshalBinary()
 	if err != nil {
 		return
@@ -695,12 +705,12 @@ func (b *DirBlockInfo) MarshalBinary() (data []byte, err error) {
 	binary.Write(&buf, binary.BigEndian, b.BTCTxOffset)
 	binary.Write(&buf, binary.BigEndian, b.BTCBlockHeight)
 
-	/*	data, err = b.BTCBlockHash.MarshalBinary()
-		if err != nil {
-			return
-		}
-		buf.Write(data)
-	*/
+	data, err = b.BTCBlockHash.MarshalBinary()
+	if err != nil {
+		return
+	}
+	buf.Write(data)
+
 	data, err = b.DBMerkleRoot.MarshalBinary()
 	if err != nil {
 		return
@@ -731,6 +741,12 @@ func (b *DirBlockInfo) UnmarshalBinaryData(data []byte) (newData []byte, err err
 		return
 	}
 
+	b.DBHeight = uint32(binary.BigEndian.Uint32(newData[:4]))
+	newData = newData[4:]
+
+	b.Timestamp = int64(binary.BigEndian.Uint64(newData[:8]))
+	newData = newData[8:]
+
 	b.BTCTxHash = new(Hash)
 	newData, err = b.BTCTxHash.UnmarshalBinaryData(newData)
 
@@ -739,6 +755,9 @@ func (b *DirBlockInfo) UnmarshalBinaryData(data []byte) (newData []byte, err err
 
 	b.BTCBlockHeight = int32(binary.BigEndian.Uint32(newData[:4]))
 	newData = newData[4:]
+
+	b.BTCBlockHash = new(Hash)
+	newData, err = b.BTCBlockHash.UnmarshalBinaryData(newData)
 
 	b.DBMerkleRoot = new(Hash)
 	newData, err = b.DBMerkleRoot.UnmarshalBinaryData(newData)
