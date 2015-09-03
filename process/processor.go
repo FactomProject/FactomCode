@@ -800,7 +800,7 @@ func buildIncreaseBalance(msg *wire.MsgFactoidTX) {
 	for i, ecout := range t.GetECOutputs() {
 		ib := common.NewIncreaseBalance()
 
-		pub := new([32]byte)
+		pub := new(common.ByteSlice32)
 		copy(pub[:], ecout.GetAddress().Bytes())
 		ib.ECPubKey = pub
 
