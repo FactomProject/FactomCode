@@ -28,7 +28,7 @@ func TestCommitEntryMarshal(t *testing.T) {
 
 	// build a CommitEntry for testing
 	ce.Version = 0
-	ce.MilliTime = &[6]byte{1, 1, 1, 1, 1, 1}
+	ce.MilliTime = (*common.ByteSlice6)(&[6]byte{1, 1, 1, 1, 1, 1})
 	p, _ := hex.DecodeString("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
 	ce.EntryHash.SetBytes(p)
 	ce.Credits = 1
@@ -37,8 +37,8 @@ func TestCommitEntryMarshal(t *testing.T) {
 	if pub, privkey, err := ed.GenerateKey(rand.Reader); err != nil {
 		t.Error(err)
 	} else {
-		ce.ECPubKey = pub
-		ce.Sig = ed.Sign(privkey, ce.CommitMsg())
+		ce.ECPubKey = (*common.ByteSlice32)(pub)
+		ce.Sig = (*common.ByteSlice64)(ed.Sign(privkey, ce.CommitMsg()))
 	}
 
 	// marshal and unmarshal the commit and see if it matches
@@ -69,7 +69,7 @@ func TestCommitChainMarshal(t *testing.T) {
 
 	// build a CommitChain for testing
 	cc.Version = 0
-	cc.MilliTime = &[6]byte{1, 1, 1, 1, 1, 1}
+	cc.MilliTime = (*common.ByteSlice6)(&[6]byte{1, 1, 1, 1, 1, 1})
 	p, _ := hex.DecodeString("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
 	cc.ChainIDHash.SetBytes(p)
 	p, _ = hex.DecodeString("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
@@ -82,8 +82,8 @@ func TestCommitChainMarshal(t *testing.T) {
 	if pub, privkey, err := ed.GenerateKey(rand.Reader); err != nil {
 		t.Error(err)
 	} else {
-		cc.ECPubKey = pub
-		cc.Sig = ed.Sign(privkey, cc.CommitMsg())
+		cc.ECPubKey = (*common.ByteSlice32)(pub)
+		cc.Sig = (*common.ByteSlice64)(ed.Sign(privkey, cc.CommitMsg()))
 	}
 
 	// marshal and unmarshal the commit and see if it matches
