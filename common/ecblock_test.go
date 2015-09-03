@@ -18,7 +18,7 @@ func TestECBlockMarshal(t *testing.T) {
 	// build a CommitChain for testing
 	cc := common.NewCommitChain()
 	cc.Version = 0
-	cc.MilliTime = &[6]byte{1, 1, 1, 1, 1, 1}
+	cc.MilliTime = (*common.ByteSlice6)(&[6]byte{1, 1, 1, 1, 1, 1})
 	cc.ChainIDHash.SetBytes(byteof(0xaa))
 	cc.Weld.SetBytes(byteof(0xbb))
 	cc.EntryHash.SetBytes(byteof(0xcc))
@@ -28,8 +28,8 @@ func TestECBlockMarshal(t *testing.T) {
 	if pub, privkey, err := ed.GenerateKey(rand.Reader); err != nil {
 		t.Error(err)
 	} else {
-		cc.ECPubKey = pub
-		cc.Sig = ed.Sign(privkey, cc.CommitMsg())
+		cc.ECPubKey = (*common.ByteSlice32)(pub)
+		cc.Sig = (*common.ByteSlice64)(ed.Sign(privkey, cc.CommitMsg()))
 	}
 
 	// create a ECBlock for testing
@@ -55,7 +55,7 @@ func TestECBlockMarshal(t *testing.T) {
 
 	// create an IncreaseBalance for testing
 	ib := common.NewIncreaseBalance()
-	pub := new([32]byte)
+	pub := new(common.ByteSlice32)
 	copy(pub[:], byteof(0xaa))
 	ib.ECPubKey = pub
 	ib.TXID.SetBytes(byteof(0xbb))

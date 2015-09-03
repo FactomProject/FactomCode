@@ -9,7 +9,7 @@ import (
 
 func TestIncreaseBalanceMarshalUnmarshal(t *testing.T) {
 	ib1 := NewIncreaseBalance()
-	pub := new([32]byte)
+	pub := new(ByteSlice32)
 	copy(pub[:], byteof(0xaa))
 	ib1.ECPubKey = pub
 	ib1.TXID.SetBytes(byteof(0xbb))
