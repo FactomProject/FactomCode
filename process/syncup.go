@@ -11,6 +11,7 @@ import (
 	"github.com/FactomProject/FactomCode/common"
 	cp "github.com/FactomProject/FactomCode/controlpanel"
 	"github.com/FactomProject/FactomCode/database"
+	"github.com/FactomProject/FactomCode/state"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/davecgh/go-spew/spew"
 	"strconv"
@@ -209,7 +210,7 @@ func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, d
 		if h.String() != common.GENESIS_DIR_BLOCK_HASH {
 			// panic for milestone 1
 			panic("\nGenesis block hash expected: " + common.GENESIS_DIR_BLOCK_HASH +
-				"\nGenesis block hash found:    " + h.String() + "\n")			
+				"\nGenesis block hash found:    " + h.String() + "\n")
 			//procLog.Errorf("Genesis dir block is not as expected: " + h.String())
 		}
 	}
@@ -242,7 +243,7 @@ func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, d
 				// validate every entry in EBlock
 				for _, ebEntry := range eBlkMsg.EBlk.Body.EBEntries {
 					if _, foundInMemPool := fMemPool.blockpool[ebEntry.String()]; !foundInMemPool {
-						if !bytes.Equal(ebEntry.Bytes()[:31],common.ZERO_HASH[:31]) {
+						if !bytes.Equal(ebEntry.Bytes()[:31], common.ZERO_HASH[:31]) {
 							// continue if the entry arleady exists in db
 							entry, _ := db.FetchEntryByHash(ebEntry)
 							if entry == nil {
@@ -289,7 +290,7 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 				return err
 			}
 			// Initialize the Factoid State
-			err = common.FactoidState.AddTransactionBlock(fBlkMsg.SC)
+			err = state.FactoidState.AddTransactionBlock(fBlkMsg.SC)
 			FactoshisPerCredit = fBlkMsg.SC.GetExchRate()
 			if err != nil {
 				return err

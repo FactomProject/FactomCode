@@ -12,6 +12,7 @@ import (
 	"github.com/FactomProject/FactomCode/consensus"
 	cp "github.com/FactomProject/FactomCode/controlpanel"
 	"github.com/FactomProject/FactomCode/factomlog"
+	"github.com/FactomProject/FactomCode/state"
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd/wire"
 	fct "github.com/FactomProject/factoid"
@@ -185,9 +186,9 @@ func initFctChain() {
 				fmt.Sprintf("%v", fBlocks[i].GetDBHeight())))
 		} else {
 			FactoshisPerCredit = fBlocks[i].GetExchRate()
-			common.FactoidState.SetFactoshisPerEC(FactoshisPerCredit)
+			state.FactoidState.SetFactoshisPerEC(FactoshisPerCredit)
 			// initialize the FactoidState in sequence
-			err := common.FactoidState.AddTransactionBlock(fBlocks[i])
+			err := state.FactoidState.AddTransactionBlock(fBlocks[i])
 			if err != nil {
 				panic("Failed to rebuild factoid state: " + err.Error())
 			}
@@ -196,25 +197,25 @@ func initFctChain() {
 
 	//Create an empty block and append to the chain
 	if len(fBlocks) == 0 || dchain.NextDBHeight == 0 {
-		common.FactoidState.SetFactoshisPerEC(FactoshisPerCredit)
+		state.FactoidState.SetFactoshisPerEC(FactoshisPerCredit)
 		fchain.NextBlockHeight = 0
 		// func GetGenesisFBlock(ftime uint64, ExRate uint64, addressCnt int, Factoids uint64 ) IFBlock {
 		//fchain.NextBlock = block.GetGenesisFBlock(0, FactoshisPerCredit, 10, 200000000000)
 		fchain.NextBlock = block.GetGenesisFBlock()
-		gb:=fchain.NextBlock
-        
-        // If a client, this block is going to get downloaded and added.  Don't do it twice.
-        if nodeMode == common.SERVER_NODE {
-			err := common.FactoidState.AddTransactionBlock(gb)
-			if err != nil { 
+		gb := fchain.NextBlock
+
+		// If a client, this block is going to get downloaded and added.  Don't do it twice.
+		if nodeMode == common.SERVER_NODE {
+			err := state.FactoidState.AddTransactionBlock(gb)
+			if err != nil {
 				panic(err)
 			}
 		}
 
 	} else {
 		fchain.NextBlockHeight = dchain.NextDBHeight
-		common.FactoidState.ProcessEndOfBlock2(dchain.NextDBHeight)
-		fchain.NextBlock = common.FactoidState.GetCurrentBlock()
+		state.FactoidState.ProcessEndOfBlock2(dchain.NextDBHeight)
+		fchain.NextBlock = state.FactoidState.GetCurrentBlock()
 	}
 
 	exportFctChain(fchain)
@@ -248,11 +249,11 @@ func initializeECreditMap(block *common.ECBlock) {
 		case common.ECIDChainCommit:
 			e := entry.(*common.CommitChain)
 			eCreditMap[string(e.ECPubKey[:])] -= int32(e.Credits)
-			common.FactoidState.UpdateECBalance(fct.NewAddress(e.ECPubKey[:]), int64(e.Credits))
+			state.FactoidState.UpdateECBalance(fct.NewAddress(e.ECPubKey[:]), int64(e.Credits))
 		case common.ECIDEntryCommit:
 			e := entry.(*common.CommitEntry)
 			eCreditMap[string(e.ECPubKey[:])] -= int32(e.Credits)
-			common.FactoidState.UpdateECBalance(fct.NewAddress(e.ECPubKey[:]), int64(e.Credits))
+			state.FactoidState.UpdateECBalance(fct.NewAddress(e.ECPubKey[:]), int64(e.Credits))
 		case common.ECIDBalanceIncrease:
 			e := entry.(*common.IncreaseBalance)
 			eCreditMap[string(e.ECPubKey[:])] += int32(e.NumEC)
@@ -355,7 +356,7 @@ func validateDChain(c *common.DChain) error {
 		// panic for Milestone 1
 		panic("Genesis Block wasn't as expected:\n" +
 			"    Expected: " + common.GENESIS_DIR_BLOCK_HASH + "\n" +
-			"    Found:    " + prevBlkHash.String())		
+			"    Found:    " + prevBlkHash.String())
 
 	}
 

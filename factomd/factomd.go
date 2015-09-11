@@ -11,6 +11,7 @@ import (
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/database/ldb"
 	"github.com/FactomProject/FactomCode/process"
+	"github.com/FactomProject/FactomCode/state"
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/FactomCode/wsapi"
 	"github.com/FactomProject/btcd"
@@ -144,7 +145,7 @@ func initDB() {
 
 	//init factoid_bolt db
 	fmt.Println("boltDBpath:", boltDBpath)
-	common.FactoidState = stateinit.NewFactoidState(boltDBpath + "factoid_bolt.db")
+	state.FactoidState = stateinit.NewFactoidState(boltDBpath + "factoid_bolt.db")
 
 	//init db
 	var err error

@@ -26,6 +26,7 @@ import (
 	"github.com/FactomProject/FactomCode/consensus"
 	cp "github.com/FactomProject/FactomCode/controlpanel"
 	"github.com/FactomProject/FactomCode/database"
+	"github.com/FactomProject/FactomCode/state"
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd/wire"
 	fct "github.com/FactomProject/factoid"
@@ -132,7 +133,7 @@ func initProcessor() {
 	procLog.Info("Loaded ", achain.NextBlockHeight, " Admin blocks for chain: "+achain.ChainID.String())
 
 	initFctChain()
-	//common.FactoidState.LoadState()
+	//state.FactoidState.LoadState()
 	procLog.Info("Loaded ", fchain.NextBlockHeight, " factoid blocks for chain: "+fchain.ChainID.String())
 
 	//Init anchor for server
@@ -299,7 +300,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 			}
 			procLog.Infof("PROCESSOR: End of minute msg - wire.CmdInt_EOM:%+v\n", msg)
 
-			common.FactoidState.EndOfPeriod(int(msgEom.EOM_Type))
+			state.FactoidState.EndOfPeriod(int(msgEom.EOM_Type))
 
 			if msgEom.EOM_Type == wire.END_MINUTE_10 {
 
@@ -310,7 +311,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 				msgEom.EC_Exchange_Rate = FactoshisPerCredit
 				plMgr.AddMyProcessListItem(msgEom, nil, wire.END_MINUTE_10)
 				// Set exchange rate in the Factoid State
-				common.FactoidState.SetFactoshisPerEC(FactoshisPerCredit)
+				state.FactoidState.SetFactoshisPerEC(FactoshisPerCredit)
 
 				err := buildBlocks()
 				if err != nil {
@@ -390,8 +391,8 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		// Handle the server case
 		if nodeMode == common.SERVER_NODE {
 			t := msgFactoidTX.Transaction
-			txnum := len(common.FactoidState.GetCurrentBlock().GetTransactions())
-			if common.FactoidState.AddTransaction(txnum, t) == nil {
+			txnum := len(state.FactoidState.GetCurrentBlock().GetTransactions())
+			if state.FactoidState.AddTransaction(txnum, t) == nil {
 				if err := processBuyEntryCredit(msgFactoidTX); err != nil {
 					return err
 				}
@@ -1165,9 +1166,9 @@ func newFactoidBlock(chain *common.FctChain) block.IFBlock {
 
 	chain.BlockMutex.Lock()
 	chain.NextBlockHeight++
-	common.FactoidState.SetFactoshisPerEC(FactoshisPerCredit)
-	common.FactoidState.ProcessEndOfBlock2(chain.NextBlockHeight)
-	chain.NextBlock = common.FactoidState.GetCurrentBlock()
+	state.FactoidState.SetFactoshisPerEC(FactoshisPerCredit)
+	state.FactoidState.ProcessEndOfBlock2(chain.NextBlockHeight)
+	chain.NextBlock = state.FactoidState.GetCurrentBlock()
 	chain.BlockMutex.Unlock()
 
 	//Store the block in db

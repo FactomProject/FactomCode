@@ -7,7 +7,6 @@ import (
 	"reflect"
 	"text/template"
 
-	"github.com/FactomProject/dynrsrc"
 	"github.com/FactomProject/gocoding"
 	"github.com/FactomProject/gocoding/html"
 	"github.com/FactomProject/gocoding/json"
@@ -18,16 +17,6 @@ var htmlTmpl *template.Template
 func StartStatic(path string) (err error) {
 	htmlTmpl, err = template.ParseFiles(path)
 	return
-}
-
-func StartDynamic(path string, readEH func(err error)) error {
-	return dynrsrc.CreateDynamicResource(path, func(data []byte) {
-		var err error
-		htmlTmpl, err = template.New("html").Parse(string(data))
-		if err != nil {
-			readEH(err)
-		}
-	})
 }
 
 var M = struct{ Main, Alt gocoding.Marshaller }{

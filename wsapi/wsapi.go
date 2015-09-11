@@ -14,6 +14,7 @@ import (
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/factomapi"
+	"github.com/FactomProject/FactomCode/state"
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd/wire"
 	fct "github.com/FactomProject/factoid"
@@ -454,7 +455,7 @@ func handleFactoidBalance(ctx *web.Context, eckey string) {
 		b = fbal{Response: "Invalid Address", Success: false}
 	}
 	if err == nil {
-		v := int64(common.FactoidState.GetBalance(fct.NewAddress(adr)))
+		v := int64(state.FactoidState.GetBalance(fct.NewAddress(adr)))
 		str := fmt.Sprintf("%d", v)
 		b = fbal{Response: str, Success: true}
 	} else {
@@ -516,7 +517,7 @@ func handleFactoidSubmit(ctx *web.Context) {
 		return
 	}
 
-	err = common.FactoidState.Validate(1, msg.Transaction)
+	err = state.FactoidState.Validate(1, msg.Transaction)
 	if err != nil {
 		returnMsg(ctx, err.Error(), false)
 		return
@@ -531,7 +532,7 @@ func handleFactoidSubmit(ctx *web.Context) {
 func handleGetFee(ctx *web.Context) {
 	type x struct{ Fee int64 }
 	b := new(x)
-	b.Fee = int64(common.FactoidState.GetFactoshisPerEC())
+	b.Fee = int64(state.FactoidState.GetFactoshisPerEC())
 	if p, err := json.Marshal(b); err != nil {
 		wsLog.Error(err)
 		ctx.WriteHeader(httpBad)
