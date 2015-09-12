@@ -1,4 +1,4 @@
-package State
+package state
 
 import (
 	"github.com/FactomProject/factoid/state"
