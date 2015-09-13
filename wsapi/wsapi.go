@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"strconv"
 
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/database"
@@ -64,7 +63,7 @@ func Start(db database.Db, inMsgQ chan wire.FtmInternalMsg) {
 	server.Get("/v1/factoid-get-fee/", handleGetFee)
 
 	wsLog.Info("Starting server")
-	go server.Run("localhost:" + strconv.Itoa(portNumber))
+	go server.Run(fmt.Sprintf(":%d", portNumber))
 }
 
 func Stop() {
