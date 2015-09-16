@@ -27,6 +27,7 @@ var (
 	_               = fmt.Print
 	cfg             *util.FactomdConfig
 	shutdownChannel = make(chan struct{})
+	homeDir         = ""
 	ldbpath         = ""
 	boltDBpath      = ""
 	db              database.Db                           // database
@@ -71,6 +72,9 @@ func main() {
 
 	// Load configuration file and send settings to components
 	loadConfigurations()
+	
+	// create the $home/.factom directory if it does not exist
+	os.Mkdir(homeDir, 0755)
 
 	// Initialize db
 	initDB()
@@ -133,6 +137,7 @@ func loadConfigurations() {
 
 	cfg = util.ReadConfig()
 
+	homeDir = cfg.App.HomeDir
 	ldbpath = cfg.App.LdbPath
 	boltDBpath = cfg.App.BoltDBPath
 	process.LoadConfigurations(cfg)

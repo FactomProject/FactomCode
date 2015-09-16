@@ -79,7 +79,7 @@ const defaultConfig = `
 ; ------------------------------------------------------------------------------
 [app]
 PortNumber				      		= 8088
-HomeDir								= "/tmp/"
+HomeDir								= ""
 LdbPath					        	= "ldb9"
 BoltDBPath							= ""
 DataStorePath			      		= "store/seed/"
