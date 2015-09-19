@@ -16,6 +16,7 @@ import (
 	"github.com/FactomProject/FactomCode/factomapi"
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd/wire"
+	"github.com/FactomProject/btcd"
 	fct "github.com/FactomProject/factoid"
 	"github.com/hoisie/web"
 )
@@ -62,6 +63,7 @@ func Start(db database.Db, inMsgQ chan wire.FtmInternalMsg) {
 	server.Get("/v1/entry-credit-balance/([^/]+)", handleEntryCreditBalance)
 	server.Get("/v1/factoid-balance/([^/]+)", handleFactoidBalance)
 	server.Get("/v1/factoid-get-fee/", handleGetFee)
+	server.Get("/v1/properties/",handleProperties)
 
 	wsLog.Info("Starting server")
 	go server.Run("localhost:" + strconv.Itoa(portNumber))
@@ -69,6 +71,22 @@ func Start(db database.Db, inMsgQ chan wire.FtmInternalMsg) {
 
 func Stop() {
 	server.Close()
+}
+
+func handleProperties(ctx *web.Context) {
+
+	r := new(common.Properties)
+	r.Factomd_Version  = common.FACTOMD_VERSION
+	r.Protocol_Version = btcd.ProtocolVersion
+	
+	if p, err := json.Marshal(r); err != nil {
+		wsLog.Error(err)
+		ctx.WriteHeader(httpBad)
+		ctx.Write([]byte(err.Error()))
+		return
+	} else {
+		ctx.Write(p)
+	}
 }
 
 func handleCommitChain(ctx *web.Context) {
@@ -114,7 +132,6 @@ func handleCommitChain(ctx *web.Context) {
 		return
 	}
 
-	//	ctx.WriteHeader(httpOK)
 }
 
 func handleRevealChain(ctx *web.Context) {
