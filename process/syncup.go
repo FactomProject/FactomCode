@@ -315,19 +315,17 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 				return err
 			}
 
-			// create a chain in db if it's not existing
-			chain := chainIDMap[eBlkMsg.EBlk.Header.ChainID.String()]
-			if chain == nil {
-				chain = new(common.EChain)
+			// create a chain when it's the first block of the entry chain
+			if eBlkMsg.EBlk.Header.EBSequence == 0 {			
+				chain := new(common.EChain)
 				chain.ChainID = eBlkMsg.EBlk.Header.ChainID
-				if eBlkMsg.EBlk.Header.EBSequence == 0 {
-					chain.FirstEntry, _ = db.FetchEntryByHash(eBlkMsg.EBlk.Body.EBEntries[0])
-				}
-				db.InsertChain(chain)
-				chainIDMap[chain.ChainID.String()] = chain
-			} else if chain.FirstEntry == nil && eBlkMsg.EBlk.Header.EBSequence == 0 {
 				chain.FirstEntry, _ = db.FetchEntryByHash(eBlkMsg.EBlk.Body.EBEntries[0])
+				if chain.FirstEntry == nil {
+					return errors.New("First entry not found for chain:" + eBlkMsg.EBlk.Header.ChainID.String())
+				}
+
 				db.InsertChain(chain)
+				chainIDMap[chain.ChainID.String()] = chain				
 			}
 
 			// for debugging
