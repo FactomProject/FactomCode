@@ -59,6 +59,7 @@ checkout() {
     cd $1 $2 > /dev/null 2>&1 
     if [ $? -eq 0 ]; then
         echo $1 | awk "{printf(\"%15s\",\"$1\")}"
+        git pull 2>&1 | awk '/There is no tracking.*/{printf " Current branch is not tracking anything in Github\n\t\t"}'
         git checkout -q $2 > /dev/null 2>&1
         if [ $? -eq 0 ]; then
             echo -e -n " now on" $2    # checkout did not fail
