@@ -6,7 +6,7 @@ package common
 
 import (
 	"time"
-	)
+)
 
 const (
 
@@ -22,20 +22,19 @@ const (
 	MAX_TX_POOL_SIZE  = int(50000)    //Transaction mem pool size
 	MAX_BLK_POOL_SIZE = int(500000)   //Block mem bool size
 	MAX_PLIST_SIZE    = int(150000)   //MY Process List size
-	
-	MAX_ENTRY_CREDITS = uint8(10)	  //Max number of entry credits per entry
-	MAX_CHAIN_CREDITS = uint8(20)	  //Max number of entry credits per chain
-	
-	COMMIT_TIME_WINDOW = time.Duration(12)	  //Time windows for commit chain and commit entry +/- 12 hours
 
-	
+	MAX_ENTRY_CREDITS = uint8(10) //Max number of entry credits per entry
+	MAX_CHAIN_CREDITS = uint8(20) //Max number of entry credits per chain
+
+	COMMIT_TIME_WINDOW = time.Duration(12) //Time windows for commit chain and commit entry +/- 12 hours
+
 	// maxProtocolVersion is the max protocol version the peer supports.
 	//Common constants
-	VERSION_0         = byte(0)
-	FACTOMD_VERSION   = 3001               //version starts from 1000 for Factom
-	NETWORK_ID_DB 	  = uint32(4203931041) //0xFA92E5A1
-	NETWORK_ID_EB     = uint32(4203931042) //0xFA92E5A2
-	NETWORK_ID_CB     = uint32(4203931043) //0xFA92E5A3
+	VERSION_0       = byte(0)
+	FACTOMD_VERSION = 3001               //version starts from 1000 for Factom
+	NETWORK_ID_DB   = uint32(4203931041) //0xFA92E5A1
+	NETWORK_ID_EB   = uint32(4203931042) //0xFA92E5A2
+	NETWORK_ID_CB   = uint32(4203931043) //0xFA92E5A3
 
 	//For Factom TestNet
 	NETWORK_ID_TEST = uint32(0) //0x0
@@ -46,12 +45,11 @@ const (
 	LIGHT_NODE  = "LIGHT"
 
 	//Server public key for milestone 1
-	SERVER_PUB_KEY         = "0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a"
+	SERVER_PUB_KEY = "8cee85c62a9e48039d4ac294da97943c2001be1539809ea5f54721f0c5477a0a" //"0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a"
 	//Genesis directory block timestamp in RFC3339 format
 	GENESIS_BLK_TIMESTAMP = "2015-09-01T20:00:00+00:00"
 	//Genesis directory block hash
 	GENESIS_DIR_BLOCK_HASH = "cbd3d09db6defdc25dfc7d57f3479b339a077183cd67022e6d1ef6c041522b40"
-
 )
 
 //---------------------------------------------------------------
@@ -93,6 +91,6 @@ var ZERO_HASH = []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
 //
 type Properties struct {
 	Protocol_Version  int
-	Factomd_Version	  int
+	Factomd_Version   int
 	Fctwallet_Version int
 }
