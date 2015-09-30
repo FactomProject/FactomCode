@@ -274,10 +274,13 @@ func initServerKeys() {
 		if err != nil {
 			panic("Cannot parse Server Private Key from configuration file: " + err.Error())
 		}
+		//Set server's public key
+		serverPubKey = serverPrivKey.Pub
+	} else {
+
+		serverPubKey = common.PubKeyFromString(common.SERVER_PUB_KEY)
+
 	}
-
-	serverPubKey = common.PubKeyFromString(common.SERVER_PUB_KEY)
-
 }
 
 // Initialize the process list manager with the proper dir block height

@@ -28,11 +28,14 @@ const (
 	
 	COMMIT_TIME_WINDOW = time.Duration(12)	  //Time windows for commit chain and commit entry +/- 12 hours
 
+	
+	// maxProtocolVersion is the max protocol version the peer supports.
 	//Common constants
-	VERSION_0     = byte(0)
-	NETWORK_ID_DB = uint32(4203931041) //0xFA92E5A1
-	NETWORK_ID_EB = uint32(4203931042) //0xFA92E5A2
-	NETWORK_ID_CB = uint32(4203931043) //0xFA92E5A3
+	VERSION_0         = byte(0)
+	FACTOMD_VERSION   = 3002               //fixed point. resolves to 0.<thousands place>.<rightmost digits>
+	NETWORK_ID_DB 	  = uint32(4203931041) //0xFA92E5A1
+	NETWORK_ID_EB     = uint32(4203931042) //0xFA92E5A2
+	NETWORK_ID_CB     = uint32(4203931043) //0xFA92E5A3
 
 	//For Factom TestNet
 	NETWORK_ID_TEST = uint32(0) //0x0
@@ -85,3 +88,11 @@ var FACTOID_CHAINID = []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x0f}
 
 var ZERO_HASH = []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+
+// Structure for reporting properties (used by the web API
+//
+type Properties struct {
+	Protocol_Version  int
+	Factomd_Version	  int
+	Fctwallet_Version int
+}
