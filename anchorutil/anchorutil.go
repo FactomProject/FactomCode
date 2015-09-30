@@ -17,7 +17,7 @@ import (
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/database/ldb"
 	"github.com/FactomProject/FactomCode/util"
-	"github.com/btcsuite/btcd/wire"
+	"github.com/btcsuitereleases/btcd/wire"
 	"github.com/davecgh/go-spew/spew"
 )
 
@@ -60,7 +60,7 @@ func processAnchorChain(anchorChainID *common.Hash) {
 				if err != nil {
 					fmt.Println(err)
 				}
-				dirBlockInfo, _ := dirBlockInfoToAnchorChain(aRecord)
+				dirBlockInfo, _ := anchorChainToDirBlockInfo(aRecord)
 				err = db.InsertDirBlockInfo(dirBlockInfo)
 				if err != nil {
 					fmt.Printf("InsertDirBlockInfo error: %s, DirBlockInfo=%s\n", err, spew.Sdump(dirBlockInfo))
@@ -70,7 +70,7 @@ func processAnchorChain(anchorChainID *common.Hash) {
 	}
 }
 
-func dirBlockInfoToAnchorChain(aRecord *anchor.AnchorRecord) (*common.DirBlockInfo, error) {
+func anchorChainToDirBlockInfo(aRecord *anchor.AnchorRecord) (*common.DirBlockInfo, error) {
 	dirBlockInfo := new(common.DirBlockInfo)
 	dirBlockInfo.DBHeight = aRecord.DBHeight
 	dirBlockInfo.BTCTxOffset = aRecord.Bitcoin.Offset
@@ -89,7 +89,7 @@ func dirBlockInfoToAnchorChain(aRecord *anchor.AnchorRecord) (*common.DirBlockIn
 		fmt.Printf("err in FetchDBlockByHeight: %d\n", aRecord.DBHeight)
 		dirBlockInfo.DBHash = new(common.Hash)
 	} else {
-		dirBlockInfo.Timestamp = int64(dblock.Header.Timestamp)
+		dirBlockInfo.Timestamp = int64(dblock.Header.Timestamp * 60)
 		dirBlockInfo.DBHash = dblock.DBHash
 	}
 	fmt.Printf("dirBlockInfo: %s\n", spew.Sdump(dirBlockInfo))

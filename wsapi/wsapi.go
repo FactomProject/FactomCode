@@ -419,20 +419,31 @@ func handleEntryCreditBalance(ctx *web.Context, eckey string) {
 		Success  bool
 	}
 	var b ecbal
-	adr, err := hex.DecodeString(eckey)
-	if err == nil && len(adr) != common.HASH_LENGTH {
-		b = ecbal{Response: "Invalid Address", Success: false}
+	var adr []byte
+	var err error
+
+	if fct.ValidateECUserStr(eckey) {
+		adr = fct.ConvertUserStrToAddress(eckey)
+	} else {
+		adr, err = hex.DecodeString(eckey)
+		if err == nil && len(adr) != common.HASH_LENGTH {
+			b = ecbal{Response: "Invalid Address", Success: false}
+		}
+		if err != nil {
+			b = ecbal{Response: err.Error(), Success: false}
+		}
 	}
-	if err == nil {
-		if bal, err := factomapi.ECBalance(eckey); err != nil {
-			wsLog.Error(err)
-			return
+
+	if len(adr) != common.HASH_LENGTH {
+		b = ecbal{Response: "Invalid Address", Success: false}
+	} else {
+		address := hex.EncodeToString(adr)
+		if bal, err := factomapi.ECBalance(address); err != nil {
+			b = ecbal{Response: err.Error(), Success: false}
 		} else {
 			str := fmt.Sprintf("%d", bal)
 			b = ecbal{Response: str, Success: true}
 		}
-	} else {
-		b = ecbal{Response: err.Error(), Success: false}
 	}
 
 	if p, err := json.Marshal(b); err != nil {
@@ -444,22 +455,33 @@ func handleEntryCreditBalance(ctx *web.Context, eckey string) {
 
 }
 
-func handleFactoidBalance(ctx *web.Context, eckey string) {
+func handleFactoidBalance(ctx *web.Context, fkey string) {
 	type fbal struct {
 		Response string
 		Success  bool
 	}
 	var b fbal
-	adr, err := hex.DecodeString(eckey)
-	if err == nil && len(adr) != common.HASH_LENGTH {
-		b = fbal{Response: "Invalid Address", Success: false}
+	var adr []byte
+	var err error
+
+	if fct.ValidateFUserStr(fkey) {
+		adr = fct.ConvertUserStrToAddress(fkey)
+	} else {
+		adr, err = hex.DecodeString(fkey)
+		if err == nil && len(adr) != common.HASH_LENGTH {
+			b = fbal{Response: "Invalid Address", Success: false}
+		}
+		if err != nil {
+			b = fbal{Response: err.Error(), Success: false}
+		}
 	}
-	if err == nil {
+
+	if len(adr) != common.HASH_LENGTH {
+		b = fbal{Response: "Invalid Address", Success: false}
+	} else {
 		v := int64(state.FactoidState.GetBalance(fct.NewAddress(adr)))
 		str := fmt.Sprintf("%d", v)
 		b = fbal{Response: str, Success: true}
-	} else {
-		b = fbal{Response: err.Error(), Success: false}
 	}
 
 	if p, err := json.Marshal(b); err != nil {
