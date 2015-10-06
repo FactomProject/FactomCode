@@ -120,6 +120,8 @@ checkout btclog       $branch $default
 checkout dynrsrc      $branch $default
 checkout ed25519      $branch $default
 checkout fastsha256   $branch $default 
+checkout go-bip32     $branch $default
+checkout go-bip39     $branch $default
 checkout go-flags     $branch $default
 checkout go-socks     $branch $default
 checkout seelog       $branch $default
