@@ -56,6 +56,7 @@ func Start(db database.Db, inMsgQ chan wire.FtmInternalMsg) {
 	server.Get("/v1/directory-block-head/?", handleDirectoryBlockHead)
 	server.Get("/v1/get-raw-data/([^/]+)", handleGetRaw)
 	server.Get("/v1/directory-block-by-keymr/([^/]+)", handleDirectoryBlock)
+	server.Get("/v1/directory-block-height/?", handleDirectoryBlockHeight)
 	server.Get("/v1/entry-block-by-keymr/([^/]+)", handleEntryBlock)
 	server.Get("/v1/entry-by-hash/([^/]+)", handleEntry)
 	server.Get("/v1/chain-head/([^/]+)", handleChainHead)
@@ -250,8 +251,32 @@ func handleDirectoryBlockHead(ctx *web.Context) {
 	} else {
 		ctx.Write(p)
 	}
+}
 
-	//	ctx.WriteHeader(httpOK)
+
+func handleDirectoryBlockHeight(ctx *web.Context) {
+	type dbheight struct {
+		Height int
+	}
+	
+	h := new(dbheight)
+	if block, err := factomapi.DBlockHead(); err != nil {
+		wsLog.Error(err)
+		ctx.WriteHeader(httpBad)
+		ctx.Write([]byte(err.Error()))
+		return
+	} else {
+		h.Height = int(block.Header.DBHeight)
+	}
+		
+	if p, err := json.Marshal(h); err != nil {
+		wsLog.Error(err)
+		ctx.WriteHeader(httpBad)
+		ctx.Write([]byte(err.Error()))
+		return
+	} else {
+		ctx.Write(p)
+	}	
 }
 
 func handleDirectoryBlock(ctx *web.Context, keymr string) {
@@ -519,7 +544,7 @@ func handleFactoidSubmit(ctx *web.Context) {
 	}
 
 	msg := new(wire.MsgFactoidTX)
-
+	fmt.Println(string(p))
 	if p, err = hex.DecodeString(t.Transaction); err != nil {
 		returnMsg(ctx, "Unable to decode the transaction", false)
 		return
