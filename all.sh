@@ -147,7 +147,7 @@ echo "
 *******************************************************
 "
 mkdir -p $HOME/.factom/static
-cp -R .fctwallet/walletapp/staticfiles/* $HOME/.factom/static/
+cp -R ./fctwallet/walletapp/staticfiles/* $HOME/.factom/static/
 
 
 echo ""
