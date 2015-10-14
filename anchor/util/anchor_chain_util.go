@@ -17,25 +17,31 @@ import (
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/database/ldb"
 	"github.com/FactomProject/FactomCode/util"
-	"github.com/btcsuite/btcd/wire"
+	"github.com/btcsuitereleases/btcd/wire"
 	"github.com/davecgh/go-spew/spew"
 )
 
 var (
-	_   = fmt.Print
-	cfg *util.FactomdConfig
-	db  database.Db
+	_               = fmt.Print
+	cfg             *util.FactomdConfig
+	db              database.Db
+	dirBlockInfoMap map[uint32]*common.DirBlockInfo //dbHash string as key
 )
 
 func main() {
 	cfg = util.ReadConfig()
 	ldbpath := cfg.App.LdbPath
 	initDB(ldbpath)
+	dirBlockInfoMap = make(map[uint32]*common.DirBlockInfo)
 
 	anchorChainID, _ := common.HexToHash(cfg.Anchor.AnchorChainID)
-	//fmt.Println("anchorChainID: ", cfg.Anchor.AnchorChainID)
+	fmt.Printf("ldbPath=%s, anchorChainID=%s\n", ldbpath, cfg.Anchor.AnchorChainID)
 
 	processAnchorChain(anchorChainID)
+
+	createMissingDirBlockInfo()
+
+	fmt.Println("done!")
 
 	//initDB("/home/bw/.factom/ldb.prd")
 	//dirBlockInfoMap, _ := db.FetchAllDirBlockInfo() // map[string]*common.DirBlockInfo
@@ -44,7 +50,28 @@ func main() {
 	//}
 }
 
+func createMissingDirBlockInfo() {
+	fmt.Println("create DirBlockInfo for those un-anchored DirBlocks")
+	dblocks, _ := db.FetchAllDBlocks()
+	for _, dblock := range dblocks {
+		if _, ok := dirBlockInfoMap[dblock.Header.DBHeight]; ok {
+			continue
+		} else {
+			dblock.BuildKeyMerkleRoot()
+			//fmt.Printf("creating missing dirBlockInfo for dir block=%s\n", spew.Sdump(dblock))
+			dirBlockInfo := common.NewDirBlockInfoFromDBlock(&dblock)
+			fmt.Printf("creating missing dirBlockInfo. DirBlockInfo=%s\n", spew.Sdump(dirBlockInfo))
+			err := db.InsertDirBlockInfo(dirBlockInfo)
+			if err != nil {
+				fmt.Printf("InsertDirBlockInfo error: %s, DirBlockInfo=%s\n", err, spew.Sdump(dirBlockInfo))
+			}
+			dirBlockInfoMap[dirBlockInfo.DBHeight] = dirBlockInfo
+		}
+	}
+}
+
 func processAnchorChain(anchorChainID *common.Hash) {
+	fmt.Println("processAnchorChain")
 	eblocks, _ := db.FetchAllEBlocksByChain(anchorChainID)
 	//fmt.Println("anchorChain length: ", len(*eblocks))
 	for _, eblock := range *eblocks {
@@ -60,17 +87,18 @@ func processAnchorChain(anchorChainID *common.Hash) {
 				if err != nil {
 					fmt.Println(err)
 				}
-				dirBlockInfo, _ := dirBlockInfoToAnchorChain(aRecord)
+				dirBlockInfo, _ := anchorChainToDirBlockInfo(aRecord)
 				err = db.InsertDirBlockInfo(dirBlockInfo)
 				if err != nil {
 					fmt.Printf("InsertDirBlockInfo error: %s, DirBlockInfo=%s\n", err, spew.Sdump(dirBlockInfo))
 				}
+				dirBlockInfoMap[dirBlockInfo.DBHeight] = dirBlockInfo
 			}
 		}
 	}
 }
 
-func dirBlockInfoToAnchorChain(aRecord *anchor.AnchorRecord) (*common.DirBlockInfo, error) {
+func anchorChainToDirBlockInfo(aRecord *anchor.AnchorRecord) (*common.DirBlockInfo, error) {
 	dirBlockInfo := new(common.DirBlockInfo)
 	dirBlockInfo.DBHeight = aRecord.DBHeight
 	dirBlockInfo.BTCTxOffset = aRecord.Bitcoin.Offset
@@ -89,10 +117,10 @@ func dirBlockInfoToAnchorChain(aRecord *anchor.AnchorRecord) (*common.DirBlockIn
 		fmt.Printf("err in FetchDBlockByHeight: %d\n", aRecord.DBHeight)
 		dirBlockInfo.DBHash = new(common.Hash)
 	} else {
-		dirBlockInfo.Timestamp = int64(dblock.Header.Timestamp)
+		dirBlockInfo.Timestamp = int64(dblock.Header.Timestamp * 60)
 		dirBlockInfo.DBHash = dblock.DBHash
 	}
-	fmt.Printf("dirBlockInfo: %s\n", spew.Sdump(dirBlockInfo))
+	//fmt.Printf("dirBlockInfo: %s\n", spew.Sdump(dirBlockInfo))
 	return dirBlockInfo, nil
 }
 
@@ -117,7 +145,7 @@ func entryToAnchorRecord(entry *common.Entry) (*anchor.AnchorRecord, error) {
 	if !verified {
 		fmt.Printf("*** anchor chain signature does NOT match:\n")
 	} else {
-		fmt.Printf("&&& anchor chain signature does MATCH:\n")
+		//fmt.Printf("&&& anchor chain signature does MATCH:\n")
 	}
 
 	aRecord := new(anchor.AnchorRecord)
@@ -125,7 +153,7 @@ func entryToAnchorRecord(entry *common.Entry) (*anchor.AnchorRecord, error) {
 	if err != nil {
 		return nil, fmt.Errorf("json.UnMarshall error: %s", err)
 	}
-	fmt.Printf("entryToAnchorRecord: %s", spew.Sdump(aRecord))
+	//fmt.Printf("entryToAnchorRecord: %s", spew.Sdump(aRecord))
 
 	return aRecord, nil
 }
