@@ -25,6 +25,8 @@ You need to set up Go environment and install the following packages:
 
 After installing and setting up Go, btcd, and btcwallet, the following command will obtain FactomCode, all dependencies, and install them (completing step 3 above):
 
+```bash
 $ go get -u github.com/factomproject/factomcode/...
+```
 
 *Note: the "warning: code.google.com is shutting down" warnings which may appear during installation/setup can safely be ignored.* 
