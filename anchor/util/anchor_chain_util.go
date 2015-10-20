@@ -11,6 +11,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"os"
 
 	"github.com/FactomProject/FactomCode/anchor"
 	"github.com/FactomProject/FactomCode/common"
@@ -31,6 +32,12 @@ var (
 	eblocks         *[]common.EBlock
 )
 
+// This utility is used to convert client-side factomd database to server-side
+// database.
+// It uses the factomd config file in default location: /home/.factom/factomd.conf
+// and the default database specified in this config: /home/.factom/ldb
+// You should copy the client-side db to this location, and then go run this util.
+//
 func main() {
 
 	sanityCheck()
@@ -61,6 +68,11 @@ func sanityCheck() {
 	eblocks, _ = db.FetchAllEBlocksByChain(anchorChainID)
 	fmt.Printf("There are %d directory blocks, %d DirBlockInfos, and %d anchor chain blocks in this database.\n",
 		len(dblocks), len(dirBlockInfoMap), len(*eblocks))
+
+	if len(dblocks) == len(dirBlockInfoMap) {
+		fmt.Println("All dir blocks have dirBlockInfo. All good and done!")
+		os.Exit(0)
+	}
 }
 
 func createMissingDirBlockInfo() {
@@ -73,7 +85,7 @@ func createMissingDirBlockInfo() {
 			dblock.BuildKeyMerkleRoot()
 			//fmt.Printf("creating missing dirBlockInfo for dir block=%s\n", spew.Sdump(dblock))
 			dirBlockInfo := common.NewDirBlockInfoFromDBlock(&dblock)
-			fmt.Printf("creating missing dirBlockInfo. DirBlockInfo=%s\n", spew.Sdump(dirBlockInfo))
+			//fmt.Printf("creating missing dirBlockInfo. DirBlockInfo=%s\n", spew.Sdump(dirBlockInfo))
 			err := db.InsertDirBlockInfo(dirBlockInfo)
 			if err != nil {
 				fmt.Printf("InsertDirBlockInfo error: %s, DirBlockInfo=%s\n", err, spew.Sdump(dirBlockInfo))
