@@ -15,7 +15,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"path/filepath"
 	"time"
 
@@ -124,11 +123,12 @@ func sanityCheck(hash *common.Hash) (*common.DirBlockInfo, error) {
 		anchorLog.Error(s)
 		return nil, errors.New(s)
 	}
-	if !common.NewHash().IsSameAs(dirBlockInfo.BTCTxHash) {
-		s := fmt.Sprintf("Anchor Warning: hash %s has already been anchored but not confirmed. btc tx hash is %s\n", hash.String(), dirBlockInfo.BTCTxHash.String())
-		anchorLog.Error(s)
-		return nil, errors.New(s)
-	}
+	//The re-anchoring is allowed now.
+	//if !common.NewHash().IsSameAs(dirBlockInfo.BTCTxHash) {
+	//s := fmt.Sprintf("Anchor Warning: hash %s has already been anchored but not confirmed. btc tx hash is %s\n", hash.String(), dirBlockInfo.BTCTxHash.String())
+	//anchorLog.Error(s)
+	//return nil, errors.New(s)
+	//}
 	if dclient == nil || wclient == nil {
 		s := fmt.Sprintf("\n\n$$$ WARNING: rpc clients and/or wallet are not initiated successfully. No anchoring for now.\n")
 		anchorLog.Warning(s)
@@ -241,30 +241,6 @@ func addTxOuts(msgtx *wire.MsgTx, b balance, hash []byte, blockHeight uint32) er
 	return nil
 }
 
-func selectInputs(eligible []btcjson.ListUnspentResult, minconf int) (selected []btcjson.ListUnspentResult, out btcutil.Amount, err error) {
-	// Iterate throguh eligible transactions, appending to outputs and
-	// increasing out.  This is finished when out is greater than the
-	// requested amt to spend.
-	selected = make([]btcjson.ListUnspentResult, 0, len(eligible))
-	for _, e := range eligible {
-		amount, err := btcutil.NewAmount(e.Amount)
-		if err != nil {
-			anchorLog.Error("err in creating NewAmount")
-			continue
-		}
-		selected = append(selected, e)
-		out += amount
-		if out >= fee {
-			return selected, out, nil
-		}
-	}
-	if out < fee {
-		return nil, 0, fmt.Errorf("insufficient funds: transaction requires %v fee, but only %v spendable", fee, out)
-	}
-
-	return selected, out, nil
-}
-
 func validateMsgTx(msgtx *wire.MsgTx, inputs []btcjson.ListUnspentResult) error {
 	flags := txscript.ScriptBip16 | txscript.ScriptStrictMultiSig //ScriptCanonicalSignatures
 	bip16 := time.Now().After(txscript.Bip16Activation)
@@ -277,7 +253,6 @@ func validateMsgTx(msgtx *wire.MsgTx, inputs []btcjson.ListUnspentResult) error 
 		if err != nil {
 			return fmt.Errorf("cannot decode scriptPubKey: %s", err)
 		}
-		//engine, err := txscript.NewScript(txin.SignatureScript, scriptPubKey, i, msgtx, flags)
 		engine, err := txscript.NewEngine(scriptPubKey, msgtx, i, flags)
 		if err != nil {
 			anchorLog.Errorf("cannot create script engine: %s\n", err)
@@ -296,10 +271,6 @@ func sendRawTransaction(msgtx *wire.MsgTx) (*wire.ShaHash, error) {
 	buf := bytes.Buffer{}
 	buf.Grow(msgtx.SerializeSize())
 	if err := msgtx.BtcEncode(&buf, wire.ProtocolVersion); err != nil {
-		// Hitting OOM by growing or writing to a bytes.Buffer already
-		// panics, and all returned errors are unexpected.
-		//panic(err)
-		//TODO: should we have retry logic?
 		return nil, err
 	}
 
@@ -383,12 +354,10 @@ func InitAnchor(ldb database.Db, q chan factomwire.FtmInternalMsg, serverKey com
 	}
 	anchorLog.Debug("init dirBlockInfoMap.len=", len(dirBlockInfoMap))
 
-	if err = initRPCClient(); err != nil {
+	if err = InitRPCClient(); err != nil {
 		anchorLog.Error(err.Error())
 		return
 	}
-	//defer shutdown(dclient)
-	//defer shutdown(wclient)
 
 	if err = initWallet(); err != nil {
 		anchorLog.Error(err.Error())
@@ -400,19 +369,20 @@ func InitAnchor(ldb database.Db, q chan factomwire.FtmInternalMsg, serverKey com
 		for _ = range ticker.C {
 			// check init rpc client
 			if dclient == nil || wclient == nil {
-				if err = initRPCClient(); err != nil {
+				if err = InitRPCClient(); err != nil {
 					anchorLog.Error(err.Error())
 				}
 			}
-
 			checkForReAnchor()
 		}
 	}()
-
 	return
 }
 
-func initRPCClient() error {
+// InitRPCClient is used to create rpc client for btcd and btcwallet
+// and it can be used to test connecting to btcd / btcwallet servers
+// running in different machine.
+func InitRPCClient() error {
 	anchorLog.Debug("init RPC client")
 	cfg = util.ReadConfig()
 	certHomePath := cfg.Btc.CertHomePath
@@ -439,9 +409,10 @@ func initRPCClient() error {
 	// Connect to local btcwallet RPC server using websockets.
 	ntfnHandlers := createBtcwalletNotificationHandlers()
 	certHomeDir := btcutil.AppDataDir(certHomePath, false)
+	anchorLog.Debug("btcwallet.cert.home=", certHomeDir)
 	certs, err := ioutil.ReadFile(filepath.Join(certHomeDir, "rpc.cert"))
 	if err != nil {
-		return fmt.Errorf("cannot read rpc.cert file: %s", err)
+		return fmt.Errorf("cannot read rpc.cert file: %s\n", err)
 	}
 	connCfg := &btcrpcclient.ConnConfig{
 		Host:         rpcClientHost,
@@ -452,15 +423,17 @@ func initRPCClient() error {
 	}
 	wclient, err = btcrpcclient.New(connCfg, &ntfnHandlers)
 	if err != nil {
-		return fmt.Errorf("cannot create rpc client for btcwallet: %s", err)
+		return fmt.Errorf("cannot create rpc client for btcwallet: %s\n", err)
 	}
+	anchorLog.Debug("successfully created rpc client for btcwallet")
 
 	// Connect to local btcd RPC server using websockets.
 	dntfnHandlers := createBtcdNotificationHandlers()
 	certHomeDir = btcutil.AppDataDir(certHomePathBtcd, false)
+	anchorLog.Debug("btcd.cert.home=", certHomeDir)
 	certs, err = ioutil.ReadFile(filepath.Join(certHomeDir, "rpc.cert"))
 	if err != nil {
-		return fmt.Errorf("cannot read rpc.cert file for btcd rpc server: %s", err)
+		return fmt.Errorf("cannot read rpc.cert file for btcd rpc server: %s\n", err)
 	}
 	dconnCfg := &btcrpcclient.ConnConfig{
 		Host:         rpcBtcdHost,
@@ -471,8 +444,9 @@ func initRPCClient() error {
 	}
 	dclient, err = btcrpcclient.New(dconnCfg, &dntfnHandlers)
 	if err != nil {
-		return fmt.Errorf("cannot create rpc client for btcd: %s", err)
+		return fmt.Errorf("cannot create rpc client for btcd: %s\n", err)
 	}
+	anchorLog.Debug("successfully created rpc client for btcd")
 
 	return nil
 }
@@ -543,29 +517,9 @@ func updateUTXO() error {
 	return nil
 }
 
-func shutdown(client *btcrpcclient.Client) {
-	if client == nil {
-		return
-	}
-	// For this example gracefully shutdown the client after 10 seconds.
-	// Ordinarily when to shutdown the client is highly application
-	// specific.
-	log.Println("Client shutdown in 2 seconds...")
-	time.AfterFunc(time.Second*2, func() {
-		log.Println("Going down...")
-		client.Shutdown()
-	})
-	defer log.Println("btcsuite client shutdown is done!")
-	// Wait until the client either shuts down gracefully (or the user
-	// terminates the process with Ctrl+C).
-	client.WaitForShutdown()
-}
-
 func prependBlockHeight(height uint32, hash []byte) ([]byte, error) {
 	// dir block genesis block height starts with 0, for now
 	// similar to bitcoin genesis block
-	//if (0 == height) || (0xFFFFFFFFFFFF&height != height) {
-	//if 0xFFFFFFFFFFFF&height != height {
 	h := uint64(height)
 	if 0xFFFFFFFFFFFF&h != h {
 		return nil, errors.New("bad block height")
@@ -584,8 +538,7 @@ func saveDirBlockInfo(transaction *btcutil.Tx, details *btcjson.BlockDetails) {
 	anchorLog.Debug("in saveDirBlockInfo")
 	var saved = false
 	for _, dirBlockInfo := range dirBlockInfoMap {
-		if dirBlockInfo.BTCTxHash != nil &&
-			bytes.Compare(dirBlockInfo.BTCTxHash.Bytes(), transaction.Sha().Bytes()) == 0 {
+		if bytes.Compare(dirBlockInfo.BTCTxHash.Bytes(), transaction.Sha().Bytes()) == 0 {
 			dirBlockInfo.BTCTxOffset = int32(details.Index)
 			dirBlockInfo.BTCBlockHeight = details.Height
 			btcBlockHash, _ := wire.NewShaHashFromStr(details.Hash)
@@ -609,21 +562,19 @@ func saveDirBlockInfo(transaction *btcutil.Tx, details *btcjson.BlockDetails) {
 			anchorRec.Bitcoin.Offset = int32(details.Index)
 			anchorLog.Info("anchor.record saved: " + spew.Sdump(anchorRec))
 
-			//jsonARecord, _ := json.Marshal(anchorRec)
-			//anchorLog.Debug("jsonAnchorRecord: ", string(jsonARecord))
-
-			//Submit the anchor record to the anchor chain (entry chain)
 			err := submitEntryToAnchorChain(anchorRec)
 			if err != nil {
 				anchorLog.Error("Error in writing anchor into anchor chain: ", err.Error())
 			}
-
 			break
 		}
 	}
-	// should not happen at all?
+	// This happends when there's a double spending (for dir block 122 and its btc tx)
+	// (see https://www.blocktrail.com/BTC/tx/ac82f4173259494b22f4987f1e18608f38f1ff756fb4a3c637dfb5565aa5e6cf)
+	// or tx mutation / malleated
+	// In this case, it will end up being re-anchored.
 	if !saved {
-		anchorLog.Info("Not saved to db: ")
+		anchorLog.Info("Not saved to db: btc.tx=%s\n blockDetails=%s\n", spew.Sdump(transaction), spew.Sdump(details))
 	}
 }
 

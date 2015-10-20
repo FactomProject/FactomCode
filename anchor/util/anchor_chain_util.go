@@ -25,19 +25,17 @@ var (
 	_               = fmt.Print
 	cfg             *util.FactomdConfig
 	db              database.Db
-	dirBlockInfoMap map[uint32]*common.DirBlockInfo //dbHash string as key
+	anchorChainID   *common.Hash
+	dirBlockInfoMap map[uint32]*common.DirBlockInfo //DBHeight as key
+	dblocks         []common.DirectoryBlock
+	eblocks         *[]common.EBlock
 )
 
 func main() {
-	cfg = util.ReadConfig()
-	ldbpath := cfg.App.LdbPath
-	initDB(ldbpath)
-	dirBlockInfoMap = make(map[uint32]*common.DirBlockInfo)
 
-	anchorChainID, _ := common.HexToHash(cfg.Anchor.AnchorChainID)
-	fmt.Printf("ldbPath=%s, anchorChainID=%s\n", ldbpath, cfg.Anchor.AnchorChainID)
+	sanityCheck()
 
-	processAnchorChain(anchorChainID)
+	processAnchorChain()
 
 	createMissingDirBlockInfo()
 
@@ -50,9 +48,24 @@ func main() {
 	//}
 }
 
+func sanityCheck() {
+	cfg = util.ReadConfig()
+	ldbpath := cfg.App.LdbPath
+	initDB(ldbpath)
+	dirBlockInfoMap = make(map[uint32]*common.DirBlockInfo)
+	anchorChainID, _ = common.HexToHash(cfg.Anchor.AnchorChainID)
+	fmt.Printf("ldbPath=%s, anchorChainID=%s\n", ldbpath, cfg.Anchor.AnchorChainID)
+
+	dblocks, _ = db.FetchAllDBlocks()
+	dirBlockInfoMap, _ := db.FetchAllDirBlockInfo()
+	eblocks, _ = db.FetchAllEBlocksByChain(anchorChainID)
+	fmt.Printf("There are %d directory blocks, %d DirBlockInfos, and %d anchor chain blocks in this database.\n",
+		len(dblocks), len(dirBlockInfoMap), len(*eblocks))
+}
+
 func createMissingDirBlockInfo() {
 	fmt.Println("create DirBlockInfo for those un-anchored DirBlocks")
-	dblocks, _ := db.FetchAllDBlocks()
+	//dblocks, _ := db.FetchAllDBlocks()
 	for _, dblock := range dblocks {
 		if _, ok := dirBlockInfoMap[dblock.Header.DBHeight]; ok {
 			continue
@@ -70,9 +83,9 @@ func createMissingDirBlockInfo() {
 	}
 }
 
-func processAnchorChain(anchorChainID *common.Hash) {
+func processAnchorChain() {
 	fmt.Println("processAnchorChain")
-	eblocks, _ := db.FetchAllEBlocksByChain(anchorChainID)
+	//eblocks, _ := db.FetchAllEBlocksByChain(anchorChainID)
 	//fmt.Println("anchorChain length: ", len(*eblocks))
 	for _, eblock := range *eblocks {
 		//fmt.Printf("anchor chain block=%s\n", spew.Sdump(eblock))
