@@ -354,7 +354,7 @@ func InitAnchor(ldb database.Db, q chan factomwire.FtmInternalMsg, serverKey com
 	}
 	anchorLog.Debug("init dirBlockInfoMap.len=", len(dirBlockInfoMap))
 
-	if err = initRPCClient(); err != nil {
+	if err = InitRPCClient(); err != nil {
 		anchorLog.Error(err.Error())
 		return
 	}
@@ -369,7 +369,7 @@ func InitAnchor(ldb database.Db, q chan factomwire.FtmInternalMsg, serverKey com
 		for _ = range ticker.C {
 			// check init rpc client
 			if dclient == nil || wclient == nil {
-				if err = initRPCClient(); err != nil {
+				if err = InitRPCClient(); err != nil {
 					anchorLog.Error(err.Error())
 				}
 			}
@@ -379,7 +379,10 @@ func InitAnchor(ldb database.Db, q chan factomwire.FtmInternalMsg, serverKey com
 	return
 }
 
-func initRPCClient() error {
+// InitRPCClient is used to create rpc client for btcd and btcwallet
+// and it can be used to test connecting to btcd / btcwallet servers
+// running in different machine.
+func InitRPCClient() error {
 	anchorLog.Debug("init RPC client")
 	cfg = util.ReadConfig()
 	certHomePath := cfg.Btc.CertHomePath
@@ -406,9 +409,10 @@ func initRPCClient() error {
 	// Connect to local btcwallet RPC server using websockets.
 	ntfnHandlers := createBtcwalletNotificationHandlers()
 	certHomeDir := btcutil.AppDataDir(certHomePath, false)
+	anchorLog.Debug("btcwallet.cert.home=", certHomeDir)
 	certs, err := ioutil.ReadFile(filepath.Join(certHomeDir, "rpc.cert"))
 	if err != nil {
-		return fmt.Errorf("cannot read rpc.cert file: %s", err)
+		return fmt.Errorf("cannot read rpc.cert file: %s\n", err)
 	}
 	connCfg := &btcrpcclient.ConnConfig{
 		Host:         rpcClientHost,
@@ -419,15 +423,17 @@ func initRPCClient() error {
 	}
 	wclient, err = btcrpcclient.New(connCfg, &ntfnHandlers)
 	if err != nil {
-		return fmt.Errorf("cannot create rpc client for btcwallet: %s", err)
+		return fmt.Errorf("cannot create rpc client for btcwallet: %s\n", err)
 	}
+	anchorLog.Debug("successfully created rpc client for btcwallet")
 
 	// Connect to local btcd RPC server using websockets.
 	dntfnHandlers := createBtcdNotificationHandlers()
 	certHomeDir = btcutil.AppDataDir(certHomePathBtcd, false)
+	anchorLog.Debug("btcd.cert.home=", certHomeDir)
 	certs, err = ioutil.ReadFile(filepath.Join(certHomeDir, "rpc.cert"))
 	if err != nil {
-		return fmt.Errorf("cannot read rpc.cert file for btcd rpc server: %s", err)
+		return fmt.Errorf("cannot read rpc.cert file for btcd rpc server: %s\n", err)
 	}
 	dconnCfg := &btcrpcclient.ConnConfig{
 		Host:         rpcBtcdHost,
@@ -438,8 +444,9 @@ func initRPCClient() error {
 	}
 	dclient, err = btcrpcclient.New(dconnCfg, &dntfnHandlers)
 	if err != nil {
-		return fmt.Errorf("cannot create rpc client for btcd: %s", err)
+		return fmt.Errorf("cannot create rpc client for btcd: %s\n", err)
 	}
+	anchorLog.Debug("successfully created rpc client for btcd")
 
 	return nil
 }

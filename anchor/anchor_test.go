@@ -5,21 +5,33 @@ package anchor
 
 import (
 	"fmt"
-	"log"
-	"reflect"
+	//"log"
+	//"reflect"
 	"testing"
-	"time"
+	//"time"
 
-	"github.com/FactomProject/FactomCode/common"
-	"github.com/FactomProject/FactomCode/database"
-	"github.com/FactomProject/FactomCode/database/ldb"
-	"github.com/FactomProject/FactomCode/util"
-	"github.com/btcsuitereleases/btcd/btcjson"
-	"github.com/btcsuitereleases/btcd/wire"
-	"github.com/btcsuitereleases/btcutil"
-	"github.com/davecgh/go-spew/spew"
+	//"github.com/FactomProject/FactomCode/common"
+	//"github.com/FactomProject/FactomCode/database"
+	//"github.com/FactomProject/FactomCode/database/ldb"
+	//"github.com/FactomProject/FactomCode/util"
+	//"github.com/btcsuitereleases/btcd/btcjson"
+	//"github.com/btcsuitereleases/btcd/wire"
+	//"github.com/btcsuitereleases/btcutil"
+	//"github.com/davecgh/go-spew/spew"
 )
 
+
+func TestInitRPCClient(t *testing.T) {
+	fmt.Println("see details in ~/.factom/logs/factom-d.log")
+	err := InitRPCClient()
+	if err == nil {
+		fmt.Println("successfully created rpc client for both btcd and btcwallet.")
+	} else {
+		fmt.Println(err.Error())
+	}
+}
+
+/*
 // maxTrials is the max attempts to writeToBTC
 const maxTrials = 3
 
@@ -219,16 +231,10 @@ func writeToBTC(bytes []byte, blockHeight uint64) (*wire.ShaHash, error) {
 	return nil, fmt.Errorf("Fail to write hash %s to BTC. ", bytes)
 }
 
-func init() {
-	util.Trace("InitAnchor")
-	db := initDB()
-	InitAnchor(db)
-}
-
 // Initialize the level db and share it with other components
 func initDB() database.Db {
 
-	var ldbpath = "/tmp/test/ldb9"
+	var ldbpath = "/home/bw/.factom/ldb"
 	var err error
 	db, err = ldb.OpenLevelDB(ldbpath, false)
 	if err != nil {
@@ -247,3 +253,5 @@ func initDB() database.Db {
 	fmt.Println("Database started from: " + ldbpath)
 	return db
 }
+*/
+
