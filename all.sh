@@ -139,16 +139,6 @@ compile fctwallet            || exit 1
 compile factom-cli           || exit 1
 compile walletapp            || exit 1
 
-echo "
-*******************************************************
-*     Setting up static files (for walletapp)
-*     These files are being copied to the .factom/ 
-*     directory (under the home directory)
-*******************************************************
-"
-mkdir -p $HOME/.factom/static
-cp -R fctwallet/walletapp/staticfiles/* $HOME/.factom/static/
-
 
 echo ""
 echo "
