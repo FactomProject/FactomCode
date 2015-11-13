@@ -42,8 +42,9 @@ func submitEntryToAnchorChain(aRecord *AnchorRecord) error {
 	anchorLog.Debug("anchorChainID: ", anchorChainID)
 	// instead of append signature at the end of anchor record
 	// it can be added as the first entry.ExtIDs[0]
-	copy(entry.ExtIDs[0][:], aRecordSig.Sig[:])
+	entry.ExtIDs = append(entry.ExtIDs, []byte(hex.EncodeToString(aRecordSig.Sig[:])))
 	entry.Content = bufARecord.Bytes()
+	//anchorLog.Debug("entry: ", spew.Sdump(entry))
 
 	buf := new(bytes.Buffer)
 	// 1 byte version
