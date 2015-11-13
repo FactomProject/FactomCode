@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
+	"sort"
 	"time"
 
 	"github.com/btcsuitereleases/btcd/btcjson"
@@ -33,17 +34,27 @@ import (
 )
 
 var (
-	balances            []balance // unspent balance & address & its WIF
-	cfg                 *util.FactomdConfig
-	dclient, wclient    *btcrpcclient.Client
-	fee                 btcutil.Amount                  // tx fee for written into btc
-	dirBlockInfoMap     map[string]*common.DirBlockInfo //dbHash string as key
-	db                  database.Db
-	walletLocked        bool
-	reAnchorAfter       = 10 // hours. For anchors that do not get bitcoin callback info for over 10 hours, then re-anchor them.
-	reAnchorCheckEvery  = 1  // hour. do re-anchor check every 1 hour.
-	defaultAddress      btcutil.Address
+	balances           []balance // unspent balance & address & its WIF
+	cfg                *util.FactomdConfig
+	dclient, wclient   *btcrpcclient.Client
+	dirBlockInfoMap    map[string]*common.DirBlockInfo //dbHash string as key
+	db                 database.Db
+	walletLocked       = true
+	reAnchorAfter      = 4 // hours. For anchors that do not get bitcoin callback info for over 10 hours, then re-anchor them.
+	reAnchorCheckEvery = 1 // hour. do re-anchor check every 1 hour.
+	defaultAddress     btcutil.Address
+	tenMinute          = 10 // 10 minute mark
+	minBalance         btcutil.Amount
+
+	fee                 btcutil.Amount // tx fee for written into btc
 	confirmationsNeeded int
+	certHomePath        string
+	rpcClientHost       string
+	rpcClientEndpoint   string
+	rpcClientUser       string
+	rpcClientPass       string
+	certHomePathBtcd    string
+	rpcBtcdHost         string
 
 	//Server Private key for milestone 1
 	serverPrivKey common.PrivateKey
@@ -55,6 +66,16 @@ var (
 	//InmsgQ for submitting the entry to server
 	inMsgQ chan factomwire.FtmInternalMsg
 )
+
+// ByAmount defines the methods needed to satisify sort.Interface to
+// sort a slice of Utxos by their amount.
+type ByAmount []balance
+
+func (u ByAmount) Len() int { return len(u) }
+func (u ByAmount) Less(i, j int) bool {
+	return u[i].unspentResult.Amount < u[j].unspentResult.Amount
+}
+func (u ByAmount) Swap(i, j int) { u[i], u[j] = u[j], u[i] }
 
 type balance struct {
 	unspentResult btcjson.ListUnspentResult
@@ -136,7 +157,11 @@ func sanityCheck(hash *common.Hash) (*common.DirBlockInfo, error) {
 	}
 	if len(balances) == 0 {
 		anchorLog.Warning("len(balances) == 0, start rescan UTXO *** ")
-		updateUTXO()
+		updateUTXO(fee)
+	}
+	if len(balances) == 0 {
+		anchorLog.Warning("len(balances) == 0, start rescan UTXO *** ")
+		updateUTXO(minBalance)
 	}
 	if len(balances) == 0 {
 		s := fmt.Sprintf("\n\n$$$ WARNING: No balance in your wallet. No anchoring for now.\n")
@@ -345,6 +370,7 @@ func InitAnchor(ldb database.Db, q chan factomwire.FtmInternalMsg, serverKey com
 	db = ldb
 	inMsgQ = q
 	serverPrivKey = serverKey
+	minBalance, _ = btcutil.NewAmount(0.01)
 
 	var err error
 	dirBlockInfoMap, err = db.FetchAllUnconfirmedDirBlockInfo()
@@ -354,19 +380,21 @@ func InitAnchor(ldb database.Db, q chan factomwire.FtmInternalMsg, serverKey com
 	}
 	anchorLog.Debug("init dirBlockInfoMap.len=", len(dirBlockInfoMap))
 
+	readConfig()
 	if err = InitRPCClient(); err != nil {
 		anchorLog.Error(err.Error())
 		return
 	}
 
-	if err = initWallet(); err != nil {
-		anchorLog.Error(err.Error())
-		return
-	}
+	//if err = initWallet(); err != nil {
+	//anchorLog.Error(err.Error())
+	//return
+	//}
 
-	ticker := time.NewTicker(time.Hour * time.Duration(reAnchorCheckEvery))
+	ticker := time.NewTicker(time.Minute * time.Duration(tenMinute))
 	go func() {
 		for _ = range ticker.C {
+			readConfig()
 			// check init rpc client
 			if dclient == nil || wclient == nil {
 				if err = InitRPCClient(); err != nil {
@@ -379,20 +407,17 @@ func InitAnchor(ldb database.Db, q chan factomwire.FtmInternalMsg, serverKey com
 	return
 }
 
-// InitRPCClient is used to create rpc client for btcd and btcwallet
-// and it can be used to test connecting to btcd / btcwallet servers
-// running in different machine.
-func InitRPCClient() error {
-	anchorLog.Debug("init RPC client")
+func readConfig() {
 	cfg = util.ReadConfig()
-	certHomePath := cfg.Btc.CertHomePath
-	rpcClientHost := cfg.Btc.RpcClientHost
-	rpcClientEndpoint := cfg.Btc.RpcClientEndpoint
-	rpcClientUser := cfg.Btc.RpcClientUser
-	rpcClientPass := cfg.Btc.RpcClientPass
-	certHomePathBtcd := cfg.Btc.CertHomePathBtcd
-	rpcBtcdHost := cfg.Btc.RpcBtcdHost
+	certHomePath = cfg.Btc.CertHomePath
+	rpcClientHost = cfg.Btc.RpcClientHost
+	rpcClientEndpoint = cfg.Btc.RpcClientEndpoint
+	rpcClientUser = cfg.Btc.RpcClientUser
+	rpcClientPass = cfg.Btc.RpcClientPass
+	certHomePathBtcd = cfg.Btc.CertHomePathBtcd
+	rpcBtcdHost = cfg.Btc.RpcBtcdHost
 	confirmationsNeeded = cfg.Anchor.ConfirmationsNeeded
+	fee, _ = btcutil.NewAmount(cfg.Btc.BtcTransFee)
 
 	//Added anchor parameters
 	var err error
@@ -405,6 +430,13 @@ func InitRPCClient() error {
 	if err != nil || anchorChainID == nil {
 		panic("Cannot parse Server AnchorChainID from configuration file: " + err.Error())
 	}
+}
+
+// InitRPCClient is used to create rpc client for btcd and btcwallet
+// and it can be used to test connecting to btcd / btcwallet servers
+// running in different machine.
+func InitRPCClient() error {
+	anchorLog.Debug("init RPC client")
 
 	// Connect to local btcwallet RPC server using websockets.
 	ntfnHandlers := createBtcwalletNotificationHandlers()
@@ -463,23 +495,22 @@ func unlockWallet(timeoutSecs int64) error {
 func initWallet() error {
 	balances = make([]balance, 0, 200)
 	fee, _ = btcutil.NewAmount(cfg.Btc.BtcTransFee)
+	minBalance, _ = btcutil.NewAmount(0.01)
 	walletLocked = true
-	err := updateUTXO()
+	err := updateUTXO(fee)
 	if err == nil && len(balances) > 0 {
 		defaultAddress = balances[0].address
 	}
 	return err
 }
 
-func updateUTXO() error {
-	anchorLog.Info("updateUTXO: walletLocked=", walletLocked)
+func updateUTXO(base btcutil.Amount) error {
+	anchorLog.Info("updateUTXO: base=", base.ToBTC())
 	balances = make([]balance, 0, 200)
-	//if walletLocked {
 	err := unlockWallet(int64(6)) //600
 	if err != nil {
 		return fmt.Errorf("%s", err)
 	}
-	//}
 
 	unspentResults, err := wclient.ListUnspentMin(confirmationsNeeded) //minConf=1
 	if err != nil {
@@ -490,13 +521,16 @@ func updateUTXO() error {
 	if len(unspentResults) > 0 {
 		var i int
 		for _, b := range unspentResults {
-			if b.Amount > fee.ToBTC() {
+			if b.Amount > base.ToBTC() { //fee.ToBTC()
 				balances = append(balances, balance{unspentResult: b})
 				i++
 			}
 		}
 	}
 	anchorLog.Info("updateUTXO: balances.len=", len(balances))
+
+	// Sort eligible balances so that we first pick the ones with highest one
+	sort.Sort(sort.Reverse(ByAmount(balances)))
 
 	for i, b := range balances {
 		addr, err := btcutil.DecodeAddress(b.unspentResult.Address, &chaincfg.TestNet3Params)
@@ -513,7 +547,7 @@ func updateUTXO() error {
 		//anchorLog.Infof("balance[%d]=%s \n", i, spew.Sdump(balances[i]))
 	}
 
-	//time.Sleep(1 * time.Second)
+	defaultAddress = balances[0].address
 	return nil
 }
 
@@ -543,9 +577,10 @@ func saveDirBlockInfo(transaction *btcutil.Tx, details *btcjson.BlockDetails) {
 			dirBlockInfo.BTCBlockHeight = details.Height
 			btcBlockHash, _ := wire.NewShaHashFromStr(details.Hash)
 			dirBlockInfo.BTCBlockHash = toHash(btcBlockHash)
-			dirBlockInfo.BTCConfirmed = true
+
+			//dirBlockInfo.BTCConfirmed = true 	// needs confirmationsNeeded (20) to be confirmed.
 			db.InsertDirBlockInfo(dirBlockInfo)
-			delete(dirBlockInfoMap, dirBlockInfo.DBMerkleRoot.String())
+			//delete(dirBlockInfoMap, dirBlockInfo.DBMerkleRoot.String())		// delete it after confirmationsNeeded (20)
 			anchorLog.Infof("In saveDirBlockInfo, dirBlockInfo:%s saved to db\n", spew.Sdump(dirBlockInfo))
 			saved = true
 
@@ -554,7 +589,7 @@ func saveDirBlockInfo(transaction *btcutil.Tx, details *btcjson.BlockDetails) {
 			anchorRec.DBHeight = dirBlockInfo.DBHeight
 			anchorRec.KeyMR = dirBlockInfo.DBMerkleRoot.String()
 			_, recordHeight, _ := db.FetchBlockHeightCache()
-			anchorRec.RecordHeight = uint32(recordHeight)
+			anchorRec.RecordHeight = uint32(recordHeight + 1) // need the next block height
 			anchorRec.Bitcoin.Address = defaultAddress.String()
 			anchorRec.Bitcoin.TXID = transaction.Sha().String()
 			anchorRec.Bitcoin.BlockHeight = details.Height
@@ -584,6 +619,11 @@ func toHash(txHash *wire.ShaHash) *common.Hash {
 	return h
 }
 
+func toShaHash(hash *common.Hash) *wire.ShaHash {
+	h, _ := wire.NewShaHash(hash.Bytes())
+	return h
+}
+
 // UpdateDirBlockInfoMap allows factom processor to update DirBlockInfo
 // when a new Directory Block is saved to db
 func UpdateDirBlockInfoMap(dirBlockInfo *common.DirBlockInfo) {
@@ -594,10 +634,38 @@ func UpdateDirBlockInfoMap(dirBlockInfo *common.DirBlockInfo) {
 func checkForReAnchor() {
 	timeNow := time.Now().Unix()
 	time0 := 60 * 60 * reAnchorAfter
+	time1 := 60 * tenMinute * confirmationsNeeded
 	for _, dirBlockInfo := range dirBlockInfoMap {
-		if timeNow-dirBlockInfo.Timestamp > int64(time0) {
+		lapse := timeNow - dirBlockInfo.Timestamp
+		if lapse > int64(time0) {
 			anchorLog.Debug("re-anchor: ")
 			SendRawTransactionToBTC(dirBlockInfo.DBMerkleRoot, dirBlockInfo.DBHeight)
+		} else if lapse > int64(time1) {
+			err := checkConfirmations(dirBlockInfo)
+			if err != nil {
+				fmt.Println(err.Error())
+			}
 		}
 	}
+}
+
+func checkConfirmations(dirBlockInfo *common.DirBlockInfo) error {
+	anchorLog.Debug("check Confirmations: ")
+	txResult, err := wclient.GetTransaction(toShaHash(dirBlockInfo.BTCTxHash))
+	if err != nil {
+		return err
+	}
+	fmt.Println(spew.Sdump(txResult))
+	anchorLog.Debugf("GetTransactionResult: %s\n", spew.Sdump(txResult))
+	if txResult.Confirmations >= int64(confirmationsNeeded) {
+		dirBlockInfo.BTCBlockHeight = int32(txResult.BlockIndex)
+		btcBlockHash, _ := wire.NewShaHashFromStr(txResult.BlockHash)
+		dirBlockInfo.BTCBlockHash = toHash(btcBlockHash)
+		dirBlockInfo.BTCConfirmed = true // needs confirmationsNeeded (20) to be confirmed.
+		db.InsertDirBlockInfo(dirBlockInfo)
+		delete(dirBlockInfoMap, dirBlockInfo.DBMerkleRoot.String()) // delete it after confirmationsNeeded (20)
+		fmt.Printf("Fully confirmed %d times. txid=%s, dirblockInfo=%s\n", txResult.Confirmations, txResult.TxID, spew.Sdump(dirBlockInfo))
+		anchorLog.Debugf("Fully confirmed %d times. txid=%s, dirblockInfo=%s\n", txResult.Confirmations, txResult.TxID, spew.Sdump(dirBlockInfo))
+	}
+	return nil
 }

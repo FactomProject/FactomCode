@@ -33,12 +33,16 @@ func submitEntryToAnchorChain(aRecord *AnchorRecord) error {
 	//Sign the json aRecord with the server key
 	aRecordSig := serverPrivKey.Sign(jsonARecord)
 	//Encode sig into Hex string
+	//leave it here for backward compatibility
 	bufARecord.Write([]byte(hex.EncodeToString(aRecordSig.Sig[:])))
 
 	//Create a new entry
 	entry := common.NewEntry()
 	entry.ChainID = anchorChainID
 	anchorLog.Debug("anchorChainID: ", anchorChainID)
+	// instead of append signature at the end of anchor record
+	// it can be added as the first entry.ExtIDs[0]
+	copy(entry.ExtIDs[0][:], aRecordSig.Sig[:])
 	entry.Content = bufARecord.Bytes()
 
 	buf := new(bytes.Buffer)
@@ -60,6 +64,7 @@ func submitEntryToAnchorChain(aRecord *AnchorRecord) error {
 	} else {
 		buf.WriteByte(byte(c))
 	}
+
 	tmp := buf.Bytes()
 	sig := serverECKey.Sign(tmp)
 	buf = bytes.NewBuffer(tmp)
