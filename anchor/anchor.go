@@ -34,16 +34,16 @@ import (
 )
 
 var (
-	balances           []balance // unspent balance & address & its WIF
-	cfg                *util.FactomdConfig
-	dclient, wclient   *btcrpcclient.Client
-	dirBlockInfoMap    map[string]*common.DirBlockInfo //dbHash string as key
-	db                 database.Db
-	walletLocked       = true
-	reAnchorAfter      = 4 // hours. For anchors that do not get bitcoin callback info for over 10 hours, then re-anchor them.
-	defaultAddress     btcutil.Address
-	tenMinute          = 10 // 10 minute mark
-	minBalance         btcutil.Amount
+	balances         []balance // unspent balance & address & its WIF
+	cfg              *util.FactomdConfig
+	dclient, wclient *btcrpcclient.Client
+	dirBlockInfoMap  map[string]*common.DirBlockInfo //dbHash string as key
+	db               database.Db
+	walletLocked     = true
+	reAnchorAfter    = 4 // hours. For anchors that do not get bitcoin callback info for over 10 hours, then re-anchor them.
+	defaultAddress   btcutil.Address
+	tenMinute        = 10 // 10 minute mark
+	minBalance       btcutil.Amount
 
 	fee                 btcutil.Amount // tx fee for written into btc
 	confirmationsNeeded int
@@ -337,9 +337,10 @@ func InitAnchor(ldb database.Db, q chan factomwire.FtmInternalMsg, serverKey com
 	readConfig()
 	if err = InitRPCClient(); err != nil {
 		anchorLog.Error(err.Error())
-		return
+		//return
+	} else {
+		updateUTXO(minBalance)
 	}
-	updateUTXO(minBalance)
 
 	ticker := time.NewTicker(time.Minute * time.Duration(tenMinute))
 	go func() {
@@ -355,7 +356,7 @@ func InitAnchor(ldb database.Db, q chan factomwire.FtmInternalMsg, serverKey com
 			checkForReAnchor()
 		}
 	}()
-	return
+	//return
 }
 
 func readConfig() {
@@ -447,12 +448,17 @@ func unlockWallet(timeoutSecs int64) error {
 // ByAmount defines the methods needed to satisify sort.Interface to
 // sort a slice of UTXOs by their amount.
 type ByAmount []balance
-func (u ByAmount) Len() int { return len(u) }
-func (u ByAmount) Less(i, j int) bool {	return u[i].unspentResult.Amount < u[j].unspentResult.Amount }
-func (u ByAmount) Swap(i, j int) { u[i], u[j] = u[j], u[i] }
+
+func (u ByAmount) Len() int           { return len(u) }
+func (u ByAmount) Less(i, j int) bool { return u[i].unspentResult.Amount < u[j].unspentResult.Amount }
+func (u ByAmount) Swap(i, j int)      { u[i], u[j] = u[j], u[i] }
 
 func updateUTXO(base btcutil.Amount) error {
 	anchorLog.Info("updateUTXO: base=", base.ToBTC())
+	if wclient == nil {
+		anchorLog.Info("updateUTXO: wclient is nil")
+		return nil
+	}
 	balances = make([]balance, 0, 200)
 	err := unlockWallet(int64(6)) //600
 	if err != nil {
@@ -539,7 +545,7 @@ func saveDirBlockInfo(transaction *btcutil.Tx, details *btcjson.BlockDetails) {
 
 func doSaveDirBlockInfo(transaction *btcutil.Tx, details *btcjson.BlockDetails, dirBlockInfo *common.DirBlockInfo, replace bool) {
 	if replace {
-		dirBlockInfo.BTCTxHash = toHash(transaction.Sha())	// in case of tx being malleated
+		dirBlockInfo.BTCTxHash = toHash(transaction.Sha()) // in case of tx being malleated
 	}
 	dirBlockInfo.BTCTxOffset = int32(details.Index)
 	dirBlockInfo.BTCBlockHeight = details.Height
@@ -547,7 +553,7 @@ func doSaveDirBlockInfo(transaction *btcutil.Tx, details *btcjson.BlockDetails, 
 	dirBlockInfo.BTCBlockHash = toHash(btcBlockHash)
 	db.InsertDirBlockInfo(dirBlockInfo)
 	anchorLog.Infof("In doSaveDirBlockInfo, dirBlockInfo:%s saved to db\n", spew.Sdump(dirBlockInfo))
-	
+
 	// to make factom / explorer more user friendly, instead of waiting for
 	// over 2 hours to know it's anchored, we can create the anchor chain instantly
 	// then change it when the btc main chain re-org happens.
@@ -605,7 +611,7 @@ func checkConfirmations(dirBlockInfo *common.DirBlockInfo) error {
 			btcBlock, _ := wclient.GetBlock(btcBlockHash)
 			dirBlockInfo.BTCBlockHeight = int32(btcBlock.Height())
 			anchorLog.Debugf("BTCBlockHash changed: new BTCBlockHeight=%d, new BTCBlockHash=%s", dirBlockInfo.BTCBlockHeight, dirBlockInfo.BTCBlockHash)
-			
+
 			tx, err := wclient.GetRawTransaction(toShaHash(dirBlockInfo.BTCTxHash))
 			if err == nil {
 				dirBlockInfo.BTCTxOffset = int32(tx.Index())
@@ -648,9 +654,10 @@ func saveToAnchorChain(dirBlockInfo *common.DirBlockInfo) {
 // ByTimestamp defines the methods needed to satisify sort.Interface to
 // sort a slice of DirBlockInfo by their Timestamp.
 type ByTimestamp []*common.DirBlockInfo
-func (u ByTimestamp) Len() int { return len(u) }
-func (u ByTimestamp) Less(i, j int) bool { return u[i].Timestamp < u[j].Timestamp}
-func (u ByTimestamp) Swap(i, j int) { u[i], u[j] = u[j], u[i] }
+
+func (u ByTimestamp) Len() int           { return len(u) }
+func (u ByTimestamp) Less(i, j int) bool { return u[i].Timestamp < u[j].Timestamp }
+func (u ByTimestamp) Swap(i, j int)      { u[i], u[j] = u[j], u[i] }
 
 func checkTxMalleation(transaction *btcutil.Tx, details *btcjson.BlockDetails) {
 	anchorLog.Debug("in doTxMalleation")
