@@ -13,15 +13,14 @@
 package process
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"sort"
 	"strconv"
 	"strings"
-	"bytes"
 	"time"
 
-	fct "github.com/FactomProject/factoid"
 	"github.com/FactomProject/FactomCode/anchor"
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/consensus"
@@ -29,6 +28,7 @@ import (
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd/wire"
+	fct "github.com/FactomProject/factoid"
 	"github.com/FactomProject/factoid/block"
 	"github.com/davecgh/go-spew/spew"
 )
@@ -85,7 +85,7 @@ var (
 	serverIndex             = common.NewServerIndexNumber()
 )
 
-// Get the configurations
+// LoadConfigurations gets the configurations
 func LoadConfigurations(cfg *util.FactomdConfig) {
 
 	//setting the variables by the valued form the config file
@@ -170,7 +170,7 @@ func initProcessor() {
 
 }
 
-// Started from factomd
+// Start_Processor is started from factomd
 func Start_Processor(
 	ldb database.Db,
 	inMsgQ chan wire.FtmInternalMsg,
@@ -240,9 +240,9 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		if ok && msgCommitChain.IsValid() {
 
 			h := msgCommitChain.CommitChain.GetSigHash().Bytes()
-			t := msgCommitChain.CommitChain.GetMilliTime()/1000
+			t := msgCommitChain.CommitChain.GetMilliTime() / 1000
 
-			if ! IsTSValid(h,t) {
+			if !IsTSValid(h, t) {
 				return fmt.Errorf("Timestamp invalid on Commit Chain")
 			}
 
@@ -260,11 +260,10 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		msgCommitEntry, ok := msg.(*wire.MsgCommitEntry)
 		if ok && msgCommitEntry.IsValid() {
 
-
 			h := msgCommitEntry.CommitEntry.GetSigHash().Bytes()
-			t := msgCommitEntry.CommitEntry.GetMilliTime()/1000
+			t := msgCommitEntry.CommitEntry.GetMilliTime() / 1000
 
-			if ! IsTSValid(h,t) {
+			if !IsTSValid(h, t) {
 				return fmt.Errorf("Timestamp invalid on Commit Entry")
 			}
 
@@ -296,7 +295,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		if nodeMode == common.SERVER_NODE {
 			msgEom, ok := msg.(*wire.MsgInt_EOM)
 			if !ok {
-				return errors.New("Error in build blocks:" +  spew.Sdump(msg))
+				return errors.New("Error in build blocks:" + spew.Sdump(msg))
 			}
 			procLog.Infof("PROCESSOR: End of minute msg - wire.CmdInt_EOM:%+v\n", msg)
 
@@ -381,9 +380,9 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		// prevent replay attacks
 		{
 			h := msgFactoidTX.Transaction.GetSigHash().Bytes()
-			t := int64(msgFactoidTX.Transaction.GetMilliTimestamp()/1000)
+			t := int64(msgFactoidTX.Transaction.GetMilliTimestamp() / 1000)
 
-			if ! IsTSValid(h,t) {
+			if !IsTSValid(h, t) {
 				return fmt.Errorf("Timestamp invalid on Factoid Transaction")
 			}
 		}
@@ -519,7 +518,9 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 
 		// Calculate the entry credits required for the entry
 		cred, err := util.EntryCost(bin)
-		if err != nil { return err }
+		if err != nil {
+			return err
+		}
 
 		if c.Credits < cred {
 			fMemPool.addOrphanMsg(msg, h)
@@ -563,10 +564,12 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 
 		// Calculate the entry credits required for the entry
 		cred, err := util.EntryCost(bin)
-		if err != nil { return err }
+		if err != nil {
+			return err
+		}
 
 		// 10 credit is additional for the chain creation
-		if c.Credits < cred + 10 {
+		if c.Credits < cred+10 {
 			fMemPool.addOrphanMsg(msg, h)
 			return fmt.Errorf("Credit needs to paid first before an entry is revealed: %s", e.Hash().String())
 		}
@@ -632,7 +635,7 @@ func processCommitEntry(msg *wire.MsgCommitEntry) error {
 	}
 
 	if c.Credits > common.MAX_ENTRY_CREDITS {
-		return fmt.Errorf("Commit entry exceeds the max entry credit limit:" + c.EntryHash.String() )
+		return fmt.Errorf("Commit entry exceeds the max entry credit limit:" + c.EntryHash.String())
 	}
 
 	// Check the entry credit balance
@@ -875,9 +878,9 @@ func buildEndOfMinute(pl *consensus.ProcessList, pli *consensus.ProcessListItem)
 // build Genesis blocks
 func buildGenesisBlocks() error {
 	//Set the timestamp for the genesis block
-	t, err :=  time.Parse (time.RFC3339, common.GENESIS_BLK_TIMESTAMP)
+	t, err := time.Parse(time.RFC3339, common.GENESIS_BLK_TIMESTAMP)
 	if err != nil {
-		panic ("Not able to parse the genesis block time stamp")
+		panic("Not able to parse the genesis block time stamp")
 	}
 	dchain.NextBlock.Header.Timestamp = uint32(t.Unix() / 60)
 
@@ -919,7 +922,7 @@ func buildGenesisBlocks() error {
 	exportDChain(dchain)
 
 	// place an anchor into btc
-	placeAnchor(dbBlock)
+	//placeAnchor(dbBlock)
 
 	return nil
 }
@@ -999,7 +1002,7 @@ func buildBlocks() error {
 	}
 
 	// place an anchor into btc
-	placeAnchor(dbBlock)
+	//placeAnchor(dbBlock)
 
 	return nil
 }
@@ -1131,23 +1134,23 @@ func newFactoidBlock(chain *common.FctChain) block.IFBlock {
 	cfg := util.ReReadConfig()
 	FactoshisPerCredit = cfg.App.ExchangeRate
 
-	rate  := fmt.Sprintf("Current Exchange rate is %v",
-					   strings.TrimSpace(fct.ConvertDecimal(FactoshisPerCredit)))
+	rate := fmt.Sprintf("Current Exchange rate is %v",
+		strings.TrimSpace(fct.ConvertDecimal(FactoshisPerCredit)))
 	if older != FactoshisPerCredit {
 
 		orate := fmt.Sprintf("The Exchange rate was    %v\n",
-							 strings.TrimSpace(fct.ConvertDecimal(older)))
+			strings.TrimSpace(fct.ConvertDecimal(older)))
 
 		cp.CP.AddUpdate(
-			"Fee",  // tag
-			"status",   // Category
+			"Fee",    // tag
+			"status", // Category
 			"Entry Credit Exchange Rate Changed", // Title
 			orate+rate,
 			0)
-	}else{
+	} else {
 		cp.CP.AddUpdate(
-			"Fee",  // tag
-			"status",   // Category
+			"Fee",                        // tag
+			"status",                     // Category
 			"Entry Credit Exchange Rate", // Title
 			rate,
 			0)
@@ -1207,8 +1210,9 @@ func newDirectoryBlock(chain *common.DChain) *common.DirectoryBlock {
 	db.ProcessDBlockBatch(block)
 
 	// Initialize the dirBlockInfo obj in db
-	db.InsertDirBlockInfo(common.NewDirBlockInfoFromDBlock(block))
-	anchor.UpdateDirBlockInfoMap(common.NewDirBlockInfoFromDBlock(block))
+	//db.InsertDirBlockInfo(common.NewDirBlockInfoFromDBlock(block))
+	//anchor.UpdateDirBlockInfoMap(common.NewDirBlockInfoFromDBlock(block))
+	placeAnchor(block)
 
 	procLog.Info("DirectoryBlock: block" + strconv.FormatUint(uint64(block.Header.DBHeight), 10) + " created for directory block chain: " + chain.ChainID.String())
 
@@ -1218,7 +1222,7 @@ func newDirectoryBlock(chain *common.DChain) *common.DirectoryBlock {
 	return block
 }
 
-// Sign the directory block
+// SignDirectoryBlock signs the directory block
 func SignDirectoryBlock() error {
 	// Only Servers can write the anchor to Bitcoin network
 	if nodeMode == common.SERVER_NODE && dchain.NextDBHeight > 0 {
@@ -1238,8 +1242,10 @@ func placeAnchor(dbBlock *common.DirectoryBlock) error {
 	if nodeMode == common.SERVER_NODE && dbBlock != nil {
 		// todo: need to make anchor as a go routine, independent of factomd
 		// same as blockmanager to btcd
-		go anchor.SendRawTransactionToBTC(dbBlock.KeyMR, dbBlock.Header.DBHeight)
-
+		//go anchor.SendRawTransactionToBTC(dbBlock.KeyMR, dbBlock.Header.DBHeight)
+		dirBlockInfo := common.NewDirBlockInfoFromDBlock(dbBlock)
+		db.InsertDirBlockInfo(dirBlockInfo)
+		anchor.UpdateDirBlockInfoMap(dirBlockInfo)
 	}
 	return nil
 }

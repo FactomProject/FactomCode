@@ -37,12 +37,12 @@ var (
 	balances         []balance // unspent balance & address & its WIF
 	cfg              *util.FactomdConfig
 	dclient, wclient *btcrpcclient.Client
-	dirBlockInfoMap  map[string]*common.DirBlockInfo //dbHash string as key
+	dirBlockInfoMap  map[string]*common.DirBlockInfo //DBMerkleRoot string as key
 	db               database.Db
 	walletLocked     = true
 	reAnchorAfter    = 4 // hours. For anchors that do not get bitcoin callback info for over 10 hours, then re-anchor them.
 	defaultAddress   btcutil.Address
-	tenMinute        = 10 // 10 minute mark
+	tenMinutes       = 10 // 10 minute mark
 	minBalance       btcutil.Amount
 
 	fee                 btcutil.Amount // tx fee for written into btc
@@ -331,26 +331,29 @@ func InitAnchor(ldb database.Db, q chan factomwire.FtmInternalMsg, serverKey com
 	readConfig()
 	if err = InitRPCClient(); err != nil {
 		anchorLog.Error(err.Error())
-		//return
 	} else {
 		updateUTXO(minBalance)
 	}
 
-	ticker := time.NewTicker(time.Minute * time.Duration(tenMinute))
+	ticker0 := time.NewTicker(time.Minute * time.Duration(1))
+	go func() {
+		for _ = range ticker0.C {
+			checkForAnchor()
+		}
+	}()
+
+	ticker := time.NewTicker(time.Minute * time.Duration(tenMinutes))
 	go func() {
 		for _ = range ticker.C {
 			anchorLog.Info("In 10 minutes ticker...")
 			readConfig()
-			// check init rpc client
 			if dclient == nil || wclient == nil {
 				if err = InitRPCClient(); err != nil {
 					anchorLog.Error(err.Error())
 				}
 			}
-			checkForReAnchor()
 		}
 	}()
-	//return
 }
 
 func readConfig() {
@@ -593,17 +596,22 @@ func UpdateDirBlockInfoMap(dirBlockInfo *common.DirBlockInfo) {
 	dirBlockInfoMap[dirBlockInfo.DBMerkleRoot.String()] = dirBlockInfo
 }
 
-func checkForReAnchor() {
+func checkForAnchor() {
 	timeNow := time.Now().Unix()
 	time0 := 60 * 60 * reAnchorAfter
 	time1 := 60 * 6 * confirmationsNeeded
-	for _, dirBlockInfo := range dirBlockInfoMap {
-		lapse := timeNow - dirBlockInfo.Timestamp
-		anchorLog.Debugf("lapse=%d", lapse)
+	dirBlockInfos := make([]*common.DirBlockInfo, 0, len(dirBlockInfoMap))
+	for _, v := range dirBlockInfoMap {
+		dirBlockInfos = append(dirBlockInfos, v)
+	}
+	sort.Sort(ByTimestamp(dirBlockInfos))
+	for _, dirBlockInfo := range dirBlockInfos {
 		if bytes.Compare(dirBlockInfo.BTCTxHash.Bytes(), common.NewHash().Bytes()) == 0 {
-			anchorLog.Debug("first time (overdue) anchor: ")
+			anchorLog.Debug("first time anchor: ")
 			SendRawTransactionToBTC(dirBlockInfo.DBMerkleRoot, dirBlockInfo.DBHeight)
 		} else {
+			lapse := timeNow - dirBlockInfo.Timestamp
+			anchorLog.Debugf("time lapse=%d", lapse)
 			if lapse > int64(time0) {
 				anchorLog.Debug("re-anchor: ")
 				SendRawTransactionToBTC(dirBlockInfo.DBMerkleRoot, dirBlockInfo.DBHeight)
@@ -653,6 +661,7 @@ func checkConfirmations(dirBlockInfo *common.DirBlockInfo) error {
 // ByTimestamp defines the methods needed to satisify sort.Interface to
 // sort a slice of DirBlockInfo by their Timestamp.
 type ByTimestamp []*common.DirBlockInfo
+
 func (u ByTimestamp) Len() int           { return len(u) }
 func (u ByTimestamp) Less(i, j int) bool { return u[i].Timestamp < u[j].Timestamp }
 func (u ByTimestamp) Swap(i, j int)      { u[i], u[j] = u[j], u[i] }
