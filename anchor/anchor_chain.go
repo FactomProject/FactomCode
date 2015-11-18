@@ -24,7 +24,7 @@ func submitEntryToAnchorChain(aRecord *AnchorRecord) error {
 
 	//Marshal aRecord into json
 	jsonARecord, err := json.Marshal(aRecord)
-	anchorLog.Debug("submitEntryToAnchorChain - jsonARecord: ", string(jsonARecord))
+	//anchorLog.Debug("submitEntryToAnchorChain - jsonARecord: ", string(jsonARecord))
 	if err != nil {
 		return err
 	}
@@ -59,7 +59,7 @@ func submitEntryToAnchorChain(aRecord *AnchorRecord) error {
 		return err
 	}
 
-	anchorLog.Info("jsonARecord binary entry: ", hex.EncodeToString(binaryEntry))
+	anchorLog.Debug("jsonARecord binary entry: ", hex.EncodeToString(binaryEntry))
 	if c, err := util.EntryCost(binaryEntry); err != nil {
 		return err
 	} else {
