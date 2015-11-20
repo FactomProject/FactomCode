@@ -380,6 +380,9 @@ func readConfig() {
 // running in different machine.
 func InitRPCClient() error {
 	anchorLog.Debug("init RPC client")
+	if cfg == nil {
+		readConfig()
+	}
 	certHomePath := cfg.Btc.CertHomePath
 	rpcClientHost := cfg.Btc.RpcClientHost
 	rpcClientEndpoint := cfg.Btc.RpcClientEndpoint
