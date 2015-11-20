@@ -32,9 +32,6 @@ func submitEntryToAnchorChain(aRecord *AnchorRecord) error {
 	bufARecord.Write(jsonARecord)
 	//Sign the json aRecord with the server key
 	aRecordSig := serverPrivKey.Sign(jsonARecord)
-	//Encode sig into Hex string
-	//leave it here for backward compatibility
-	bufARecord.Write([]byte(hex.EncodeToString(aRecordSig.Sig[:])))
 
 	//Create a new entry
 	entry := common.NewEntry()
