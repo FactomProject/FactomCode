@@ -109,6 +109,7 @@ func doTransaction(hash *common.Hash, blockHeight uint32, dirBlockInfo *common.D
 
 	if dirBlockInfo != nil {
 		dirBlockInfo.BTCTxHash = toHash(shaHash)
+		db.InsertDirBlockInfo(dirBlockInfo)
 	}
 
 	return shaHash, nil
@@ -610,12 +611,13 @@ func checkForAnchor() {
 	sort.Sort(ByTimestamp(dirBlockInfos))
 	for _, dirBlockInfo := range dirBlockInfos {
 		if bytes.Compare(dirBlockInfo.BTCTxHash.Bytes(), common.NewHash().Bytes()) == 0 {
-			anchorLog.Debug("first time anchor: ")
+			anchorLog.Debug("first time anchor: ", spew.Sdump(dirBlockInfo))
 			SendRawTransactionToBTC(dirBlockInfo.DBMerkleRoot, dirBlockInfo.DBHeight)
 		} else {
 			lapse := timeNow - dirBlockInfo.Timestamp
 			anchorLog.Debugf("time lapse=%d", lapse)
-			if lapse > int64(time0) {
+			// avoid DirBlock genesis block which has a fixed Timestamp of "2015-09-01T20:00:00+00:00"
+			if lapse > int64(time0) && dirBlockInfo.DBHeight > 0 {
 				anchorLog.Debug("re-anchor: ")
 				SendRawTransactionToBTC(dirBlockInfo.DBMerkleRoot, dirBlockInfo.DBHeight)
 			} else if lapse > int64(time1) {
@@ -665,9 +667,14 @@ func checkConfirmations(dirBlockInfo *common.DirBlockInfo) error {
 // sort a slice of DirBlockInfo by their Timestamp.
 type ByTimestamp []*common.DirBlockInfo
 
-func (u ByTimestamp) Len() int           { return len(u) }
-func (u ByTimestamp) Less(i, j int) bool { return u[i].Timestamp < u[j].Timestamp }
-func (u ByTimestamp) Swap(i, j int)      { u[i], u[j] = u[j], u[i] }
+func (u ByTimestamp) Len() int { return len(u) }
+func (u ByTimestamp) Less(i, j int) bool {
+	if u[i].Timestamp == u[j].Timestamp {
+		return u[i].DBHeight < u[j].DBHeight
+	}
+	return u[i].Timestamp < u[j].Timestamp
+}
+func (u ByTimestamp) Swap(i, j int) { u[i], u[j] = u[j], u[i] }
 
 func checkTxMalleation(transaction *btcutil.Tx, details *btcjson.BlockDetails) {
 	anchorLog.Debug("in checkTxMalleation")
