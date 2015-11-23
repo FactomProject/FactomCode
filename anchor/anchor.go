@@ -353,6 +353,7 @@ func InitAnchor(ldb database.Db, q chan factomwire.FtmInternalMsg, serverKey com
 				if err = InitRPCClient(); err != nil {
 					anchorLog.Error(err.Error())
 				}
+				checkTxConfirmations()
 			}
 		}
 	}()
@@ -604,7 +605,6 @@ func UpdateDirBlockInfoMap(dirBlockInfo *common.DirBlockInfo) {
 func checkForAnchor() {
 	timeNow := time.Now().Unix()
 	time0 := 60 * 60 * reAnchorAfter
-	time1 := 60 * 6 * confirmationsNeeded
 	dirBlockInfos := make([]*common.DirBlockInfo, 0, len(dirBlockInfoMap))
 	for _, v := range dirBlockInfoMap {
 		dirBlockInfos = append(dirBlockInfos, v)
@@ -621,9 +621,22 @@ func checkForAnchor() {
 			if lapse > int64(time0) && dirBlockInfo.DBHeight > 0 {
 				anchorLog.Debug("re-anchor: ")
 				SendRawTransactionToBTC(dirBlockInfo.DBMerkleRoot, dirBlockInfo.DBHeight)
-			} else if lapse > int64(time1) {
-				checkConfirmations(dirBlockInfo)
 			}
+		}
+	}
+}
+
+func checkTxConfirmations() {
+	timeNow := time.Now().Unix()
+	time1 := 60 * 5 * confirmationsNeeded
+	dirBlockInfos := make([]*common.DirBlockInfo, 0, len(dirBlockInfoMap))
+	for _, v := range dirBlockInfoMap {
+		dirBlockInfos = append(dirBlockInfos, v)
+	}
+	sort.Sort(ByTimestamp(dirBlockInfos))
+	for _, dirBlockInfo := range dirBlockInfos {
+		if timeNow-dirBlockInfo.Timestamp > int64(time1) {
+			checkConfirmations(dirBlockInfo)
 		}
 	}
 }
