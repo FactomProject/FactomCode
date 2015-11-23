@@ -255,6 +255,7 @@ func validateMsgTx(msgtx *wire.MsgTx, inputs []btcjson.ListUnspentResult) error 
 			return fmt.Errorf("cannot decode scriptPubKey: %s", err)
 		}
 		engine, err := txscript.NewEngine(scriptPubKey, msgtx, i, flags)
+		//engine, err := txscript.NewEngine(scriptPubKey, msgtx, i, flags, nil)
 		if err != nil {
 			anchorLog.Errorf("cannot create script engine: %s\n", err)
 			return fmt.Errorf("cannot create script engine: %s", err)
@@ -638,16 +639,24 @@ func checkConfirmations(dirBlockInfo *common.DirBlockInfo) error {
 	if txResult.Confirmations >= int64(confirmationsNeeded) {
 		btcBlockHash, _ := wire.NewShaHashFromStr(txResult.BlockHash)
 		var rewrite = false
-		// bad things like re-organization of btc main chain happened
+		// Either the call back is not recorded in case of BTCBlockHash is zero hash,
+		// or bad things like re-organization of btc main chain happened
 		if bytes.Compare(dirBlockInfo.BTCBlockHash.Bytes(), btcBlockHash.Bytes()) != 0 {
+			anchorLog.Debugf("BTCBlockHash changed: original BTCBlockHeight=%d, original BTCBlockHash=%s, original tx offset=%d\n", dirBlockInfo.BTCBlockHeight, toShaHash(dirBlockInfo.BTCBlockHash).String(), dirBlockInfo.BTCTxOffset)
 			dirBlockInfo.BTCBlockHash = toHash(btcBlockHash)
-			btcBlock, _ := wclient.GetBlock(btcBlockHash)
-			dirBlockInfo.BTCBlockHeight = int32(btcBlock.Height())
-			anchorLog.Debugf("BTCBlockHash changed: new BTCBlockHeight=%d, new BTCBlockHash=%s", dirBlockInfo.BTCBlockHeight, dirBlockInfo.BTCBlockHash)
+			btcBlock, err0 := wclient.GetBlock(btcBlockHash)
+			if err0 != nil {
+				anchorLog.Debugf(err0.Error())
+			}
+			if btcBlock.Height() > 0 {
+				dirBlockInfo.BTCBlockHeight = int32(btcBlock.Height())
+			}
+			anchorLog.Debugf("BTCBlockHash changed: new BTCBlockHeight=%d, new BTCBlockHash=%s, btcBlock.Height()=%d\n", dirBlockInfo.BTCBlockHeight, btcBlockHash.String(), btcBlock.Height())
 
 			tx, err := wclient.GetRawTransaction(toShaHash(dirBlockInfo.BTCTxHash))
-			if err == nil {
+			if err == nil && tx.Index() > 0 {
 				dirBlockInfo.BTCTxOffset = int32(tx.Index())
+				anchorLog.Debug("new BTCTxOffset=", dirBlockInfo.BTCTxOffset)
 			}
 			rewrite = true
 		}
