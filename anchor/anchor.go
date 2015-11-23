@@ -657,20 +657,14 @@ func checkConfirmations(dirBlockInfo *common.DirBlockInfo) error {
 		if bytes.Compare(dirBlockInfo.BTCBlockHash.Bytes(), btcBlockHash.Bytes()) != 0 {
 			anchorLog.Debugf("BTCBlockHash changed: original BTCBlockHeight=%d, original BTCBlockHash=%s, original tx offset=%d\n", dirBlockInfo.BTCBlockHeight, toShaHash(dirBlockInfo.BTCBlockHash).String(), dirBlockInfo.BTCTxOffset)
 			dirBlockInfo.BTCBlockHash = toHash(btcBlockHash)
-			btcBlock, err0 := wclient.GetBlock(btcBlockHash)
-			if err0 != nil {
-				anchorLog.Debugf(err0.Error())
+			btcBlock, err := wclient.GetBlockVerbose(btcBlockHash, true)
+			if err != nil {
+				anchorLog.Debugf(err.Error())
 			}
-			if btcBlock.Height() > 0 {
-				dirBlockInfo.BTCBlockHeight = int32(btcBlock.Height())
+			if btcBlock.Height > 0 {
+				dirBlockInfo.BTCBlockHeight = int32(btcBlock.Height)
 			}
-			anchorLog.Debugf("BTCBlockHash changed: new BTCBlockHeight=%d, new BTCBlockHash=%s, btcBlock.Height()=%d\n", dirBlockInfo.BTCBlockHeight, btcBlockHash.String(), btcBlock.Height())
-
-			tx, err := wclient.GetRawTransaction(toShaHash(dirBlockInfo.BTCTxHash))
-			if err == nil && tx.Index() > 0 {
-				dirBlockInfo.BTCTxOffset = int32(tx.Index())
-				anchorLog.Debug("new BTCTxOffset=", dirBlockInfo.BTCTxOffset)
-			}
+			anchorLog.Debugf("BTCBlockHash changed: new BTCBlockHeight=%d, new BTCBlockHash=%s, btcBlockVerbose.Height=%d\n", dirBlockInfo.BTCBlockHeight, btcBlockHash.String(), btcBlock.Height)
 			rewrite = true
 		}
 		dirBlockInfo.BTCConfirmed = true // needs confirmationsNeeded (20) to be confirmed.
