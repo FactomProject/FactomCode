@@ -609,7 +609,8 @@ func checkForAnchor() {
 	for _, v := range dirBlockInfoMap {
 		dirBlockInfos = append(dirBlockInfos, v)
 	}
-	sort.Sort(ByTimestamp(dirBlockInfos))
+	// anchor the latest dir block first
+	sort.Sort(sort.Reverse(ByTimestamp(dirBlockInfos)))
 	for _, dirBlockInfo := range dirBlockInfos {
 		if bytes.Compare(dirBlockInfo.BTCTxHash.Bytes(), common.NewHash().Bytes()) == 0 {
 			anchorLog.Debug("first time anchor: ", spew.Sdump(dirBlockInfo))
