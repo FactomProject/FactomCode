@@ -40,7 +40,6 @@ var (
 	dirBlockInfoMap  map[string]*common.DirBlockInfo //DBMerkleRoot string as key
 	db               database.Db
 	walletLocked     = true
-	reAnchorAfter    = 4 // hours. For anchors that do not get bitcoin callback info for over 10 hours, then re-anchor them.
 	defaultAddress   btcutil.Address
 	tenMinutes       = 10 // 10 minute mark
 	minBalance       btcutil.Amount
@@ -603,8 +602,6 @@ func UpdateDirBlockInfoMap(dirBlockInfo *common.DirBlockInfo) {
 }
 
 func checkForAnchor() {
-	timeNow := time.Now().Unix()
-	time0 := 60 * 60 * reAnchorAfter
 	dirBlockInfos := make([]*common.DirBlockInfo, 0, len(dirBlockInfoMap))
 	for _, v := range dirBlockInfoMap {
 		dirBlockInfos = append(dirBlockInfos, v)
@@ -615,14 +612,6 @@ func checkForAnchor() {
 		if bytes.Compare(dirBlockInfo.BTCTxHash.Bytes(), common.NewHash().Bytes()) == 0 {
 			anchorLog.Debug("first time anchor: ", spew.Sdump(dirBlockInfo))
 			SendRawTransactionToBTC(dirBlockInfo.DBMerkleRoot, dirBlockInfo.DBHeight)
-		} else {
-			lapse := timeNow - dirBlockInfo.Timestamp
-			anchorLog.Debugf("check re-anchor time lapse=%d", lapse)
-			// avoid DirBlock genesis block which has a fixed Timestamp of "2015-09-01T20:00:00+00:00"
-			if lapse > int64(time0) && dirBlockInfo.DBHeight > 0 {
-				anchorLog.Debug("re-anchor: ")
-				SendRawTransactionToBTC(dirBlockInfo.DBMerkleRoot, dirBlockInfo.DBHeight)
-			}
 		}
 	}
 }
