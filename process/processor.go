@@ -1240,10 +1240,10 @@ func SignDirectoryBlock() error {
 func placeAnchor(dbBlock *common.DirectoryBlock) error {
 	// Only Servers can write the anchor to Bitcoin network
 	if nodeMode == common.SERVER_NODE && dbBlock != nil {
-		// todo: need to make anchor as a go routine, independent of factomd
-		// same as blockmanager to btcd
 		//go anchor.SendRawTransactionToBTC(dbBlock.KeyMR, dbBlock.Header.DBHeight)
 		dirBlockInfo := common.NewDirBlockInfoFromDBlock(dbBlock)
+		// if factomd/anchor/database goes down here, then we need to check
+		// the missing DirBlockInfo in database when InitAnchor
 		db.InsertDirBlockInfo(dirBlockInfo)
 		anchor.UpdateDirBlockInfoMap(dirBlockInfo)
 	}

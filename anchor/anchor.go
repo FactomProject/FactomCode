@@ -40,8 +40,9 @@ var (
 	dirBlockInfoMap  map[string]*common.DirBlockInfo //DBMerkleRoot string as key
 	db               database.Db
 	walletLocked     = true
-	defaultAddress   btcutil.Address
+	reAnchorAfter    = 4 // hours. For anchors that do not get bitcoin callback info for over 10 hours, then re-anchor them.
 	tenMinutes       = 10 // 10 minute mark
+	defaultAddress   btcutil.Address
 	minBalance       btcutil.Amount
 
 	fee                 btcutil.Amount // tx fee for written into btc
@@ -108,6 +109,7 @@ func doTransaction(hash *common.Hash, blockHeight uint32, dirBlockInfo *common.D
 
 	if dirBlockInfo != nil {
 		dirBlockInfo.BTCTxHash = toHash(shaHash)
+		dirBlockInfo.Timestamp = time.Now().Unix()
 		db.InsertDirBlockInfo(dirBlockInfo)
 	}
 
@@ -286,19 +288,16 @@ func sendRawTransaction(msgtx *wire.MsgTx) (*wire.ShaHash, error) {
 }
 
 func createBtcwalletNotificationHandlers() btcrpcclient.NotificationHandlers {
-
 	ntfnHandlers := btcrpcclient.NotificationHandlers{
 		OnWalletLockState: func(locked bool) {
 			anchorLog.Info("wclient: OnWalletLockState, locked=", locked)
 			walletLocked = locked
 		},
 	}
-
 	return ntfnHandlers
 }
 
 func createBtcdNotificationHandlers() btcrpcclient.NotificationHandlers {
-
 	ntfnHandlers := btcrpcclient.NotificationHandlers{
 		OnRedeemingTx: func(transaction *btcutil.Tx, details *btcjson.BlockDetails) {
 			if details != nil {
@@ -308,8 +307,29 @@ func createBtcdNotificationHandlers() btcrpcclient.NotificationHandlers {
 			}
 		},
 	}
-
 	return ntfnHandlers
+}
+
+func checkMissingDirBlockInfo() {
+	anchorLog.Debug("checkMissingDirBlockInfo for those unsaved DirBlocks in database")
+	dblocks, _ := db.FetchAllDBlocks()
+	dirBlockInfoMap2, _ := db.FetchAllDirBlockInfo()
+	for _, dblock := range dblocks {
+		if dblock.KeyMR == nil || bytes.Compare(dblock.KeyMR.Bytes(), common.NewHash().Bytes()) == 0 {
+			anchorLog.Debug("Missing dirBlock.KeyMR for height of ", dblock.Header.DBHeight)
+			dblock.BuildKeyMerkleRoot()
+		}
+		if _, ok := dirBlockInfoMap2[dblock.KeyMR.String()]; ok {
+			anchorLog.Debug("Existing dirBlock.KeyMR", dblock.KeyMR.String())
+			continue
+		} else {
+			dirBlockInfo := common.NewDirBlockInfoFromDBlock(&dblock)
+			dirBlockInfo.Timestamp = time.Now().Unix()
+			anchorLog.Debug("add missing dirBlockInfo to map: ", spew.Sdump(dirBlockInfo))
+			db.InsertDirBlockInfo(dirBlockInfo)
+			dirBlockInfoMap[dirBlockInfo.DBMerkleRoot.String()] = dirBlockInfo
+		}
+	}
 }
 
 // InitAnchor inits rpc clients for factom
@@ -328,6 +348,8 @@ func InitAnchor(ldb database.Db, q chan factomwire.FtmInternalMsg, serverKey com
 		return
 	}
 	anchorLog.Debug("init dirBlockInfoMap.len=", len(dirBlockInfoMap))
+	// this might take a while to check missing DirBlockInfo for existing DirBlocks in database
+	go checkMissingDirBlockInfo()
 
 	readConfig()
 	if err = InitRPCClient(); err != nil {
@@ -353,7 +375,9 @@ func InitAnchor(ldb database.Db, q chan factomwire.FtmInternalMsg, serverKey com
 					anchorLog.Error(err.Error())
 				}
 			}
-			checkTxConfirmations()
+			if wclient != nil {
+				checkTxConfirmations()
+			}
 		}
 	}()
 }
@@ -553,6 +577,7 @@ func doSaveDirBlockInfo(transaction *btcutil.Tx, details *btcjson.BlockDetails, 
 	dirBlockInfo.BTCBlockHeight = details.Height
 	btcBlockHash, _ := wire.NewShaHashFromStr(details.Hash)
 	dirBlockInfo.BTCBlockHash = toHash(btcBlockHash)
+	dirBlockInfo.Timestamp = time.Now().Unix()
 	db.InsertDirBlockInfo(dirBlockInfo)
 	anchorLog.Infof("In doSaveDirBlockInfo, dirBlockInfo:%s saved to db\n", spew.Sdump(dirBlockInfo))
 
@@ -602,6 +627,8 @@ func UpdateDirBlockInfoMap(dirBlockInfo *common.DirBlockInfo) {
 }
 
 func checkForAnchor() {
+	timeNow := time.Now().Unix()
+	time0 := 60 * 60 * reAnchorAfter
 	dirBlockInfos := make([]*common.DirBlockInfo, 0, len(dirBlockInfoMap))
 	for _, v := range dirBlockInfoMap {
 		dirBlockInfos = append(dirBlockInfos, v)
@@ -612,6 +639,13 @@ func checkForAnchor() {
 		if bytes.Compare(dirBlockInfo.BTCTxHash.Bytes(), common.NewHash().Bytes()) == 0 {
 			anchorLog.Debug("first time anchor: ", spew.Sdump(dirBlockInfo))
 			SendRawTransactionToBTC(dirBlockInfo.DBMerkleRoot, dirBlockInfo.DBHeight)
+		} else {
+			// This is the re-anchor case for the missed callback of malleated tx
+			lapse := timeNow - dirBlockInfo.Timestamp
+			if lapse > int64(time0) {
+				anchorLog.Debugf("re-anchor: time lapse=%d, %s\n", lapse, spew.Sdump(dirBlockInfo))
+				SendRawTransactionToBTC(dirBlockInfo.DBMerkleRoot, dirBlockInfo.DBHeight)
+			}
 		}
 	}
 }
@@ -626,8 +660,8 @@ func checkTxConfirmations() {
 	sort.Sort(ByTimestamp(dirBlockInfos))
 	for _, dirBlockInfo := range dirBlockInfos {
 		lapse := timeNow - dirBlockInfo.Timestamp
-		anchorLog.Debugf("check confirmation time lapse=%d", lapse)
 		if lapse > int64(time1) {
+			anchorLog.Debugf("checkTxConfirmations: time lapse=%d", lapse)
 			checkConfirmations(dirBlockInfo)
 		}
 	}
@@ -660,6 +694,7 @@ func checkConfirmations(dirBlockInfo *common.DirBlockInfo) error {
 			rewrite = true
 		}
 		dirBlockInfo.BTCConfirmed = true // needs confirmationsNeeded (20) to be confirmed.
+		dirBlockInfo.Timestamp = time.Now().Unix()
 		db.InsertDirBlockInfo(dirBlockInfo)
 		delete(dirBlockInfoMap, dirBlockInfo.DBMerkleRoot.String()) // delete it after confirmationsNeeded (20)
 		anchorLog.Debugf("Fully confirmed %d times. txid=%s, dirblockInfo=%s\n", txResult.Confirmations, txResult.TxID, spew.Sdump(dirBlockInfo))
