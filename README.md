@@ -29,4 +29,10 @@ After installing and setting up Go, btcd, and btcwallet, the following command w
 $ go get -u github.com/factomproject/factomcode/...
 ```
 
+If you receive an error mentioning that go "Cannot download... godoc.org uses insecure protocol" and you have verified that godoc.org is the only domain/resource that is insecurely loading (via http rather than https), you can use the "-insecure" flag to bypass the problem, like so:
+
+```bash
+$ go get -u github.com/factomproject/factomcode/...
+```
+
 *Note: the "warning: code.google.com is shutting down" warnings which may appear during installation/setup can safely be ignored.* 
