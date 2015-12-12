@@ -153,40 +153,58 @@ echo "
 *
 *******************************************************
 "
+
+report-coverage() {
+go list ${directory#*go/src/}/$1 | colrm 1 25 |
+while read line; do
+    cd $directory/$line
+    gocov test > test.json
+    coveragehtml="$(echo $line | sed 's_/_-_g')"".html"
+    if [ $(wc -m < test.json) -gt 18 ]; then
+        gocov report test.json | tail -0
+        gocov-html test.json > $directory/coverage-reports/$coveragehtml
+    else rm -f $directory/coverage-reports/$coveragehtml 
+    fi
+    rm test.json
+done
+}
+
+directory=$(pwd)
+mkdir -p coverage-reports
+
 echo "
 +================+
 |     btcd       |
 +================+
 "
-go test -short ./btcd/...
+report-coverage btcd/...
 
 echo "
 +================+
 |  FactomCode    |
 +================+
 "
-go test -short  ./FactomCode/...
+report-coverage FactomCode/...
 
 echo "
 +================+
 |   factoids     |
 +================+
 "
-go test -short  ./factoid/...
+report-coverage factoid/...
 
 echo "
 +================+
 |  Factom-cli   |
 +================+
 "
-go test -short  ./factom-cli/...
+report-coverage factom-cli/...
 
 echo "
 +================+
 |  fctWallet     |
 +================+
 "
-go test -short  ./fctwallet/...
-
+report-coverage fctwallet/...
 
 cd FactomCode
