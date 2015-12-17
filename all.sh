@@ -21,7 +21,10 @@
 #
 cd ..
 
-if [[ -z $1 ]]; then
+if [ ${!#} == -nocov ]; then noparameters=$(($#-1)); else noparameters=$#; fi
+for (( i=1; i<=$noparameters; i++ )); do parameter[i]=${!i}; done
+
+if [[ -z ${parameter[1]} ]]; then
 echo "
 *********************************************************
 *       Defaulting... Checking out Master
@@ -38,7 +41,7 @@ default=master
 else
 echo "
 *********************************************************
-*       Checking out the" $1 "branch
+*       Checking out the" ${parameter[1]} "branch
 *
 *       ./all.sh <branch> <default>
 *
@@ -47,11 +50,11 @@ echo "
 *       missing, will checkout the master branch.
 *
 *********************************************************"
-branch=$1
-if [[ -z $2 ]]; then
+branch=${parameter[1]}
+if [[ -z ${parameter[2]} ]]; then
 default=master
 else
-default=$2
+default=${parameter[2]}
 fi
 fi
 checkout() {
@@ -139,21 +142,6 @@ compile fctwallet            || exit 1
 compile factom-cli           || exit 1
 compile walletapp            || exit 1
 
-
-echo ""
-echo "
-*******************************************************
-*     Running Unit Tests    Now safe to Ctrl+C
-*
-*  YOU MUST KILL factomd FOR TESTS TO RUN PROPERLY!
-*
-*  Please run and pass all unit tests before pushing
-*  to development or master!  Protect your code with
-*  unit tests!  If you can!
-*
-*******************************************************
-"
-
 report-coverage() {
 go list ${directory#*go/src/}/$1 | colrm 1 25 |
 while read line; do
@@ -169,42 +157,60 @@ while read line; do
 done
 }
 
-directory=$(pwd)
-mkdir -p coverage-reports
+if [ ${!#} != -nocov ]; then 
 
-echo "
+    echo ""
+
+    echo "
+*******************************************************
+*     Running Unit Tests    Now safe to Ctrl+C
+*
+*  YOU MUST KILL factomd FOR TESTS TO RUN PROPERLY!
+*
+*  Please run and pass all unit tests before pushing
+*  to development or master!  Protect your code with
+*  unit tests!  If you can!
+*
+*******************************************************
+"
+
+    directory=$(pwd)
+    mkdir -p coverage-reports
+
+    echo "
 +================+
 |     btcd       |
 +================+
 "
-report-coverage btcd/...
+    report-coverage btcd/...
 
-echo "
+    echo "
 +================+
 |  FactomCode    |
 +================+
 "
-report-coverage FactomCode/...
+    report-coverage FactomCode/...
 
-echo "
+    echo "
 +================+
 |   factoids     |
 +================+
 "
-report-coverage factoid/...
+    report-coverage factoid/...
 
-echo "
+    echo "
 +================+
 |  Factom-cli   |
 +================+
 "
-report-coverage factom-cli/...
+    report-coverage factom-cli/...
 
-echo "
+    echo "
 +================+
 |  fctWallet     |
 +================+
 "
-report-coverage fctwallet/...
+    report-coverage fctwallet/...
+fi
 
 cd FactomCode
