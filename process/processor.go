@@ -96,7 +96,7 @@ func LoadConfigurations(cfg *util.FactomdConfig) {
 	nodeMode = cfg.App.NodeMode
 	serverPrivKeyHex = cfg.App.ServerPrivKey
 
-    cp.CP.SetPort(cfg.Controlpanel.Port)
+    	cp.CP.SetPort(cfg.Controlpanel.Port)
 
 	FactomdUser = cfg.Btc.RpcUser
 	FactomdPass = cfg.Btc.RpcPass
