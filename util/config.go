@@ -61,9 +61,9 @@ type FactomdConfig struct {
 		RefreshInSeconds string
 		BoltDBPath       string
 	}
-    Controlpanel struct {
-        Port            string
-    }
+    	Controlpanel struct {
+        	Port            string
+    	}
 
 	//	AddPeers     []string `short:"a" long:"addpeer" description:"Add a peer to connect with at startup"`
 	//	ConnectPeers []string `long:"connect" description:"Connect only to the specified peers at startup"`
