@@ -61,6 +61,9 @@ type FactomdConfig struct {
 		RefreshInSeconds string
 		BoltDBPath       string
 	}
+    Controlpanel struct {
+        Port            string
+    }
 
 	//	AddPeers     []string `short:"a" long:"addpeer" description:"Add a peer to connect with at startup"`
 	//	ConnectPeers []string `long:"connect" description:"Connect only to the specified peers at startup"`
@@ -127,6 +130,12 @@ Port             					= 8089
 DataFile         					= fctwallet.dat
 RefreshInSeconds 					= 60
 BoltDBPath 							= ""
+
+; ------------------------------------------------------------------------------
+; Configurations for controlpanel
+; ------------------------------------------------------------------------------
+[Controlpanel]
+Port             					= 8090
 `
 
 var cfg *FactomdConfig
