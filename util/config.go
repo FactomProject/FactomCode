@@ -85,9 +85,9 @@ const defaultConfig = `
 [app]
 PortNumber				      		= 8088
 HomeDir								= ""
-LdbPath					        	= "ldb9"
+LdbPath					        	= "ldb"
 BoltDBPath							= ""
-DataStorePath			      		= "store/seed/"
+DataStorePath			      		= "data/export/"
 DirectoryBlockInSeconds				= 60
 ; --------------- NodeMode: FULL | SERVER | LIGHT ----------------
 NodeMode				        	= FULL
