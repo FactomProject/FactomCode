@@ -36,7 +36,7 @@ type Db interface {
 	// FetchEBEntriesFromQueue gets all of the ebentries that have not been processed
 	//FetchEBEntriesFromQueue(chainID *[]byte, startTime *[]byte) (ebentries []*common.EBEntry, err error)
 
-	// ProcessEBlockBatche inserts the EBlock and update all it's ebentries in DB
+	// ProcessEBlockBatch inserts the EBlock and update all it's ebentries in DB
 	ProcessEBlockBatch(eblock *common.EBlock) error
 
 	// FetchDBEntriesFromQueue gets all of the dbentries that have not been processed
@@ -57,7 +57,7 @@ type Db interface {
 	// FetchEntryInfoBranchByHash gets an EntryInfoBranch obj
 	// FetchEntryInfoBranchByHash(entryHash *common.Hash) (entryInfoBranch *common.EntryInfoBranch, err error)
 
-	// FetchEntryBlock gets an entry by hash from the database.
+	// FetchEBlockByHash gets an entry block by hash from the database.
 	FetchEBlockByHash(eBlockHash *common.Hash) (eBlock *common.EBlock, err error)
 
 	// FetchEBlockByMR gets an entry block by merkle root from the database.
@@ -66,13 +66,13 @@ type Db interface {
 	// FetchEBlockByHeight gets an entry block by height from the database.
 	//FetchEBlockByHeight(chainID * common.Hash, eBlockHeight uint32) (eBlock *common.EBlock, err error)
 
-	// FetchEBHashByMR gets an entry by hash from the database.
+	// FetchEBHashByMR gets a EBHash by MR from the database.
 	FetchEBHashByMR(eBMR *common.Hash) (eBlockHash *common.Hash, err error)
 
 	// FetchAllEBlocksByChain gets all of the blocks by chain id
 	FetchAllEBlocksByChain(chainID *common.Hash) (eBlocks *[]common.EBlock, err error)
 
-	// FetchDBlock gets an entry by hash from the database.
+	// FetchDBlockByHash gets a directory block by hash from the database.
 	FetchDBlockByHash(dBlockHash *common.Hash) (dBlock *common.DirectoryBlock, err error)
 
 	// FetchDBlockByMR gets a directory block by merkle root from the database.
@@ -81,7 +81,7 @@ type Db interface {
 	// FetchDBHashByMR gets a DBHash by MR from the database.
 	FetchDBHashByMR(dBMR *common.Hash) (dBlockHash *common.Hash, err error)
 
-	// FetchDBBatchByHash gets an FBBatch obj
+	// FetchDirBlockInfoByHash gets an dirBlockInfo obj
 	FetchDirBlockInfoByHash(dbHash *common.Hash) (dirBlockInfo *common.DirBlockInfo, err error)
 
 	// Insert the Directory Block meta data into db
@@ -94,7 +94,7 @@ type Db interface {
 	//FetchAllUnconfirmedDirBlockInfo() (dBInfoSlice []common.DirBlockInfo, err error)
 	FetchAllUnconfirmedDirBlockInfo() (dirBlockInfoMap map[string]*common.DirBlockInfo, err error)
 
-	// ProcessDBlockBatche inserts the EBlock and update all it's ebentries in DB
+	// ProcessDBlockBatch inserts the EBlock and update all it's ebentries in DB
 	ProcessDBlockBatch(block *common.DirectoryBlock) error
 
 	// FetchHeightRange looks up a range of blocks by the start and ending
@@ -110,7 +110,7 @@ type Db interface {
 	// FetchAllECBlocks gets all of the entry credit blocks
 	FetchAllECBlocks() (cBlocks []common.ECBlock, err error)
 
-	// FetchAllFBInfo gets all of the fbInfo
+	// FetchAllDBlocks gets all of the directory blocks
 	FetchAllDBlocks() (fBlocks []common.DirectoryBlock, err error)
 
 	// FetchDBHashByHeight gets a dBlockHash from the database.
@@ -119,7 +119,7 @@ type Db interface {
 	// FetchDBlockByHeight gets an directory block by height from the database.
 	FetchDBlockByHeight(dBlockHeight uint32) (dBlock *common.DirectoryBlock, err error)
 
-	// ProcessECBlockBatche inserts the ECBlock and update all it's ecbentries in DB
+	// ProcessECBlockBatch inserts the ECBlock and update all it's ecbentries in DB
 	ProcessECBlockBatch(block *common.ECBlock) (err error)
 
 	// FetchECBlockByHash gets an Entry Credit block by hash from the database.
@@ -137,13 +137,13 @@ type Db interface {
 	// FetchAllABlocks gets all of the admin blocks
 	FetchAllABlocks() (aBlocks []common.AdminBlock, err error)
 
-	// ProcessABlockBatch inserts the AdminBlock
+	// ProcessFBlockBatch inserts the factoid block
 	ProcessFBlockBatch(block.IFBlock) error
 
-	// FetchABlockByHash gets an admin block by hash from the database.
+	// FetchFBlockByHash gets an factoid block by hash from the database.
 	FetchFBlockByHash(*common.Hash) (block.IFBlock, error)
 
-	// FetchAllABlocks gets all of the admin blocks
+	// FetchAllFBlocks gets all of the factoid blocks
 	FetchAllFBlocks() ([]block.IFBlock, error)
 
 	// UpdateBlockHeightCache updates the dir block height cache in db
@@ -158,6 +158,6 @@ type Db interface {
 	// FetchNextBlockHeightCache returns the next block height from server
 	FetchNextBlockHeightCache() (height int64)
 
-	// FtchHeadMRByChainID gets a MR of the highest block from the database.
+	// FetchHeadMRByChainID gets a MR of the highest block from the database.
 	FetchHeadMRByChainID(chainID *common.Hash) (blkMR *common.Hash, err error)
 }
