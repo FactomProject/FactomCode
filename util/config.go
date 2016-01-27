@@ -6,7 +6,7 @@ import (
 	"os/user"
 	"sync"
 
-	"code.google.com/p/gcfg"
+	"gopkg.in/gcfg.v1"
 )
 
 type FactomdConfig struct {
