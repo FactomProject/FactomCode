@@ -72,7 +72,7 @@ func main() {
 
 	// Load configuration file and send settings to components
 	loadConfigurations()
-	
+
 	// create the $home/.factom directory if it does not exist
 	os.Mkdir(homeDir, 0755)
 
