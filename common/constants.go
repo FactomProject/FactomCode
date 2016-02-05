@@ -5,8 +5,10 @@
 package common
 
 import (
+	"fmt"
+	"encoding/json"
 	"time"
-	)
+)
 
 const (
 
@@ -95,4 +97,29 @@ type Properties struct {
 	Protocol_Version  int
 	Factomd_Version	  int
 	Fctwallet_Version int
+}
+
+func (p *Properties) MarshalJSON() ([]byte, error) {
+	type tmp struct {
+		Protocol_Version  string
+		Factomd_Version	  string
+		Fctwallet_Version string
+	}
+	t := new(tmp)
+	
+	t.Protocol_Version = versionToString(p.Protocol_Version)
+	t.Factomd_Version = versionToString(p.Factomd_Version)
+	t.Fctwallet_Version = versionToString(p.Fctwallet_Version)
+	
+	return json.Marshal(t)
+}
+
+// versionToString converts the fixed poit versions to human readable version
+// strings.
+func versionToString(f int) string {
+	v1 := f / 1000000
+	v2 := (f % 1000000) / 1000
+	v3 := f % 1000
+	
+	return fmt.Sprintf("%d.%d.%d", v1, v2, v3)
 }
