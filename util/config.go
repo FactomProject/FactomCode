@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"os/user"
+	"strings"
 	"sync"
 
 	"code.google.com/p/gcfg"
@@ -12,19 +13,19 @@ import (
 type FactomdConfig struct {
 	App struct {
 		PortNumber              int
-		HomeDir					string 
-		LdbPath                 string 
-		BoltDBPath              string 
-		DataStorePath           string 
+		HomeDir                 string
+		LdbPath                 string
+		BoltDBPath              string
+		DataStorePath           string
 		DirectoryBlockInSeconds int
 		NodeMode                string
 		ServerPrivKey           string
 		ExchangeRate            uint64
 	}
 	Anchor struct {
-		ServerECKey         	string
-		AnchorChainID         	string		
-		ConfirmationsNeeded 	int	
+		ServerECKey         string
+		AnchorChainID       string
+		ConfirmationsNeeded int
 	}
 	Btc struct {
 		BTCPubAddr         string
@@ -63,9 +64,9 @@ type FactomdConfig struct {
 		FactomdAddress   string
 		FactomdPort      int
 	}
-    	Controlpanel struct {
-        	Port            string
-    	}
+	Controlpanel struct {
+		Port string
+	}
 
 	//	AddPeers     []string `short:"a" long:"addpeer" description:"Add a peer to connect with at startup"`
 	//	ConnectPeers []string `long:"connect" description:"Connect only to the specified peers at startup"`
@@ -146,23 +147,31 @@ var cfg *FactomdConfig
 var once sync.Once
 var filename = getHomeDir() + "/.factom/factomd.conf"
 
+func SetConfigFile(f string) {
+	filename = f
+}
+
 // GetConfig reads the default factomd.conf file and returns a FactomConfig
 // object corresponding to the state of the file.
 func ReadConfig() *FactomdConfig {
 	once.Do(func() {
-		log.Println("read factom config file: ", filename)
 		cfg = readConfig()
 	})
+	//debug.PrintStack()
 	return cfg
 }
 
 func ReReadConfig() *FactomdConfig {
 	cfg = readConfig()
-		
+
 	return cfg
 }
 
 func readConfig() *FactomdConfig {
+	if len(os.Args) > 1 && strings.Contains(strings.ToLower(os.Args[1]), "factomd.conf") {
+		filename = os.Args[1]
+		log.Println("read factom config file: ", filename)
+	}
 	cfg := new(FactomdConfig)
 
 	// This makes factom config file located at
@@ -180,22 +189,22 @@ func readConfig() *FactomdConfig {
 
 	err := gcfg.ReadFileInto(cfg, filename)
 	if err != nil {
-		log.Println("ERROR Reading config file!\nServer starting with default settings...\n",err)
+		log.Println("ERROR Reading config file!\nServer starting with default settings...\n", err)
 		gcfg.ReadStringInto(cfg, defaultConfig)
-	} 
-	
+	}
+
 	// Default to home directory if not set
 	if len(cfg.App.HomeDir) < 1 {
 		cfg.App.HomeDir = getHomeDir() + "/.factom/"
 	}
-	
+
 	// TODO: improve the paths after milestone 1
 	cfg.App.LdbPath = cfg.App.HomeDir + cfg.App.LdbPath
-	cfg.App.BoltDBPath = cfg.App.HomeDir + cfg.App.BoltDBPath	
+	cfg.App.BoltDBPath = cfg.App.HomeDir + cfg.App.BoltDBPath
 	cfg.App.DataStorePath = cfg.App.HomeDir + cfg.App.DataStorePath
 	cfg.Log.LogPath = cfg.App.HomeDir + cfg.Log.LogPath
-	cfg.Wallet.BoltDBPath = cfg.App.HomeDir + cfg.Wallet.BoltDBPath		
-	
+	cfg.Wallet.BoltDBPath = cfg.App.HomeDir + cfg.Wallet.BoltDBPath
+
 	return cfg
 }
 
