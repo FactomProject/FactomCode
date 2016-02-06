@@ -6,7 +6,7 @@ import (
 	"os/user"
 	"sync"
 
-	"code.google.com/p/gcfg"
+	"gopkg.in/gcfg.v1"
 )
 
 type FactomdConfig struct {
@@ -60,7 +60,12 @@ type FactomdConfig struct {
 		DataFile         string
 		RefreshInSeconds string
 		BoltDBPath       string
+		FactomdAddress   string
+		FactomdPort      int
 	}
+    	Controlpanel struct {
+        	Port            string
+    	}
 
 	//	AddPeers     []string `short:"a" long:"addpeer" description:"Add a peer to connect with at startup"`
 	//	ConnectPeers []string `long:"connect" description:"Connect only to the specified peers at startup"`
@@ -80,9 +85,9 @@ const defaultConfig = `
 [app]
 PortNumber				      		= 8088
 HomeDir								= ""
-LdbPath					        	= "ldb9"
+LdbPath					        	= "ldb"
 BoltDBPath							= ""
-DataStorePath			      		= "store/seed/"
+DataStorePath			      		= "data/export/"
 DirectoryBlockInSeconds				= 60
 ; --------------- NodeMode: FULL | SERVER | LIGHT ----------------
 NodeMode				        	= FULL
@@ -127,6 +132,14 @@ Port             					= 8089
 DataFile         					= fctwallet.dat
 RefreshInSeconds 					= 60
 BoltDBPath 							= ""
+FactomdAddress                      = localhost
+FactomdPort                         = 8088
+
+; ------------------------------------------------------------------------------
+; Configurations for controlpanel
+; ------------------------------------------------------------------------------
+[Controlpanel]
+Port             					= 8090
 `
 
 var cfg *FactomdConfig

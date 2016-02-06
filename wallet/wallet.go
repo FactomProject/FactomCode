@@ -4,7 +4,8 @@ import (
 	"log"
 	"os"
 	//"fmt"
-	"code.google.com/p/gcfg"
+
+	"gopkg.in/gcfg.v1"
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/util"
 )

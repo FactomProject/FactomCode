@@ -47,8 +47,8 @@ func main() {
 	ftmdLog.Info("//////////////////////// Use of this source code is governed by the MIT")
 	ftmdLog.Info("//////////////////////// license that can be found in the LICENSE file.")
 
-	ftmdLog.Warning("Go compiler version: %s", runtime.Version())
-	fmt.Println("Go compiler version: ", runtime.Version())
+	ftmdLog.Warning("Go compiler version:", runtime.Version())
+	fmt.Println("Go compiler version:", runtime.Version())
 	cp.CP.AddUpdate("gocompiler",
 		"system",
 		fmt.Sprintln("Go compiler version: ", runtime.Version()),
@@ -72,7 +72,7 @@ func main() {
 
 	// Load configuration file and send settings to components
 	loadConfigurations()
-	
+
 	// create the $home/.factom directory if it does not exist
 	os.Mkdir(homeDir, 0755)
 
