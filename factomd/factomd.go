@@ -6,6 +6,11 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"runtime"
+	"strings"
+	"time"
+
 	"github.com/FactomProject/FactomCode/common"
 	cp "github.com/FactomProject/FactomCode/controlpanel"
 	"github.com/FactomProject/FactomCode/database"
@@ -17,10 +22,6 @@ import (
 	"github.com/FactomProject/btcd/limits"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/factoid/state/stateinit"
-	"os"
-	"runtime"
-	"strings"
-	"time"
 )
 
 var (
@@ -72,7 +73,7 @@ func main() {
 
 	// Load configuration file and send settings to components
 	loadConfigurations()
-	
+
 	// create the $home/.factom directory if it does not exist
 	os.Mkdir(homeDir, 0755)
 
@@ -127,14 +128,13 @@ func factomdMain() error {
 	}
 
 	// Start the factoid (btcd) component and P2P component
-	btcd.Start_btcd(db, inMsgQueue, outMsgQueue, inCtlMsgQueue, outCtlMsgQueue, process.FactomdUser, process.FactomdPass, common.SERVER_NODE != cfg.App.NodeMode)
+	btcd.Start_btcd(db, inMsgQueue, outMsgQueue, inCtlMsgQueue, outCtlMsgQueue, cfg) //process.FactomdUser, process.FactomdPass, common.SERVER_NODE != cfg.App.NodeMode)
 
 	return nil
 }
 
 // Load settings from configuration file: factomd.conf
 func loadConfigurations() {
-
 	cfg = util.ReadConfig()
 
 	homeDir = cfg.App.HomeDir
