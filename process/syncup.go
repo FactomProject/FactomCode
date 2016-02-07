@@ -61,9 +61,9 @@ func processDirBlock(msg *wire.MsgDirBlock) error {
 func processFBlock(msg *wire.MsgFBlock) error {
 
 	// Error condiftion for Milestone 1
-	if nodeMode == common.SERVER_NODE {
-		return errors.New("Server received msg:" + msg.Command())
-	}
+	//if nodeMode == common.SERVER_NODE {
+	//return errors.New("Server received msg:" + msg.Command())
+	//}
 
 	key := hex.EncodeToString(msg.SC.GetHash().Bytes())
 	//Add it to mem pool before saving it in db
@@ -80,9 +80,9 @@ func processFBlock(msg *wire.MsgFBlock) error {
 func processABlock(msg *wire.MsgABlock) error {
 
 	// Error condiftion for Milestone 1
-	if nodeMode == common.SERVER_NODE {
-		return errors.New("Server received msg:" + msg.Command())
-	}
+	//if nodeMode == common.SERVER_NODE {
+	//return errors.New("Server received msg:" + msg.Command())
+	//}
 
 	//Add it to mem pool before saving it in db
 	abHash, err := msg.ABlk.PartialHash()
@@ -101,9 +101,9 @@ func processABlock(msg *wire.MsgABlock) error {
 func procesECBlock(msg *wire.MsgECBlock) error {
 
 	// Error condiftion for Milestone 1
-	if nodeMode == common.SERVER_NODE {
-		return errors.New("Server received msg:" + msg.Command())
-	}
+	//if nodeMode == common.SERVER_NODE {
+	//return errors.New("Server received msg:" + msg.Command())
+	//}
 
 	//Add it to mem pool before saving it in db
 	hash, err := msg.ECBlock.HeaderHash()
@@ -122,9 +122,9 @@ func procesECBlock(msg *wire.MsgECBlock) error {
 func processEBlock(msg *wire.MsgEBlock) error {
 
 	// Error condiftion for Milestone 1
-	if nodeMode == common.SERVER_NODE {
-		return errors.New("Server received msg:" + msg.Command())
-	}
+	//if nodeMode == common.SERVER_NODE {
+	//return errors.New("Server received msg:" + msg.Command())
+	//}
 	/*
 		if msg.EBlk.Header.DBHeight >= dchain.NextBlockHeight || msg.EBlk.Header.DBHeight < 0 {
 			return errors.New("MsgEBlock has an invalid DBHeight:" + strconv.Itoa(int(msg.EBlk.Header.DBHeight)))
@@ -147,9 +147,9 @@ func processEBlock(msg *wire.MsgEBlock) error {
 func processEntry(msg *wire.MsgEntry) error {
 
 	// Error condiftion for Milestone 1
-	if nodeMode == common.SERVER_NODE {
-		return errors.New("Server received msg:" + msg.Command())
-	}
+	//if nodeMode == common.SERVER_NODE {
+	//return errors.New("Server received msg:" + msg.Command())
+	//}
 
 	// store the entry in mem pool
 	h := msg.Entry.Hash()

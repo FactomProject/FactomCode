@@ -105,7 +105,7 @@ func LoadConfigurations(cfg *util.FactomdConfig) {
 // Initialize the processor
 func initProcessor() {
 
-	wire.Init()
+	//wire.Init()
 
 	// init server private key or pub key
 	initServerKeys()
@@ -115,8 +115,8 @@ func initProcessor() {
 	fMemPool.init_ftmMemPool()
 
 	// init wire.FChainID
-	wire.FChainID = common.NewHash()
-	wire.FChainID.SetBytes(common.FACTOID_CHAINID)
+	//wire.FChainID = common.NewHash()
+	//wire.FChainID.SetBytes(common.FACTOID_CHAINID)
 
 	FactoshisPerCredit = 666666 // .001 / .15 * 100000000 (assuming a Factoid is .15 cents, entry credit = .1 cents
 
