@@ -351,7 +351,7 @@ func handleEntryBlock(ctx *web.Context, keymr string) {
 		e.Header.ChainID = block.Header.ChainID.String()
 		e.Header.PrevKeyMR = block.Header.PrevKeyMR.String()
 
-		if dblock, err := dbase.FetchDBlockByHeight(block.Header.DBHeight); err == nil {
+		if dblock, err := dbase.FetchDBlockByHeight(block.Header.EBHeight); err == nil {
 			e.Header.Timestamp = dblock.Header.Timestamp * 60
 		}
 

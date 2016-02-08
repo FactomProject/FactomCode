@@ -53,7 +53,7 @@ func NextECBlock(prev *ECBlock) (*ECBlock, error) {
 	if err != nil {
 		return nil, err
 	}
-	e.Header.DBHeight = prev.Header.DBHeight + 1
+	e.Header.EBHeight = prev.Header.EBHeight + 1
 	return e, nil
 }
 
@@ -166,7 +166,7 @@ func (e *ECBlock) marshalHeaderBinary() ([]byte, error) {
 	buf.Write(e.Header.PrevLedgerKeyMR.Bytes())
 
 	// 4 byte Directory Block Height
-	if err := binary.Write(buf, binary.BigEndian, e.Header.DBHeight); err != nil {
+	if err := binary.Write(buf, binary.BigEndian, e.Header.EBHeight); err != nil {
 		return buf.Bytes(), err
 	}
 
@@ -304,7 +304,7 @@ func (e *ECBlock) unmarshalHeaderBinaryData(data []byte) (newData []byte, err er
 		e.Header.PrevLedgerKeyMR.SetBytes(hash)
 	}
 
-	if err = binary.Read(buf, binary.BigEndian, &e.Header.DBHeight); err != nil {
+	if err = binary.Read(buf, binary.BigEndian, &e.Header.EBHeight); err != nil {
 		return
 	}
 
@@ -392,7 +392,7 @@ type ECBlockHeader struct {
 	BodyHash            *Hash
 	PrevHeaderHash      *Hash
 	PrevLedgerKeyMR     *Hash
-	DBHeight            uint32
+	EBHeight            uint32
 	HeaderExpansionArea []byte
 	ObjectCount         uint64
 	BodySize            uint64

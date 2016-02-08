@@ -111,7 +111,7 @@ func procesECBlock(msg *wire.MsgECBlock) error {
 	}
 	fMemPool.addBlockMsg(msg, hash.String())
 
-	procLog.Debug("SyncUp: MsgCBlock DBHeight=", msg.ECBlock.Header.DBHeight)
+	procLog.Debug("SyncUp: MsgCBlock EBHeight=", msg.ECBlock.Header.EBHeight)
 
 	return nil
 }
@@ -136,7 +136,7 @@ func processEBlock(msg *wire.MsgEBlock) error {
 	}
 	fMemPool.addBlockMsg(msg, keyMR.String()) // store it in mem pool with MR as the key
 
-	procLog.Debug("SyncUp: MsgEBlock DBHeight=", msg.EBlk.Header.DBHeight)
+	procLog.Debug("SyncUp: MsgEBlock EBHeight=", msg.EBlk.Header.EBHeight)
 
 	return nil
 }

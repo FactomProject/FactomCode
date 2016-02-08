@@ -82,7 +82,7 @@ func exportEChain(chain *common.EChain) {
 			}
 		}
 
-		err = ioutil.WriteFile(fmt.Sprintf(dataStorePath+strChainID+"/store.%09d.%09d.block", block.Header.EBSequence, block.Header.DBHeight), data, 0777)
+		err = ioutil.WriteFile(fmt.Sprintf(dataStorePath+strChainID+"/store.%09d.%09d.block", block.Header.EBSequence, block.Header.EBHeight), data, 0777)
 		if err != nil {
 			panic(err)
 		}
@@ -112,7 +112,7 @@ func exportECChain(chain *common.ECChain) {
 				procLog.Error(err)
 			}
 		}
-		err = ioutil.WriteFile(fmt.Sprintf(dataStorePath+strChainID+"/store.%09d.block", block.Header.DBHeight), data, 0777)
+		err = ioutil.WriteFile(fmt.Sprintf(dataStorePath+strChainID+"/store.%09d.block", block.Header.EBHeight), data, 0777)
 		if err != nil {
 			panic(err)
 		}
@@ -229,7 +229,7 @@ func exportEBlock(block *common.EBlock) {
 		}
 	}
 
-	err = ioutil.WriteFile(fmt.Sprintf(dataStorePath+strChainID+"/store.%09d.%09d.block", block.Header.EBSequence, block.Header.DBHeight), data, 0777)
+	err = ioutil.WriteFile(fmt.Sprintf(dataStorePath+strChainID+"/store.%09d.%09d.block", block.Header.EBSequence, block.Header.EBHeight), data, 0777)
 	if err != nil {
 		panic(err)
 	}
@@ -255,7 +255,7 @@ func exportECBlock(block *common.ECBlock) {
 			procLog.Error(err)
 		}
 	}
-	err = ioutil.WriteFile(fmt.Sprintf(dataStorePath+strChainID+"/store.%09d.block", block.Header.DBHeight), data, 0777)
+	err = ioutil.WriteFile(fmt.Sprintf(dataStorePath+strChainID+"/store.%09d.block", block.Header.EBHeight), data, 0777)
 	if err != nil {
 		panic(err)
 	}

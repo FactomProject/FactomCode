@@ -88,12 +88,8 @@ func initECChain() {
 	ecBlocks, _ := db.FetchAllECBlocks()
 	sort.Sort(util.ByECBlockIDAccending(ecBlocks))
 
-	for i, v := range ecBlocks {
-		if v.Header.DBHeight != uint32(i) {
-			panic("Error in initializing dChain:" + ecchain.ChainID.String() + " DBHeight:" + strconv.Itoa(int(v.Header.DBHeight)) + " i:" + strconv.Itoa(i))
-		}
-
-		// Calculate the EC balance for each account
+	// Calculate the EC balance for each account
+	for _, v := range ecBlocks {
 		initializeECreditMap(&v)
 	}
 
@@ -260,7 +256,7 @@ func initializeECreditMap(block *common.ECBlock) {
 		case common.ECIDServerIndexNumber:
 		case common.ECIDMinuteNumber:
 		default:
-			panic("Unknow entry type:" + string(entry.ECID()) + " for ECBlock:" + strconv.FormatUint(uint64(block.Header.DBHeight), 10))
+			panic("Unknow entry type:" + string(entry.ECID()) + " for ECBlock:" + strconv.FormatUint(uint64(block.Header.EBHeight), 10))
 		}
 	}
 }
