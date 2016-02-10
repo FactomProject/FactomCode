@@ -6,6 +6,8 @@ package common
 
 import (
 	"encoding/hex"
+	"fmt"
+
 	"github.com/FactomProject/ed25519"
 )
 
@@ -31,10 +33,18 @@ func (ds *DetachedSignature) String() string {
 }
 
 func UnmarshalBinarySignature(data []byte) (sig Signature) {
+	fmt.Println("in Sig.UnmarshalBinarySignature")
 	sig.Pub.Key = new([32]byte)
 	sig.Sig = new([64]byte)
 	copy(sig.Pub.Key[:], data[:32])
 	data = data[32:]
 	copy(sig.Sig[:], data[:64])
+	return
+}
+
+func MarshalBinarySignature(sig Signature) (data [96]byte) {
+	fmt.Println("in Sig.MarshalBinarySignature")
+	copy(data[:32], sig.Pub.Key[:])
+	copy(data[32:], sig.Sig[:])
 	return
 }
