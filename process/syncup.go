@@ -112,7 +112,7 @@ func procesECBlock(msg *wire.MsgECBlock) error {
 	}
 	fMemPool.addBlockMsg(msg, hash.String())
 
-	procLog.Debug("SyncUp: MsgCBlock DBHeight=", msg.ECBlock.Header.DBHeight)
+	procLog.Debug("SyncUp: MsgCBlock EBHeight=", msg.ECBlock.Header.EBHeight)
 
 	return nil
 }
@@ -137,7 +137,7 @@ func processEBlock(msg *wire.MsgEBlock) error {
 	}
 	fMemPool.addBlockMsg(msg, keyMR.String()) // store it in mem pool with MR as the key
 
-	procLog.Debug("SyncUp: MsgEBlock DBHeight=", msg.EBlk.Header.DBHeight)
+	procLog.Debug("SyncUp: MsgEBlock EBHeight=", msg.EBlk.Header.EBHeight)
 
 	return nil
 }
@@ -317,7 +317,7 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 			}
 
 			// create a chain when it's the first block of the entry chain
-			if eBlkMsg.EBlk.Header.EBSequence == 0 {			
+			if eBlkMsg.EBlk.Header.EBSequence == 0 {
 				chain := new(common.EChain)
 				chain.ChainID = eBlkMsg.EBlk.Header.ChainID
 				chain.FirstEntry, _ = db.FetchEntryByHash(eBlkMsg.EBlk.Body.EBEntries[0])
@@ -326,7 +326,7 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 				}
 
 				db.InsertChain(chain)
-				chainIDMap[chain.ChainID.String()] = chain				
+				chainIDMap[chain.ChainID.String()] = chain
 			}
 
 			// for debugging

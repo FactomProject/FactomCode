@@ -4,9 +4,10 @@ import (
 	"log"
 	"os"
 	//"fmt"
-	"code.google.com/p/gcfg"
+
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/util"
+	"gopkg.in/gcfg.v1"
 )
 
 var (

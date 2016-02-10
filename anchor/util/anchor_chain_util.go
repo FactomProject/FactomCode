@@ -11,6 +11,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"os"
 
 	"github.com/FactomProject/FactomCode/anchor"
 	"github.com/FactomProject/FactomCode/common"
@@ -22,20 +23,30 @@ import (
 )
 
 var (
-	_   = fmt.Print
-	cfg *util.FactomdConfig
-	db  database.Db
+	_               = fmt.Print
+	cfg             *util.FactomdConfig
+	db              database.Db
+	anchorChainID   *common.Hash
+	dirBlockInfoMap map[uint32]*common.DirBlockInfo //DBHeight as key
+	dblocks         []common.DirectoryBlock
+	eblocks         *[]common.EBlock
 )
 
+// This utility is used to convert client-side factomd database to server-side
+// database.
+// It uses the factomd config file in default location: /home/.factom/factomd.conf
+// and the default database specified in this config: /home/.factom/ldb
+// You should copy the client-side db to this location, and then go run this util.
+//
 func main() {
-	cfg = util.ReadConfig()
-	ldbpath := cfg.App.LdbPath
-	initDB(ldbpath)
 
-	anchorChainID, _ := common.HexToHash(cfg.Anchor.AnchorChainID)
-	//fmt.Println("anchorChainID: ", cfg.Anchor.AnchorChainID)
+	sanityCheck()
 
-	processAnchorChain(anchorChainID)
+	processAnchorChain()
+
+	createMissingDirBlockInfo()
+
+	fmt.Println("done!")
 
 	//initDB("/home/bw/.factom/ldb.prd")
 	//dirBlockInfoMap, _ := db.FetchAllDirBlockInfo() // map[string]*common.DirBlockInfo
@@ -44,8 +55,49 @@ func main() {
 	//}
 }
 
-func processAnchorChain(anchorChainID *common.Hash) {
-	eblocks, _ := db.FetchAllEBlocksByChain(anchorChainID)
+func sanityCheck() {
+	cfg = util.ReadConfig()
+	ldbpath := cfg.App.LdbPath
+	initDB(ldbpath)
+	dirBlockInfoMap = make(map[uint32]*common.DirBlockInfo)
+	anchorChainID, _ = common.HexToHash(cfg.Anchor.AnchorChainID)
+	fmt.Printf("ldbPath=%s, anchorChainID=%s\n", ldbpath, cfg.Anchor.AnchorChainID)
+
+	dblocks, _ = db.FetchAllDBlocks()
+	dirBlockInfoMap, _ := db.FetchAllDirBlockInfo()
+	eblocks, _ = db.FetchAllEBlocksByChain(anchorChainID)
+	fmt.Printf("There are %d directory blocks, %d DirBlockInfos, and %d anchor chain blocks in this database.\n",
+		len(dblocks), len(dirBlockInfoMap), len(*eblocks))
+
+	if len(dblocks) == len(dirBlockInfoMap) {
+		fmt.Println("All dir blocks have dirBlockInfo. All good and done!")
+		os.Exit(0)
+	}
+}
+
+func createMissingDirBlockInfo() {
+	fmt.Println("create DirBlockInfo for those un-anchored DirBlocks")
+	//dblocks, _ := db.FetchAllDBlocks()
+	for _, dblock := range dblocks {
+		if _, ok := dirBlockInfoMap[dblock.Header.DBHeight]; ok {
+			continue
+		} else {
+			dblock.BuildKeyMerkleRoot()
+			//fmt.Printf("creating missing dirBlockInfo for dir block=%s\n", spew.Sdump(dblock))
+			dirBlockInfo := common.NewDirBlockInfoFromDBlock(&dblock)
+			//fmt.Printf("creating missing dirBlockInfo. DirBlockInfo=%s\n", spew.Sdump(dirBlockInfo))
+			err := db.InsertDirBlockInfo(dirBlockInfo)
+			if err != nil {
+				fmt.Printf("InsertDirBlockInfo error: %s, DirBlockInfo=%s\n", err, spew.Sdump(dirBlockInfo))
+			}
+			dirBlockInfoMap[dirBlockInfo.DBHeight] = dirBlockInfo
+		}
+	}
+}
+
+func processAnchorChain() {
+	fmt.Println("processAnchorChain")
+	//eblocks, _ := db.FetchAllEBlocksByChain(anchorChainID)
 	//fmt.Println("anchorChain length: ", len(*eblocks))
 	for _, eblock := range *eblocks {
 		//fmt.Printf("anchor chain block=%s\n", spew.Sdump(eblock))
@@ -65,6 +117,7 @@ func processAnchorChain(anchorChainID *common.Hash) {
 				if err != nil {
 					fmt.Printf("InsertDirBlockInfo error: %s, DirBlockInfo=%s\n", err, spew.Sdump(dirBlockInfo))
 				}
+				dirBlockInfoMap[dirBlockInfo.DBHeight] = dirBlockInfo
 			}
 		}
 	}
@@ -92,7 +145,7 @@ func anchorChainToDirBlockInfo(aRecord *anchor.AnchorRecord) (*common.DirBlockIn
 		dirBlockInfo.Timestamp = int64(dblock.Header.Timestamp * 60)
 		dirBlockInfo.DBHash = dblock.DBHash
 	}
-	fmt.Printf("dirBlockInfo: %s\n", spew.Sdump(dirBlockInfo))
+	//fmt.Printf("dirBlockInfo: %s\n", spew.Sdump(dirBlockInfo))
 	return dirBlockInfo, nil
 }
 
@@ -117,7 +170,7 @@ func entryToAnchorRecord(entry *common.Entry) (*anchor.AnchorRecord, error) {
 	if !verified {
 		fmt.Printf("*** anchor chain signature does NOT match:\n")
 	} else {
-		fmt.Printf("&&& anchor chain signature does MATCH:\n")
+		//fmt.Printf("&&& anchor chain signature does MATCH:\n")
 	}
 
 	aRecord := new(anchor.AnchorRecord)
@@ -125,7 +178,7 @@ func entryToAnchorRecord(entry *common.Entry) (*anchor.AnchorRecord, error) {
 	if err != nil {
 		return nil, fmt.Errorf("json.UnMarshall error: %s", err)
 	}
-	fmt.Printf("entryToAnchorRecord: %s", spew.Sdump(aRecord))
+	//fmt.Printf("entryToAnchorRecord: %s", spew.Sdump(aRecord))
 
 	return aRecord, nil
 }

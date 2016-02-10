@@ -37,7 +37,7 @@ func TestECBlockMarshal(t *testing.T) {
 	ecb1.Header.BodyHash.SetBytes(byteof(0x22))
 	ecb1.Header.PrevHeaderHash.SetBytes(byteof(0x33))
 	ecb1.Header.PrevLedgerKeyMR.SetBytes(byteof(0x44))
-	ecb1.Header.DBHeight = 10
+	ecb1.Header.EBHeight = 10
 	ecb1.Header.HeaderExpansionArea = byteof(0x55)
 	ecb1.Header.ObjectCount = 0
 

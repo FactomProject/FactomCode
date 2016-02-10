@@ -56,8 +56,8 @@ func (e *Entry) IsValid() bool {
 	//double check the version
 	if e.Version != 0 {
 		return false
-	}	
-	
+	}
+
 	return true
 }
 

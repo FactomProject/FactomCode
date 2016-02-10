@@ -21,7 +21,10 @@
 #
 cd ..
 
-if [[ -z $1 ]]; then
+if [ ${!#} == -nocov ]; then noparameters=$(($#-1)); else noparameters=$#; fi
+for (( i=1; i<=$noparameters; i++ )); do parameter[i]=${!i}; done
+
+if [[ -z ${parameter[1]} ]]; then
 echo "
 *********************************************************
 *       Defaulting... Checking out Master
@@ -38,7 +41,7 @@ default=master
 else
 echo "
 *********************************************************
-*       Checking out the" $1 "branch
+*       Checking out the" ${parameter[1]} "branch
 *
 *       ./all.sh <branch> <default>
 *
@@ -47,11 +50,11 @@ echo "
 *       missing, will checkout the master branch.
 *
 *********************************************************"
-branch=$1
-if [[ -z $2 ]]; then
+branch=${parameter[1]}
+if [[ -z ${parameter[2]} ]]; then
 default=master
 else
-default=$2
+default=${parameter[2]}
 fi
 fi
 checkout() {
@@ -120,11 +123,14 @@ checkout btclog       $branch $default
 checkout dynrsrc      $branch $default
 checkout ed25519      $branch $default
 checkout fastsha256   $branch $default 
+checkout go-bip32     $branch $default
+checkout go-bip39     $branch $default
 checkout go-flags     $branch $default
 checkout go-socks     $branch $default
 checkout seelog       $branch $default
 checkout snappy-go    $branch $default
 checkout websocket    $branch $default
+checkout walletapp    $branch $default
 
 echo "
 ******************************************************** 
@@ -134,11 +140,28 @@ echo "
 compile FactomCode/factomd   || exit 1
 compile fctwallet            || exit 1
 compile factom-cli           || exit 1
-compile btcd/cmd/fctctl      || exit 1
-compile fctwallet/walletapp  || exit 1
+compile walletapp            || exit 1
 
-echo ""
-echo "
+report-coverage() {
+go list ${directory#*go/src/}/$1 | colrm 1 25 |
+while read line; do
+    cd $directory/$line
+    gocov test > test.json
+    coveragehtml="$(echo $line | sed 's_/_-_g')"".html"
+    if [ $(wc -m < test.json) -gt 18 ]; then
+        gocov report test.json | tail -0
+        gocov-html test.json > $directory/coverage-reports/$coveragehtml
+    else rm -f $directory/coverage-reports/$coveragehtml 
+    fi
+    rm test.json
+done
+}
+
+if [ ${!#} != -nocov ]; then 
+
+    echo ""
+
+    echo "
 *******************************************************
 *     Running Unit Tests    Now safe to Ctrl+C
 *
@@ -150,40 +173,44 @@ echo "
 *
 *******************************************************
 "
-echo "
+
+    directory=$(pwd)
+    mkdir -p coverage-reports
+
+    echo "
 +================+
 |     btcd       |
 +================+
 "
-go test -short ./btcd/...
+    report-coverage btcd/...
 
-echo "
+    echo "
 +================+
 |  FactomCode    |
 +================+
 "
-go test -short  ./FactomCode/...
+    report-coverage FactomCode/...
 
-echo "
+    echo "
 +================+
 |   factoids     |
 +================+
 "
-go test -short  ./factoid/...
+    report-coverage factoid/...
 
-echo "
+    echo "
 +================+
 |  Factom-cli   |
 +================+
 "
-go test -short  ./factom-cli/...
+    report-coverage factom-cli/...
 
-echo "
+    echo "
 +================+
 |  fctWallet     |
 +================+
 "
-go test -short  ./fctwallet/...
-
+    report-coverage fctwallet/...
+fi
 
 cd FactomCode

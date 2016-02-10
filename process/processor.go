@@ -97,6 +97,8 @@ func LoadConfigurations(cfg *util.FactomdConfig) {
 	nodeMode = cfg.App.NodeMode
 	serverPrivKeyHex = cfg.App.ServerPrivKey
 
+	cp.CP.SetPort(cfg.Controlpanel.Port)
+
 	FactomdUser = cfg.Btc.RpcUser
 	FactomdPass = cfg.Btc.RpcPass
 }
@@ -1042,7 +1044,7 @@ func newEntryBlock(chain *common.EChain) *common.EBlock {
 	}
 
 	// Create the block and add a new block for new coming entries
-	block.Header.DBHeight = dchain.NextDBHeight
+	block.Header.EBHeight = dchain.NextDBHeight
 	block.Header.EntryCount = uint32(len(block.Body.EBEntries))
 
 	chain.NextBlockHeight++
@@ -1065,10 +1067,6 @@ func newEntryCreditBlock(chain *common.ECChain) *common.ECBlock {
 	// acquire the last block
 	block := chain.NextBlock
 
-	if chain.NextBlockHeight != dchain.NextDBHeight {
-		panic("Entry Credit Block height does not match Directory Block height:" + string(dchain.NextDBHeight))
-	}
-
 	block.BuildHeader()
 
 	// Create the block and add a new block for new coming entries
@@ -1085,7 +1083,7 @@ func newEntryCreditBlock(chain *common.ECChain) *common.ECBlock {
 
 	//Store the block in db
 	db.ProcessECBlockBatch(block)
-	procLog.Infof("EntryCreditBlock: block" + strconv.FormatUint(uint64(block.Header.DBHeight), 10) + " created for chain: " + chain.ChainID.String())
+	procLog.Infof("EntryCreditBlock: block" + strconv.FormatUint(uint64(block.Header.EBHeight), 10) + " created for chain: " + chain.ChainID.String())
 
 	return block
 }

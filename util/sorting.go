@@ -27,7 +27,7 @@ func (f ByECBlockIDAccending) Len() int {
 	return len(f)
 }
 func (f ByECBlockIDAccending) Less(i, j int) bool {
-	return f[i].Header.DBHeight < f[j].Header.DBHeight
+	return f[i].Header.EBHeight < f[j].Header.EBHeight
 }
 func (f ByECBlockIDAccending) Swap(i, j int) {
 	f[i], f[j] = f[j], f[i]
