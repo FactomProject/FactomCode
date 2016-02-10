@@ -10,7 +10,8 @@ import (
 
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/database"
-	"github.com/FactomProject/FactomCode/process"
+	"github.com/FactomProject/btcd"
+	//"github.com/FactomProject/FactomCode/process"
 	"github.com/FactomProject/btcd/wire"
 	fct "github.com/FactomProject/factoid"
 )
@@ -97,7 +98,7 @@ func ECBalance(eckey string) (uint32, error) {
 	} else {
 		copy(key[:], p)
 	}
-	val, _ := process.GetEntryCreditBalance(key)
+	val, _ := btcd.GetEntryCreditBalance(key)
 	return uint32(val), nil
 }
 

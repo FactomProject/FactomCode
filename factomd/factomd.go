@@ -15,7 +15,7 @@ import (
 	cp "github.com/FactomProject/FactomCode/controlpanel"
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/database/ldb"
-	"github.com/FactomProject/FactomCode/process"
+	//"github.com/FactomProject/FactomCode/process"
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/FactomCode/wsapi"
 	"github.com/FactomProject/btcd"
@@ -98,7 +98,7 @@ func main() {
 func factomdMain() error {
 
 	// Start the processor module
-	go process.Start_Processor(db, inMsgQueue, outMsgQueue, inCtlMsgQueue, outCtlMsgQueue)
+	go btcd.Start_Processor(db, inMsgQueue, outMsgQueue, inCtlMsgQueue, outCtlMsgQueue)
 
 	// Start the wsapi server module in a separate go-routine
 	wsapi.Start(db, inMsgQueue)
@@ -116,19 +116,20 @@ func factomdMain() error {
 			}
 		}
 	}
-
-	if len(os.Args) >= 2 {
-		if os.Args[1] == "initializeonly" {
-			time.Sleep(time.Second)
-			fmt.Println("Initializing only.")
-			os.Exit(0)
+	/*
+		if len(os.Args) >= 2 {
+			if os.Args[1] == "initializeonly" {
+				time.Sleep(time.Second)
+				fmt.Println("Initializing only.")
+				os.Exit(0)
+			}
+		} else {
+			fmt.Println("\n'factomd initializeonly' will do just that.  Initialize and stop.")
 		}
-	} else {
-		fmt.Println("\n'factomd initializeonly' will do just that.  Initialize and stop.")
-	}
-
+	*/
 	// Start the factoid (btcd) component and P2P component
-	btcd.Start_btcd(db, inMsgQueue, outMsgQueue, inCtlMsgQueue, outCtlMsgQueue, cfg) //process.FactomdUser, process.FactomdPass, common.SERVER_NODE != cfg.App.NodeMode)
+	//btcd.Start_btcd(db, inMsgQueue, outMsgQueue, inCtlMsgQueue, outCtlMsgQueue, cfg) //process.FactomdUser, process.FactomdPass, common.SERVER_NODE != cfg.App.NodeMode)
+	btcd.Start_btcd(cfg)
 
 	return nil
 }
@@ -140,7 +141,7 @@ func loadConfigurations() {
 	homeDir = cfg.App.HomeDir
 	ldbpath = cfg.App.LdbPath
 	boltDBpath = cfg.App.BoltDBPath
-	process.LoadConfigurations(cfg)
+	btcd.LoadConfigurations(cfg)
 
 }
 
