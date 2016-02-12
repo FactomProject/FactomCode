@@ -98,7 +98,7 @@ func main() {
 func factomdMain() error {
 
 	// Start the processor module
-	go btcd.Start_Processor(db, inMsgQueue, outMsgQueue, inCtlMsgQueue, outCtlMsgQueue)
+	go btcd.StartProcessor(db, inMsgQueue, outMsgQueue, inCtlMsgQueue, outCtlMsgQueue)
 
 	// Start the wsapi server module in a separate go-routine
 	wsapi.Start(db, inMsgQueue)
