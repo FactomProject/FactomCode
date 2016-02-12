@@ -188,7 +188,7 @@ func (e *EBlock) marshalHeaderBinary() ([]byte, error) {
 		return buf.Bytes(), err
 	}
 
-	if err := binary.Write(buf, binary.BigEndian, e.Header.DBHeight); err != nil {
+	if err := binary.Write(buf, binary.BigEndian, e.Header.EBHeight); err != nil {
 		return buf.Bytes(), err
 	}
 
@@ -257,7 +257,7 @@ func (e *EBlock) unmarshalHeaderBinaryData(data []byte) (newData []byte, err err
 		return
 	}
 
-	if err = binary.Read(buf, binary.BigEndian, &e.Header.DBHeight); err != nil {
+	if err = binary.Read(buf, binary.BigEndian, &e.Header.EBHeight); err != nil {
 		return
 	}
 
@@ -337,7 +337,7 @@ type EBlockHeader struct {
 	PrevKeyMR       *Hash
 	PrevLedgerKeyMR *Hash
 	EBSequence      uint32
-	DBHeight        uint32
+	EBHeight        uint32
 	EntryCount      uint32
 }
 

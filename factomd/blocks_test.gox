@@ -3,12 +3,14 @@ package main
 import (
 	//	"bytes"
 	"fmt"
+	"bytes"
+	"time"
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/davecgh/go-spew/spew"
 	"testing"
 )
 
-var dirBlockHeight uint32 = 0
+var dirBlockHeight uint32 = 228
 
 func TestBlocks(t *testing.T) {
 	fmt.Println("\nTest Blocks===========================================================================")
@@ -59,3 +61,96 @@ func TestBlocks(t *testing.T) {
 	}
 
 }
+
+
+
+func TestAllBlocks(t *testing.T) {
+	fmt.Println("Testing all blocks")
+	diff := uint32(0)
+	
+	var lastE,lastA,lastF *common.Hash
+	
+	for i:= uint32(1); true ; i++ {
+		fmt.Print("\r At Block: ",i)
+		dblk, _ := db.FetchDBlockByHeight(i)
+		if dblk == nil {
+			fmt.Println("last dblk found:",i)
+			return
+		}
+		if dblk.DBEntries == nil {
+			fmt.Println("No ECEntries at",i)
+			continue
+		}
+		if len(dblk.DBEntries) < 2 {
+			fmt.Println("No Blocks at block",i)
+			continue
+		}
+		if dblk.DBEntries[0] == nil {
+			fmt.Println("Nil admin block at block",i)
+			continue
+		}
+		if dblk.DBEntries[1] == nil {
+			fmt.Println("Nil ECEntry at block",i)
+			continue
+		}
+		if dblk.DBEntries[1] == nil {
+			fmt.Println("Nil factoid block at block",i)
+			continue
+		}
+		
+		ablk, _ := db.FetchABlockByHash(dblk.DBEntries[0].KeyMR)		
+		ecblk, _ := db.FetchECBlockByHash(dblk.DBEntries[1].KeyMR)
+		fblk, _ := db.FetchFBlockByHash(dblk.DBEntries[2].KeyMR)
+
+		if lastA != nil && !bytes.Equal(lastA.Bytes(),ablk.Header.PrevLedgerKeyMR.Bytes()) {
+			fmt.Println("\r                             \rAdmin block link broken at",i)
+		}
+		lastA,_ = ablk.LedgerKeyMR()
+		
+		if lastE != nil && !bytes.Equal(lastE.Bytes(),ecblk.Header.PrevHeaderHash.Bytes()) {
+			fmt.Println("\r                             \rEC link broken at",i)
+		}
+		lastE = dblk.DBEntries[1].KeyMR
+		
+		if lastF != nil && !bytes.Equal(lastF.Bytes(),fblk.GetPrevKeyMR().Bytes()) {
+			fmt.Println("\r                             \rFCT link broken at",i)
+		}
+		lastF = dblk.DBEntries[2].KeyMR
+		
+		ndiff := dblk.Header.DBHeight - ecblk.Header.DBHeight
+		if ndiff != diff {
+			fmt.Println("\r                           \rDifference at ",i,"=",ndiff)
+			fmt.Printf("Timestamp: %s\n",time.Unix(int64(dblk.Header.Timestamp)*60,0).String())
+			diff = ndiff
+		}
+	}
+}		
+	
+func TestHasAllBlocks(t *testing.T) {
+	fmt.Println("Testing all blocks")
+	
+	dblks := make([] *common.DirectoryBlock,0)
+	
+	for i:= uint32(1); true ; i++ {
+		fmt.Print("\r At Block: ",i)
+		dblk, _ := db.FetchDBlockByHeight(i)
+		if dblk == nil {
+			fmt.Println("last dblk found:",i)
+			break
+		}
+		dblks = append(dblks,dblk)
+	}
+	
+	ecblkHash := dblks[len(dblks)-1].DBEntries[1].KeyMR
+	
+	i := 0
+	for i = 0; ecblkHash != nil; i++ {
+		fmt.Printf(" %x\n",ecblkHash.Bytes())
+		ecblk, _ := db.FetchECBlockByHash(ecblkHash)
+		if ecblk == nil {
+			break
+		}
+		ecblkHash = ecblk.Header.PrevHeaderHash
+	}
+	fmt.Println ("End found after",i,"ec blocks")
+}		

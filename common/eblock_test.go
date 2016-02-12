@@ -15,7 +15,7 @@ func TestEBlockMarshal(t *testing.T) {
 	eb.Header.PrevKeyMR.SetBytes(byteof(0x33))
 	eb.Header.PrevLedgerKeyMR.SetBytes(byteof(0x44))
 	eb.Header.EBSequence = 5
-	eb.Header.DBHeight = 6
+	eb.Header.EBHeight = 6
 	eb.Header.EntryCount = 7
 	ha := common.NewHash()
 	ha.SetBytes(byteof(0xaa))
