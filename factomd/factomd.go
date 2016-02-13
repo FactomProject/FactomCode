@@ -17,10 +17,8 @@ import (
 	"github.com/FactomProject/FactomCode/database/ldb"
 	//"github.com/FactomProject/FactomCode/process"
 	"github.com/FactomProject/FactomCode/util"
-	"github.com/FactomProject/FactomCode/wsapi"
 	"github.com/FactomProject/btcd"
 	"github.com/FactomProject/btcd/limits"
-	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/factoid/state/stateinit"
 )
 
@@ -31,11 +29,7 @@ var (
 	homeDir         = ""
 	ldbpath         = ""
 	boltDBpath      = ""
-	db              database.Db                           // database
-	inMsgQueue      = make(chan wire.FtmInternalMsg, 100) //incoming message queue for factom application messages
-	outMsgQueue     = make(chan wire.FtmInternalMsg, 100) //outgoing message queue for factom application messages
-	inCtlMsgQueue   = make(chan wire.FtmInternalMsg, 100) //incoming message queue for factom application messages
-	outCtlMsgQueue  = make(chan wire.FtmInternalMsg, 100) //outgoing message queue for factom application messages
+	db              database.Db // database
 	//	inRpcQueue      = make(chan wire.Message, 100) //incoming message queue for factom application messages
 )
 
@@ -98,10 +92,10 @@ func main() {
 func factomdMain() error {
 
 	// Start the processor module
-	go btcd.StartProcessor(db, inMsgQueue, outMsgQueue, inCtlMsgQueue, outCtlMsgQueue)
+	go btcd.StartProcessor(db) //, inMsgQueue, outMsgQueue, inCtlMsgQueue, outCtlMsgQueue)
 
 	// Start the wsapi server module in a separate go-routine
-	wsapi.Start(db, inMsgQueue)
+	//wsapi.Start(db, inMsgQueue)
 
 	// wait till the initialization is complete in processor
 	hash, _ := db.FetchDBHashByHeight(0)
@@ -128,8 +122,8 @@ func factomdMain() error {
 		}
 	*/
 	// Start the factoid (btcd) component and P2P component
-	//btcd.Start_btcd(db, inMsgQueue, outMsgQueue, inCtlMsgQueue, outCtlMsgQueue, cfg) //process.FactomdUser, process.FactomdPass, common.SERVER_NODE != cfg.App.NodeMode)
-	btcd.Start_btcd(cfg)
+	//btcd.StartBtcd(db, inMsgQueue, outMsgQueue, inCtlMsgQueue, outCtlMsgQueue, cfg) //process.FactomdUser, process.FactomdPass, common.SERVER_NODE != cfg.App.NodeMode)
+	btcd.StartBtcd(cfg)
 
 	return nil
 }
