@@ -26,9 +26,13 @@ func NewProcessListMgr(height uint32, otherPLSize int, plSizeHint uint, privKey 
 }
 
 // Create a new process list item and add it to the MyProcessList
-func (plMgr *ProcessListMgr) AddMyProcessListItem(msg wire.FtmInternalMsg, hash *wire.ShaHash, msgType byte) (ack *wire.MsgAcknowledgement, err error) {
+func (plMgr *ProcessListMgr) AddToFollowersProcessList(msg wire.FtmInternalMsg, ack *wire.MsgAck) error {
+	return nil
+}
 
-	ack = wire.NewMsgAcknowledgement(plMgr.NextDBlockHeight, uint32(plMgr.MyProcessList.nextIndex), hash, msgType)
+// Create a new process list item and add it to the MyProcessList
+func (plMgr *ProcessListMgr) AddToLeadersProcessList(msg wire.FtmInternalMsg, hash *wire.ShaHash, msgType byte) (ack *wire.MsgAck, err error) {
+	ack = wire.NewMsgAck(plMgr.NextDBlockHeight, uint32(plMgr.MyProcessList.nextIndex), hash, msgType)
 	// Sign the ack using server private keys
 	bytes, _ := ack.GetBinaryForSignature()
 	ack.Signature = *plMgr.SignAck(bytes).Sig

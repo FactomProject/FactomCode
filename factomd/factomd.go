@@ -15,7 +15,6 @@ import (
 	cp "github.com/FactomProject/FactomCode/controlpanel"
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/database/ldb"
-	//"github.com/FactomProject/FactomCode/process"
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd"
 	"github.com/FactomProject/btcd/limits"

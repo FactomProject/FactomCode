@@ -10,7 +10,7 @@ func TestPlist(t *testing.T) {
 	plMgr := NewProcessListMgr(0, 1, 1)
 	t.Log("len:", len(plMgr.OtherProcessLists[0].plItems))	
 	t.Log("len:", len(plMgr.MyProcessList.plItems))
-	ackmsg := wire.NewMsgAcknowledgement(0, 12, nil, wire.ACK_COMMIT_CHAIN)
+	ackmsg := wire.NewMsgAck(0, 12, nil, wire.ACK_COMMIT_CHAIN)
 
 	plItem := new(ProcessListItem)
 	plItem.Ack = ackmsg
@@ -18,9 +18,9 @@ func TestPlist(t *testing.T) {
 	
 
 	msg := new (wire.MsgInt_FactoidObj)
-	err = plMgr.AddMyProcessListItem(msg, nil, wire.ACK_FACTOID_TX)	
+	err = plMgr.AddToLeadersProcessList(msg, nil, wire.ACK_FACTOID_TX)	
 	msg2 := new (wire.MsgInt_FactoidObj)
-	err = plMgr.AddMyProcessListItem(msg2, nil, wire.ACK_FACTOID_TX)		
+	err = plMgr.AddToLeadersProcessList(msg2, nil, wire.ACK_FACTOID_TX)		
 	t.Log("len:", len(plMgr.OtherProcessLists[0].plItems))	
 	t.Log("len:", len(plMgr.MyProcessList.plItems))
 	plMgr.MyProcessList.GetPLItems()

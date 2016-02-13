@@ -15,7 +15,7 @@ type ProcessList struct {
 // Process list contains a list of valid confirmation messages
 // and is used for consensus building
 type ProcessListItem struct {
-	Ack     *wire.MsgAcknowledgement
+	Ack     *wire.MsgAck
 	Msg     wire.FtmInternalMsg
 	MsgHash *wire.ShaHash
 }
