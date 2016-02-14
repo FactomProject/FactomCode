@@ -141,17 +141,17 @@ func initDB() {
 	var err error
 	db, err = ldb.OpenLevelDB(cfg.App.LdbPath, false)
 	if err != nil {
-		fmt.Printf("err opening db: %v\n", err)
+		ftmdLog.Errorf("err opening db: %v\n", err)
 	}
 
 	if db == nil {
-		fmt.Println("Creating new db ...")
+		ftmdLog.Info("Creating new db ...")
 		db, err = ldb.OpenLevelDB(cfg.App.LdbPath, true)
 		if err != nil {
 			panic(err)
 		}
 	}
-	fmt.Println("Database started from: " + cfg.App.LdbPath)
+	ftmdLog.Info("Database started from: " + cfg.App.LdbPath)
 }
 
 func isCompilerVersionOK() bool {
