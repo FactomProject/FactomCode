@@ -97,7 +97,7 @@ DirectoryBlockInSeconds				= 60
 ; --------------- NodeMode: FULL | SERVER | LIGHT ----------------
 NodeMode				        	= FULL
 ; NodeID is a hash hex string uniquely identifying this server and MUST be set for a federate server (NodeMode is SERVER)
-NodeID										= "SERVER_1"
+NodeID										= "SERVER_DEFAULT"
 ; This server will start as the ONLY leader initially among federate servers if InitLead is true, and all other servers have to be set as false.
 InitLeader							= "false"
 ServerPrivKey			      		= 07c0d52cb74f4ca3106d80c4a70488426886bccc6ebc10c6bafb37bf8a65f4c38cee85c62a9e48039d4ac294da97943c2001be1539809ea5f54721f0c5477a0a
@@ -178,9 +178,9 @@ func ReReadConfig() *FactomdConfig {
 func readConfig() *FactomdConfig {
 	if len(os.Args) > 1 && strings.Contains(strings.ToLower(os.Args[1]), "factomd.conf") {
 		filename = os.Args[1]
-		log.Println("read factom config file: ", filename)
 	}
 	cfg := new(FactomdConfig)
+	log.Println("read factom config file: ", filename)
 
 	// This makes factom config file located at
 	//   POSIX (Linux/BSD): ~/.factom/factom.conf
@@ -201,6 +201,7 @@ func readConfig() *FactomdConfig {
 		gcfg.ReadStringInto(cfg, defaultConfig)
 	}
 
+	log.Println("nodeMode=", cfg.App.NodeMode, ", NodeID=", cfg.App.NodeID)
 	// should have a version check here
 	if cfg.App.NodeMode == common.SERVER_NODE && len(cfg.App.NodeID) == 0 {
 		log.Println("ERROR!!! When running as a federate server (NodeMode is SERVER) in milestone II, NodeID must be set")
