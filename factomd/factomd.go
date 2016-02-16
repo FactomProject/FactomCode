@@ -67,7 +67,7 @@ func main() {
 
 	// Initialize db
 	initDB()
-	//btcd.InitProcessor(db, cfg)
+	btcd.InitProcessor(db)
 
 	// Use all processor cores.
 	runtime.GOMAXPROCS(runtime.NumCPU())
@@ -77,53 +77,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Work around defer not working after os.Exit()
-	if err := factomdMain(); err != nil {
-		os.Exit(1)
-	}
-}
-
-func factomdMain() error {
-	// Start the processor module
-	//go btcd.StartProcessor() //, inMsgQueue, outMsgQueue, inCtlMsgQueue, outCtlMsgQueue)
-
-	// Start the wsapi server module in a separate go-routine
-	//wsapi.Start(db, inMsgQueue)
-	/*
-		// wait till the initialization is complete in processor
-		hash, err := db.FetchDBHashByHeight(0)
-		fmt.Printf("hash:  %s\n", hash)
-		if err != nil {
-			fmt.Println(err.Error())
-		}
-		latestDirBlockHash, height, _ := db.FetchBlockHeightCache()
-		fmt.Printf("latestDirBlockHash: %d, %s\n", height, latestDirBlockHash)
-		if hash != nil {
-			for true {
-				latestDirBlockHash, height, _ := db.FetchBlockHeightCache()
-				fmt.Printf("latestDirBlockHash: %d, %s\n", height, latestDirBlockHash)
-				if latestDirBlockHash == nil {
-					fmt.Println("Waiting for the processor to be initialized...")
-					time.Sleep(2 * time.Second)
-				} else {
-					break
-				}
-			}
-		}
-
-			if len(os.Args) >= 2 {
-				if os.Args[1] == "initializeonly" {
-					time.Sleep(time.Second)
-					fmt.Println("Initializing only.")
-					os.Exit(0)
-				}
-			} else {
-				fmt.Println("\n'factomd initializeonly' will do just that.  Initialize and stop.")
-			}
-	*/
-	// Start the factoid (btcd) component and P2P component
 	btcd.StartBtcd(db)
-	return nil
 }
 
 // Load settings from configuration file: factomd.conf
