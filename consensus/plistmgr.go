@@ -26,7 +26,17 @@ func NewProcessListMgr(height uint32, otherPLSize int, plSizeHint uint, privKey 
 }
 
 // Create a new process list item and add it to the MyProcessList
-func (plMgr *ProcessListMgr) AddToFollowersProcessList(msg wire.FtmInternalMsg, ack *wire.MsgAck) error {
+func (plMgr *ProcessListMgr) AddToFollowersProcessList(msg wire.Message, ack *wire.MsgAck) error {
+	bytes, _ := ack.GetBinaryForSignature()
+	ack.Signature = *plMgr.SignAck(bytes).Sig
+	plMgr.MyProcessList.nextIndex++
+
+	plItem := &ProcessListItem{
+		Ack:     ack,
+		Msg:     msg,
+		MsgHash: ack.Affirmation,
+	}
+	plMgr.MyProcessList.AddToProcessList(plItem)
 	return nil
 }
 
