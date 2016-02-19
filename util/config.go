@@ -201,7 +201,7 @@ func readConfig() *FactomdConfig {
 		gcfg.ReadStringInto(cfg, defaultConfig)
 	}
 
-	log.Println("nodeMode=", cfg.App.NodeMode, ", NodeID=", cfg.App.NodeID)
+	//log.Println("nodeMode=", cfg.App.NodeMode, ", NodeID=", cfg.App.NodeID)
 	// should have a version check here
 	if cfg.App.NodeMode == common.SERVER_NODE && len(cfg.App.NodeID) == 0 {
 		log.Println("ERROR!!! When running as a federate server (NodeMode is SERVER) in milestone II, NodeID must be set")

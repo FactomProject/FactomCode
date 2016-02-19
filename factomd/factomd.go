@@ -70,7 +70,7 @@ func main() {
 	btcd.InitProcessor(db)
 
 	// Use all processor cores.
-	runtime.GOMAXPROCS(runtime.NumCPU())
+	//runtime.GOMAXPROCS(runtime.NumCPU())
 
 	//Up some limits.
 	if err := limits.SetLimits(); err != nil {
