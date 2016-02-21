@@ -110,6 +110,12 @@ func NewShaHash(newHash []byte) (*Hash, error) {
 	return &sh, err
 }
 
+func NewHashFromByte(bytes [32]byte) Hash {
+	h := Hash{}
+	copy(h.bytes[:], bytes[:])
+	return h
+}
+
 // Create a Sha256 Hash from a byte array
 func Sha(p []byte) (h *Hash) {
 	sha := sha256.New()
@@ -176,7 +182,6 @@ func (a *Hash) IsSameAs(b *Hash) bool {
 
 // Is the hash a minute marker (the last byte indicates the minute number)
 func (h *Hash) IsMinuteMarker() bool {
-	
 
 	if bytes.Equal(h.bytes[:31], ZERO_HASH[:31]) {
 		return true
