@@ -180,7 +180,7 @@ func readConfig() *FactomdConfig {
 		filename = os.Args[1]
 	}
 	cfg := new(FactomdConfig)
-	log.Println("read factom config file: ", filename)
+	//log.Println("read factom config file: ", filename)
 
 	// This makes factom config file located at
 	//   POSIX (Linux/BSD): ~/.factom/factom.conf
