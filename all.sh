@@ -105,19 +105,14 @@ compile() {
 }
 
 checkout FactomCode   $branch $default
-checkout btcd         $branch $default
 checkout factoid      $branch $default
 checkout fctwallet    $branch $default
 checkout factom       $branch $default
 checkout factom-cli   $branch $default
 checkout Testing      $branch $default
-checkout btcrpcclient $branch $default
-checkout btcws        $branch $default
-checkout gobundle     $branch $default
 checkout goleveldb    $branch $default
 checkout FactomDocs   master  master
 checkout gocoding     master  master
-checkout btcjson      $branch $default
 checkout btclog       $branch $default
 checkout dynrsrc      $branch $default
 checkout ed25519      $branch $default
