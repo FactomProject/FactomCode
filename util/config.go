@@ -182,19 +182,6 @@ func readConfig() *FactomdConfig {
 	cfg := new(FactomdConfig)
 	//log.Println("read factom config file: ", filename)
 
-	// This makes factom config file located at
-	//   POSIX (Linux/BSD): ~/.factom/factom.conf
-	//   Mac OS: $HOME/Library/Application Support/Factom/factom.conf
-	//   Windows: %LOCALAPPDATA%\Factom\factom.conf
-	//   Plan 9: $home/factom/factom.conf
-	//factomHomeDir := btcutil.AppDataDir("factom", false)
-	//defaultConfigFile := filepath.Join(factomHomeDir, "factomd.conf")
-	//
-	// eventually we need to make data dir as following
-	//defaultDataDir   = filepath.Join(factomHomeDir, "data")
-	//LdbPath					 = filepath.Join(defaultDataDir, "ldb9")
-	//DataStorePath		 = filepath.Join(defaultDataDir, "store/seed/")
-
 	err := gcfg.ReadFileInto(cfg, filename)
 	if err != nil {
 		log.Println("ERROR Reading config file!\nServer starting with default settings...\n", err)

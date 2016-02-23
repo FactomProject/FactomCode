@@ -16,7 +16,7 @@ import (
 
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/util"
-	factomwire "github.com/FactomProject/btcd/wire"
+	factomwire "github.com/FactomProject/FactomCode/wire"
 )
 
 //Construct the entry and submit it to the server

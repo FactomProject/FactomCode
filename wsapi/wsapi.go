@@ -14,8 +14,7 @@ import (
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/factomapi"
 	"github.com/FactomProject/FactomCode/util"
-	"github.com/FactomProject/btcd/wire"
-	"github.com/FactomProject/btcd"
+	"github.com/FactomProject/FactomCode/wire"
 	fct "github.com/FactomProject/factoid"
 	"github.com/hoisie/web"
 )
@@ -63,7 +62,7 @@ func Start(db database.Db, inMsgQ chan wire.FtmInternalMsg) {
 	server.Get("/v1/entry-credit-balance/([^/]+)", handleEntryCreditBalance)
 	server.Get("/v1/factoid-balance/([^/]+)", handleFactoidBalance)
 	server.Get("/v1/factoid-get-fee/", handleGetFee)
-	server.Get("/v1/properties/",handleProperties)
+	server.Get("/v1/properties/", handleProperties)
 
 	wsLog.Info("Starting server")
 	go server.Run(fmt.Sprintf(":%d", portNumber))
@@ -76,9 +75,9 @@ func Stop() {
 func handleProperties(ctx *web.Context) {
 
 	r := new(common.Properties)
-	r.Factomd_Version  = common.FACTOMD_VERSION
-	r.Protocol_Version = btcd.ProtocolVersion
-	
+	r.Factomd_Version = common.FACTOMD_VERSION
+	r.Protocol_Version = int(wire.ProtocolVersion)
+
 	if p, err := json.Marshal(r); err != nil {
 		wsLog.Error(err)
 		ctx.WriteHeader(httpBad)
@@ -253,12 +252,11 @@ func handleDirectoryBlockHead(ctx *web.Context) {
 	}
 }
 
-
 func handleDirectoryBlockHeight(ctx *web.Context) {
 	type dbheight struct {
 		Height int
 	}
-	
+
 	h := new(dbheight)
 	if block, err := factomapi.DBlockHead(); err != nil {
 		wsLog.Error(err)
@@ -268,7 +266,7 @@ func handleDirectoryBlockHeight(ctx *web.Context) {
 	} else {
 		h.Height = int(block.Header.DBHeight)
 	}
-		
+
 	if p, err := json.Marshal(h); err != nil {
 		wsLog.Error(err)
 		ctx.WriteHeader(httpBad)
@@ -276,7 +274,7 @@ func handleDirectoryBlockHeight(ctx *web.Context) {
 		return
 	} else {
 		ctx.Write(p)
-	}	
+	}
 }
 
 func handleDirectoryBlock(ctx *web.Context, keymr string) {

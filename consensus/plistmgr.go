@@ -4,7 +4,7 @@ import (
 	"sync"
 
 	"github.com/FactomProject/FactomCode/common"
-	"github.com/FactomProject/btcd/wire"
+	"github.com/FactomProject/FactomCode/wire"
 )
 
 // Process list contains a list of valid confirmation messages

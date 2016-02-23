@@ -15,19 +15,23 @@ import (
 	cp "github.com/FactomProject/FactomCode/controlpanel"
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/database/ldb"
+	"github.com/FactomProject/FactomCode/server"
+	"github.com/FactomProject/FactomCode/server/limits"
 	"github.com/FactomProject/FactomCode/util"
-	"github.com/FactomProject/btcd"
-	"github.com/FactomProject/btcd/limits"
+	"github.com/FactomProject/FactomCode/wire"
+	"github.com/FactomProject/FactomCode/wsapi"
 	"github.com/FactomProject/factoid/state/stateinit"
 )
 
 var (
-	_   = fmt.Print
-	cfg *util.FactomdConfig
-	db  database.Db
+	_           = fmt.Print
+	cfg         *util.FactomdConfig
+	db          database.Db
+	inMsgQueue  = make(chan wire.FtmInternalMsg, 100) //incoming message queue for factom application messages
+	outMsgQueue = make(chan wire.FtmInternalMsg, 100) //outgoing message queue for factom application messages
 )
 
-// winServiceMain is only invoked on Windows.  It detects when btcd is running
+// winServiceMain is only invoked on Windows.  It detects when server is running
 // as a service and reacts accordingly.
 //var winServiceMain func() (bool, error)
 
@@ -67,7 +71,7 @@ func main() {
 
 	// Initialize db
 	initDB()
-	btcd.InitProcessor(db)
+	server.InitProcessor(db)
 
 	// Use all processor cores.
 	//runtime.GOMAXPROCS(runtime.NumCPU())
@@ -77,14 +81,17 @@ func main() {
 		os.Exit(1)
 	}
 
-	btcd.StartBtcd(db)
+	// Start the wsapi server module in a separate go-routine
+	wsapi.Start(db, inMsgQueue)
+
+	server.StartBtcd(db, inMsgQueue, outMsgQueue)
 }
 
 // Load settings from configuration file: factomd.conf
 func loadConfigurations() {
 	cfg = util.ReadConfig()
 	cp.CP.SetPort(cfg.Controlpanel.Port)
-	btcd.LoadConfigurations(cfg)
+	server.LoadConfigurations(cfg)
 }
 
 // Initialize the level db and share it with other components

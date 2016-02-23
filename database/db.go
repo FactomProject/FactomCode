@@ -6,7 +6,7 @@ package database
 
 import (
 	"github.com/FactomProject/FactomCode/common"
-	"github.com/FactomProject/btcd/wire"
+	"github.com/FactomProject/FactomCode/wire"
 	"github.com/FactomProject/factoid/block"
 )
 
