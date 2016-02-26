@@ -13,19 +13,16 @@
 package process
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"sort"
 	"strconv"
-	"strings"
-	"bytes"
 	"time"
 
-	fct "github.com/FactomProject/factoid"
 	"github.com/FactomProject/FactomCode/anchor"
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/consensus"
-	cp "github.com/FactomProject/FactomCode/controlpanel"
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd/wire"
@@ -240,9 +237,9 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		if ok && msgCommitChain.IsValid() {
 
 			h := msgCommitChain.CommitChain.GetSigHash().Bytes()
-			t := msgCommitChain.CommitChain.GetMilliTime()/1000
+			t := msgCommitChain.CommitChain.GetMilliTime() / 1000
 
-			if ! IsTSValid(h,t) {
+			if !IsTSValid(h, t) {
 				return fmt.Errorf("Timestamp invalid on Commit Chain")
 			}
 
@@ -260,11 +257,10 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		msgCommitEntry, ok := msg.(*wire.MsgCommitEntry)
 		if ok && msgCommitEntry.IsValid() {
 
-
 			h := msgCommitEntry.CommitEntry.GetSigHash().Bytes()
-			t := msgCommitEntry.CommitEntry.GetMilliTime()/1000
+			t := msgCommitEntry.CommitEntry.GetMilliTime() / 1000
 
-			if ! IsTSValid(h,t) {
+			if !IsTSValid(h, t) {
 				return fmt.Errorf("Timestamp invalid on Commit Entry")
 			}
 
@@ -296,7 +292,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		if nodeMode == common.SERVER_NODE {
 			msgEom, ok := msg.(*wire.MsgInt_EOM)
 			if !ok {
-				return errors.New("Error in build blocks:" +  spew.Sdump(msg))
+				return errors.New("Error in build blocks:" + spew.Sdump(msg))
 			}
 			procLog.Infof("PROCESSOR: End of minute msg - wire.CmdInt_EOM:%+v\n", msg)
 
@@ -329,14 +325,14 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 				// Broadcast the ack to the network if no errors
 				//outMsgQueue <- ack
 			}
-
-			cp.CP.AddUpdate(
-				"MinMark",  // tag
-				"status",   // Category
-				"Progress", // Title
-				fmt.Sprintf("End of Minute %v\n", msgEom.EOM_Type)+ // Message
-					fmt.Sprintf("Directory Block Height %v", dchain.NextDBHeight),
-				0)
+			/*
+				cp.CP.AddUpdate(
+					"MinMark",  // tag
+					"status",   // Category
+					"Progress", // Title
+					fmt.Sprintf("End of Minute %v\n", msgEom.EOM_Type)+ // Message
+						fmt.Sprintf("Directory Block Height %v", dchain.NextDBHeight),
+					0) */
 		}
 
 	case wire.CmdDirBlock:
@@ -381,9 +377,9 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		// prevent replay attacks
 		{
 			h := msgFactoidTX.Transaction.GetSigHash().Bytes()
-			t := int64(msgFactoidTX.Transaction.GetMilliTimestamp()/1000)
+			t := int64(msgFactoidTX.Transaction.GetMilliTimestamp() / 1000)
 
-			if ! IsTSValid(h,t) {
+			if !IsTSValid(h, t) {
 				return fmt.Errorf("Timestamp invalid on Factoid Transaction")
 			}
 		}
@@ -519,7 +515,9 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 
 		// Calculate the entry credits required for the entry
 		cred, err := util.EntryCost(bin)
-		if err != nil { return err }
+		if err != nil {
+			return err
+		}
 
 		if c.Credits < cred {
 			fMemPool.addOrphanMsg(msg, h)
@@ -563,10 +561,12 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 
 		// Calculate the entry credits required for the entry
 		cred, err := util.EntryCost(bin)
-		if err != nil { return err }
+		if err != nil {
+			return err
+		}
 
 		// 10 credit is additional for the chain creation
-		if c.Credits < cred + 10 {
+		if c.Credits < cred+10 {
 			fMemPool.addOrphanMsg(msg, h)
 			return fmt.Errorf("Credit needs to paid first before an entry is revealed: %s", e.Hash().String())
 		}
@@ -632,7 +632,7 @@ func processCommitEntry(msg *wire.MsgCommitEntry) error {
 	}
 
 	if c.Credits > common.MAX_ENTRY_CREDITS {
-		return fmt.Errorf("Commit entry exceeds the max entry credit limit:" + c.EntryHash.String() )
+		return fmt.Errorf("Commit entry exceeds the max entry credit limit:" + c.EntryHash.String())
 	}
 
 	// Check the entry credit balance
@@ -875,9 +875,9 @@ func buildEndOfMinute(pl *consensus.ProcessList, pli *consensus.ProcessListItem)
 // build Genesis blocks
 func buildGenesisBlocks() error {
 	//Set the timestamp for the genesis block
-	t, err :=  time.Parse (time.RFC3339, common.GENESIS_BLK_TIMESTAMP)
+	t, err := time.Parse(time.RFC3339, common.GENESIS_BLK_TIMESTAMP)
 	if err != nil {
-		panic ("Not able to parse the genesis block time stamp")
+		panic("Not able to parse the genesis block time stamp")
 	}
 	dchain.NextBlock.Header.Timestamp = uint32(t.Unix() / 60)
 
@@ -1126,32 +1126,32 @@ func newAdminBlock(chain *common.AdminChain) *common.AdminBlock {
 // Seals the current open block, store it in db and create the next open block
 func newFactoidBlock(chain *common.FctChain) block.IFBlock {
 
-	older := FactoshisPerCredit
+	//older := FactoshisPerCredit
 
 	cfg := util.ReReadConfig()
 	FactoshisPerCredit = cfg.App.ExchangeRate
+	/*
+		rate := fmt.Sprintf("Current Exchange rate is %v",
+			strings.TrimSpace(fct.ConvertDecimal(FactoshisPerCredit)))
+		if older != FactoshisPerCredit {
 
-	rate  := fmt.Sprintf("Current Exchange rate is %v",
-					   strings.TrimSpace(fct.ConvertDecimal(FactoshisPerCredit)))
-	if older != FactoshisPerCredit {
+					orate := fmt.Sprintf("The Exchange rate was    %v\n",
+										 strings.TrimSpace(fct.ConvertDecimal(older)))
 
-		orate := fmt.Sprintf("The Exchange rate was    %v\n",
-							 strings.TrimSpace(fct.ConvertDecimal(older)))
-
-		cp.CP.AddUpdate(
-			"Fee",  // tag
-			"status",   // Category
-			"Entry Credit Exchange Rate Changed", // Title
-			orate+rate,
-			0)
-	}else{
-		cp.CP.AddUpdate(
-			"Fee",  // tag
-			"status",   // Category
-			"Entry Credit Exchange Rate", // Title
-			rate,
-			0)
-	}
+					cp.CP.AddUpdate(
+						"Fee",  // tag
+						"status",   // Category
+						"Entry Credit Exchange Rate Changed", // Title
+						orate+rate,
+						0)
+				}else{
+					cp.CP.AddUpdate(
+						"Fee",  // tag
+						"status",   // Category
+						"Entry Credit Exchange Rate", // Title
+						rate,
+						0)
+		}*/
 
 	// acquire the last block
 	currentBlock := chain.NextBlock

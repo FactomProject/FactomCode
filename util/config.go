@@ -12,19 +12,19 @@ import (
 type FactomdConfig struct {
 	App struct {
 		PortNumber              int
-		HomeDir					string 
-		LdbPath                 string 
-		BoltDBPath              string 
-		DataStorePath           string 
+		HomeDir                 string
+		LdbPath                 string
+		BoltDBPath              string
+		DataStorePath           string
 		DirectoryBlockInSeconds int
 		NodeMode                string
 		ServerPrivKey           string
 		ExchangeRate            uint64
 	}
 	Anchor struct {
-		ServerECKey         	string
-		AnchorChainID         	string		
-		ConfirmationsNeeded 	int	
+		ServerECKey         string
+		AnchorChainID       string
+		ConfirmationsNeeded int
 	}
 	Btc struct {
 		BTCPubAddr         string
@@ -137,7 +137,6 @@ var filename = getHomeDir() + "/.factom/factomd.conf"
 // object corresponding to the state of the file.
 func ReadConfig() *FactomdConfig {
 	once.Do(func() {
-		log.Println("read factom config file: ", filename)
 		cfg = readConfig()
 	})
 	return cfg
@@ -145,11 +144,15 @@ func ReadConfig() *FactomdConfig {
 
 func ReReadConfig() *FactomdConfig {
 	cfg = readConfig()
-		
+
 	return cfg
 }
 
 func readConfig() *FactomdConfig {
+	if len(os.Args) > 1 { //&& strings.Contains(strings.ToLower(os.Args[1]), "factomd.conf") {
+		filename = os.Args[1]
+	}
+	log.Println("read factom config file: ", filename)
 	cfg := new(FactomdConfig)
 
 	// This makes factom config file located at
@@ -167,22 +170,22 @@ func readConfig() *FactomdConfig {
 
 	err := gcfg.ReadFileInto(cfg, filename)
 	if err != nil {
-		log.Println("ERROR Reading config file!\nServer starting with default settings...\n",err)
+		log.Println("ERROR Reading config file!\nServer starting with default settings...\n", err)
 		gcfg.ReadStringInto(cfg, defaultConfig)
-	} 
-	
+	}
+
 	// Default to home directory if not set
 	if len(cfg.App.HomeDir) < 1 {
 		cfg.App.HomeDir = getHomeDir() + "/.factom/"
 	}
-	
+
 	// TODO: improve the paths after milestone 1
 	cfg.App.LdbPath = cfg.App.HomeDir + cfg.App.LdbPath
-	cfg.App.BoltDBPath = cfg.App.HomeDir + cfg.App.BoltDBPath	
+	cfg.App.BoltDBPath = cfg.App.HomeDir + cfg.App.BoltDBPath
 	cfg.App.DataStorePath = cfg.App.HomeDir + cfg.App.DataStorePath
 	cfg.Log.LogPath = cfg.App.HomeDir + cfg.Log.LogPath
-	cfg.Wallet.BoltDBPath = cfg.App.HomeDir + cfg.Wallet.BoltDBPath		
-	
+	cfg.Wallet.BoltDBPath = cfg.App.HomeDir + cfg.Wallet.BoltDBPath
+
 	return cfg
 }
 

@@ -6,21 +6,20 @@ package main
 
 import (
 	"fmt"
-	"github.com/FactomProject/FactomCode/common"
-	cp "github.com/FactomProject/FactomCode/controlpanel"
-	"github.com/FactomProject/FactomCode/database"
-	"github.com/FactomProject/FactomCode/database/ldb"
-	"github.com/FactomProject/FactomCode/process"
-	"github.com/FactomProject/FactomCode/util"
-	"github.com/FactomProject/FactomCode/wsapi"
-	"github.com/FactomProject/btcd"
-	"github.com/FactomProject/btcd/limits"
-	"github.com/FactomProject/btcd/wire"
-	"github.com/FactomProject/factoid/state/stateinit"
 	"os"
 	"runtime"
 	"strings"
 	"time"
+
+	"github.com/FactomProject/FactomCode/common"
+	"github.com/FactomProject/FactomCode/database"
+	"github.com/FactomProject/FactomCode/database/ldb"
+	"github.com/FactomProject/FactomCode/process"
+	"github.com/FactomProject/FactomCode/util"
+	"github.com/FactomProject/btcd"
+	"github.com/FactomProject/btcd/limits"
+	"github.com/FactomProject/btcd/wire"
+	"github.com/FactomProject/factoid/state/stateinit"
 )
 
 var (
@@ -49,19 +48,19 @@ func main() {
 
 	ftmdLog.Warning("Go compiler version: %s", runtime.Version())
 	fmt.Println("Go compiler version: ", runtime.Version())
-	cp.CP.AddUpdate("gocompiler",
-		"system",
-		fmt.Sprintln("Go compiler version: ", runtime.Version()),
-		"",
-		0)
-	cp.CP.AddUpdate("copyright",
-		"system",
-		"Legal",
-		"Copyright 2015 Factom Foundation\n"+
-			"Use of this source code is governed by the MIT\n"+
-			"license that can be found in the LICENSE file.",
-		0)
-
+	/*	cp.CP.AddUpdate("gocompiler",
+			"system",
+			fmt.Sprintln("Go compiler version: ", runtime.Version()),
+			"",
+			0)
+		cp.CP.AddUpdate("copyright",
+			"system",
+			"Legal",
+			"Copyright 2015 Factom Foundation\n"+
+				"Use of this source code is governed by the MIT\n"+
+				"license that can be found in the LICENSE file.",
+			0)
+	*/
 	if !isCompilerVersionOK() {
 		for i := 0; i < 30; i++ {
 			fmt.Println("!!! !!! !!! ERROR: unsupported compiler version !!! !!! !!!")
@@ -72,7 +71,7 @@ func main() {
 
 	// Load configuration file and send settings to components
 	loadConfigurations()
-	
+
 	// create the $home/.factom directory if it does not exist
 	os.Mkdir(homeDir, 0755)
 
@@ -100,7 +99,7 @@ func factomdMain() error {
 	go process.Start_Processor(db, inMsgQueue, outMsgQueue, inCtlMsgQueue, outCtlMsgQueue)
 
 	// Start the wsapi server module in a separate go-routine
-	wsapi.Start(db, inMsgQueue)
+	//wsapi.Start(db, inMsgQueue)
 
 	// wait till the initialization is complete in processor
 	hash, _ := db.FetchDBHashByHeight(0)
