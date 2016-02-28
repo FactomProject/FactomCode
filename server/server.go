@@ -337,17 +337,17 @@ func (s *server) handleAddPeerMsg(state *peerState, p *peer) bool {
 	srvrLog.Debugf("New peer %s", p)
 	if p.inbound {
 		state.peers[p] = struct{}{}
-		srvrLog.Infof("inbound peer: %s, total.state.peers=%d", p, state.peers.Len())
+		srvrLog.Infof("inbound peer: %s, total.state.peers=%d", p, len(state.peers))
 		p.Start()
 		// how about more than one inbound peer ???
 	} else {
 		state.outboundGroups[addrmgr.GroupKey(p.na)]++
 		if p.persistent {
 			state.persistentPeers[p] = struct{}{}
-			srvrLog.Infof("persistent peer: %s, total.state.persistentPeers=%d", p, state.persistentPeers.Len())
+			srvrLog.Infof("persistent peer: %s, total.state.persistentPeers=%d", p, len(state.persistentPeers))
 		} else {
 			state.outboundPeers[p] = struct{}{}
-			srvrLog.Infof("outbound peer: %s, total.state.outboundPeers=%d", p, state.outboundPeers.Len())
+			srvrLog.Infof("outbound peer: %s, total.state.outboundPeers=%d", p, len(state.outboundPeers))
 		}
 	}
 	return true
@@ -384,13 +384,13 @@ func (s *server) handleDonePeerMsg(state *peerState, p *peer) {
 			//return
 		}
 	}
-	list = s.federateServers
-	for e := list.Front(); e != nil; e = e.Next() {
+	fs := s.federateServers
+	for e := fs.Front(); e != nil; e = e.Next() {
 		fedServer := e.Value.(*federateServer)
 		fmt.Printf("handleDonePeerMsg: need to remove %s, federate server candidate: %s\n", p, spew.Sdump(fedServer))
 		if fedServer.Peer == p {
 			fmt.Printf("removed: %s\n", p)
-			list.Remove(e)
+			fs.Remove(e)
 			srvrLog.Debugf("Removed federate server %s", p)
 			return
 		}
@@ -501,7 +501,7 @@ func (s *server) handleQuery(querymsg interface{}, state *peerState) {
 
 	case getPeerInfoMsg:
 		syncPeer := s.blockManager.SyncPeer()
-		infos := make([]*GetPeerInfoResult, 0, state.peers.Len())
+		infos := make([]*GetPeerInfoResult, 0, len(state.peers))
 		state.forAllPeers(func(p *peer) {
 			if !p.Connected() {
 				return
@@ -947,7 +947,7 @@ func (s *server) DisconnectNodeByAddr(addr string) error {
 // DisconnectNodeByID disconnects a peer by target node id. Both outbound and
 // inbound nodes will be searched for the target node. An error message will be
 // returned if the peer was not found.
-func (s *server) DisconnectNodeById(id int32) error {
+func (s *server) DisconnectNodeByID(id int32) error {
 	replyChan := make(chan error)
 
 	s.query <- disconnectNodeMsg{
@@ -971,9 +971,9 @@ func (s *server) RemoveNodeByAddr(addr string) error {
 	return <-replyChan
 }
 
-// RemoveNodeById removes a peer by node ID from the list of persistent peers
+// RemoveNodeByID removes a peer by node ID from the list of persistent peers
 // if present. An error will be returned if the peer was not found.
-func (s *server) RemoveNodeById(id int32) error {
+func (s *server) RemoveNodeByID(id int32) error {
 	replyChan := make(chan error)
 
 	s.query <- removeNodeMsg{

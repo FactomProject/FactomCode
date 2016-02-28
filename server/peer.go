@@ -609,9 +609,9 @@ func (p *peer) PushRejectMsg(command string, code wire.RejectCode, reason string
 // used to examine the inventory being advertised by the remote peer and react
 // accordingly.  We pass the message down to blockmanager which will call
 // QueueMessage with any appropriate responses.
-func (p *peer) handleInvMsg(msg *wire.MsgInv) {
-	p.server.blockManager.QueueInv(msg, p)
-}
+//func (p *peer) handleInvMsg(msg *wire.MsgInv) {
+//p.server.blockManager.QueueInv(msg, p)
+//}
 
 // handleGetAddrMsg is invoked when a peer receives a getaddr bitcoin message
 // and is used to provide the peer with known addresses from the address
@@ -1007,8 +1007,8 @@ out:
 			// implementions' alert messages, we will not relay
 			// theirs.
 
-		case *wire.MsgInv:
-			p.handleInvMsg(msg)
+		//case *wire.MsgInv:
+		//p.handleInvMsg(msg)
 
 		case *wire.MsgNotFound:
 			// TODO(davec): Ignore this for now, but ultimately
@@ -2427,7 +2427,7 @@ func (p *peer) handleNextLeaderRespMsg(msg *wire.MsgNextLeaderResp) {
 	if p.server.nodeID != msg.CurrLeaderID {
 		fmt.Printf("handleNextLeaderRespMsg: leader verify FAILED: my leader is %s, but msg.leader is %s\n",
 			p.server.nodeID, msg.CurrLeaderID)
-		return
+		//return
 	} else {
 		fmt.Printf("handleNextLeaderRespMsg: next leader CONFIRMED: %s. startingHeight=%d\n", msg.NextLeaderID, msg.StartDBHeight)
 		p.server.myLeaderPolicy.Confirmed = true

@@ -31,13 +31,14 @@ func processDirBlock(msg *wire.MsgDirBlock) error {
 
 	blk, _ := db.FetchDBlockByHeight(msg.DBlk.Header.DBHeight)
 	if blk != nil {
-		procLog.Info("DBlock already exists for height:" + string(msg.DBlk.Header.DBHeight))
-		cp.CP.AddUpdate(
-			"DBOverlap",                                                          // tag
-			"warning",                                                            // Category
-			"Directory Block Overlap",                                            // Title
-			"DBlock already exists for height:"+string(msg.DBlk.Header.DBHeight), // Message
-			0) // Expire
+		/*
+			procLog.Info("DBlock already exists for height:" + string(msg.DBlk.Header.DBHeight))
+			cp.CP.AddUpdate(
+				"DBOverlap",                                                          // tag
+				"warning",                                                            // Category
+				"Directory Block Overlap",                                            // Title
+				"DBlock already exists for height:"+string(msg.DBlk.Header.DBHeight), // Message
+				0) // Expire */
 		return nil
 	}
 

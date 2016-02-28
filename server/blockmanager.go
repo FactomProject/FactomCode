@@ -95,7 +95,7 @@ type chainState struct {
 // chain.
 //
 // This function is safe for concurrent access.
-func (c *chainState) Best() (*wire.ShaHash, int64) {
+func (c *chainState) Best() (*wire.ShaHash, int32) {
 	c.Lock()
 	defer c.Unlock()
 
@@ -126,7 +126,7 @@ type blockManager struct {
 // This allows fast access to chain information since btcchain is currently not
 // safe for concurrent access and the block manager is typically quite busy
 // processing block and inventory.
-func (b *blockManager) updateChainState(newestHash *wire.ShaHash, newestHeight int64) {
+func (b *blockManager) updateChainState(newestHash *wire.ShaHash, newestHeight int32) {
 	b.chainState.Lock()
 	defer b.chainState.Unlock()
 

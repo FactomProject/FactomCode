@@ -1339,7 +1339,7 @@ func newAdminBlock(chain *common.AdminChain) *common.AdminBlock {
 // Seals the current open block, store it in db and create the next open block
 func newFactoidBlock(chain *common.FctChain) block.IFBlock {
 
-	older := FactoshisPerCredit
+	//older := FactoshisPerCredit
 
 	cfg := util.ReReadConfig()
 	FactoshisPerCredit = cfg.App.ExchangeRate
