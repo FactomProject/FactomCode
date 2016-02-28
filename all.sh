@@ -109,7 +109,6 @@ checkout factoid      $branch $default
 checkout fctwallet    $branch $default
 checkout factom       $branch $default
 checkout factom-cli   $branch $default
-checkout Testing      $branch $default
 checkout goleveldb    $branch $default
 checkout FactomDocs   master  master
 checkout gocoding     master  master

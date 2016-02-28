@@ -5,7 +5,6 @@
 package server
 
 import (
-	"fmt"
 	"net"
 	"net/http"
 	_ "net/http/pprof"
@@ -13,7 +12,7 @@ import (
 	"runtime/pprof"
 
 	"github.com/FactomProject/FactomCode/common"
-	cp "github.com/FactomProject/FactomCode/controlpanel"
+	//cp "github.com/FactomProject/FactomCode/controlpanel"
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/wire"
 )
@@ -126,25 +125,25 @@ func StartBtcd(ldb database.Db, inQ, outQ chan wire.FtmInternalMsg) {
 	if common.SERVER_NODE != factomConfig.App.NodeMode {
 		ClientOnly = true
 	}
-
-	if ClientOnly {
-		cp.CP.AddUpdate(
-			"FactomMode", // tag
-			"system",     // Category
-			"Factom Mode: Full Node (Client)", // Title
-			"", // Message
-			0)
-		fmt.Println("\n\n>>>>>>>>>>>>>>>>>  CLIENT MODE <<<<<<<<<<<<<<<<<<<<<<<\n\n")
-	} else {
-		cp.CP.AddUpdate(
-			"FactomMode",                    // tag
-			"system",                        // Category
-			"Factom Mode: Federated Server", // Title
-			"", // Message
-			0)
-		fmt.Println("\n\n>>>>>>>>>>>>>>>>>  SERVER MODE <<<<<<<<<<<<<<<<<<<<<<<\n\n")
-	}
-
+	/*
+		if ClientOnly {
+			cp.CP.AddUpdate(
+				"FactomMode", // tag
+				"system",     // Category
+				"Factom Mode: Full Node (Client)", // Title
+				"", // Message
+				0)
+			fmt.Println("\n\n>>>>>>>>>>>>>>>>>  CLIENT MODE <<<<<<<<<<<<<<<<<<<<<<<\n\n")
+		} else {
+			cp.CP.AddUpdate(
+				"FactomMode",                    // tag
+				"system",                        // Category
+				"Factom Mode: Federated Server", // Title
+				"", // Message
+				0)
+			fmt.Println("\n\n>>>>>>>>>>>>>>>>>  SERVER MODE <<<<<<<<<<<<<<<<<<<<<<<\n\n")
+		}
+	*/
 	// Work around defer not working after os.Exit()
 	if err := btcdMain(nil); err != nil {
 		os.Exit(1)

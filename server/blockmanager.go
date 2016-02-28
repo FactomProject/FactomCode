@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/FactomProject/FactomCode/common"
-	cp "github.com/FactomProject/FactomCode/controlpanel"
+	//cp "github.com/FactomProject/FactomCode/controlpanel"
 	"github.com/FactomProject/FactomCode/wire"
 	"github.com/davecgh/go-spew/spew"
 )
@@ -51,29 +51,8 @@ type newPeerMsg struct {
 	peer *peer
 }
 
-// blockMsg packages a bitcoin block message and the peer it came from together
-// so the block handler has access to that information.
-type blockMsg struct {
-	//	block *btcutil.Block
-	peer *peer
-}
-
-// invMsg packages a bitcoin inv message and the peer it came from together
-// so the block handler has access to that information.
-type invMsg struct {
-	inv  *wire.MsgInv
-	peer *peer
-}
-
 // donePeerMsg signifies a newly disconnected peer to the block handler.
 type donePeerMsg struct {
-	peer *peer
-}
-
-// txMsg packages a bitcoin tx message and the peer it came from together
-// so the block handler has access to that information.
-type txMsg struct {
-	//	tx   *btcutil.Tx
 	peer *peer
 }
 
@@ -83,46 +62,6 @@ type getSyncPeerMsg struct {
 	reply chan *peer
 }
 
-// checkConnectBlockMsg is a message type to be sent across the message channel
-// for requesting chain to check if a block connects to the end of the current
-// main chain.
-type checkConnectBlockMsg struct {
-	//	block *btcutil.Block
-	reply chan error
-}
-
-// calcNextReqDifficultyResponse is a response sent to the reply channel of a
-// calcNextReqDifficultyMsg query.
-type calcNextReqDifficultyResponse struct {
-	difficulty uint32
-	err        error
-}
-
-// calcNextReqDifficultyMsg is a message type to be sent across the message
-// channel for requesting the required difficulty of the next block.
-type calcNextReqDifficultyMsg struct {
-	timestamp time.Time
-	reply     chan calcNextReqDifficultyResponse
-}
-
-// processBlockResponse is a response sent to the reply channel of a
-// processBlockMsg.
-type processBlockResponse struct {
-	isOrphan bool
-	err      error
-}
-
-// processBlockMsg is a message type to be sent across the message channel
-// for requested a block is processed.  Note this call differs from blockMsg
-// above in that blockMsg is intended for blocks that came from peers and have
-// extra handling whereas this message essentially is just a concurrent safe
-// way to call ProcessBlock on the internal block chain instance.
-type processBlockMsg struct {
-	//	block *btcutil.Block
-	//	flags blockchain.BehaviorFlags
-	reply chan processBlockResponse
-}
-
 // isCurrentMsg is a message type to be sent across the message channel for
 // requesting whether or not the block manager believes it is synced with
 // the currently connected peers.
@@ -130,11 +69,12 @@ type isCurrentMsg struct {
 	reply chan bool
 }
 
-// headerNode is used as a node in a list of headers that are linked together
-// between checkpoints.
-type headerNode struct {
-	height int64
-	sha    *wire.ShaHash
+// pauseMsg is a message type to be sent across the message channel for
+// pausing the block manager.  This effectively provides the caller with
+// exclusive access over the manager until a receive is performed on the
+// unpause channel.
+type pauseMsg struct {
+	unpause <-chan struct{}
 }
 
 // chainState tracks the state of the best chain as blocks are inserted.  This
@@ -145,8 +85,10 @@ type headerNode struct {
 // is inserted and protecting it with a mutex.
 type chainState struct {
 	sync.Mutex
-	newestHash   *wire.ShaHash
-	newestHeight int64
+	newestHash        *wire.ShaHash
+	newestHeight      int32
+	pastMedianTime    time.Time
+	pastMedianTimeErr error
 }
 
 // Best returns the block hash and height known for the tip of the best known
@@ -323,18 +265,11 @@ out:
 
 			case isCurrentMsg:
 				msg.reply <- b.current()
-				/*
-					case *dirBlockMsg:
-						//util.Trace()
-						//b.handleDirBlockMsg(msg)
-						binary, _ := msg.block.MarshalBinary()
-						commonHash := common.Sha(binary)
-						blockSha, _ := wire.NewShaHash(commonHash.Bytes)
-						delete(msg.peer.requestedBlocks, *blockSha)
-						delete(b.requestedBlocks, *blockSha)
-						inMsgQueue <- msg
-						msg.peer.blockProcessed <- struct{}{}
-				*/
+
+			case pauseMsg:
+				// Wait until the sender unpauses the manager.
+				<-msg.unpause
+
 			case *dirInvMsg:
 				b.handleDirInvMsg(msg)
 
@@ -388,7 +323,7 @@ func (b *blockManager) QueueBlock(block *btcutil.Block, p *peer) {
 
 	b.msgChan <- &blockMsg{block: block, peer: p}
 }
-*/
+
 
 // QueueInv adds the passed inv message and peer to the block handling queue.
 func (b *blockManager) QueueInv(inv *wire.MsgInv, p *peer) {
@@ -400,7 +335,7 @@ func (b *blockManager) QueueInv(inv *wire.MsgInv, p *peer) {
 	}
 
 	b.msgChan <- &invMsg{inv: inv, peer: p}
-}
+}*/
 
 // DonePeer informs the blockmanager that a peer has disconnected.
 func (b *blockManager) DonePeer(p *peer) {
@@ -455,33 +390,35 @@ func (b *blockManager) IsCurrent() bool {
 	return <-reply
 }
 
+// Pause pauses the block manager until the returned channel is closed.
+//
+// Note that while paused, all peer and block processing is halted.  The
+// message sender should avoid pausing the block manager for long durations.
+func (b *blockManager) Pause() chan<- struct{} {
+	c := make(chan struct{})
+	b.msgChan <- pauseMsg{c}
+	return c
+}
+
 // newBlockManager returns a new bitcoin block manager.
 // Use Start to begin processing asynchronous block and inv updates.
 func newBlockManager(s *server) (*blockManager, error) {
-
-	/*
-		newestHash, height, err := s.db.NewestSha()
-		if err != nil {
-			return nil, err
-		}
-	*/
+	//newestHash, height, err := s.db.NewestSha()
+	//if err != nil {
+	//return nil, err
+	//}
 
 	bm := blockManager{
 		server:          s,
 		requestedTxns:   make(map[wire.ShaHash]struct{}),
 		requestedBlocks: make(map[wire.ShaHash]struct{}),
-		//		progressLogger:  newBlockProgressLogger("Processed", bmgrLog),
-		msgChan: make(chan interface{}, cfg.MaxPeers*3),
-		//		headerList: list.New(),
-		quit: make(chan struct{}),
+		msgChan:         make(chan interface{}, cfg.MaxPeers*3),
+		quit:            make(chan struct{}),
 	}
 
-	/*
-		//util.Trace(fmt.Sprintf("Hard-Coded GenesisHash= %v\n", activeNetParams.GenesisHash))
-		// Initialize the chain state now that the intial block node index has
-		// been generated.
-		bm.updateChainState(newestHash, height)
-	*/
+	// Initialize the chain state now that the intial block node index has
+	// been generated.
+	//bm.updateChainState(newestHash, height)
 
 	return &bm, nil
 }
@@ -610,15 +547,7 @@ func (b *blockManager) handleDirInvMsg(imsg *dirInvMsg) {
 				numRequested++
 			}
 
-		case wire.InvTypeTx:
-			// Request the transaction if there is not already a
-			// pending request.
-			if _, exists := b.requestedTxns[iv.Hash]; !exists {
-				b.requestedTxns[iv.Hash] = struct{}{}
-				imsg.peer.requestedTxns[iv.Hash] = struct{}{}
-				gdmsg.AddInvVect(iv)
-				numRequested++
-			}
+			//case wire.InvTypeFactoidTx:  ???
 		}
 
 		if numRequested >= wire.MaxInvPerMsg {
@@ -711,14 +640,14 @@ func (b *blockManager) startSyncFactom(peers *list.List) {
 		str := fmt.Sprintf("At %d: syncing to block height %d from peer %v",
 			height, bestPeer.lastBlock, bestPeer.addr)
 		bmgrLog.Infof(str)
-
-		cp.CP.AddUpdate(
-			"Syncing", // tag
-			"status",  // Category
-			"Client is Syncing with Federated Server(s)", // Title
-			str, // Message
-			60)
-
+		/*
+			cp.CP.AddUpdate(
+				"Syncing", // tag
+				"status",  // Category
+				"Client is Syncing with Federated Server(s)", // Title
+				str, // Message
+				60)
+		*/
 		bestPeer.PushGetDirBlocksMsg(locator, &zeroBtcHash)
 		b.syncPeer = bestPeer
 		//blockSyncing = true

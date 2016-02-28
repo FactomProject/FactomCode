@@ -20,13 +20,10 @@ import (
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/server/addrmgr"
-	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/FactomCode/wire"
 	"github.com/FactomProject/go-socks/socks"
 	"github.com/davecgh/go-spew/spew"
 )
-
-var _ = util.Trace
 
 const (
 	// ProtocolVersion is the version for webservices, and the limit should not be the version
@@ -58,11 +55,25 @@ const (
 
 	// pingTimeoutMinutes is the number of minutes since we last sent a
 	// message requiring a reply before we will ping a host.
-	//	pingTimeoutMinutes = 2
-	pingTimeoutMinutes = 1
+	pingTimeoutMinutes = 2
+
+	// connectionRetryInterval is the base amount of time to wait in between
+	// retries when connecting to persistent peers.  It is adjusted by the
+	// number of retries such that there is a retry backoff.
+	connectionRetryInterval = time.Second * 10
+
+	// maxConnectionRetryInterval is the max amount of time retrying of a
+	// persistent peer is allowed to grow to.  This is necessary since the
+	// retry logic uses a backoff mechanism which increases the interval
+	// base done the number of retries that have been done.
+	maxConnectionRetryInterval = time.Minute * 5
 )
 
 var (
+	// nodeCount is the total number of peer connections made since startup
+	// and is used to assign an id to a peer.
+	nodeCount int32
+
 	// userAgentName is the user agent name and is used to help identify
 	// ourselves to other bitcoin peers.
 	userAgentName = "factomd"
@@ -157,6 +168,7 @@ type peer struct {
 	conn       net.Conn
 	addr       string
 	na         *wire.NetAddress
+	id         int32
 
 	nodeType string //nodeMode
 	nodeID   string //*wire.ShaHash
@@ -176,7 +188,6 @@ type peer struct {
 	prevGetHdrsBegin   *wire.ShaHash // owned by blockmanager
 	prevGetHdrsStop    *wire.ShaHash // owned by blockmanager
 	requestQueue       []*wire.InvVect
-	//	filter             *bloom.Filter
 	relayMtx           sync.Mutex
 	disableRelayTx     bool
 	continueHash       *wire.ShaHash
@@ -191,13 +202,17 @@ type peer struct {
 	StatsMtx           sync.Mutex // protects all statistics below here.
 	versionKnown       bool
 	protocolVersion    uint32
+	versionSent        bool
+	verAckReceived     bool
 	services           wire.ServiceFlag
+	timeOffset         int64
 	timeConnected      time.Time
 	lastSend           time.Time
 	lastRecv           time.Time
 	bytesReceived      uint64
 	bytesSent          uint64
 	userAgent          string
+	startingHeight     int32
 	lastBlock          int32
 	lastAnnouncedBlock *wire.ShaHash
 	lastPingNonce      uint64    // Set to nonce if we have a pending ping.
@@ -208,7 +223,7 @@ type peer struct {
 // String returns the peer's address and directionality as a human-readable
 // string.
 func (p *peer) String() string {
-	return fmt.Sprintf("%s (%s); id=%s", p.addr, directionString(p.inbound), p.nodeID)
+	return fmt.Sprintf("%s (%s); nodeID=%s, id=%d", p.addr, directionString(p.inbound), p.nodeID, p.id)
 }
 
 // isKnownInventory returns whether or not the peer is known to have the passed
@@ -447,6 +462,7 @@ func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
 	peerLog.Debugf("Negotiated protocol version %d for peer %s",
 		p.protocolVersion, p)
 	p.lastBlock = msg.LastBlock
+	p.startingHeight = msg.LastBlock
 
 	// Set the supported services for the peer to what the remote peer
 	// advertised.
@@ -454,6 +470,12 @@ func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
 
 	// Set the remote peer's user agent.
 	p.userAgent = msg.UserAgent
+
+	// Set the peer's time offset.
+	p.timeOffset = msg.Timestamp.Unix() - time.Now().Unix()
+
+	// Set the peer's ID.
+	p.id = atomic.AddInt32(&nodeCount, 1)
 
 	p.StatsMtx.Unlock()
 
@@ -530,7 +552,7 @@ func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
 
 	// Add the remote peer time as a sample for creating an offset against
 	// the local clock to keep the network time in sync.
-	//	p.server.timeSource.AddTimeSample(p.addr, msg.Timestamp)
+	p.server.timeSource.AddTimeSample(p.addr, msg.Timestamp)
 
 	// Signal the block manager this peer is a new sync candidate.
 	p.server.blockManager.NewPeer(p)
@@ -600,6 +622,12 @@ func (p *peer) handleGetAddrMsg(msg *wire.MsgGetAddr) {
 	// public test network since it will not be able to learn about other
 	// peers that have not specifically been provided.
 	if cfg.SimNet {
+		return
+	}
+
+	// Do not accept getaddr requests from outbound peers.  This reduces
+	// fingerprinting attacks.
+	if !p.inbound {
 		return
 	}
 
@@ -935,28 +963,36 @@ out:
 		}
 
 		// Handle each supported message type.
-		markConnected := false
 		switch msg := rmsg.(type) {
 		case *wire.MsgVersion:
 			p.handleVersionMsg(msg)
-			markConnected = true
 
 		case *wire.MsgVerAck:
-			// Do nothing.
+			p.StatsMtx.Lock()
+			versionSent := p.versionSent
+			verAckReceived := p.verAckReceived
+			p.StatsMtx.Unlock()
+
+			if !versionSent {
+				peerLog.Infof("Received 'verack' from peer %v "+
+					"before version was sent -- disconnecting", p)
+				break out
+			}
+			if verAckReceived {
+				peerLog.Infof("Already received 'verack' from "+
+					"peer %v -- disconnecting", p)
+				break out
+			}
+			p.verAckReceived = true
 
 		case *wire.MsgGetAddr:
-			/*
-				FIXME in Milestone2; disable for Milestone1 only
-					p.handleGetAddrMsg(msg)
-			*/
+			p.handleGetAddrMsg(msg)
 
 		case *wire.MsgAddr:
 			p.handleAddrMsg(msg)
-			markConnected = true
 
 		case *wire.MsgPing:
 			p.handlePingMsg(msg)
-			markConnected = true
 
 		case *wire.MsgPong:
 			p.handlePongMsg(msg)
@@ -973,7 +1009,6 @@ out:
 
 		case *wire.MsgInv:
 			p.handleInvMsg(msg)
-			markConnected = true
 
 		case *wire.MsgNotFound:
 			// TODO(davec): Ignore this for now, but ultimately
@@ -1016,18 +1051,15 @@ out:
 
 		case *wire.MsgDirInv:
 			p.handleDirInvMsg(msg)
-			markConnected = true
 
 		case *wire.MsgGetDirData:
 			p.handleGetDirDataMsg(msg)
-			markConnected = true
 
 		case *wire.MsgDirBlock:
 			p.handleDirBlockMsg(msg, buf)
 
 		case *wire.MsgGetNonDirData:
 			p.handleGetNonDirDataMsg(msg)
-			markConnected = true
 
 		case *wire.MsgABlock:
 			p.handleABlockMsg(msg, buf)
@@ -1043,7 +1075,6 @@ out:
 
 		case *wire.MsgGetEntryData:
 			p.handleGetEntryDataMsg(msg)
-			markConnected = true
 
 		case *wire.MsgEntry:
 			p.handleEntryMsg(msg, buf)
@@ -1062,16 +1093,6 @@ out:
 				rmsg.Command())
 		}
 
-		// Mark the address as currently connected and working as of
-		// now if one of the messages that trigger it was processed.
-		if markConnected && atomic.LoadInt32(&p.disconnect) == 0 {
-			if p.na == nil {
-				peerLog.Warnf("we're getting stuff before we " +
-					"got a version message. that's bad")
-				continue
-			}
-			p.server.addrManager.Connected(p.na)
-		}
 		// ok we got a message, reset the timer.
 		// timer just calls p.Disconnect() after logging.
 		idleTimer.Reset(idleTimeoutMinutes * time.Minute)
@@ -1168,7 +1189,8 @@ out:
 			// Create and send as many inv messages as needed to
 			// drain the inventory send queue.
 			//invMsg := wire.NewMsgInv()
-			invMsg := wire.NewMsgDirInv()
+			//invMsg := wire.NewMsgDirInv()
+			invMsg := wire.NewMsgDirInvSizeHint(uint(invSendQueue.Len()))
 			for e := invSendQueue.Front(); e != nil; e = invSendQueue.Front() {
 				iv := invSendQueue.Remove(e).(*wire.InvVect)
 
@@ -1184,7 +1206,8 @@ out:
 						outMsg{msg: invMsg},
 						pendingMsgs, waiting)
 					//invMsg = wire.NewMsgInv()
-					invMsg = wire.NewMsgDirInv()
+					//invMsg = wire.NewMsgDirInv()
+					invMsg = wire.NewMsgDirInvSizeHint(uint(invSendQueue.Len()))
 				}
 
 				// Add the inventory that is being relayed to
@@ -1372,9 +1395,16 @@ func (p *peer) Disconnect() {
 	if atomic.AddInt32(&p.disconnect, 1) != 1 {
 		return
 	}
-	//peerLog.Tracef("disconnecting %s", p)
-	peerLog.Infof("disconnecting %s", p)
 
+	// Update the address' last seen time if the peer has acknowledged
+	// our version and has sent us its version as well.
+	p.StatsMtx.Lock()
+	if p.verAckReceived && p.versionKnown && p.na != nil {
+		p.server.addrManager.Connected(p.na)
+	}
+	p.StatsMtx.Unlock()
+
+	peerLog.Tracef("disconnecting %s", p)
 	close(p.quit)
 	if atomic.LoadInt32(&p.connected) != 0 {
 		p.conn.Close()
@@ -1389,8 +1419,7 @@ func (p *peer) Start() error {
 		return nil
 	}
 
-	//peerLog.Tracef("Starting peer %s", p)
-	peerLog.Infof("Starting peer %s", p)
+	peerLog.Tracef("Starting peer %s", p)
 
 	// Send an initial version message if this is an outbound connection.
 	if !p.inbound {
@@ -1501,6 +1530,9 @@ func newOutboundPeer(s *server, addr string, persistent bool, retryCount int64) 
 		if p.retryCount > 0 {
 			scaledInterval := connectionRetryInterval.Nanoseconds() * p.retryCount / 2
 			scaledDuration := time.Duration(scaledInterval)
+			if scaledDuration > maxConnectionRetryInterval {
+				scaledDuration = maxConnectionRetryInterval
+			}
 			srvrLog.Debugf("Retrying connection to %s in %s", addr, scaledDuration)
 			time.Sleep(scaledDuration)
 		}
