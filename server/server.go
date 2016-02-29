@@ -147,7 +147,6 @@ type server struct {
 	latestDBHeight  chan uint32
 	federateServers *list.List
 	myLeaderPolicy  *leaderPolicy
-	//nextLeaderPolicy *leaderPolicy //maybe not needed ???
 }
 
 type leaderPolicy struct {
@@ -788,6 +787,10 @@ out:
 		case qmsg := <-s.query:
 			s.handleQuery(qmsg, state)
 
+		// used to handle leader / followers regime change.
+		case h := <-s.latestDBHeight:
+			s.handleNextLeader(h)
+
 		// Shutdown the peer handler.
 		case <-s.quit:
 			// Shutdown peers.
@@ -1125,8 +1128,8 @@ func (s *server) Start() {
 	s.wg.Add(1)
 	go StartProcessor()
 
-	s.wg.Add(1)
-	go s.nextLeaderHandler()
+	//s.wg.Add(1)
+	//go s.nextLeaderHandler()
 }
 
 // Stop gracefully shuts down the server by stopping and disconnecting all
@@ -1482,9 +1485,15 @@ func newServer(listenAddrs []string, chainParams *Params) (*server, error) {
 
 	if s.isLeader {
 		//for genesis block, it's saved in 11th minute. so wait for a while.
-		time.Sleep(7 * time.Second)
-		s.wg.Add(1)
-		go s.NewLeader(h) // must use go routine here to avoid blocking.
+		//time.Sleep(7 * time.Second)
+		//s.wg.Add(1)
+		//go s.NewLeader(h) // must use go routine here to avoid blocking.
+		policy := &leaderPolicy{
+			StartDBHeight:  h + 3, // give it a bit more time to adjust
+			NotifyDBHeight: defaultNotifyDBHeight,
+			Term:           defaultLeaderTerm,
+		}
+		s.myLeaderPolicy = policy
 	} else {
 		blockSyncing = true
 	}
@@ -1586,12 +1595,7 @@ func (s *server) nextLeaderHandler() {
 	for {
 		select {
 		case h := <-s.latestDBHeight:
-			fmt.Println("nextLeaderHandler(): s.latestDBHeight=", h)
-			if s.isSingleServerMode() {
-				s.myLeaderPolicy.StartDBHeight = h + 3 // h is the height of newly created dir block
-				fmt.Println("nextLeaderHandler(): is SingleServerMode. update leaderPolicy: new startingDBHeight=", s.myLeaderPolicy.StartDBHeight)
-			}
-			fmt.Println("nextLeaderHandler(): peerState=", spew.Sdump(s.PeerInfo()))
+			//fmt.Println("nextLeaderHandler(): s.latestDBHeight=", h)
 			s.handleNextLeader(h)
 		default:
 		}
@@ -1604,10 +1608,13 @@ func (s *server) handleNextLeader(height uint32) {
 	if !(s.IsLeader() || s.isLeaderElected) {
 		return
 	}
-	if s.federateServers.Len() <= 1 {
-		fmt.Println("It's a single server mode.")
+	if s.isSingleServerMode() {
+		s.myLeaderPolicy.StartDBHeight = height + 3 // h is the height of newly created dir block
+		fmt.Println("nextLeaderHandler(): is SingleServerMode. update leaderPolicy: new startingDBHeight=", s.myLeaderPolicy.StartDBHeight)
 		return
 	}
+	fmt.Println("nextLeaderHandler(): peerState=", spew.Sdump(s.PeerInfo()))
+
 	if s.isLeaderElected {
 		fmt.Printf("handleNextLeader: isLeaderElected=%t\n", s.isLeaderElected)
 		if height > s.myLeaderPolicy.StartDBHeight {
@@ -1623,6 +1630,7 @@ func (s *server) handleNextLeader(height uint32) {
 		}
 		return
 	}
+
 	// this is a current leader
 	var next *federateServer
 	fmt.Printf("handleNextLeader: isLeader=%t, height=%d\n", s.isLeader, height)
@@ -1653,12 +1661,6 @@ func (s *server) handleNextLeader(height uint32) {
 		// starting DBHeight for next leader is, by default,
 		// current leader's starting height + its term
 		h := s.myLeaderPolicy.StartDBHeight + s.myLeaderPolicy.Term
-		//policy := &leaderPolicy{
-		//StartDBHeight:  h,
-		//NotifyDBHeight: defaultNotifyDBHeight,
-		//Term:           defaultLeaderTerm,
-		//}
-		//s.nextLeaderPolicy = policy
 		fmt.Printf("handleNextLeader: before broadcast notoficiation: next leader StartDBHeight=%d\n", h)
 
 		sig := s.privKey.Sign([]byte(s.nodeID + next.Peer.nodeID))
@@ -1675,7 +1677,6 @@ func (s *server) handleNextLeader(height uint32) {
 		s.isLeader = false
 		s.isLeaderElected = false
 		s.myLeaderPolicy = nil
-		//s.nextLeaderPolicy = nil
 		// turn off BlockTimer
 	}
 	return
