@@ -22,7 +22,6 @@ import (
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/server/addrmgr"
 	"github.com/FactomProject/FactomCode/wire"
-	"github.com/btcsuite/btcd/blockchain"
 	"github.com/davecgh/go-spew/spew"
 )
 
@@ -138,7 +137,7 @@ type server struct {
 	quit                 chan struct{}
 	nat                  NAT
 	//	db                   database.Db
-	timeSource      blockchain.MedianTimeSource
+	//timeSource      blockchain.MedianTimeSource
 	nodeType        string
 	nodeID          string
 	privKey         common.PrivateKey
@@ -387,11 +386,10 @@ func (s *server) handleDonePeerMsg(state *peerState, p *peer) {
 	fs := s.federateServers
 	for e := fs.Front(); e != nil; e = e.Next() {
 		fedServer := e.Value.(*federateServer)
-		fmt.Printf("handleDonePeerMsg: need to remove %s, federate server candidate: %s\n", p, spew.Sdump(fedServer))
+		//srvrLog.Debugf("handleDonePeerMsg: need to remove %s, federate server candidate: %s\n", p, spew.Sdump(fedServer))
 		if fedServer.Peer == p {
-			fmt.Printf("removed: %s\n", p)
-			fs.Remove(e)
-			srvrLog.Debugf("Removed federate server %s", p)
+			//fs.Remove(e)
+			srvrLog.Debugf("to-be-Removed federate server %s", p)
 			return
 		}
 	}
@@ -513,6 +511,7 @@ func (s *server) handleQuery(querymsg interface{}, state *peerState) {
 			// version.
 			p.StatsMtx.Lock()
 			info := &GetPeerInfoResult{
+				ID:             p.id,
 				Addr:           p.addr,
 				Services:       fmt.Sprintf("%08d", p.services),
 				LastSend:       p.lastSend.Unix(),
@@ -844,7 +843,8 @@ out:
 
 			// only allow recent nodes (10mins) after we failed 30
 			// times
-			if tries < 30 && time.Now().Sub(addr.LastAttempt()) < 10*time.Minute {
+			//if tries < 30 && time.Now().Sub(addr.LastAttempt()) < 10*time.Minute {
+			if time.Now().After(addr.LastAttempt().Add(10*time.Minute)) && tries < 30 {
 				continue
 			}
 
@@ -1449,8 +1449,8 @@ func newServer(listenAddrs []string, chainParams *Params) (*server, error) {
 		nat:                  nat,
 		latestDBHeight:       make(chan uint32),
 		federateServers:      list.New(),
-		//		db:                   db,
-		timeSource: blockchain.NewMedianTime(),
+		//db:                   db,
+		//timeSource: blockchain.NewMedianTime(),
 	}
 	bm, err := newBlockManager(&s)
 	if err != nil {
@@ -1484,7 +1484,7 @@ func newServer(listenAddrs []string, chainParams *Params) (*server, error) {
 		//for genesis block, it's saved in 11th minute. so wait for a while.
 		time.Sleep(7 * time.Second)
 		s.wg.Add(1)
-		s.NewLeader(h) // no need to use a go routine here ???
+		go s.NewLeader(h) // must use go routine here to avoid blocking.
 	} else {
 		blockSyncing = true
 	}
@@ -1591,6 +1591,7 @@ func (s *server) nextLeaderHandler() {
 				s.myLeaderPolicy.StartDBHeight = h + 1 // h is the height of newly created dir block
 				fmt.Println("nextLeaderHandler(): is SingleServerMode. update leaderPolicy: new startingDBHeight=", s.myLeaderPolicy.StartDBHeight)
 			}
+			fmt.Println("nextLeaderHandler(): peerState=", spew.Sdump(s.PeerInfo()))
 			s.handleNextLeader(h)
 		default:
 		}

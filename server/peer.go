@@ -500,8 +500,8 @@ func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
 			//fedServer.LeaderSince = h + 1
 			//}
 			p.server.federateServers.PushBack(fedServer)
-			peerLog.Debugf("Signature verified successfully & add it as a new federate server: %s, total=%d",
-				p, p.server.FederateServerCount())
+			peerLog.Debugf("Signature verified successfully total=%d after adding a new federate server: %s",
+				p.server.FederateServerCount(), p)
 		} else {
 			panic("peer id/sig are not valid: " + p.String())
 		}
@@ -552,7 +552,7 @@ func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
 
 	// Add the remote peer time as a sample for creating an offset against
 	// the local clock to keep the network time in sync.
-	p.server.timeSource.AddTimeSample(p.addr, msg.Timestamp)
+	//p.server.timeSource.AddTimeSample(p.addr, msg.Timestamp)
 
 	// Signal the block manager this peer is a new sync candidate.
 	p.server.blockManager.NewPeer(p)
@@ -1189,8 +1189,7 @@ out:
 			// Create and send as many inv messages as needed to
 			// drain the inventory send queue.
 			//invMsg := wire.NewMsgInv()
-			//invMsg := wire.NewMsgDirInv()
-			invMsg := wire.NewMsgDirInvSizeHint(uint(invSendQueue.Len()))
+			invMsg := wire.NewMsgDirInv()
 			for e := invSendQueue.Front(); e != nil; e = invSendQueue.Front() {
 				iv := invSendQueue.Remove(e).(*wire.InvVect)
 
@@ -1206,8 +1205,7 @@ out:
 						outMsg{msg: invMsg},
 						pendingMsgs, waiting)
 					//invMsg = wire.NewMsgInv()
-					//invMsg = wire.NewMsgDirInv()
-					invMsg = wire.NewMsgDirInvSizeHint(uint(invSendQueue.Len()))
+					invMsg = wire.NewMsgDirInv()
 				}
 
 				// Add the inventory that is being relayed to
@@ -1280,17 +1278,20 @@ out:
 			reset := true
 			switch m := msg.msg.(type) {
 			case *wire.MsgVersion:
-				// should get an ack
+				// should get a verack
+				p.StatsMtx.Lock()
+				p.versionSent = true
+				p.StatsMtx.Unlock()
 			case *wire.MsgGetAddr:
 				// should get addresses
 			case *wire.MsgPing:
 				// expects pong
 				// Also set up statistics.
 				p.StatsMtx.Lock()
-				if p.protocolVersion > wire.BIP0031Version {
-					p.lastPingNonce = m.Nonce
-					p.lastPingTime = time.Now()
-				}
+				//if p.protocolVersion > wire.BIP0031Version {
+				p.lastPingNonce = m.Nonce
+				p.lastPingTime = time.Now()
+				//}
 				p.StatsMtx.Unlock()
 			case *wire.MsgGetDirData:
 				// Should get us dir block, or not found for factom
