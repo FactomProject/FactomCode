@@ -93,11 +93,7 @@ func btcdMain(serverChan chan<- *server) error {
 		serverChan <- server
 	}
 
-	// Factom Additions BEGIN
-	//factomForkInit(server)
 	localServer = server
-
-	// Factom Additions END
 
 	// Monitor for graceful server shutdown and signal the main goroutine
 	// when done.  This is done in a separate goroutine rather than waiting
@@ -118,6 +114,7 @@ func btcdMain(serverChan chan<- *server) error {
 	return nil
 }
 
+// StartBtcd starts btcd main
 func StartBtcd(ldb database.Db, inQ, outQ chan wire.FtmInternalMsg) {
 	db = ldb
 	inMsgQueue = inQ
