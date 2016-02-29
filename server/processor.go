@@ -575,7 +575,7 @@ func processDirBlockSig() error {
 		//continue
 		//}
 		if v.DBHeight != dchain.NextDBHeight-1 {
-			// need to remove this oen
+			// need to remove this one
 			fmt.Println("filter out later-coming last block's sig: ", spew.Sdump(v))
 			continue
 		}

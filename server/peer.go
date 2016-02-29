@@ -489,19 +489,31 @@ func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
 	// only verify id/sig for federate servers
 	if common.SERVER_NODE == msg.NodeType {
 		if msg.NodeSig.Pub.Verify([]byte(msg.NodeID), msg.NodeSig.Sig) {
-			//p.server.federateServers.PushBack(p)
-			_, newestHeight, _ := db.FetchBlockHeightCache()
-			h := uint32(newestHeight)
-			fedServer := &federateServer{
-				Peer:        p,
-				FirstJoined: h,
+			var found = false
+			for e := p.server.federateServers.Front(); e != nil; e = e.Next() {
+				fed := e.Value.(*federateServer)
+				if fed.Peer == nil {
+					continue
+				}
+				if fed.Peer.nodeID == msg.NodeID {
+					found = true
+					fmt.Printf("duplicated fed server / peer: %s; %s\n", msg.NodeID, fed.Peer)
+					break
+				}
 			}
-			//if p.server.isLeader {
-			//fedServer.LeaderSince = h + 1
-			//}
-			p.server.federateServers.PushBack(fedServer)
-			peerLog.Debugf("Signature verified successfully total=%d after adding a new federate server: %s",
-				p.server.FederateServerCount(), p)
+			// Usually when a server has both listen and connect, it has 2 peers (inboud + outbound)
+			// this prevents duplication.
+			if !found {
+				_, newestHeight, _ := db.FetchBlockHeightCache()
+				h := uint32(newestHeight)
+				fedServer := &federateServer{
+					Peer:        p,
+					FirstJoined: h,
+				}
+				p.server.federateServers.PushBack(fedServer)
+				peerLog.Debugf("Signature verified successfully total=%d after adding a new federate server: %s",
+					p.server.FederateServerCount(), p)
+			}
 		} else {
 			panic("peer id/sig are not valid: " + p.String())
 		}
@@ -1023,19 +1035,19 @@ out:
 			// Factom additions
 		case *wire.MsgCommitChain:
 			p.handleCommitChainMsg(msg)
-			//p.FactomRelay(msg)
+			p.FactomRelay(msg)
 
 		case *wire.MsgRevealChain:
 			p.handleRevealChainMsg(msg)
-			//p.FactomRelay(msg)
+			p.FactomRelay(msg)
 
 		case *wire.MsgCommitEntry:
 			p.handleCommitEntryMsg(msg)
-			//p.FactomRelay(msg)
+			p.FactomRelay(msg)
 
 		case *wire.MsgRevealEntry:
 			p.handleRevealEntryMsg(msg)
-			//p.FactomRelay(msg)
+			p.FactomRelay(msg)
 
 		case *wire.MsgAck:
 			p.handleAckMsg(msg)
@@ -1081,6 +1093,7 @@ out:
 
 		case *wire.MsgFactoidTX:
 			p.handleFactoidMsg(msg, buf)
+			p.FactomRelay(msg)
 
 		case *wire.MsgNextLeader:
 			p.handleNextLeaderMsg(msg)

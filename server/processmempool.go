@@ -57,9 +57,22 @@ func (mp *ftmMemPool) getDirBlockSigPool() []*wire.MsgDirBlockSig {
 }
 
 // addAck add the ack to ackpool and find it's acknowledged msg.
-// then add them to ftmMemPool if available. otherwise return missing acked msg.
+// then add them to ftmMemPool if available.
+// otherwise return missing acked msg.
 func (mp *ftmMemPool) addAck(ack *wire.MsgAck) *wire.Message {
+	if ack == nil {
+		return nil
+	}
 	procLog.Infof("ftmMemPool.addAck: %+v\n", ack)
+	// check duplication first
+	a := mp.ackpool[ack.Index]
+	//if a != nil {
+	//procLog.Infof("ftmMemPool.addAck: compare ack: %+v\n", a)
+	//}
+	if a != nil && ack.Equal(a) {
+		fmt.Println("duplicated ack: ignore it")
+		return nil
+	}
 	mp.ackpool[ack.Index] = ack
 	if ack.Type == wire.ACK_REVEAL_ENTRY || ack.Type == wire.ACK_REVEAL_CHAIN ||
 		ack.Type == wire.ACK_COMMIT_CHAIN || ack.Type == wire.ACK_COMMIT_ENTRY {

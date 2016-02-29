@@ -1574,7 +1574,7 @@ func (s *server) NewLeader(height uint32) {
 	fmt.Printf("into NewLeader: %d\n", height)
 	s.isLeader = true
 	policy := &leaderPolicy{
-		StartDBHeight:  height + 1,
+		StartDBHeight:  height + 3, // give it a bit more time to adjust
 		NotifyDBHeight: defaultNotifyDBHeight,
 		Term:           defaultLeaderTerm,
 	}
@@ -1588,7 +1588,7 @@ func (s *server) nextLeaderHandler() {
 		case h := <-s.latestDBHeight:
 			fmt.Println("nextLeaderHandler(): s.latestDBHeight=", h)
 			if s.isSingleServerMode() {
-				s.myLeaderPolicy.StartDBHeight = h + 1 // h is the height of newly created dir block
+				s.myLeaderPolicy.StartDBHeight = h + 3 // h is the height of newly created dir block
 				fmt.Println("nextLeaderHandler(): is SingleServerMode. update leaderPolicy: new startingDBHeight=", s.myLeaderPolicy.StartDBHeight)
 			}
 			fmt.Println("nextLeaderHandler(): peerState=", spew.Sdump(s.PeerInfo()))
@@ -1641,10 +1641,8 @@ func (s *server) handleNextLeader(height uint32) {
 		// simple round robin for now
 		for e := s.federateServers.Front(); e != nil; e = e.Next() {
 			fed := e.Value.(*federateServer)
-			//fmt.Println(spew.Sdump(fed))
 			if fed.Peer != nil {
 				next = fed
-				//s.federateServers.MoveToBack(e)
 				break
 			}
 		}
