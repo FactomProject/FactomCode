@@ -16,7 +16,7 @@ import (
 	"github.com/FactomProject/btcd/wire"
 	fct "github.com/FactomProject/factoid"
 	"github.com/FactomProject/factoid/block"
-	"github.com/davecgh/go-spew/spew"
+	"github.com/FactomProject/go-spew/spew"
 	"runtime/debug"
 	"sort"
 	"strconv"

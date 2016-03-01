@@ -24,7 +24,7 @@ import (
 	"github.com/btcsuitereleases/btcd/wire"
 	"github.com/btcsuitereleases/btcrpcclient"
 	"github.com/btcsuitereleases/btcutil"
-	"github.com/davecgh/go-spew/spew"
+	"github.com/FactomProject/go-spew/spew"
 
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/database"

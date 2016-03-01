@@ -19,7 +19,7 @@ import (
 	"github.com/FactomProject/FactomCode/database/ldb"
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/btcsuitereleases/btcd/wire"
-	"github.com/davecgh/go-spew/spew"
+	"github.com/FactomProject/go-spew/spew"
 )
 
 var (

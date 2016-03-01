@@ -10,7 +10,7 @@ import (
 	"github.com/FactomProject/FactomCode/factomlog"
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/factoid/block"
-	"github.com/davecgh/go-spew/spew"
+	"github.com/FactomProject/go-spew/spew"
 	"io/ioutil"
 	"os"
 	"sort"
