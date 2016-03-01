@@ -17,7 +17,7 @@ import (
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/btcd"
 	fct "github.com/FactomProject/factoid"
-	"github.com/hoisie/web"
+	"github.com/FactomProject/web"
 )
 
 const (
