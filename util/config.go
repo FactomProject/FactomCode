@@ -109,8 +109,8 @@ RpcClientPass 						= "notarychain"
 BtcTransFee				  			= 0.0001
 CertHomePathBtcd					= "btcd"
 RpcBtcdHost 			  			= "localhost:18334"
-RpcUser								=testuser
-RpcPass								=notarychain
+RpcUser								= testuser
+RpcPass								= notarychain
 
 [wsapi]
 ApplicationName						= "Factom/wsapi"
@@ -178,10 +178,18 @@ func readConfig() *FactomdConfig {
 	//LdbPath					 = filepath.Join(defaultDataDir, "ldb9")
 	//DataStorePath		 = filepath.Join(defaultDataDir, "store/seed/")
 
-	err := gcfg.ReadFileInto(cfg, filename)
+	err:=gcfg.ReadStringInto(cfg, defaultConfig)
+	if err!=nil {
+		panic(err)
+	}
+
+	err = gcfg.ReadFileInto(cfg, filename)
 	if err != nil {
 		log.Println("ERROR Reading config file!\nServer starting with default settings...\n",err)
-		gcfg.ReadStringInto(cfg, defaultConfig)
+		err=gcfg.ReadStringInto(cfg, defaultConfig)
+		if err!=nil {
+			panic(err)
+		}
 	} 
 	
 	// Default to home directory if not set
