@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/hoisie/web"
+	"github.com/FactomProject/web"
 )
 
 func TestHandleBlockHeight(t *testing.T) {
