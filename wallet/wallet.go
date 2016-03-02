@@ -5,9 +5,9 @@ import (
 	"os"
 	//"fmt"
 
-	"gopkg.in/gcfg.v1"
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/util"
+	"gopkg.in/gcfg.v1"
 )
 
 var (

@@ -306,6 +306,12 @@ func (b *blockManager) haveInventory(invVect *wire.InvVect) (bool, error) {
 // important because the block manager controls which blocks are needed and how
 // the fetching should proceed.
 func (b *blockManager) blockHandler() {
+	b.wg.Add(1)
+	defer func() {
+		//fmt.Println("wg.Done for blockHandler")
+		b.wg.Done()
+	}()
+
 	candidatePeers := list.New()
 out:
 	for {
@@ -350,7 +356,6 @@ out:
 		}
 	}
 
-	b.wg.Done()
 	bmgrLog.Trace("Block handler done")
 }
 
@@ -421,7 +426,6 @@ func (b *blockManager) Start() {
 
 	bmgrLog.Trace("Starting block manager")
 
-	b.wg.Add(1)
 	go b.blockHandler()
 }
 

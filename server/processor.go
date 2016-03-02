@@ -19,6 +19,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/FactomProject/FactomCode/anchor"
@@ -151,9 +152,16 @@ func InitProcessor(ldb database.Db) {
 }
 
 // StartProcessor is started from factomd
-func StartProcessor() {
+func StartProcessor(wg *sync.WaitGroup, quit chan struct{}) {
 	//initProcessor()
 	fmt.Println("StartProcessor: blockSyncing=", blockSyncing)
+
+	wg.Add(1)
+	defer func() {
+		//fmt.Println("wg.Done for StartProcessor")
+		wg.Done()
+	}()
+
 	if dchain.NextDBHeight == 0 && localServer.IsLeader() { //nodeMode == common.SERVER_NODE && !blockSyncing {
 		buildGenesisBlocks()
 		procLog.Debug("after creating genesis block: dchain.NextDBHeight=", dchain.NextDBHeight)
@@ -220,6 +228,8 @@ func StartProcessor() {
 			default:
 				panic(fmt.Sprintf("bad outMsgQueue message received: %v", msg))
 			}
+		case <-quit:
+			return
 		}
 	}
 }

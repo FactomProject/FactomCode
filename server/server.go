@@ -284,6 +284,13 @@ func (s *server) handleUpdatePeerHeights(state *peerState, umsg updatePeerHeight
 // handleAddPeerMsg deals with adding new peers.  It is invoked from the
 // peerHandler goroutine.
 func (s *server) handleAddPeerMsg(state *peerState, p *peer) bool {
+	fmt.Println("handleAddPeerMsg add(1)")
+	s.wg.Add(1)
+	defer func() {
+		//fmt.Println("wg.Done for handleAddPeerMsg")
+		s.wg.Done()
+	}()
+
 	if p == nil {
 		return false
 	}
@@ -594,6 +601,12 @@ func (s *server) handleQuery(querymsg interface{}, state *peerState) {
 // listenHandler is the main listener which accepts incoming connections for the
 // server.  It must be run as a goroutine.
 func (s *server) listenHandler(listener net.Listener) {
+	s.wg.Add(1)
+	defer func() {
+		//fmt.Println("wg.Done for listenHandler")
+		s.wg.Done()
+	}()
+
 	srvrLog.Infof("listenHandler: Server listening on %s ; MaxPeers= %d", listener.Addr(), cfg.MaxPeers)
 	for atomic.LoadInt32(&s.shutdown) == 0 {
 		conn, err := listener.Accept()
@@ -607,7 +620,6 @@ func (s *server) listenHandler(listener net.Listener) {
 		}
 		s.AddPeer(newInboundPeer(s, conn))
 	}
-	s.wg.Done()
 	srvrLog.Tracef("Listener handler done for %s", listener.Addr())
 }
 
@@ -669,6 +681,12 @@ func (s *server) seedFromDNS() {
 // peers to and from the server, banning peers, and broadcasting messages to
 // peers.  It must be run in a goroutine.
 func (s *server) peerHandler() {
+	s.wg.Add(1)
+	defer func() {
+		//fmt.Println("wg.Done for peerHandler")
+		s.wg.Done()
+	}()
+
 	// Start the address manager and block manager, both of which are needed
 	// by peers.  This is done here since their lifecycle is closely tied
 	// to this handler and rather than adding more channels to sychronize
@@ -831,7 +849,6 @@ out:
 
 	s.blockManager.Stop()
 	s.addrManager.Stop()
-	s.wg.Done()
 	srvrLog.Tracef("Peer handler done")
 }
 
@@ -957,6 +974,12 @@ func (s *server) UpdatePeerHeights(latestBlkSha *wire.ShaHash, latestHeight int3
 // sent out but have not yet made it into a block. We periodically rebroadcast
 // them in case our peers restarted or otherwise lost track of them.
 func (s *server) rebroadcastHandler() {
+	s.wg.Add(1)
+	defer func() {
+		//fmt.Println("wg.Done for rebroadcastHandler")
+		s.wg.Done()
+	}()
+
 	// Wait 5 min before first tx rebroadcast.
 	timer := time.NewTimer(5 * time.Minute)
 	pendingInvs := make(map[wire.InvVect]interface{})
@@ -1008,7 +1031,6 @@ cleanup:
 			break cleanup
 		}
 	}
-	s.wg.Done()
 }
 
 // Start begins accepting connections from peers.
@@ -1024,27 +1046,22 @@ func (s *server) Start() {
 	// disabled.
 	for _, listener := range s.listeners {
 		//srvrLog.Infof("listner: ", spew.Sdump(listener))
-		s.wg.Add(1)
 		go s.listenHandler(listener)
 	}
 
 	// Start the peer handler which in turn starts the address and block
 	// managers.
-	s.wg.Add(1)
 	go s.peerHandler()
 
 	if s.nat != nil {
-		s.wg.Add(1)
 		go s.upnpUpdateThread()
 	}
 
 	// wait for peer to start and exchange version msg
 	// todo: coordinate this with a channel
 	time.Sleep(3 * time.Second)
-	s.wg.Add(1)
-	go StartProcessor()
+	go StartProcessor(&s.wg, s.quit)
 
-	s.wg.Add(1)
 	go s.nextLeaderHandler()
 }
 
@@ -1169,6 +1186,12 @@ func parseListeners(addrs []string) ([]string, []string, bool, error) {
 }
 
 func (s *server) upnpUpdateThread() {
+	s.wg.Add(1)
+	defer func() {
+		//fmt.Println("wg.Done for upnpUpdateThread")
+		s.wg.Done()
+	}()
+
 	// Go off immediately to prevent code duplication, thereafter we renew
 	// lease every 15 minutes.
 	timer := time.NewTimer(0 * time.Second)
@@ -1218,8 +1241,6 @@ out:
 	} else {
 		srvrLog.Debugf("succesfully disestablished UPnP port mapping")
 	}
-
-	s.wg.Done()
 }
 
 // newServer returns a new btcd server configured to listen on addr for the
@@ -1409,7 +1430,6 @@ func newServer(listenAddrs []string, chainParams *Params) (*server, error) {
 	if s.isLeader {
 		//for genesis block, it's saved in 11th minute. so wait for a while.
 		time.Sleep(7 * time.Second)
-		s.wg.Add(1)
 		go s.NewLeader(h)
 	} else {
 		blockSyncing = true
@@ -1497,6 +1517,12 @@ func (s *server) isSingleServerMode() bool {
 
 // NewLeader adds a new peer that has already been connected to the server.
 func (s *server) NewLeader(height uint32) {
+	s.wg.Add(1)
+	defer func() {
+		//fmt.Println("wg.Done for NewLeader")
+		s.wg.Done()
+	}()
+
 	fmt.Printf("into NewLeader: %d\n", height)
 	s.isLeader = true
 	policy := &leaderPolicy{
@@ -1509,6 +1535,12 @@ func (s *server) NewLeader(height uint32) {
 }
 
 func (s *server) nextLeaderHandler() {
+	s.wg.Add(1)
+	defer func() {
+		//fmt.Println("wg.Done for nextLeaderHandler")
+		s.wg.Done()
+	}()
+
 	for {
 		select {
 		case h := <-s.latestDBHeight:
@@ -1518,6 +1550,8 @@ func (s *server) nextLeaderHandler() {
 				fmt.Println("nextLeaderHandler(): is SingleServerMode. update leaderPolicy: new startingDBHeight=", s.myLeaderPolicy.StartDBHeight)
 			}
 			s.handleNextLeader(h)
+		case <-s.quit:
+			return
 		default:
 		}
 	}

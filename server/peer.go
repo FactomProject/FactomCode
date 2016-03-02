@@ -1098,6 +1098,12 @@ out:
 // and the server goroutine both will not block on us sending a message.
 // We then pass the data on to outHandler to be actually written.
 func (p *peer) queueHandler() {
+	p.queueWg.Add(1)
+	defer func() {
+		//fmt.Println("queueWg.Done for queueHandler")
+		p.queueWg.Done()
+	}()
+
 	pendingMsgs := list.New()
 	invSendQueue := list.New()
 	trickleTicker := time.NewTicker(time.Second * 10)
@@ -1224,7 +1230,6 @@ cleanup:
 			break cleanup
 		}
 	}
-	p.queueWg.Done()
 	peerLog.Tracef("Peer queue handler done for %s", p)
 }
 
@@ -1407,7 +1412,6 @@ func (p *peer) Start() error {
 	go p.inHandler()
 	// queueWg is kept so that outHandler knows when the queue has exited so
 	// it can drain correctly.
-	p.queueWg.Add(1)
 	go p.queueHandler()
 	go p.outHandler()
 
