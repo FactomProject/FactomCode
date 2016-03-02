@@ -47,8 +47,6 @@ const (
 	SERVER_NODE = "SERVER"
 	LIGHT_NODE  = "LIGHT"
 
-	//Server public key for milestone 1
-	SERVER_PUB_KEY         = "0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a"
 	//Genesis directory block timestamp in RFC3339 format
 	GENESIS_BLK_TIMESTAMP = "2015-09-01T20:00:00+00:00"
 	//Genesis directory block hash

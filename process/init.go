@@ -272,8 +272,8 @@ func initServerKeys() {
 		//Set server's public key
 		serverPubKey = serverPrivKey.Pub
 	} else {
-
-		serverPubKey = common.PubKeyFromString(common.SERVER_PUB_KEY)
+		cfg := util.ReadConfig().App
+		serverPubKey = common.PubKeyFromString(cfg.ServerPubKey)
 
 	}
 }

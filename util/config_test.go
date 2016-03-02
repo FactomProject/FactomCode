@@ -3,7 +3,7 @@ package util_test
 import (
 	"gopkg.in/gcfg.v1"
 	"testing"
-	. "github.com/FactomProject/factomd/util"
+	. "github.com/FactomProject/FactomCode/util"
 )
 
 func TestLoadDefaultConfig(t *testing.T) {
@@ -67,6 +67,7 @@ func TestLoadDefaultConfigFull(t *testing.T) {
 	; --------------- NodeMode: FULL | SERVER | LIGHT ----------------
 	NodeMode				        	= FULL
 	ServerPrivKey			      		= 07c0d52cb74f4ca3106d80c4a70488426886bccc6ebc10c6bafb37bf8a65f4c38cee85c62a9e48039d4ac294da97943c2001be1539809ea5f54721f0c5477a0a
+	ServerPubKey                        = "0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a"
 	ExchangeRate                        = 00666600
 
 	[anchor]
@@ -124,7 +125,6 @@ func TestLoadDefaultConfigFull(t *testing.T) {
 	BoltDBPath                            = "Something"
 	`
 
-
 	cfg := new(FactomdConfig)
 	gcfg.ReadStringInto(cfg, defaultConfig)
 	if cfg.App.NodeMode != "FULL" {
@@ -153,5 +153,7 @@ func TestLoadDefaultConfigFull(t *testing.T) {
 	if cfg.App.DataStorePath != "data/export/" {
 		t.Errorf("Wrong variable read - %v", cfg.App.DataStorePath)
 	}
-
+	if cfg.App.ServerPubKey != "0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a" {
+		t.Errorf("Wrong variable read - %v", cfg.App.ServerPubKey)
+	}
 }
