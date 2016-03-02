@@ -94,20 +94,17 @@ var ZERO_HASH = []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
 type Properties struct {
 	Protocol_Version  int
 	Factomd_Version	  int
-	Fctwallet_Version int
 }
 
 func (p *Properties) MarshalJSON() ([]byte, error) {
 	type tmp struct {
 		Protocol_Version  string
 		Factomd_Version	  string
-		Fctwallet_Version string
 	}
 	t := new(tmp)
 	
 	t.Protocol_Version = versionToString(p.Protocol_Version)
 	t.Factomd_Version = versionToString(p.Factomd_Version)
-	t.Fctwallet_Version = versionToString(p.Fctwallet_Version)
 	
 	return json.Marshal(t)
 }
