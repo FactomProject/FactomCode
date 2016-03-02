@@ -162,3 +162,12 @@ func (msg *MsgAck) IsEomAck() bool {
 	}
 	return false
 }
+
+func (msg *MsgAck) Equal(ack *MsgAck) bool {
+	// simple comparison
+	return msg.Height == ack.Height &&
+		msg.Index == ack.Index &&
+		//msg.Affirmation == ack.Affirmation &&
+		msg.Type == ack.Type //&&
+	//msg.ChainID == ack.ChainID
+}

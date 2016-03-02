@@ -15,14 +15,12 @@ import (
 	"net"
 	"runtime"
 	"strconv"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/server/addrmgr"
-	//"github.com/FactomProject/btcd/chaincfg"
 	"github.com/FactomProject/FactomCode/wire"
 	"github.com/davecgh/go-spew/spew"
 )
@@ -41,7 +39,7 @@ const (
 
 	// connectionRetryInterval is the amount of time to wait in between
 	// retries when connecting to persistent peers.
-	connectionRetryInterval = time.Second * 10
+	//connectionRetryInterval = time.Second * 10
 
 	// defaultMaxOutbound is the default number of max outbound peers.
 	defaultMaxOutbound = 8
@@ -139,17 +137,16 @@ type server struct {
 	quit                 chan struct{}
 	nat                  NAT
 	//	db                   database.Db
-	//	timeSource blockchain.MedianTimeSource
-	nodeType         string
-	nodeID           string
-	privKey          common.PrivateKey
-	leaderPeer       *peer
-	isLeader         bool
-	isLeaderElected  bool
-	latestDBHeight   chan uint32
-	federateServers  *list.List
-	myLeaderPolicy   *leaderPolicy
-	nextLeaderPolicy *leaderPolicy //maybe not needed ???
+	//timeSource      blockchain.MedianTimeSource
+	nodeType        string
+	nodeID          string
+	privKey         common.PrivateKey
+	leaderPeer      *peer
+	isLeader        bool
+	isLeaderElected bool
+	latestDBHeight  chan uint32
+	federateServers *list.List
+	myLeaderPolicy  *leaderPolicy
 }
 
 type leaderPolicy struct {
@@ -169,9 +166,9 @@ type federateServer struct {
 }
 
 type peerState struct {
-	peers            *list.List
-	outboundPeers    *list.List
-	persistentPeers  *list.List
+	peers            map[*peer]struct{}
+	outboundPeers    map[*peer]struct{}
+	persistentPeers  map[*peer]struct{}
 	banned           map[string]time.Time
 	outboundGroups   map[string]int
 	maxOutboundPeers int
@@ -218,11 +215,11 @@ func (s *server) RemoveRebroadcastInventory(iv *wire.InvVect) {
 }
 
 func (p *peerState) Count() int {
-	return p.peers.Len() + p.outboundPeers.Len() + p.persistentPeers.Len()
+	return len(p.peers) + len(p.outboundPeers) + len(p.persistentPeers)
 }
 
 func (p *peerState) OutboundCount() int {
-	return p.outboundPeers.Len() + p.persistentPeers.Len()
+	return len(p.outboundPeers) + len(p.persistentPeers)
 }
 
 func (p *peerState) NeedMoreOutbound() bool {
@@ -233,19 +230,19 @@ func (p *peerState) NeedMoreOutbound() bool {
 // forAllOutboundPeers is a helper function that runs closure on all outbound
 // peers known to peerState.
 func (p *peerState) forAllOutboundPeers(closure func(p *peer)) {
-	for e := p.outboundPeers.Front(); e != nil; e = e.Next() {
-		closure(e.Value.(*peer))
+	for e := range p.outboundPeers {
+		closure(e)
 	}
-	for e := p.persistentPeers.Front(); e != nil; e = e.Next() {
-		closure(e.Value.(*peer))
+	for e := range p.persistentPeers {
+		closure(e)
 	}
 }
 
 // forAllPeers is a helper function that runs closure on all peers known to
 // peerState.
 func (p *peerState) forAllPeers(closure func(p *peer)) {
-	for e := p.peers.Front(); e != nil; e = e.Next() {
-		closure(e.Value.(*peer))
+	for e := range p.peers {
+		closure(e)
 	}
 	p.forAllOutboundPeers(closure)
 }
@@ -344,18 +341,18 @@ func (s *server) handleAddPeerMsg(state *peerState, p *peer) bool {
 	// Add the new peer and start it.
 	srvrLog.Debugf("New peer %s", p)
 	if p.inbound {
-		state.peers.PushBack(p)
-		srvrLog.Infof("inbound peer: %s, total.state.peers=%d", p, state.peers.Len())
+		state.peers[p] = struct{}{}
+		srvrLog.Infof("inbound peer: %s, total.state.peers=%d", p, len(state.peers))
 		p.Start()
 		// how about more than one inbound peer ???
 	} else {
 		state.outboundGroups[addrmgr.GroupKey(p.na)]++
 		if p.persistent {
-			state.persistentPeers.PushBack(p)
-			srvrLog.Infof("persistent peer: %s, total.state.persistentPeers=%d", p, state.persistentPeers.Len())
+			state.persistentPeers[p] = struct{}{}
+			srvrLog.Infof("persistent peer: %s, total.state.persistentPeers=%d", p, len(state.persistentPeers))
 		} else {
-			state.outboundPeers.PushBack(p)
-			srvrLog.Infof("outbound peer: %s, total.state.outboundPeers=%d", p, state.outboundPeers.Len())
+			state.outboundPeers[p] = struct{}{}
+			srvrLog.Infof("outbound peer: %s, total.state.outboundPeers=%d", p, len(state.outboundPeers))
 		}
 	}
 	return true
@@ -364,7 +361,7 @@ func (s *server) handleAddPeerMsg(state *peerState, p *peer) bool {
 // handleDonePeerMsg deals with peers that have signalled they are done.  It is
 // invoked from the peerHandler goroutine.
 func (s *server) handleDonePeerMsg(state *peerState, p *peer) {
-	var list *list.List
+	var list map[*peer]struct{}
 	if p.persistent {
 		list = state.persistentPeers
 	} else if p.inbound {
@@ -372,31 +369,33 @@ func (s *server) handleDonePeerMsg(state *peerState, p *peer) {
 	} else {
 		list = state.outboundPeers
 	}
-	for e := list.Front(); e != nil; e = e.Next() {
-		if e.Value == p {
+	for e := range list {
+		if e == p {
 			// Issue an asynchronous reconnect if the peer was a
 			// persistent outbound connection.
 			if !p.inbound && p.persistent && atomic.LoadInt32(&s.shutdown) == 0 {
-				e.Value = newOutboundPeer(s, p.addr, true, p.retryCount+1)
-				return
+				delete(list, e)
+				e = newOutboundPeer(s, p.addr, true, p.retryCount+1)
+				list[e] = struct{}{}
+				break
+				//return
 			}
 			if !p.inbound {
 				state.outboundGroups[addrmgr.GroupKey(p.na)]--
 			}
-			list.Remove(e)
+			delete(list, e)
 			srvrLog.Debugf("Removed peer %s", p)
 			break
 			//return
 		}
 	}
-	list = s.federateServers
-	for e := list.Front(); e != nil; e = e.Next() {
+	fs := s.federateServers
+	for e := fs.Front(); e != nil; e = e.Next() {
 		fedServer := e.Value.(*federateServer)
-		fmt.Printf("handleDonePeerMsg: need to remove %s, federate server candidate: %s\n", p, spew.Sdump(fedServer))
+		//srvrLog.Debugf("handleDonePeerMsg: need to remove %s, federate server candidate: %s\n", p, spew.Sdump(fedServer))
 		if fedServer.Peer == p {
-			fmt.Printf("removed: %s\n", p)
-			list.Remove(e)
-			srvrLog.Debugf("Removed federate server %s", p)
+			//fs.Remove(e)
+			srvrLog.Debugf("to-be-Removed federate server %s", p)
 			return
 		}
 	}
@@ -470,19 +469,24 @@ type getPeerInfoMsg struct {
 	reply chan []*GetPeerInfoResult
 }
 
-type addNodeMsg struct {
+type getAddedNodesMsg struct {
+	reply chan []*peer
+}
+
+type disconnectNodeMsg struct {
+	cmp   func(*peer) bool
+	reply chan error
+}
+
+type connectNodeMsg struct {
 	addr      string
 	permanent bool
 	reply     chan error
 }
 
-type delNodeMsg struct {
-	addr  string
+type removeNodeMsg struct {
+	cmp   func(*peer) bool
 	reply chan error
-}
-
-type getAddedNodesMsg struct {
-	reply chan []*peer
 }
 
 // handleQuery is the central handler for all queries and commands from other
@@ -496,14 +500,12 @@ func (s *server) handleQuery(querymsg interface{}, state *peerState) {
 				nconnected++
 			}
 		})
-
 		srvrLog.Infof("nconnected= %d", nconnected)
-		//srvrLog.Info(fmt.Sprintf("nconnected= %d", nconnected))
 		msg.reply <- nconnected
 
 	case getPeerInfoMsg:
 		syncPeer := s.blockManager.SyncPeer()
-		infos := make([]*GetPeerInfoResult, 0, state.peers.Len())
+		infos := make([]*GetPeerInfoResult, 0, len(state.peers))
 		state.forAllPeers(func(p *peer) {
 			if !p.Connected() {
 				return
@@ -515,6 +517,7 @@ func (s *server) handleQuery(querymsg interface{}, state *peerState) {
 			// version.
 			p.StatsMtx.Lock()
 			info := &GetPeerInfoResult{
+				ID:             p.id,
 				Addr:           p.addr,
 				Services:       fmt.Sprintf("%08d", p.services),
 				LastSend:       p.lastSend.Unix(),
@@ -522,10 +525,12 @@ func (s *server) handleQuery(querymsg interface{}, state *peerState) {
 				BytesSent:      p.bytesSent,
 				BytesRecv:      p.bytesReceived,
 				ConnTime:       p.timeConnected.Unix(),
+				TimeOffset:     p.timeOffset,
 				Version:        p.protocolVersion,
 				SubVer:         p.userAgent,
 				Inbound:        p.inbound,
-				StartingHeight: p.lastBlock,
+				StartingHeight: p.startingHeight,
+				CurrentHeight:  p.lastBlock,
 				BanScore:       0,
 				SyncNode:       p == syncPeer,
 			}
@@ -540,17 +545,19 @@ func (s *server) handleQuery(querymsg interface{}, state *peerState) {
 		})
 		msg.reply <- infos
 
-	case addNodeMsg:
+	case connectNodeMsg:
 		// XXX(oga) duplicate oneshots?
-		if msg.permanent {
-			for e := state.persistentPeers.Front(); e != nil; e = e.Next() {
-				peer := e.Value.(*peer)
-				if peer.addr == msg.addr {
+		for peer := range state.persistentPeers {
+			if peer.addr == msg.addr {
+				if msg.permanent {
 					msg.reply <- errors.New("peer already connected")
-					return
+				} else {
+					msg.reply <- errors.New("peer exists as a permanent peer")
 				}
+				return
 			}
 		}
+
 		// TODO(oga) if too many, nuke a non-perm peer.
 		if s.handleAddPeerMsg(state,
 			newOutboundPeer(s, msg.addr, msg.permanent, 0)) {
@@ -558,27 +565,12 @@ func (s *server) handleQuery(querymsg interface{}, state *peerState) {
 		} else {
 			msg.reply <- errors.New("failed to add peer")
 		}
-
-	case delNodeMsg:
-		found := false
-		for e := state.persistentPeers.Front(); e != nil; e = e.Next() {
-			peer := e.Value.(*peer)
-			if peer.addr == msg.addr {
-				// Keep group counts ok since we remove from
-				// the list now.
-				state.outboundGroups[addrmgr.GroupKey(peer.na)]--
-				// This is ok because we are not continuing
-				// to iterate so won't corrupt the loop.
-				state.persistentPeers.Remove(e)
-				peer.Disconnect()
-
-				peerCount := state.Count()
-				srvrLog.Infof("nconnected= %d (peerCount) after Disconnect()", peerCount)
-
-				found = true
-				break
-			}
-		}
+	case removeNodeMsg:
+		found := disconnectPeer(state.persistentPeers, msg.cmp, func(p *peer) {
+			// Keep group counts ok since we remove from
+			// the list now.
+			state.outboundGroups[addrmgr.GroupKey(p.na)]--
+		})
 
 		if found {
 			msg.reply <- nil
@@ -589,13 +581,65 @@ func (s *server) handleQuery(querymsg interface{}, state *peerState) {
 	// Request a list of the persistent (added) peers.
 	case getAddedNodesMsg:
 		// Respond with a slice of the relavent peers.
-		peers := make([]*peer, 0, state.persistentPeers.Len())
-		for e := state.persistentPeers.Front(); e != nil; e = e.Next() {
-			peer := e.Value.(*peer)
+		peers := make([]*peer, 0, len(state.persistentPeers))
+		for peer := range state.persistentPeers {
 			peers = append(peers, peer)
 		}
 		msg.reply <- peers
+	case disconnectNodeMsg:
+		// Check inbound peers. We pass a nil callback since we don't
+		// require any additional actions on disconnect for inbound peers.
+		found := disconnectPeer(state.peers, msg.cmp, nil)
+		if found {
+			msg.reply <- nil
+			return
+		}
+
+		// Check outbound peers.
+		found = disconnectPeer(state.outboundPeers, msg.cmp, func(p *peer) {
+			// Keep group counts ok since we remove from
+			// the list now.
+			state.outboundGroups[addrmgr.GroupKey(p.na)]--
+		})
+		if found {
+			// If there are multiple outbound connections to the same
+			// ip:port, continue disconnecting them all until no such
+			// peers are found.
+			for found {
+				found = disconnectPeer(state.outboundPeers, msg.cmp, func(p *peer) {
+					state.outboundGroups[addrmgr.GroupKey(p.na)]--
+				})
+			}
+			msg.reply <- nil
+			return
+		}
+
+		msg.reply <- errors.New("peer not found")
 	}
+}
+
+// disconnectPeer attempts to drop the connection of a tageted peer in the
+// passed peer list. Targets are identified via usage of the passed
+// `compareFunc`, which should return `true` if the passed peer is the target
+// peer. This function returns true on success and false if the peer is unable
+// to be located. If the peer is found, and the passed callback: `whenFound'
+// isn't nil, we call it with the peer as the argument before it is removed
+// from the peerList, and is disconnected from the server.
+func disconnectPeer(peerList map[*peer]struct{}, compareFunc func(*peer) bool, whenFound func(*peer)) bool {
+	for peer := range peerList {
+		if compareFunc(peer) {
+			if whenFound != nil {
+				whenFound(peer)
+			}
+
+			// This is ok because we are not continuing
+			// to iterate so won't corrupt the loop.
+			delete(peerList, peer)
+			peer.Disconnect()
+			return true
+		}
+	}
+	return false
 }
 
 // listenHandler is the main listener which accepts incoming connections for the
@@ -697,9 +741,9 @@ func (s *server) peerHandler() {
 
 	srvrLog.Tracef("Starting peer handler")
 	state := &peerState{
-		peers:            list.New(),
-		persistentPeers:  list.New(),
-		outboundPeers:    list.New(),
+		peers:            make(map[*peer]struct{}),
+		persistentPeers:  make(map[*peer]struct{}),
+		outboundPeers:    make(map[*peer]struct{}),
 		banned:           make(map[string]time.Time),
 		maxOutboundPeers: defaultMaxOutbound,
 		outboundGroups:   make(map[string]int),
@@ -737,6 +781,10 @@ out:
 		case p := <-s.donePeers:
 			s.handleDonePeerMsg(state, p)
 
+		// Block accepted in mainchain or orphan, update peer height.
+		case umsg := <-s.peerHeightsUpdate:
+			s.handleUpdatePeerHeights(state, umsg)
+
 		// Peer to ban.
 		case p := <-s.banPeers:
 			s.handleBanPeerMsg(state, p)
@@ -756,6 +804,10 @@ out:
 
 		case qmsg := <-s.query:
 			s.handleQuery(qmsg, state)
+
+		// used to handle leader / followers regime change.
+		case h := <-s.latestDBHeight:
+			s.handleNextLeader(h)
 
 		// Shutdown the peer handler.
 		case <-s.quit:
@@ -782,16 +834,11 @@ out:
 		tries := 0
 		for state.NeedMoreOutbound() &&
 			atomic.LoadInt32(&s.shutdown) == 0 {
-			time.Sleep(time.Second / 10)
-			// We bias like bitcoind does, 10 for no outgoing
-			// up to 90 (8) for the selection of new vs tried
-			//addresses.
-
 			nPeers := state.OutboundCount()
 			if nPeers > 8 {
 				nPeers = 8
 			}
-			addr := s.addrManager.GetAddress("any", 10+nPeers*10)
+			addr := s.addrManager.GetAddress("any")
 			if addr == nil {
 				break
 			}
@@ -817,10 +864,9 @@ out:
 
 			// only allow recent nodes (10mins) after we failed 30
 			// times
-			if time.Now().After(addr.LastAttempt().Add(10*time.Minute)) &&
-				tries < 30 {
+			//if tries < 30 && time.Now().Sub(addr.LastAttempt()) < 10*time.Minute {
+			if time.Now().After(addr.LastAttempt().Add(10*time.Minute)) && tries < 30 {
 				continue
-				//time.Sleep(time.Second)
 			}
 
 			// allow nondefault ports after 50 failed tries.
@@ -855,17 +901,11 @@ out:
 // AddPeer adds a new peer that has already been connected to the server.
 func (s *server) AddPeer(p *peer) {
 	s.newPeers <- p
-
-	//count := s.ConnectedCount()
-	//util.Trace(fmt.Sprintf("ConnectedCount()= %d", count))
 }
 
 // BanPeer bans a peer that has already been connected to the server by ip.
 func (s *server) BanPeer(p *peer) {
 	s.banPeers <- p
-
-	//	count := s.ConnectedCount()
-	//	util.Trace(fmt.Sprintf("ConnectedCount()= %d", count))
 }
 
 // RelayInventory relays the passed inventory to all connected peers that are
@@ -910,23 +950,67 @@ func (s *server) PeerInfo() []*GetPeerInfoResult {
 	return <-replyChan
 }
 
-// AddAddr adds `addr' as a new outbound peer. If permanent is true then the
-// peer will be persistent and reconnect if the connection is lost.
-// It is an error to call this with an already existing peer.
-func (s *server) AddAddr(addr string, permanent bool) error {
+// DisconnectNodeByAddr disconnects a peer by target address. Both outbound and
+// inbound nodes will be searched for the target node. An error message will
+// be returned if the peer was not found.
+func (s *server) DisconnectNodeByAddr(addr string) error {
 	replyChan := make(chan error)
 
-	s.query <- addNodeMsg{addr: addr, permanent: permanent, reply: replyChan}
+	s.query <- disconnectNodeMsg{
+		cmp:   func(p *peer) bool { return p.addr == addr },
+		reply: replyChan,
+	}
 
 	return <-replyChan
 }
 
-// RemoveAddr removes `addr' from the list of persistent peers if present.
-// An error will be returned if the peer was not found.
-func (s *server) RemoveAddr(addr string) error {
+// DisconnectNodeByID disconnects a peer by target node id. Both outbound and
+// inbound nodes will be searched for the target node. An error message will be
+// returned if the peer was not found.
+func (s *server) DisconnectNodeByID(id int32) error {
 	replyChan := make(chan error)
 
-	s.query <- delNodeMsg{addr: addr, reply: replyChan}
+	s.query <- disconnectNodeMsg{
+		cmp:   func(p *peer) bool { return p.id == id },
+		reply: replyChan,
+	}
+
+	return <-replyChan
+}
+
+// RemoveNodeByAddr removes a peer from the list of persistent peers if
+// present. An error will be returned if the peer was not found.
+func (s *server) RemoveNodeByAddr(addr string) error {
+	replyChan := make(chan error)
+
+	s.query <- removeNodeMsg{
+		cmp:   func(p *peer) bool { return p.addr == addr },
+		reply: replyChan,
+	}
+
+	return <-replyChan
+}
+
+// RemoveNodeByID removes a peer by node ID from the list of persistent peers
+// if present. An error will be returned if the peer was not found.
+func (s *server) RemoveNodeByID(id int32) error {
+	replyChan := make(chan error)
+
+	s.query <- removeNodeMsg{
+		cmp:   func(p *peer) bool { return p.id == id },
+		reply: replyChan,
+	}
+
+	return <-replyChan
+}
+
+// ConnectNode adds `addr' as a new outbound peer. If permanent is true then the
+// peer will be persistent and reconnect if the connection is lost.
+// It is an error to call this with an already existing peer.
+func (s *server) ConnectNode(addr string, permanent bool) error {
+	replyChan := make(chan error)
+
+	s.query <- connectNodeMsg{addr: addr, permanent: permanent, reply: replyChan}
 
 	return <-replyChan
 }
@@ -1062,7 +1146,7 @@ func (s *server) Start() {
 	time.Sleep(3 * time.Second)
 	go StartProcessor(&s.wg, s.quit)
 
-	go s.nextLeaderHandler()
+	//go s.nextLeaderHandler()
 }
 
 // Stop gracefully shuts down the server by stopping and disconnecting all
@@ -1158,13 +1242,6 @@ func parseListeners(addrs []string) ([]string, []string, bool, error) {
 			ipv6ListenAddrs = append(ipv6ListenAddrs, addr)
 			haveWildcard = true
 			continue
-		}
-
-		// Strip IPv6 zone id if present since net.ParseIP does not
-		// handle it.
-		zoneIndex := strings.LastIndex(host, "%")
-		if zoneIndex > 0 {
-			host = host[:zoneIndex]
 		}
 
 		// Parse the IP.
@@ -1396,8 +1473,8 @@ func newServer(listenAddrs []string, chainParams *Params) (*server, error) {
 		nat:                  nat,
 		latestDBHeight:       make(chan uint32),
 		federateServers:      list.New(),
-		//		db:                   db,
-		//		timeSource: blockchain.NewMedianTime(),
+		//db:                   db,
+		//timeSource: blockchain.NewMedianTime(),
 	}
 	bm, err := newBlockManager(&s)
 	if err != nil {
@@ -1412,7 +1489,7 @@ func newServer(listenAddrs []string, chainParams *Params) (*server, error) {
 
 	_, newestHeight, _ := db.FetchBlockHeightCache()
 	//dirty fix for newestHeight when a new level db is created
-	if newestHeight > 429496729 {
+	if newestHeight > 429496729 || newestHeight < 0 {
 		newestHeight = 0
 	}
 	h := uint32(newestHeight)
@@ -1429,8 +1506,14 @@ func newServer(listenAddrs []string, chainParams *Params) (*server, error) {
 
 	if s.isLeader {
 		//for genesis block, it's saved in 11th minute. so wait for a while.
-		time.Sleep(7 * time.Second)
-		go s.NewLeader(h)
+		//time.Sleep(7 * time.Second)
+		//go s.NewLeader(h) // must use go routine here to avoid blocking.
+		policy := &leaderPolicy{
+			StartDBHeight:  h + 3, // give it a bit more time to adjust
+			NotifyDBHeight: defaultNotifyDBHeight,
+			Term:           defaultLeaderTerm,
+		}
+		s.myLeaderPolicy = policy
 	} else {
 		blockSyncing = true
 	}
@@ -1526,7 +1609,7 @@ func (s *server) NewLeader(height uint32) {
 	fmt.Printf("into NewLeader: %d\n", height)
 	s.isLeader = true
 	policy := &leaderPolicy{
-		StartDBHeight:  height + 1,
+		StartDBHeight:  height + 3, // give it a bit more time to adjust
 		NotifyDBHeight: defaultNotifyDBHeight,
 		Term:           defaultLeaderTerm,
 	}
@@ -1544,11 +1627,7 @@ func (s *server) nextLeaderHandler() {
 	for {
 		select {
 		case h := <-s.latestDBHeight:
-			fmt.Println("nextLeaderHandler(): s.latestDBHeight=", h)
-			if s.isSingleServerMode() {
-				s.myLeaderPolicy.StartDBHeight = h + 1 // h is the height of newly created dir block
-				fmt.Println("nextLeaderHandler(): is SingleServerMode. update leaderPolicy: new startingDBHeight=", s.myLeaderPolicy.StartDBHeight)
-			}
+			//fmt.Println("nextLeaderHandler(): s.latestDBHeight=", h)
 			s.handleNextLeader(h)
 		case <-s.quit:
 			return
@@ -1563,10 +1642,13 @@ func (s *server) handleNextLeader(height uint32) {
 	if !(s.IsLeader() || s.isLeaderElected) {
 		return
 	}
-	if s.federateServers.Len() <= 1 {
-		fmt.Println("It's a single server mode.")
+	if s.isSingleServerMode() {
+		s.myLeaderPolicy.StartDBHeight = height + 3 // h is the height of newly created dir block
+		fmt.Println("nextLeaderHandler(): is SingleServerMode. update leaderPolicy: new startingDBHeight=", s.myLeaderPolicy.StartDBHeight)
 		return
 	}
+	fmt.Println("nextLeaderHandler(): peerState=", spew.Sdump(s.PeerInfo()))
+
 	if s.isLeaderElected {
 		fmt.Printf("handleNextLeader: isLeaderElected=%t\n", s.isLeaderElected)
 		if height > s.myLeaderPolicy.StartDBHeight {
@@ -1582,6 +1664,7 @@ func (s *server) handleNextLeader(height uint32) {
 		}
 		return
 	}
+
 	// this is a current leader
 	var next *federateServer
 	fmt.Printf("handleNextLeader: isLeader=%t, height=%d\n", s.isLeader, height)
@@ -1600,10 +1683,8 @@ func (s *server) handleNextLeader(height uint32) {
 		// simple round robin for now
 		for e := s.federateServers.Front(); e != nil; e = e.Next() {
 			fed := e.Value.(*federateServer)
-			//fmt.Println(spew.Sdump(fed))
 			if fed.Peer != nil {
 				next = fed
-				//s.federateServers.MoveToBack(e)
 				break
 			}
 		}
@@ -1614,13 +1695,7 @@ func (s *server) handleNextLeader(height uint32) {
 		// starting DBHeight for next leader is, by default,
 		// current leader's starting height + its term
 		h := s.myLeaderPolicy.StartDBHeight + s.myLeaderPolicy.Term
-		policy := &leaderPolicy{
-			StartDBHeight:  h,
-			NotifyDBHeight: defaultNotifyDBHeight,
-			Term:           defaultLeaderTerm,
-		}
-		//s.nextLeaderPolicy = policy
-		fmt.Printf("handleNextLeader: before broadcast notoficiation: next leader policy=%+v\n", policy)
+		fmt.Printf("handleNextLeader: before broadcast notoficiation: next leader StartDBHeight=%d\n", h)
 
 		sig := s.privKey.Sign([]byte(s.nodeID + next.Peer.nodeID))
 		msg := wire.NewNextLeaderMsg(s.nodeID, next.Peer.nodeID, h, sig)
@@ -1636,7 +1711,6 @@ func (s *server) handleNextLeader(height uint32) {
 		s.isLeader = false
 		s.isLeaderElected = false
 		s.myLeaderPolicy = nil
-		s.nextLeaderPolicy = nil
 		// turn off BlockTimer
 	}
 	return

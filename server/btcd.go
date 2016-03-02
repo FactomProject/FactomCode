@@ -5,7 +5,6 @@
 package server
 
 import (
-	"fmt"
 	"net"
 	"net/http"
 	_ "net/http/pprof"
@@ -13,7 +12,7 @@ import (
 	"runtime/pprof"
 
 	"github.com/FactomProject/FactomCode/common"
-	cp "github.com/FactomProject/FactomCode/controlpanel"
+	//cp "github.com/FactomProject/FactomCode/controlpanel"
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/wire"
 )
@@ -44,17 +43,17 @@ func btcdMain(serverChan chan<- *server) error {
 	defer backendLog.Flush()
 
 	// Show version at startup.
-	btcdLog.Infof("Version %s", version())
+	ftmdLog.Infof("Version %s", version())
 
 	// Enable http profiling server if requested.
 	if cfg.Profile != "" {
 		go func() {
 			listenAddr := net.JoinHostPort("", cfg.Profile)
-			btcdLog.Infof("Profile server listening on %s", listenAddr)
+			ftmdLog.Infof("Profile server listening on %s", listenAddr)
 			profileRedirect := http.RedirectHandler("/debug/pprof",
 				http.StatusSeeOther)
 			http.Handle("/", profileRedirect)
-			btcdLog.Errorf("%v", http.ListenAndServe(listenAddr, nil))
+			ftmdLog.Errorf("%v", http.ListenAndServe(listenAddr, nil))
 		}()
 	}
 
@@ -62,7 +61,7 @@ func btcdMain(serverChan chan<- *server) error {
 	if cfg.CPUProfile != "" {
 		f, err := os.Create(cfg.CPUProfile)
 		if err != nil {
-			btcdLog.Errorf("Unable to create cpu profile: %v", err)
+			ftmdLog.Errorf("Unable to create cpu profile: %v", err)
 			return err
 		}
 		pprof.StartCPUProfile(f)
@@ -71,21 +70,21 @@ func btcdMain(serverChan chan<- *server) error {
 	}
 
 	// Ensure the database is sync'd and closed on Ctrl+C.
-	addInterruptHandler(func() {
-		btcdLog.Infof("Gracefully shutting down the database...")
-		//			db.RollbackClose()
-	})
+	//addInterruptHandler(func() {
+	//ftmdLog.Infof("Gracefully shutting down the database...")
+	//			db.RollbackClose()
+	//})
 
 	// Create server and start it.
 	server, err := newServer(cfg.Listeners, activeNetParams.Params)
 	if err != nil {
 		// TODO(oga) this logging could do with some beautifying.
-		btcdLog.Errorf("Unable to start server on %v: %v",
+		ftmdLog.Errorf("Unable to start server on %v: %v",
 			cfg.Listeners, err)
 		return err
 	}
 	addInterruptHandler(func() {
-		btcdLog.Infof("Gracefully shutting down the server...")
+		ftmdLog.Infof("Gracefully shutting down the server...")
 		server.Stop()
 		server.WaitForShutdown()
 	})
@@ -94,11 +93,7 @@ func btcdMain(serverChan chan<- *server) error {
 		serverChan <- server
 	}
 
-	// Factom Additions BEGIN
-	//factomForkInit(server)
 	localServer = server
-
-	// Factom Additions END
 
 	// Monitor for graceful server shutdown and signal the main goroutine
 	// when done.  This is done in a separate goroutine rather than waiting
@@ -115,10 +110,11 @@ func btcdMain(serverChan chan<- *server) error {
 	// Wait for shutdown signal from either a graceful server stop or from
 	// the interrupt handler.
 	<-shutdownChannel
-	btcdLog.Info("Shutdown complete")
+	ftmdLog.Info("Shutdown complete")
 	return nil
 }
 
+// StartBtcd starts btcd main
 func StartBtcd(ldb database.Db, inQ, outQ chan wire.FtmInternalMsg) {
 	db = ldb
 	inMsgQueue = inQ
@@ -126,25 +122,25 @@ func StartBtcd(ldb database.Db, inQ, outQ chan wire.FtmInternalMsg) {
 	if common.SERVER_NODE != factomConfig.App.NodeMode {
 		ClientOnly = true
 	}
-
-	if ClientOnly {
-		cp.CP.AddUpdate(
-			"FactomMode", // tag
-			"system",     // Category
-			"Factom Mode: Full Node (Client)", // Title
-			"", // Message
-			0)
-		fmt.Println("\n\n>>>>>>>>>>>>>>>>>  CLIENT MODE <<<<<<<<<<<<<<<<<<<<<<<\n\n")
-	} else {
-		cp.CP.AddUpdate(
-			"FactomMode",                    // tag
-			"system",                        // Category
-			"Factom Mode: Federated Server", // Title
-			"", // Message
-			0)
-		fmt.Println("\n\n>>>>>>>>>>>>>>>>>  SERVER MODE <<<<<<<<<<<<<<<<<<<<<<<\n\n")
-	}
-
+	/*
+		if ClientOnly {
+			cp.CP.AddUpdate(
+				"FactomMode", // tag
+				"system",     // Category
+				"Factom Mode: Full Node (Client)", // Title
+				"", // Message
+				0)
+			fmt.Println("\n\n>>>>>>>>>>>>>>>>>  CLIENT MODE <<<<<<<<<<<<<<<<<<<<<<<\n\n")
+		} else {
+			cp.CP.AddUpdate(
+				"FactomMode",                    // tag
+				"system",                        // Category
+				"Factom Mode: Federated Server", // Title
+				"", // Message
+				0)
+			fmt.Println("\n\n>>>>>>>>>>>>>>>>>  SERVER MODE <<<<<<<<<<<<<<<<<<<<<<<\n\n")
+		}
+	*/
 	// Work around defer not working after os.Exit()
 	if err := btcdMain(nil); err != nil {
 		os.Exit(1)

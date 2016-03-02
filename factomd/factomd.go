@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/FactomProject/FactomCode/common"
-	cp "github.com/FactomProject/FactomCode/controlpanel"
+	//cp "github.com/FactomProject/FactomCode/controlpanel"
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/database/ldb"
 	"github.com/FactomProject/FactomCode/server"
@@ -44,20 +44,20 @@ func main() {
 
 	// Load configuration file and send settings to components
 	loadConfigurations()
-
-	cp.CP.AddUpdate("gocompiler",
-		"system",
-		fmt.Sprintln("Go compiler version: ", runtime.Version()),
-		"",
-		0)
-	cp.CP.AddUpdate("copyright",
-		"system",
-		"Legal",
-		"Copyright 2015 Factom Foundation\n"+
-			"Use of this source code is governed by the MIT\n"+
-			"license that can be found in the LICENSE file.",
-		0)
-
+	/*
+		cp.CP.AddUpdate("gocompiler",
+			"system",
+			fmt.Sprintln("Go compiler version: ", runtime.Version()),
+			"",
+			0)
+		cp.CP.AddUpdate("copyright",
+			"system",
+			"Legal",
+			"Copyright 2015 Factom Foundation\n"+
+				"Use of this source code is governed by the MIT\n"+
+				"license that can be found in the LICENSE file.",
+			0)
+	*/
 	if !isCompilerVersionOK() {
 		for i := 0; i < 30; i++ {
 			fmt.Println("!!! !!! !!! ERROR: unsupported compiler version !!! !!! !!!")
@@ -90,7 +90,7 @@ func main() {
 // Load settings from configuration file: factomd.conf
 func loadConfigurations() {
 	cfg = util.ReadConfig()
-	cp.CP.SetPort(cfg.Controlpanel.Port)
+	//cp.CP.SetPort(cfg.Controlpanel.Port)
 	server.LoadConfigurations(cfg)
 }
 

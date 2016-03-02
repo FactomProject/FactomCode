@@ -63,7 +63,7 @@ var (
 
 	factomdUser string
 	factomdPass string
-
+	// ClientOnly specifies non server nodes (milestone1)
 	ClientOnly bool
 )
 
@@ -761,7 +761,7 @@ func loadConfig() (*config, []string, error) {
 	// done.  This prevents the warning on help messages and invalid
 	// options.  Note this should go directly before the return.
 	if configFileError != nil {
-		btcdLog.Warnf("%v", configFileError)
+		ftmdLog.Warnf("%v", configFileError)
 	}
 
 	return &cfg, remainingArgs, nil

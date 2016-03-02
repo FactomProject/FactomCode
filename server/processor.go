@@ -18,18 +18,16 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/FactomProject/FactomCode/anchor"
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/consensus"
-	cp "github.com/FactomProject/FactomCode/controlpanel"
+	//cp "github.com/FactomProject/FactomCode/controlpanel"
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/FactomCode/wire"
-	fct "github.com/FactomProject/factoid"
 	"github.com/FactomProject/factoid/block"
 	"github.com/davecgh/go-spew/spew"
 )
@@ -98,7 +96,7 @@ func LoadConfigurations(fcfg *util.FactomdConfig) {
 	directoryBlockInSeconds = factomConfig.App.DirectoryBlockInSeconds
 	nodeMode = factomConfig.App.NodeMode
 	serverPrivKeyHex = factomConfig.App.ServerPrivKey
-	cp.CP.SetPort(factomConfig.Controlpanel.Port)
+	//cp.CP.SetPort(factomConfig.Controlpanel.Port)
 }
 
 // InitProcessor initializes the processor
@@ -396,13 +394,14 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		if err != nil {
 			return err
 		}
-		cp.CP.AddUpdate(
-			"MinMark",  // tag
-			"status",   // Category
-			"Progress", // Title
-			fmt.Sprintf("End of Minute %v\n", msgEom.EOM_Type)+ // Message
-				fmt.Sprintf("Directory Block Height %v", dchain.NextDBHeight),
-			0)
+		/*
+			cp.CP.AddUpdate(
+				"MinMark",  // tag
+				"status",   // Category
+				"Progress", // Title
+				fmt.Sprintf("End of Minute %v\n", msgEom.EOM_Type)+ // Message
+					fmt.Sprintf("Directory Block Height %v", dchain.NextDBHeight),
+				0)*/
 
 	case wire.CmdDirBlock:
 		fmt.Printf("wire.CmdDirBlock: blockSyncing: %t\n", blockSyncing)
@@ -586,7 +585,7 @@ func processDirBlockSig() error {
 		//continue
 		//}
 		if v.DBHeight != dchain.NextDBHeight-1 {
-			// need to remove this oen
+			// need to remove this one
 			fmt.Println("filter out later-coming last block's sig: ", spew.Sdump(v))
 			continue
 		}
@@ -1350,33 +1349,33 @@ func newAdminBlock(chain *common.AdminChain) *common.AdminBlock {
 // Seals the current open block, store it in db and create the next open block
 func newFactoidBlock(chain *common.FctChain) block.IFBlock {
 
-	older := FactoshisPerCredit
+	//older := FactoshisPerCredit
 
 	cfg := util.ReReadConfig()
 	FactoshisPerCredit = cfg.App.ExchangeRate
+	/*
+		rate := fmt.Sprintf("Current Exchange rate is %v",
+			strings.TrimSpace(fct.ConvertDecimal(FactoshisPerCredit)))
+		if older != FactoshisPerCredit {
 
-	rate := fmt.Sprintf("Current Exchange rate is %v",
-		strings.TrimSpace(fct.ConvertDecimal(FactoshisPerCredit)))
-	if older != FactoshisPerCredit {
+			orate := fmt.Sprintf("The Exchange rate was    %v\n",
+				strings.TrimSpace(fct.ConvertDecimal(older)))
 
-		orate := fmt.Sprintf("The Exchange rate was    %v\n",
-			strings.TrimSpace(fct.ConvertDecimal(older)))
-
-		cp.CP.AddUpdate(
-			"Fee",    // tag
-			"status", // Category
-			"Entry Credit Exchange Rate Changed", // Title
-			orate+rate,
-			0)
-	} else {
-		cp.CP.AddUpdate(
-			"Fee",                        // tag
-			"status",                     // Category
-			"Entry Credit Exchange Rate", // Title
-			rate,
-			0)
-	}
-
+			cp.CP.AddUpdate(
+				"Fee",    // tag
+				"status", // Category
+				"Entry Credit Exchange Rate Changed", // Title
+				orate+rate,
+				0)
+		} else {
+			cp.CP.AddUpdate(
+				"Fee",                        // tag
+				"status",                     // Category
+				"Entry Credit Exchange Rate", // Title
+				rate,
+				0)
+		}
+	*/
 	// acquire the last block
 	currentBlock := chain.NextBlock
 	fmt.Println("newFactoidBlock: block.Header.EBHeight = ", currentBlock.GetDBHeight())
