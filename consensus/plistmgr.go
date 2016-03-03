@@ -27,8 +27,10 @@ func NewProcessListMgr(height uint32, otherPLSize int, plSizeHint uint, privKey 
 
 // Create a new process list item and add it to the MyProcessList
 func (plMgr *ProcessListMgr) AddToFollowersProcessList(msg wire.Message, ack *wire.MsgAck) error {
-	bytes, _ := ack.GetBinaryForSignature()
-	ack.Signature = *plMgr.SignAck(bytes).Sig
+	err := ack.Sign(&plMgr.serverPrivKey)
+	if err!=nil {
+		return err
+	}
 	plMgr.MyProcessList.nextIndex++
 
 	plItem := &ProcessListItem{
@@ -44,8 +46,10 @@ func (plMgr *ProcessListMgr) AddToFollowersProcessList(msg wire.Message, ack *wi
 func (plMgr *ProcessListMgr) AddToLeadersProcessList(msg wire.FtmInternalMsg, hash *wire.ShaHash, msgType byte) (ack *wire.MsgAck, err error) {
 	ack = wire.NewMsgAck(plMgr.NextDBlockHeight, uint32(plMgr.MyProcessList.nextIndex), hash, msgType)
 	// Sign the ack using server private keys
-	bytes, _ := ack.GetBinaryForSignature()
-	ack.Signature = *plMgr.SignAck(bytes).Sig
+	err = ack.Sign(&plMgr.serverPrivKey)
+	if err!=nil {
+		return nil, err
+	}
 	plMgr.MyProcessList.nextIndex++
 
 	plItem := &ProcessListItem{
@@ -55,13 +59,6 @@ func (plMgr *ProcessListMgr) AddToLeadersProcessList(msg wire.FtmInternalMsg, ha
 	}
 	plMgr.MyProcessList.AddToProcessList(plItem)
 	return ack, nil
-}
-
-// Sign the Ack --
-//TODO: to be moved into util package
-func (plMgr *ProcessListMgr) SignAck(bytes []byte) (sig common.Signature) {
-	sig = plMgr.serverPrivKey.Sign(bytes)
-	return sig
 }
 
 // Check if the number of process list items is exceeding the size limit

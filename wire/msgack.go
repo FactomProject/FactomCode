@@ -47,6 +47,17 @@ type MsgAck struct {
 	Signature   [64]byte
 }
 
+func (msg *MsgAck) Sign(priv *common.PrivateKey) error {
+	bytes, err := msg.GetBinaryForSignature()
+	if err!=nil {
+		return err
+	}
+	msg.Signature = *priv.Sign(bytes).Sig
+	return nil
+}
+
+//func (msg *MsgAck) Verify()
+
 // Write out the MsgAck (excluding Signature) to binary.
 func (msg *MsgAck) GetBinaryForSignature() (data []byte, err error) {
 	var buf bytes.Buffer
