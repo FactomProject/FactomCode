@@ -490,30 +490,37 @@ func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
 	if common.SERVER_NODE == msg.NodeType {
 		if msg.NodeSig.Pub.Verify([]byte(msg.NodeID), msg.NodeSig.Sig) {
 			var found = false
+			var fed *federateServer
 			for e := p.server.federateServers.Front(); e != nil; e = e.Next() {
-				fed := e.Value.(*federateServer)
+				fed = e.Value.(*federateServer)
 				if fed.Peer == nil {
 					continue
 				}
 				if fed.Peer.nodeID == msg.NodeID {
 					found = true
-					fmt.Printf("duplicated fed server / peer: %s; %s\n", msg.NodeID, fed.Peer)
+					fmt.Printf("duplicated fed server / peer: msg.nodeID=%s; peer=%s\n", msg.NodeID, fed.Peer)
 					break
 				}
 			}
 			// Usually when a server has both listen and connect, it has 2 peers (inboud + outbound)
 			// this prevents duplication.
-			if !found {
-				_, newestHeight, _ := db.FetchBlockHeightCache()
-				h := uint32(newestHeight)
-				fedServer := &federateServer{
-					Peer:        p,
-					FirstJoined: h,
-				}
-				p.server.federateServers.PushBack(fedServer)
-				peerLog.Debugf("Signature verified successfully total=%d after adding a new federate server: %s",
-					p.server.FederateServerCount(), p)
+			if found {
+				// a duplicate
+				p.logError("duplicated fed server / peer: msg.nodeID=%s; peer=%s\n", msg.NodeID, fed.Peer)
+				p.Disconnect()
+				return
 			}
+			//if !found {
+			_, newestHeight, _ := db.FetchBlockHeightCache()
+			h := uint32(newestHeight)
+			fedServer := &federateServer{
+				Peer:        p,
+				FirstJoined: h,
+			}
+			p.server.federateServers.PushBack(fedServer)
+			peerLog.Debugf("Signature verified successfully total=%d after adding a new federate server: %s",
+				p.server.FederateServerCount(), p)
+			//}
 		} else {
 			panic("peer id/sig are not valid: " + p.String())
 		}
@@ -2359,11 +2366,29 @@ func (p *peer) handleAckMsg(msg *wire.MsgAck) {
 	// this peer is a leader Peer. update it if necessary
 	peerLog.Debugf("handleAckMsg: current Leader Peer:%s, new leader peer: %s",
 		p.server.GetLeaderPeer(), p)
-	if p != p.server.GetLeaderPeer() {
+
+	// this peer has to be in the federate server list before reset it.
+	if p != p.server.GetLeaderPeer() && p.isFederateServer() {
 		peerLog.Debugf("handleAckMsg: set new Leader Peer to %s", p)
 		p.isLeader = true
 		p.server.SetLeaderPeer(p)
 	}
+}
+
+func (p *peer) isFederateServer() bool {
+	var found = false
+	for e := p.server.federateServers.Front(); e != nil; e = e.Next() {
+		fed := e.Value.(*federateServer)
+		if fed.Peer == nil {
+			continue
+		}
+		if fed.Peer.nodeID == p.nodeID && fed.Peer.id == p.id {
+			found = true
+			fmt.Printf("It's a federate server: %s\n", fed.Peer)
+			break
+		}
+	}
+	return found
 }
 
 // Handle factom app imcoming msg

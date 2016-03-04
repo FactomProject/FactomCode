@@ -123,7 +123,7 @@ func (mp *ftmMemPool) getMissingMsgAck(ack *wire.MsgAck) []*wire.MsgAck {
 func (mp *ftmMemPool) assembleFollowerProcessList(ack *wire.MsgAck) error {
 	//do a simple happy path for now ???
 	var height uint32
-	for i := len(mp.ackpool); i > 0; i-- {
+	for i := len(mp.ackpool) - 1; i >= 0; i-- {
 		if mp.ackpool[i] != nil {
 			height = mp.ackpool[i].Height
 			break

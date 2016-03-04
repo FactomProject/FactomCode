@@ -806,8 +806,8 @@ out:
 			s.handleQuery(qmsg, state)
 
 		// used to handle leader / followers regime change.
-		case h := <-s.latestDBHeight:
-			s.handleNextLeader(h)
+		//case h := <-s.latestDBHeight:
+		//s.handleNextLeader(h)
 
 		// Shutdown the peer handler.
 		case <-s.quit:
@@ -919,6 +919,17 @@ func (s *server) RelayInventory(invVect *wire.InvVect, data interface{}) {
 func (s *server) BroadcastMessage(msg wire.Message, exclPeers ...*peer) {
 	// XXX: Need to determine if this is an alert that has already been
 	// broadcast and refrain from broadcasting again.
+	bmsg := broadcastMsg{message: msg, excludePeers: exclPeers}
+	s.broadcast <- bmsg
+}
+
+// BroadcastMessageOnce sends msg to all peers, with no duplicaton, currently connected to the server
+// except those in the passed peers to exclude.
+// for example, in case of node1 listens to address1 and connects to address2,
+// while node2 listens to address2 and connects to address1
+// then, both nodes have 2 peers connecting to each other.
+// BroadcastMessageOnce ensures to only send the same message b/w those nodes only once.
+func (s *server) BroadcastMessageOnce(msg wire.Message, exclPeers ...*peer) {
 	bmsg := broadcastMsg{message: msg, excludePeers: exclPeers}
 	s.broadcast <- bmsg
 }
@@ -1146,7 +1157,7 @@ func (s *server) Start() {
 	time.Sleep(3 * time.Second)
 	go StartProcessor(&s.wg, s.quit)
 
-	//go s.nextLeaderHandler()
+	go s.nextLeaderHandler()
 }
 
 // Stop gracefully shuts down the server by stopping and disconnecting all
@@ -1620,18 +1631,20 @@ func (s *server) NewLeader(height uint32) {
 func (s *server) nextLeaderHandler() {
 	s.wg.Add(1)
 	defer func() {
-		//fmt.Println("wg.Done for nextLeaderHandler")
+		fmt.Println("wg.Done for nextLeaderHandler")
 		s.wg.Done()
 	}()
 
+out:
 	for {
 		select {
 		case h := <-s.latestDBHeight:
 			//fmt.Println("nextLeaderHandler(): s.latestDBHeight=", h)
 			s.handleNextLeader(h)
 		case <-s.quit:
-			return
-		default:
+			fmt.Println("nextLeaderHandler(): quit")
+			break out
+			//return
 		}
 	}
 }

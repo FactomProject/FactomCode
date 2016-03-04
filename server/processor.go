@@ -1378,7 +1378,6 @@ func newFactoidBlock(chain *common.FctChain) block.IFBlock {
 	*/
 	// acquire the last block
 	currentBlock := chain.NextBlock
-	fmt.Println("newFactoidBlock: block.Header.EBHeight = ", currentBlock.GetDBHeight())
 	if currentBlock.GetDBHeight() != chain.NextBlockHeight {
 		// this is the first block after block sync up
 		currentBlock.SetDBHeight(chain.NextBlockHeight)
@@ -1388,6 +1387,7 @@ func newFactoidBlock(chain *common.FctChain) block.IFBlock {
 		fmt.Println("Factoid Block height does not match Directory Block height:" + strconv.Itoa(int(dchain.NextDBHeight)))
 		//panic("Factoid Block height does not match Directory Block height:" + strconv.Itoa(int(dchain.NextDBHeight)))
 	}
+	fmt.Println("newFactoidBlock: block.Header.EBHeight = ", currentBlock.GetDBHeight())
 
 	chain.BlockMutex.Lock()
 	chain.NextBlockHeight++
@@ -1401,14 +1401,14 @@ func newFactoidBlock(chain *common.FctChain) block.IFBlock {
 
 // Seals the current open block, store it in db and create the next open block
 func newDirectoryBlock(chain *common.DChain) *common.DirectoryBlock {
-	fmt.Printf("enter newDirectoryBlock: chain.NextBlock.Height=%d, chain.NextDBHeight=%d\n",
-		chain.NextBlock.Header.DBHeight, chain.NextDBHeight)
 	// acquire the last block
 	block := chain.NextBlock
 	if block.Header.DBHeight != chain.NextDBHeight {
 		// this is the first block after block sync up
 		block.Header.DBHeight = chain.NextDBHeight
 	}
+	fmt.Printf("newDirectoryBlock: chain.NextBlock.Height=%d, chain.NextDBHeight=%d\n",
+		chain.NextBlock.Header.DBHeight, chain.NextDBHeight)
 
 	if devNet {
 		block.Header.NetworkID = common.NETWORK_ID_TEST
