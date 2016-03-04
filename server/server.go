@@ -5,7 +5,6 @@
 package server
 
 import (
-	"container/list"
 	"crypto/rand"
 	"encoding/binary"
 	"errors"
@@ -14,6 +13,7 @@ import (
 	mrand "math/rand"
 	"net"
 	"runtime"
+	"sort"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -56,6 +56,8 @@ var prevConnected int
 // GetPeerInfoResult models the data returned from the getpeerinfo command.
 type GetPeerInfoResult struct {
 	ID             int32   `json:"id"`
+	NodeID         string  `json:"nodeID"`
+	NodeType       string  `json:"nodeType"`
 	Addr           string  `json:"addr"`
 	AddrLocal      string  `json:"addrlocal,omitempty"`
 	Services       string  `json:"services"`
@@ -145,7 +147,7 @@ type server struct {
 	isLeader        bool
 	isLeaderElected bool
 	latestDBHeight  chan uint32
-	federateServers *list.List
+	federateServers []*federateServer //*list.List
 	myLeaderPolicy  *leaderPolicy
 }
 
@@ -162,7 +164,7 @@ type federateServer struct {
 	Peer            *peer
 	FirstJoined     uint32 //DBHeight when this peer joins the network as a federate server
 	LastSuccessVote uint32 //DBHeight of first successful vote of dir block signature
-	LeaderSince     uint32 //DBHeight when this peer becomes leader
+	LeaderLast      uint32 //DBHeight when this peer was the leader the last time
 }
 
 type peerState struct {
@@ -378,7 +380,6 @@ func (s *server) handleDonePeerMsg(state *peerState, p *peer) {
 				e = newOutboundPeer(s, p.addr, true, p.retryCount+1)
 				list[e] = struct{}{}
 				break
-				//return
 			}
 			if !p.inbound {
 				state.outboundGroups[addrmgr.GroupKey(p.na)]--
@@ -386,12 +387,9 @@ func (s *server) handleDonePeerMsg(state *peerState, p *peer) {
 			delete(list, e)
 			srvrLog.Debugf("Removed peer %s", p)
 			break
-			//return
 		}
 	}
-	fs := s.federateServers
-	for e := fs.Front(); e != nil; e = e.Next() {
-		fedServer := e.Value.(*federateServer)
+	for _, fedServer := range s.federateServers {
 		//srvrLog.Debugf("handleDonePeerMsg: need to remove %s, federate server candidate: %s\n", p, spew.Sdump(fedServer))
 		if fedServer.Peer == p {
 			//fs.Remove(e)
@@ -518,6 +516,8 @@ func (s *server) handleQuery(querymsg interface{}, state *peerState) {
 			p.StatsMtx.Lock()
 			info := &GetPeerInfoResult{
 				ID:             p.id,
+				NodeID:         p.nodeID,
+				NodeType:       p.nodeType,
 				Addr:           p.addr,
 				Services:       fmt.Sprintf("%08d", p.services),
 				LastSend:       p.lastSend.Unix(),
@@ -1483,7 +1483,6 @@ func newServer(listenAddrs []string, chainParams *Params) (*server, error) {
 		peerHeightsUpdate:    make(chan updatePeerHeightsMsg),
 		nat:                  nat,
 		latestDBHeight:       make(chan uint32),
-		federateServers:      list.New(),
 		//db:                   db,
 		//timeSource: blockchain.NewMedianTime(),
 	}
@@ -1510,9 +1509,9 @@ func newServer(listenAddrs []string, chainParams *Params) (*server, error) {
 			FirstJoined: h,
 		}
 		if s.isLeader {
-			fedServer.LeaderSince = h + 1
+			fedServer.LeaderLast = h + 1
 		}
-		s.federateServers.PushBack(fedServer)
+		s.federateServers = append(s.federateServers, fedServer)
 	}
 
 	if s.isLeader {
@@ -1600,7 +1599,7 @@ func (s *server) initServerKeys() {
 
 func (s *server) FederateServerCount() int {
 	if s.nodeType == common.SERVER_NODE {
-		return s.federateServers.Len() //+ 1 //including this server itself
+		return len(s.federateServers)
 	}
 	return 0
 }
@@ -1660,7 +1659,9 @@ func (s *server) handleNextLeader(height uint32) {
 		fmt.Println("nextLeaderHandler(): is SingleServerMode. update leaderPolicy: new startingDBHeight=", s.myLeaderPolicy.StartDBHeight)
 		return
 	}
+
 	fmt.Println("nextLeaderHandler(): peerState=", spew.Sdump(s.PeerInfo()))
+	fmt.Println("nextLeaderHandler(): federateServers=", spew.Sdump(s.federateServers))
 
 	if s.isLeaderElected {
 		fmt.Printf("handleNextLeader: isLeaderElected=%t\n", s.isLeaderElected)
@@ -1673,6 +1674,12 @@ func (s *server) handleNextLeader(height uint32) {
 			fmt.Println("handleNextLeader: ** height equal, regime change for leader-elected.")
 			s.isLeader = true
 			s.isLeaderElected = false
+			for _, fed := range s.federateServers {
+				if fed.Peer == nil { //myself
+					fed.LeaderLast = height
+					break
+				}
+			}
 			// turn on BlockTimer
 		}
 		return
@@ -1681,11 +1688,9 @@ func (s *server) handleNextLeader(height uint32) {
 	// this is a current leader
 	var next *federateServer
 	fmt.Printf("handleNextLeader: isLeader=%t, height=%d\n", s.isLeader, height)
-	//fmt.Printf("handleNextLeader: federateServers=%s\n", spew.Sdump(s.federateServers))
 
 	// when this leader is changed from single server mode to federate servers,
 	// its policy could be outdated. update its polidy now.
-	//if height > s.myLeaderPolicy.StartDBHeight {
 	if height > s.myLeaderPolicy.StartDBHeight+s.myLeaderPolicy.Term {
 		fmt.Printf("handleNextLeader: wrong height. height=%d, policy=%s\n",
 			height, spew.Sdump(s.myLeaderPolicy))
@@ -1694,8 +1699,8 @@ func (s *server) handleNextLeader(height uint32) {
 	} else if height == s.myLeaderPolicy.StartDBHeight+s.myLeaderPolicy.NotifyDBHeight-1 {
 		// determine who's the next qualified leader.
 		// simple round robin for now
-		for e := s.federateServers.Front(); e != nil; e = e.Next() {
-			fed := e.Value.(*federateServer)
+		sort.Sort(ByLeaderLast(s.federateServers))
+		for _, fed := range s.federateServers {
 			if fed.Peer != nil {
 				next = fed
 				break
@@ -1727,4 +1732,17 @@ func (s *server) handleNextLeader(height uint32) {
 		// turn off BlockTimer
 	}
 	return
+}
+
+// ByLeaderLast sorts federate server by its LeaderLast
+type ByLeaderLast []*federateServer
+
+func (s ByLeaderLast) Len() int {
+	return len(s)
+}
+func (s ByLeaderLast) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+func (s ByLeaderLast) Less(i, j int) bool {
+	return s[i].LeaderLast < s[j].LeaderLast
 }

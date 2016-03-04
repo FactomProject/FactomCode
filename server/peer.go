@@ -491,8 +491,7 @@ func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
 		if msg.NodeSig.Pub.Verify([]byte(msg.NodeID), msg.NodeSig.Sig) {
 			var found = false
 			var fed *federateServer
-			for e := p.server.federateServers.Front(); e != nil; e = e.Next() {
-				fed = e.Value.(*federateServer)
+			for _, fed = range p.server.federateServers {
 				if fed.Peer == nil {
 					continue
 				}
@@ -505,34 +504,29 @@ func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
 			// Usually when a server has both listen and connect, it has 2 peers (inboud + outbound)
 			// this prevents duplication.
 			if found {
-				// a duplicate
 				p.logError("duplicated fed server / peer: msg.nodeID=%s; peer=%s\n", msg.NodeID, fed.Peer)
-				p.Disconnect()
+				//p.Disconnect()
+				p.Shutdown() //???
 				return
 			}
-			//if !found {
 			_, newestHeight, _ := db.FetchBlockHeightCache()
 			h := uint32(newestHeight)
 			fedServer := &federateServer{
 				Peer:        p,
 				FirstJoined: h,
 			}
-			p.server.federateServers.PushBack(fedServer)
+			p.server.federateServers = append(p.server.federateServers, fedServer)
 			peerLog.Debugf("Signature verified successfully total=%d after adding a new federate server: %s",
 				p.server.FederateServerCount(), p)
-			//}
 		} else {
 			panic("peer id/sig are not valid: " + p.String())
 		}
 	}
-	// inbound peer share the same id/type with the server.
-	// while outbound peer needs to set its id/type through incoming MsgVersion
-	//if !p.inbound {
+
 	p.nodeType = msg.NodeType
 	p.nodeID = msg.NodeID
 	p.pubKey = msg.NodeSig.Pub
 	peerLog.Info("set peer id/type info: ", p)
-	//}
 
 	// Inbound connections.
 	if p.inbound {
@@ -2377,8 +2371,7 @@ func (p *peer) handleAckMsg(msg *wire.MsgAck) {
 
 func (p *peer) isFederateServer() bool {
 	var found = false
-	for e := p.server.federateServers.Front(); e != nil; e = e.Next() {
-		fed := e.Value.(*federateServer)
+	for _, fed := range p.server.federateServers {
 		if fed.Peer == nil {
 			continue
 		}
@@ -2451,6 +2444,12 @@ func (p *peer) handleNextLeaderMsg(msg *wire.MsgNextLeader) {
 		}
 		p.server.myLeaderPolicy = policy
 		p.server.isLeaderElected = true
+		for _, fed := range p.server.federateServers {
+			if fed.Peer == p.server.leaderPeer {
+				fed.LeaderLast = policy.StartDBHeight - policy.Term
+				break
+			}
+		}
 		sig := p.server.privKey.Sign([]byte(msg.CurrLeaderID + msg.NextLeaderID))
 		resp := wire.NewNextLeaderRespMsg(msg.CurrLeaderID, msg.NextLeaderID,
 			msg.StartDBHeight, sig, true)
