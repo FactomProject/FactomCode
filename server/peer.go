@@ -2364,12 +2364,12 @@ func (p *peer) handleAckMsg(msg *wire.MsgAck) {
 		inMsgQueue <- msg
 	}
 	// this peer is a leader Peer. update it if necessary
-	peerLog.Debugf("handleAckMsg: current Leader Peer:%s, new leader peer: %s",
+	peerLog.Debugf("handleAckMsg: current Leader Peer:%s, Ack coming from peer: %s",
 		p.server.GetLeaderPeer(), p)
 
 	// this peer has to be in the federate server list before reset it.
 	if p != p.server.GetLeaderPeer() && p.isFederateServer() {
-		peerLog.Debugf("handleAckMsg: set new Leader Peer to %s", p)
+		peerLog.Debugf("handleAckMsg: RESET Leader Peer to %s", p)
 		p.isLeader = true
 		p.server.SetLeaderPeer(p)
 	}
@@ -2466,15 +2466,10 @@ func (p *peer) handleNextLeaderRespMsg(msg *wire.MsgNextLeaderResp) {
 		fmt.Println("signature verify FAILED.")
 		return
 	}
-	//if !(p.server.leaderPeer != nil && p.server.leaderPeer.nodeID == msg.CurrLeaderID) {
-	if p.server.nodeID != msg.CurrLeaderID {
-		fmt.Printf("handleNextLeaderRespMsg: leader verify FAILED: my leader is %s, but msg.leader is %s\n",
-			p.server.nodeID, msg.CurrLeaderID)
-		//return
-	} else {
-		fmt.Printf("handleNextLeaderRespMsg: next leader CONFIRMED: %s. startingHeight=%d\n", msg.NextLeaderID, msg.StartDBHeight)
+	fmt.Printf("handleNextLeaderRespMsg: next leader CONFIRMED: %s. startingHeight=%d\n", msg.NextLeaderID, msg.StartDBHeight)
+	if p.server.isLeader && p.server.nodeID == msg.CurrLeaderID {
 		p.server.myLeaderPolicy.Confirmed = true
 		p.server.isLeaderElected = false
 	}
-	return
+	// non-leader needs to do nothing here.
 }

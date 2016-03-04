@@ -296,7 +296,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		}
 		ack, _ := msg.(*wire.MsgAck)
 		_, latestHeight, _ := db.FetchBlockHeightCache()
-		fmt.Printf("in case.CmdAck:: Ack.Height=%d, dchain.NextDBHeight=%d, db.latestDBHeight=%d, blockSyncing=%v\n",
+		fmt.Printf("in case.CmdAck: Ack.Height=%d, dchain.NextDBHeight=%d, db.latestDBHeight=%d, blockSyncing=%v\n",
 			ack.Height, dchain.NextDBHeight, latestHeight, blockSyncing)
 		//dchain.NextDBHeight is the dir block height for the network
 		//update it with ack height from the leader if necessary
@@ -311,14 +311,9 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 			// set this federate server's FirstJoined = firstBlockHeight
 			fmt.Println("** reset blockSyncing=false, firstBlockHeight=", firstBlockHeight)
 		}
-		if blockSyncing {
-			return nil
-		}
-
-		//msgEom, _ := msg.(*wire.MsgInt_EOM)
-		//var singleServerMode = localServer.isSingleServerMode()
-		//fmt.Println("number of federate servers: ", localServer.FederateServerCount(),
-		//"singleServerMode=", singleServerMode)
+		//if blockSyncing {
+			//return nil
+		//}
 
 		// to simplify this, for leader & followers, use the next wire.END_MINUTE_1
 		// to trigger signature comparison of last round.
