@@ -69,7 +69,7 @@ func (mp *ftmMemPool) addAck(ack *wire.MsgAck) *wire.Message {
 	//if a != nil {
 	//procLog.Infof("ftmMemPool.addAck: compare ack: %+v\n", a)
 	//}
-	if a != nil && ack.Equal(a) {
+	if a != nil && ack.Equals(a) {
 		fmt.Println("duplicated ack: ignore it")
 		return nil
 	}

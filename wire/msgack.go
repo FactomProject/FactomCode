@@ -32,11 +32,12 @@ const (
 	ACK_REVEAL_CHAIN
 	ACK_COMMIT_ENTRY
 
-	FORCE_FACTOID_GENESIS_REBUILD
-	//	FORCE_FACTOID_VALIDATION // at a specific block height; everything higher will be discarded by btcd-side (possibly creating orphaned blocks)
-	INFO_CURRENT_HEIGHT // info message to the wire-side to indicate the current known block height; a duplicate of FORCE_FACTOID_VALIDATION (???)
+	END_MINUTE
+	NON_END_MINUTE
 )
 
+// MsgAck is the message sent out by the leader to the followers for
+// message it receives and puts into process list.
 type MsgAck struct {
 	Height      uint32
 	ChainID     *common.Hash
@@ -47,9 +48,10 @@ type MsgAck struct {
 	Signature   [64]byte
 }
 
+// Sign is used to sign this message
 func (msg *MsgAck) Sign(priv *common.PrivateKey) error {
 	bytes, err := msg.GetBinaryForSignature()
-	if err!=nil {
+	if err != nil {
 		return err
 	}
 	msg.Signature = *priv.Sign(bytes).Sig
@@ -58,7 +60,7 @@ func (msg *MsgAck) Sign(priv *common.PrivateKey) error {
 
 //func (msg *MsgAck) Verify()
 
-// Write out the MsgAck (excluding Signature) to binary.
+// GetBinaryForSignature Writes out the MsgAck (excluding Signature) to binary.
 func (msg *MsgAck) GetBinaryForSignature() (data []byte, err error) {
 	var buf bytes.Buffer
 	binary.Write(&buf, binary.BigEndian, msg.Height)
@@ -85,7 +87,7 @@ func (msg *MsgAck) BtcDecode(r io.Reader, pver uint32) error {
 		return fmt.Errorf("MsgAck.BtcDecode reader is invalid")
 	}
 	if len(newData) != 169 {
-		return fmt.Errorf("MsgAck.BtcDecode reader does not have right length: ", len(newData))
+		return fmt.Errorf("MsgAck.BtcDecode reader does not have right length: %d", len(newData))
 	}
 
 	msg.Height, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
@@ -148,7 +150,7 @@ func NewMsgAck(height uint32, index uint32, affirm *ShaHash, ackType byte) *MsgA
 	}
 }
 
-// Sha() Creates a sha hash from the message binary (output of BtcEncode)
+// Sha Creates a sha hash from the message binary (output of BtcEncode)
 func (msg *MsgAck) Sha() (ShaHash, error) {
 	buf := bytes.NewBuffer(nil)
 	msg.BtcEncode(buf, ProtocolVersion)
@@ -157,6 +159,7 @@ func (msg *MsgAck) Sha() (ShaHash, error) {
 	return sha, nil
 }
 
+// Clone creates a new MsgAck with the same value
 func (msg *MsgAck) Clone() *MsgAck {
 	return &MsgAck{
 		Height:      msg.Height,
@@ -167,6 +170,7 @@ func (msg *MsgAck) Clone() *MsgAck {
 	}
 }
 
+// IsEomAck checks if it's a EOM ack
 func (msg *MsgAck) IsEomAck() bool {
 	if END_MINUTE_1 <= msg.Type && msg.Type <= END_MINUTE_10 {
 		return true
@@ -174,11 +178,13 @@ func (msg *MsgAck) IsEomAck() bool {
 	return false
 }
 
-func (msg *MsgAck) Equal(ack *MsgAck) bool {
-	// simple comparison
+// Equals check if two MsgAcks are the same
+func (msg *MsgAck) Equals(ack *MsgAck) bool {
 	return msg.Height == ack.Height &&
 		msg.Index == ack.Index &&
-		//msg.Affirmation == ack.Affirmation &&
-		msg.Type == ack.Type //&&
-	//msg.ChainID == ack.ChainID
+		msg.Type == ack.Type &&
+		msg.Affirmation.IsEqual(ack.Affirmation) &&
+		msg.ChainID.IsSameAs(ack.ChainID) &&
+		bytes.Equal(msg.SerialHash[:], ack.SerialHash[:]) &&
+		bytes.Equal(msg.Signature[:], ack.Signature[:])
 }

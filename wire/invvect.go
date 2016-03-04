@@ -27,7 +27,6 @@ const (
 	InvTypeTx    InvType = 1 // Factoid tx
 
 	InvTypeBlock InvType = 2 // Factoid block
-	//	InvTypeFilteredBlock InvType = 3
 
 	InvTypeFactomDirBlock         InvType = 14
 	InvTypeFactomEntryBlock       InvType = 15
@@ -36,6 +35,7 @@ const (
 	InvTypeFactomNonDirBlock      InvType = 18
 	InvTypeFactomAdminBlock       InvType = 19
 	InvTypeFactomFBlock           InvType = 20
+	InvTypeFactomBlockSet         InvType = 21 // meaning dblock and those included blocks
 
 	InvTypeFactomControl InvType = 50 // Factom control messages
 	InvTypeFactomRaw     InvType = 99 // Factom raw
@@ -46,7 +46,6 @@ var ivStrings = map[InvType]string{
 	InvTypeError: "ERROR",
 	InvTypeTx:    "MSG_TX",
 	InvTypeBlock: "MSG_BLOCK",
-	//	InvTypeFilteredBlock: "MSG_FILTERED_BLOCK",
 
 	InvTypeFactomDirBlock:         "MSG_FACTOM_DIRBLOCK",
 	InvTypeFactomEntryBlock:       "MSG_FACTOM_ENTRYBLOCK",
@@ -55,6 +54,7 @@ var ivStrings = map[InvType]string{
 	InvTypeFactomNonDirBlock:      "MSG_FACTOM_NONDIRBLOCK",
 	InvTypeFactomAdminBlock:       "MSG_FACTOM_ADMINBLOCK",
 	InvTypeFactomFBlock:           "MSG_FACTOM_FBlock",
+	InvTypeFactomBlockSet:         "MSG_FACTOM_BLOCKSET",
 	InvTypeFactomControl:          "MSG_FACTOM_CONTROL",
 	InvTypeFactomRaw:              "MSG_FACTOM_RAW",
 }

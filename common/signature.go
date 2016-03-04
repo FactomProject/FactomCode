@@ -5,6 +5,7 @@
 package common
 
 import (
+	"bytes"
 	"encoding/hex"
 
 	"github.com/FactomProject/ed25519"
@@ -25,6 +26,12 @@ func (sig Signature) Key() []byte {
 
 func (sig *Signature) DetachSig() *DetachedSignature {
 	return (*DetachedSignature)(sig.Sig)
+}
+
+func (sig Signature) Equals(as Signature) bool {
+	s1 := MarshalBinarySignature(sig)
+	s2 := MarshalBinarySignature(as)
+	return bytes.Equal(s1[:], s2[:])
 }
 
 func (ds *DetachedSignature) String() string {
