@@ -34,7 +34,7 @@ const (
 	// maxProtocolVersion is the max protocol version the peer supports.
 	//Common constants
 	VERSION_0         = byte(0)
-	FACTOMD_VERSION   = 3005               //fixed point. resolves to 0.<thousands place>.<rightmost digits>
+	FACTOMD_VERSION   = 3005002               //fixed point. resolves to 0.<minor1 release>.<minor2 release>.<minor3 release>
 	NETWORK_ID_DB 	  = uint32(4203931041) //0xFA92E5A1
 	NETWORK_ID_EB     = uint32(4203931042) //0xFA92E5A2
 	NETWORK_ID_CB     = uint32(4203931043) //0xFA92E5A3
@@ -103,7 +103,7 @@ func (p *Properties) MarshalJSON() ([]byte, error) {
 	}
 	t := new(tmp)
 	
-	t.Protocol_Version = versionToString(p.Protocol_Version)
+	t.Protocol_Version = versionToString(p.Protocol_Version*1000)
 	t.Factomd_Version = versionToString(p.Factomd_Version)
 	
 	return json.Marshal(t)
@@ -112,9 +112,11 @@ func (p *Properties) MarshalJSON() ([]byte, error) {
 // versionToString converts the fixed poit versions to human readable version
 // strings.
 func versionToString(f int) string {
-	v1 := f / 1000000
+
+	v0 := f / 1000000000
+	v1 := (f % 1000000000 ) / 1000000
 	v2 := (f % 1000000) / 1000
 	v3 := f % 1000
 	
-	return fmt.Sprintf("%d.%d.%d", v1, v2, v3)
+	return fmt.Sprintf("%d.%d.%d.%d", v0, v1, v2, v3)
 }
