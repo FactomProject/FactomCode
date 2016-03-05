@@ -166,7 +166,6 @@ func StartProcessor(wg *sync.WaitGroup, quit chan struct{}) {
 	}
 
 	// Initialize timer for the open dblock before processing messages
-	//if nodeMode == common.SERVER_NODE && !blockSyncing {
 	if localServer.IsLeader() {
 		timer := &BlockTimer{
 			nextDBlockHeight: dchain.NextDBHeight,
@@ -174,7 +173,6 @@ func StartProcessor(wg *sync.WaitGroup, quit chan struct{}) {
 		}
 		go timer.StartBlockTimer()
 	} else {
-		//if !localServer.IsLeader() {
 		// process the blocks and entries downloaded from peers
 		// this is needed for clients and followers when sync up
 		fmt.Println("StartProcessor: validateAndStoreBlocks")
@@ -290,55 +288,8 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		outMsgQueue <- msg
 
 	case wire.CmdAck:
-		// only post-syncup followers need to deal with Ack
-		if nodeMode != common.SERVER_NODE || localServer.IsLeader() {
-			return nil
-		}
 		ack, _ := msg.(*wire.MsgAck)
-		_, latestHeight, _ := db.FetchBlockHeightCache()
-		fmt.Printf("in case.CmdAck: Ack.Height=%d, dchain.NextDBHeight=%d, db.latestDBHeight=%d, blockSyncing=%v\n",
-			ack.Height, dchain.NextDBHeight, latestHeight, blockSyncing)
-		//dchain.NextDBHeight is the dir block height for the network
-		//update it with ack height from the leader if necessary
-		if dchain.NextDBHeight < ack.Height {
-			dchain.NextDBHeight = ack.Height
-		}
-		//switch from block syncup to block build
-		//if dchain.NextDBHeight == db.FetchBlockHeightCache()+1 {	//&& blockSyncing {
-		if IsDChainInSync() && blockSyncing {
-			blockSyncing = false
-			firstBlockHeight = ack.Height
-			// set this federate server's FirstJoined = firstBlockHeight
-			fmt.Println("** reset blockSyncing=false, firstBlockHeight=", firstBlockHeight)
-		}
-		//if blockSyncing {
-			//return nil
-		//}
-
-		// to simplify this, for leader & followers, use the next wire.END_MINUTE_1
-		// to trigger signature comparison of last round.
-		// todo: when to start? can NOT do this for the first EOM_1 ???
-		if ack.Type == wire.END_MINUTE_1 {
-			// need to bypass the first block of newly-joined follower, if
-			// this is 11th minute: ack.NextDBlockHeight-1 == firstBlockHeight
-			// or is 1st minute: fMemPool.LenDirBlockSig() == 0
-			fmt.Println("bypass save this block?? firstBlockHeight=", firstBlockHeight, ", ack=", spew.Sdump(ack))
-			if fMemPool.LenDirBlockSig() > 0 { //&& ack.Height-1 != firstBlockHeight { //!singleServerMode &&
-				go processDirBlockSig()
-			} else {
-				// three cases go in here
-				// a. newDBlock is nil: first EOM_1 with no sync up needed for this follower
-				// b. newDBlock is not nil but usually wrong with missing msg or ack: first EOM_1 after sync up done for this follower. need to bypass save but need sync up ???
-				// c. newDBlock is the genesis block or normal single server mode
-				if newDBlock != nil { //&& ack.Height-1 != firstBlockHeight {
-					go saveBlocks(newDBlock, newABlock, newECBlock, newFBlock, newEBlocks)
-				}
-			}
-		}
-		err := processAck(ack)
-		if err != nil {
-			return err
-		}
+		processAckMsg(ack)
 
 	case wire.CmdDirBlockSig:
 		//only when server is building blocks. relax it for now ???
@@ -349,7 +300,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		}
 		dbs, _ := msg.(*wire.MsgDirBlockSig)
 		fmt.Printf("Incoming MsgDirBlockSig: %s\n", spew.Sdump(dbs))
-		// to simplify this, use the next wire.END_MINUTE_1 to trigger signature comparison. ???
+		// to simplify this, use the next wire.EndMinute1 to trigger signature comparison. ???
 		fMemPool.addDirBlockSig(dbs)
 
 	case wire.CmdInt_EOM:
@@ -370,10 +321,10 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		//return nil
 		//}
 
-		// to simplify this, for leader & followers, use the next wire.END_MINUTE_1
+		// to simplify this, for leader & followers, use the next wire.EndMinute1
 		// to trigger signature comparison of last round.
 		// todo: when to start? can NOT do this for the first EOM_1 ???
-		if msgEom.EOM_Type == wire.END_MINUTE_1 {
+		if msgEom.EOM_Type == wire.EndMinute1 {
 			// need to bypass the first block of newly-joined follower
 			// this is 11th minute.
 			//fmt.Println("bypass save this block?? firstBlockHeight=", firstBlockHeight, ", msgEom=", spew.Sdump(msgEom))
@@ -532,9 +483,9 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 func processLeaderEOM(msgEom *wire.MsgInt_EOM) error {
 	//procLog.Infof("processLeaderEOM: wire.CmdInt_EOM:%+v\n", msgEom)
 	common.FactoidState.EndOfPeriod(int(msgEom.EOM_Type))
-	if msgEom.EOM_Type == wire.END_MINUTE_10 {
+	if msgEom.EOM_Type == wire.EndMinute10 {
 		// Process from Orphan pool before the end of process list
-		fmt.Println("processLeaderEOM: END_MINUTE_10: before processFromOrphanPool")
+		fmt.Println("processLeaderEOM: EndMinute10: before processFromOrphanPool")
 		processFromOrphanPool()
 	}
 
@@ -550,8 +501,8 @@ func processLeaderEOM(msgEom *wire.MsgInt_EOM) error {
 	outMsgQueue <- ack
 
 	//procLog.Infof("current ProcessList: %s", spew.Sdump(plMgr.MyProcessList))
-	if msgEom.EOM_Type == wire.END_MINUTE_10 {
-		fmt.Println("processLeaderEOM: END_MINUTE_10: before LEADER buildBlocks")
+	if msgEom.EOM_Type == wire.EndMinute10 {
+		fmt.Println("processLeaderEOM: EndMinute10: before LEADER buildBlocks")
 		err = buildBlocks() //broadcast new dir block sig
 		if err != nil {
 			return err
@@ -648,65 +599,119 @@ func processDirBlockSig() error {
 	return nil
 }
 
-// processAck validates the ack and adds it to processlist
-// this is only for post-syncup followers need to deal with Ack
-func processAck(msg *wire.MsgAck) error {
-	fmt.Printf("processAck: %s\n", spew.Sdump(msg))
+func processAckMsg(ack *wire.MsgAck) ([]*wire.MsgMissing, error) {
+	// only post-syncup followers need to deal with Ack
+	if nodeMode != common.SERVER_NODE || localServer.IsLeader() {
+		return nil, nil
+	}
+	//ack, _ := msg.(*wire.MsgAck)
+	_, latestHeight, _ := db.FetchBlockHeightCache()
+	fmt.Printf("in case.CmdAck: Ack.Height=%d, dchain.NextDBHeight=%d, db.latestDBHeight=%d, blockSyncing=%v\n",
+		ack.Height, dchain.NextDBHeight, latestHeight, blockSyncing)
+	//dchain.NextDBHeight is the dir block height for the network
+	//update it with ack height from the leader if necessary
+	if dchain.NextDBHeight < ack.Height {
+		dchain.NextDBHeight = ack.Height
+	}
+	//switch from block syncup to block build
+	//if dchain.NextDBHeight == db.FetchBlockHeightCache()+1 {	//&& blockSyncing {
+	if IsDChainInSync() && blockSyncing {
+		blockSyncing = false
+		firstBlockHeight = ack.Height
+		// set this federate server's FirstJoined = firstBlockHeight
+		fmt.Println("** reset blockSyncing=false, firstBlockHeight=", firstBlockHeight)
+	}
+	//if blockSyncing {
+	//return nil
+	//}
+
+	// to simplify this, for leader & followers, use the next wire.EndMinute1
+	// to trigger signature comparison of last round.
+	// todo: when to start? can NOT do this for the first EOM_1 ???
+	if ack.Type == wire.EndMinute1 {
+		// need to bypass the first block of newly-joined follower, if
+		// this is 11th minute: ack.NextDBlockHeight-1 == firstBlockHeight
+		// or is 1st minute: fMemPool.LenDirBlockSig() == 0
+		fmt.Println("bypass save this block?? firstBlockHeight=", firstBlockHeight, ", ack=", spew.Sdump(ack))
+		if fMemPool.LenDirBlockSig() > 0 { //&& ack.Height-1 != firstBlockHeight { //!singleServerMode &&
+			go processDirBlockSig()
+		} else {
+			// three cases go in here
+			// a. newDBlock is nil: first EOM_1 with no sync up needed for this follower
+			// b. newDBlock is not nil but usually wrong with missing msg or ack: first EOM_1 after sync up done for this follower. need to bypass save but need sync up ???
+			// c. newDBlock is the genesis block or normal single server mode
+			if newDBlock != nil { //&& ack.Height-1 != firstBlockHeight {
+				go saveBlocks(newDBlock, newABlock, newECBlock, newFBlock, newEBlocks)
+			}
+		}
+	}
+	//err := processAck(ack)
+	//if err != nil {
+	//return err
+	//}
+	//return nil
+	//}
+
+	// processAck validates the ack and adds it to processlist
+	// this is only for post-syncup followers need to deal with Ack
+	//func processAck(ack *wire.MsgAck) error {
+
+	fmt.Printf("processAck: %s\n", spew.Sdump(ack))
 	// Validate the signiture
-	bytes, err := msg.GetBinaryForSignature()
+	bytes, err := ack.GetBinaryForSignature()
 	if err != nil {
 		fmt.Println("error in GetBinaryForSignature", err.Error())
-		return err
+		return nil, err
 	}
 	//todo: must use the peer's, not server's, public key to verify signature here
-	if !serverPubKey.Verify(bytes, &msg.Signature) {
+	if !serverPubKey.Verify(bytes, &ack.Signature) {
 		//to-do
-		//return errors.New(fmt.Sprintf("Invalid signature in Ack = %s\n", spew.Sdump(msg)))
+		//return errors.New(fmt.Sprintf("Invalid signature in Ack = %s\n", spew.Sdump(ack)))
 		fmt.Println("verify ack signature: FAILED")
 	} else {
 		fmt.Println("verify ack signature: SUCCESS")
 	}
-	_, latestHeight, _ := db.FetchBlockHeightCache()
-	fmt.Printf("** ack.Height=%d, dchain.NextDBHeight=%d, db.FetchBlockHeightCache()=%d\n",
-		msg.Height, dchain.NextDBHeight, latestHeight)
+	//_, latestHeight, _ := db.FetchBlockHeightCache()
+	//fmt.Printf("** ack.Height=%d, dchain.NextDBHeight=%d, db.FetchBlockHeightCache()=%d\n",
+	//ack.Height, dchain.NextDBHeight, latestHeight)
 
-	missingMsg := fMemPool.addAck(msg)
-	if missingMsg != nil {
-		//todo: request missing acks from Leader
-		//how to coordinate new processAck when missing acks come ???
-		//
-		fmt.Println("** missing msg: ", spew.Sdump(missingMsg))
-	}
-
-	var missingAcks []*wire.MsgAck
+	var missingAcks []*wire.MsgMissing
 	// only check missing acks every minute
-	if msg.IsEomAck() {
-		missingAcks = fMemPool.getMissingMsgAck(msg)
+	if ack.IsEomAck() {
+		missingAcks = fMemPool.getMissingMsgAck(ack)
 		if len(missingAcks) > 0 {
 			fmt.Printf("missing Acks total: %d\n", len(missingAcks)) //, spew.Sdump(missingAcks))
-			//todo: request missing acks from Leader
-			//how to coordinate new processAck when missing acks come ???
-			//
+		}
+	} else {
+		missingMsg := fMemPool.addAck(ack)
+		if missingMsg != nil {
+			fmt.Println("** missing ack: ", spew.Sdump(missingMsg))
+			missingAcks = append(missingAcks, missingMsg)
 		}
 	}
+	if len(missingAcks) > 0 {
+		return missingAcks, nil
+	}
 	// go happy path for now. todo
-	if msg.Type == wire.END_MINUTE_10 { //}&& missingMsg == nil && len(missingAcks) == 0 {
+	if ack.Type == wire.EndMinute10 { //}&& missingMsg == nil && len(missingAcks) == 0 {
 		fmt.Println("assembleFollowerProcessList")
-		fMemPool.assembleFollowerProcessList(msg)
+		fMemPool.assembleFollowerProcessList(ack)
 		//procLog.Infof("current ProcessList: %s", spew.Sdump(plMgr.MyProcessList))
 	}
 	// for firstBlockHeight, ususally there's some msg or ack missing
 	// let's bypass the first one to give the follower time to round up.
 	// todo: for this block (firstBlockHeight), we need to request for it. ???
-	if msg.Type == wire.END_MINUTE_10 { //&& msg.Height != firstBlockHeight {
+	if ack.Type == wire.EndMinute10 { //&& ack.Height != firstBlockHeight {
 		// followers build Blocks
-		fmt.Println("follower buildBlocks, height=", msg.Height)
+		fmt.Println("follower buildBlocks, height=", ack.Height)
+		// buildBlocks() needs some serious refactoring to expose any exception during
+		// block building so that we can request new blocks if necessary.
 		err = buildBlocks() //broadcast new dir block sig
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
-	return nil
+	return nil, nil
 }
 
 // processRevealEntry validates the MsgRevealEntry and adds it to processlist
@@ -750,11 +755,11 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 				return fMemPool.addOrphanMsg(msg, h)
 			}
 
-			ack, err := plMgr.AddToLeadersProcessList(msg, h, wire.ACK_REVEAL_ENTRY)
+			ack, err := plMgr.AddToLeadersProcessList(msg, h, wire.AckRevealEntry)
 			if err != nil {
 				return err
 			}
-			fmt.Printf("ACK_REVEAL_ENTRY: %s\n", spew.Sdump(ack))
+			fmt.Printf("AckRevealEntry: %s\n", spew.Sdump(ack))
 			outMsgQueue <- ack
 			//???
 			delete(commitEntryMap, e.Hash().String())
@@ -851,11 +856,11 @@ func processCommitEntry(msg *wire.MsgCommitEntry) error {
 			return fMemPool.addOrphanMsg(msg, &h)
 		}
 
-		ack, err := plMgr.AddToLeadersProcessList(msg, &h, wire.ACK_COMMIT_ENTRY)
+		ack, err := plMgr.AddToLeadersProcessList(msg, &h, wire.AckCommitEntry)
 		if err != nil {
 			return err
 		}
-		fmt.Printf("ACK_COMMIT_ENTRY: %s\n", spew.Sdump(ack))
+		fmt.Printf("AckCommitEntry: %s\n", spew.Sdump(ack))
 		outMsgQueue <- ack
 	} else {
 		//as follower
@@ -904,11 +909,11 @@ func processCommitChain(msg *wire.MsgCommitChain) error {
 			return fMemPool.addOrphanMsg(msg, &h)
 		}
 
-		ack, err := plMgr.AddToLeadersProcessList(msg, &h, wire.ACK_COMMIT_CHAIN)
+		ack, err := plMgr.AddToLeadersProcessList(msg, &h, wire.AckCommitChain)
 		if err != nil {
 			return err
 		}
-		fmt.Printf("ACK_COMMIT_CHAIN: %s\n", spew.Sdump(ack))
+		fmt.Printf("AckCommitChain: %s\n", spew.Sdump(ack))
 		outMsgQueue <- ack
 	} else {
 		//as follower
@@ -937,7 +942,7 @@ func processBuyEntryCredit(msg *wire.MsgFactoidTX) error {
 		return fMemPool.addOrphanMsg(msg, &h)
 	}
 
-	if _, err := plMgr.AddToLeadersProcessList(msg, &h, wire.ACK_FACTOID_TX); err != nil {
+	if _, err := plMgr.AddToLeadersProcessList(msg, &h, wire.AckFactoidTx); err != nil {
 		return err
 	}
 
@@ -1048,12 +1053,12 @@ func buildRevealChain(msg *wire.MsgRevealEntry) {
 func buildEndOfMinute(pl *consensus.ProcessList, pli *consensus.ProcessListItem) {
 	tmpChains := make(map[string]*common.EChain)
 	for _, v := range pl.GetPLItems()[:pli.Ack.Index] {
-		if v.Ack.Type == wire.ACK_REVEAL_ENTRY ||
-			v.Ack.Type == wire.ACK_REVEAL_CHAIN {
+		if v.Ack.Type == wire.AckRevealEntry ||
+			v.Ack.Type == wire.AckRevealChain {
 			cid := v.Msg.(*wire.MsgRevealEntry).Entry.ChainID.String()
 			tmpChains[cid] = chainIDMap[cid]
-		} else if wire.END_MINUTE_1 <= v.Ack.Type &&
-			v.Ack.Type <= wire.END_MINUTE_10 {
+		} else if wire.EndMinute1 <= v.Ack.Type &&
+			v.Ack.Type <= wire.EndMinute10 {
 			tmpChains = make(map[string]*common.EChain)
 		}
 	}
@@ -1224,17 +1229,17 @@ func buildFromProcessList(pl *consensus.ProcessList) error {
 		if pli == nil {
 			continue
 		}
-		if pli.Ack.Type == wire.ACK_COMMIT_CHAIN {
+		if pli.Ack.Type == wire.AckCommitChain {
 			buildCommitChain(pli.Msg.(*wire.MsgCommitChain))
-		} else if pli.Ack.Type == wire.ACK_FACTOID_TX {
+		} else if pli.Ack.Type == wire.AckFactoidTx {
 			buildIncreaseBalance(pli.Msg.(*wire.MsgFactoidTX))
-		} else if pli.Ack.Type == wire.ACK_COMMIT_ENTRY {
+		} else if pli.Ack.Type == wire.AckCommitEntry {
 			buildCommitEntry(pli.Msg.(*wire.MsgCommitEntry))
-		} else if pli.Ack.Type == wire.ACK_REVEAL_CHAIN {
+		} else if pli.Ack.Type == wire.AckRevealChain {
 			buildRevealChain(pli.Msg.(*wire.MsgRevealEntry))
-		} else if pli.Ack.Type == wire.ACK_REVEAL_ENTRY {
+		} else if pli.Ack.Type == wire.AckRevealEntry {
 			buildRevealEntry(pli.Msg.(*wire.MsgRevealEntry))
-		} else if wire.END_MINUTE_1 <= pli.Ack.Type && pli.Ack.Type <= wire.END_MINUTE_10 {
+		} else if wire.EndMinute1 <= pli.Ack.Type && pli.Ack.Type <= wire.EndMinute10 {
 			buildEndOfMinute(pl, pli)
 		}
 	}
@@ -1486,14 +1491,16 @@ func SignDirectoryBlock(newdb *common.DirectoryBlock) error {
 		// since saveBlocks happens at 11th minute, almost 1 minute after buildBlocks
 		// so the latest block height in database should be dchain.NextDBHeight - 2
 		// and newdb.DBHeight should be dchain.NextDBHeight - 1
-		dbBlock, _ := db.FetchDBlockByHeight(dchain.NextDBHeight - 1)
+
+		//dbBlock, _ := db.FetchDBlockByHeight(dchain.NextDBHeight - 1)
 		//????
-		if dbBlock == nil {
-			dbBlock, _ = db.FetchDBlockByHeight(dchain.NextDBHeight - 2)
-		}
-		if dbBlock == nil {
-			dbBlock, _ = db.FetchDBlockByHeight(dchain.NextDBHeight - 3)
-		}
+		//if dbBlock == nil {
+		dbBlock, _ := db.FetchDBlockByHeight(dchain.NextDBHeight - 2)
+		//}
+		//if dbBlock == nil {
+		//dbBlock, _ = db.FetchDBlockByHeight(dchain.NextDBHeight - 3)
+		//}
+
 		fmt.Printf("SignDirBlock: dbBlock from db=%s\n", spew.Sdump(dbBlock.Header))
 		fmt.Printf("SignDirBlock: new dbBlock=%s\n", spew.Sdump(newdb.Header))
 		dbHeaderBytes, _ := dbBlock.Header.MarshalBinary()

@@ -34,7 +34,7 @@ func (bt *BlockTimer) StartBlockTimer() {
 
 		for i := 0; i < 10; i++ {
 			eomMsg := &wire.MsgInt_EOM{
-				EOM_Type:         wire.END_MINUTE_1 + byte(i),
+				EOM_Type:         wire.EndMinute1 + byte(i),
 				NextDBlockHeight: bt.nextDBlockHeight,
 			}
 
@@ -64,7 +64,7 @@ func (bt *BlockTimer) StartBlockTimer() {
 		}
 
 		eomMsg := &wire.MsgInt_EOM{
-			EOM_Type:         wire.END_MINUTE_1 + byte(minutesPassed),
+			EOM_Type:         wire.EndMinute1 + byte(minutesPassed),
 			NextDBlockHeight: bt.nextDBlockHeight,
 		}
 

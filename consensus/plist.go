@@ -4,7 +4,7 @@ import (
 	"github.com/FactomProject/FactomCode/wire"
 )
 
-// Process list contains a list of valid confirmation messages
+// ProcessList contains a list of valid confirmation messages
 // and is used for consensus building
 type ProcessList struct {
 	plItems    []*ProcessListItem
@@ -12,7 +12,7 @@ type ProcessList struct {
 	totalItems int
 }
 
-// Process list contains a list of valid confirmation messages
+// ProcessListItem  contains a list of valid confirmation messages
 // and is used for consensus building
 type ProcessListItem struct {
 	Ack     *wire.MsgAck
@@ -20,7 +20,7 @@ type ProcessListItem struct {
 	MsgHash *wire.ShaHash
 }
 
-// create a new process list
+// NewProcessList creates a new process list
 func NewProcessList(sizeHint uint) *ProcessList {
 	return &ProcessList{
 		plItems:    make([]*ProcessListItem, 0, sizeHint),
@@ -29,7 +29,7 @@ func NewProcessList(sizeHint uint) *ProcessList {
 	}
 }
 
-// Add the process list entry in the right slot
+// AddToProcessList Adds the process list entry in the right slot
 func (pl *ProcessList) AddToProcessList(pli *ProcessListItem) error {
 	// Increase the slice capacity if needed
 	if pli.Ack.Index >= uint32(cap(pl.plItems)) {
@@ -45,7 +45,24 @@ func (pl *ProcessList) AddToProcessList(pli *ProcessListItem) error {
 	return nil
 }
 
-// Get Process lit items
+// GetPLItems Get Process lit items
 func (pl *ProcessList) GetPLItems() []*ProcessListItem {
 	return pl.plItems
+}
+
+// GetMissingMsg Gets Process lit item based on missing msg, and returns either
+// ack or msg based on the type of msg missing.
+func (pl *ProcessList) GetMissingMsg(msg *wire.MsgMissing) wire.Message {
+	for _, item := range pl.plItems {
+		if item.Ack.Height == msg.Height && item.Ack.Index == msg.Index {
+			if msg.IsEomAck() {
+				return item.Ack
+			}
+			m, ok := item.Msg.(wire.Message)
+			if ok {
+				return m
+			}
+		}
+	}
+	return nil
 }

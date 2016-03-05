@@ -134,6 +134,13 @@ func newNetAddress(addr net.Addr, services wire.ServiceFlag) (*wire.NetAddress, 
 	return na, nil
 }
 
+// ackMsg packages a ACK message and the peer it came from together
+// so the processor has access to that information.
+type ackMsg struct {
+	ack  *wire.MsgAck
+	peer *peer
+}
+
 // outMsg is used to house a message to be sent along with a channel to signal
 // when the message has been sent (or won't be sent due to things such as
 // shutdown)
@@ -1101,6 +1108,9 @@ out:
 
 		case *wire.MsgNextLeaderResp:
 			p.handleNextLeaderRespMsg(msg)
+
+		case *wire.MsgMissing:
+			p.handleMissingMsg(msg)
 
 		default:
 			peerLog.Debugf("Received unhandled message of type %v: Fix Me",
@@ -2355,7 +2365,8 @@ func (p *peer) handleRevealEntryMsg(msg *wire.MsgRevealEntry) {
 func (p *peer) handleAckMsg(msg *wire.MsgAck) {
 	// Add the msg to inbound msg queue
 	if !ClientOnly {
-		inMsgQueue <- msg
+		//inMsgQueue <- msg
+		p.server.blockManager.QueueAck(msg, p)
 	}
 	// this peer is a leader Peer. update it if necessary
 	peerLog.Debugf("handleAckMsg: current Leader Peer:%s, Ack coming from peer: %s",
@@ -2471,4 +2482,17 @@ func (p *peer) handleNextLeaderRespMsg(msg *wire.MsgNextLeaderResp) {
 		p.server.isLeaderElected = false
 	}
 	// non-leader needs to do nothing here.
+}
+
+// MsgMissing is triggered by ack from leader. So this peer/server has to be leader
+func (p *peer) handleMissingMsg(msg *wire.MsgMissing) {
+	fmt.Printf("handleMissingMsg: %s\n", spew.Sdump(msg))
+	if !p.server.isLeader {
+		fmt.Println("MsgMissing has to be handled by the leader")
+		return
+	}
+	m := plMgr.MyProcessList.GetMissingMsg(msg)
+	if m != nil {
+		p.QueueMessage(m, nil)
+	}
 }

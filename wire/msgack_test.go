@@ -10,7 +10,7 @@ import (
 
 func TestMsgACK(t *testing.T) {
 	t.Log("\nTestAck===========================================================================")
-	ack := wire.NewMsgAck(1, 2, nil, wire.END_MINUTE_10)
+	ack := wire.NewMsgAck(1, 2, nil, wire.EndMinute10)
 
 	// Sign the ack using server private keys
 	b, _ := ack.GetBinaryForSignature()

@@ -16,24 +16,24 @@ import (
 
 // Ack Type
 const (
-	ACK_FACTOID_TX uint8 = iota
-	END_MINUTE_1
-	END_MINUTE_2
-	END_MINUTE_3
-	END_MINUTE_4
-	END_MINUTE_5
-	END_MINUTE_6
-	END_MINUTE_7
-	END_MINUTE_8
-	END_MINUTE_9
-	END_MINUTE_10
-	ACK_REVEAL_ENTRY
-	ACK_COMMIT_CHAIN
-	ACK_REVEAL_CHAIN
-	ACK_COMMIT_ENTRY
+	AckFactoidTx uint8 = iota
+	EndMinute1
+	EndMinute2
+	EndMinute3
+	EndMinute4
+	EndMinute5
+	EndMinute6
+	EndMinute7
+	EndMinute8
+	EndMinute9
+	EndMinute10
+	AckRevealEntry
+	AckCommitChain
+	AckRevealChain
+	AckCommitEntry
 
-	END_MINUTE
-	NON_END_MINUTE
+	EndMinute
+	NonEndMinute
 )
 
 // MsgAck is the message sent out by the leader to the followers for
@@ -172,7 +172,7 @@ func (msg *MsgAck) Clone() *MsgAck {
 
 // IsEomAck checks if it's a EOM ack
 func (msg *MsgAck) IsEomAck() bool {
-	if END_MINUTE_1 <= msg.Type && msg.Type <= END_MINUTE_10 {
+	if EndMinute1 <= msg.Type && msg.Type <= EndMinute10 {
 		return true
 	}
 	return false

@@ -59,29 +59,25 @@ func (mp *ftmMemPool) getDirBlockSigPool() []*wire.MsgDirBlockSig {
 // addAck add the ack to ackpool and find it's acknowledged msg.
 // then add them to ftmMemPool if available.
 // otherwise return missing acked msg.
-func (mp *ftmMemPool) addAck(ack *wire.MsgAck) *wire.Message {
+func (mp *ftmMemPool) addAck(ack *wire.MsgAck) *wire.MsgMissing {
 	if ack == nil {
 		return nil
 	}
 	procLog.Infof("ftmMemPool.addAck: %+v\n", ack)
 	// check duplication first
 	a := mp.ackpool[ack.Index]
-	//if a != nil {
-	//procLog.Infof("ftmMemPool.addAck: compare ack: %+v\n", a)
-	//}
 	if a != nil && ack.Equals(a) {
 		fmt.Println("duplicated ack: ignore it")
 		return nil
 	}
 	mp.ackpool[ack.Index] = ack
-	if ack.Type == wire.ACK_REVEAL_ENTRY || ack.Type == wire.ACK_REVEAL_CHAIN ||
-		ack.Type == wire.ACK_COMMIT_CHAIN || ack.Type == wire.ACK_COMMIT_ENTRY {
+	if ack.Type == wire.AckRevealEntry || ack.Type == wire.AckRevealChain ||
+		ack.Type == wire.AckCommitChain || ack.Type == wire.AckCommitEntry {
 		msg := mp.pool[*ack.Affirmation]
 		if msg == nil {
 			// missing msg and request it from the leader ???
 			// create a new msg type
-			// req := wire.NewMissingMsg(msgHash, Height, Type)
-			// return req
+			return wire.NewMsgMissing(ack.Height, ack.Index, ack.Type)
 		} else {
 			pli := &consensus.ProcessListItem{
 				Ack:     ack,
@@ -101,19 +97,14 @@ func (mp *ftmMemPool) addAck(ack *wire.MsgAck) *wire.Message {
 	return nil
 }
 
-func (mp *ftmMemPool) getMissingMsgAck(ack *wire.MsgAck) []*wire.MsgAck {
+func (mp *ftmMemPool) getMissingMsgAck(ack *wire.MsgAck) []*wire.MsgMissing {
 	var i uint32
-	var missingAcks []*wire.MsgAck
+	var missingAcks []*wire.MsgMissing
 	for i = 0; i <= ack.Index; i++ {
 		if mp.ackpool[i] == nil {
 			// missing an ACK here. request for this ack
-			//a := ack.Clone()
-			//a.Index = i
-			a := &wire.MsgAck{
-				Height: ack.Height,
-				Index:  i,
-			}
-			missingAcks = append(missingAcks, a)
+			m := wire.NewMsgMissing(ack.Height, ack.Index, ack.Type)
+			missingAcks = append(missingAcks, m)
 			procLog.Infof("Missing an Ack at index=%d", i)
 		}
 	}
@@ -133,7 +124,7 @@ func (mp *ftmMemPool) assembleFollowerProcessList(ack *wire.MsgAck) error {
 	fmt.Println("assembleFollowerProcessList: (plMgr.NextDBlockHeight) target height=", height)
 	for i := 0; i < 10; i++ {
 		msgEom := &wire.MsgInt_EOM{
-			EOM_Type:         wire.END_MINUTE_1 + byte(i),
+			EOM_Type:         wire.EndMinute1 + byte(i),
 			NextDBlockHeight: height,
 		}
 		plMgr.AddToLeadersProcessList(msgEom, nil, msgEom.EOM_Type)
@@ -146,8 +137,8 @@ func (mp *ftmMemPool) assembleFollowerProcessList(ack *wire.MsgAck) error {
 	//???
 	/*
 		// simply validation
-		if ack.Type != wire.END_MINUTE_10 || mp.ackpool[len(mp.ackpool)-1] != ack {
-			return fmt.Errorf("the last ack has to be END_MINUTE_10")
+		if ack.Type != wire.EndMinute10 || mp.ackpool[len(mp.ackpool)-1] != ack {
+			return fmt.Errorf("the last ack has to be EndMinute10")
 		}
 		procLog.Info("acpool.len=", len(mp.ackpool)) //, spew.Sdump(mp.ackpool))
 		for i := 0; i < len(mp.ackpool); i++ {

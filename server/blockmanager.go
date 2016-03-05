@@ -250,7 +250,6 @@ func (b *blockManager) haveInventory(invVect *wire.InvVect) (bool, error) {
 func (b *blockManager) blockHandler() {
 	b.wg.Add(1)
 	defer func() {
-		//fmt.Println("wg.Done for blockHandler")
 		b.wg.Done()
 	}()
 
@@ -278,6 +277,9 @@ out:
 
 			case *dirInvMsg:
 				b.handleDirInvMsg(msg)
+
+			case *ackMsg:
+				b.handleAckMsg(msg)
 
 			default:
 				bmgrLog.Warnf("Invalid message type in block "+
@@ -564,6 +566,17 @@ func (b *blockManager) handleDirInvMsg(imsg *dirInvMsg) {
 	}
 }
 
+// QueueAck adds the passed Ack message and peer to the block handling queue.
+func (b *blockManager) QueueAck(msg *wire.MsgAck, p *peer) {
+	// Don't accept more blocks if we're shutting down.
+	if atomic.LoadInt32(&b.shutdown) != 0 {
+		p.blockProcessed <- struct{}{}
+		return
+	}
+
+	b.msgChan <- &ackMsg{ack: msg, peer: p}
+}
+
 // QueueDirBlock adds the passed GetDirBlocks message and peer to the block handling queue.
 func (b *blockManager) QueueDirBlock(msg *wire.MsgDirBlock, p *peer) {
 	// Don't accept more blocks if we're shutting down.
@@ -673,4 +686,19 @@ func (b *blockManager) isSyncCandidateFactom(p *peer) bool {
 		return true
 	}
 	return true
+}
+
+// handleAckMsg handles ACK messages from all peers.
+func (b *blockManager) handleAckMsg(amsg *ackMsg) {
+	missingMsgs, err := processAckMsg(amsg.ack)
+	if err != nil {
+		fmt.Println("blockManager.handleAckMsg: ", err.Error())
+		//code, reason := errToRejectErr(err)
+		//amsg.peer.PushRejectMsg(wire.CmdAck, code, reason, blockSha, false)
+		return
+	}
+	for _, m := range missingMsgs {
+		//amsg.peer.pushGetMissingMsg(m)
+		amsg.peer.QueueMessage(m, nil)
+	}
 }

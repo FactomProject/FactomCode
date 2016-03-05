@@ -10,28 +10,16 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-
-	"github.com/FactomProject/FactomCode/common"
 )
 
 // MsgMissing is used to request missing msg, ack and blocks during or after
 // process list and building blocks
 type MsgMissing struct {
-	Height    uint32 //DBHeight for this process list
-	Index     uint32 //offset in this process list
-	Type      byte   //See Ack / msg types and InvTypes of blocks
-	ReqNodeID string // requestor's nodeID
-	Sig       common.Signature
-}
-
-// Sign is used to sign this message
-func (msg *MsgMissing) Sign(priv *common.PrivateKey) error {
-	bytes, err := msg.GetBinaryForSignature()
-	if err != nil {
-		return err
-	}
-	msg.Sig = priv.Sign(bytes)
-	return nil
+	Height uint32 //DBHeight for this process list
+	Index  uint32 //offset in this process list
+	Type   byte   //See Ack / msg types and InvTypes of blocks
+	//ReqNodeID string // requestor's nodeID
+	//Sig       common.Signature
 }
 
 // GetBinaryForSignature Writes out the MsgMissing (excluding Signature) to binary.
@@ -40,7 +28,7 @@ func (msg *MsgMissing) GetBinaryForSignature() (data []byte, err error) {
 	binary.Write(&buf, binary.BigEndian, msg.Height)
 	binary.Write(&buf, binary.BigEndian, msg.Index)
 	buf.WriteByte(msg.Type)
-	buf.Write([]byte(msg.ReqNodeID))
+	//buf.Write([]byte(msg.ReqNodeID))
 	return buf.Bytes(), err
 }
 
@@ -55,10 +43,11 @@ func (msg *MsgMissing) BtcDecode(r io.Reader, pver uint32) error {
 
 	msg.Height, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 	msg.Index, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
-	msg.Type, newData = newData[0], newData[1:]
-	len := len(newData) - 96
-	msg.ReqNodeID = string(newData[:len])
-	msg.Sig = common.UnmarshalBinarySignature(newData[len:])
+	msg.Type = newData[0]
+	//msg.Type, newData = newData[0], newData[1:]
+	//len := len(newData) - 96
+	//msg.ReqNodeID = string(newData[:len])
+	//msg.Sig = common.UnmarshalBinarySignature(newData[len:])
 	return nil
 }
 
@@ -70,9 +59,9 @@ func (msg *MsgMissing) BtcEncode(w io.Writer, pver uint32) error {
 	binary.Write(&buf, binary.BigEndian, msg.Height)
 	binary.Write(&buf, binary.BigEndian, msg.Index)
 	buf.WriteByte(msg.Type)
-	buf.Write([]byte(msg.ReqNodeID))
-	data := common.MarshalBinarySignature(msg.Sig)
-	buf.Write(data[:])
+	//buf.Write([]byte(msg.ReqNodeID))
+	//data := common.MarshalBinarySignature(msg.Sig)
+	//buf.Write(data[:])
 	w.Write(buf.Bytes())
 	return nil
 }
@@ -91,12 +80,12 @@ func (msg *MsgMissing) MaxPayloadLength(pver uint32) uint32 {
 
 // NewMsgMissing returns a new bitcoin ping message that conforms to the Message
 // interface.  See MsgMissing for details.
-func NewMsgMissing(height uint32, index uint32, typ byte, sourceID string) *MsgMissing {
+func NewMsgMissing(height uint32, index uint32, typ byte) *MsgMissing {
 	return &MsgMissing{
-		Height:    height,
-		Index:     index,
-		Type:      typ,
-		ReqNodeID: sourceID,
+		Height: height,
+		Index:  index,
+		Type:   typ,
+		//ReqNodeID: sourceID,
 	}
 }
 
@@ -111,7 +100,7 @@ func (msg *MsgMissing) Sha() (ShaHash, error) {
 
 // IsEomAck checks if it's a EOM ack
 func (msg *MsgMissing) IsEomAck() bool {
-	if END_MINUTE_1 <= msg.Type && msg.Type <= END_MINUTE_10 {
+	if EndMinute1 <= msg.Type && msg.Type <= EndMinute10 {
 		return true
 	}
 	return false
@@ -121,7 +110,7 @@ func (msg *MsgMissing) IsEomAck() bool {
 func (msg *MsgMissing) Equals(ack *MsgMissing) bool {
 	return msg.Height == ack.Height &&
 		msg.Index == ack.Index &&
-		msg.Type == ack.Type &&
-		msg.ReqNodeID == ack.ReqNodeID &&
-		msg.Sig.Equals(ack.Sig)
+		msg.Type == ack.Type //&&
+	//msg.ReqNodeID == ack.ReqNodeID &&
+	//msg.Sig.Equals(ack.Sig)
 }
