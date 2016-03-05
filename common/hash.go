@@ -176,7 +176,6 @@ func (a *Hash) IsSameAs(b *Hash) bool {
 
 // Is the hash a minute marker (the last byte indicates the minute number)
 func (h *Hash) IsMinuteMarker() bool {
-	
 
 	if bytes.Equal(h.bytes[:31], ZERO_HASH[:31]) {
 		return true

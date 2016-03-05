@@ -98,12 +98,12 @@ func (c *CommitChain) InTime() bool {
 }
 
 func (c *CommitChain) IsValid() bool {
-	
+
 	//double check the credits in the commit
 	if c.Credits < 1 || c.Version != 0 {
 		return false
 	}
-	
+
 	return ed.VerifyCanonical(c.ECPubKey, c.CommitMsg(), c.Sig)
 }
 
