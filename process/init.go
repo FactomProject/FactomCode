@@ -197,12 +197,12 @@ func initFctChain() {
 		// func GetGenesisFBlock(ftime uint64, ExRate uint64, addressCnt int, Factoids uint64 ) IFBlock {
 		//fchain.NextBlock = block.GetGenesisFBlock(0, FactoshisPerCredit, 10, 200000000000)
 		fchain.NextBlock = block.GetGenesisFBlock()
-		gb:=fchain.NextBlock
-        
-        // If a client, this block is going to get downloaded and added.  Don't do it twice.
-        if nodeMode == common.SERVER_NODE {
+		gb := fchain.NextBlock
+
+		// If a client, this block is going to get downloaded and added.  Don't do it twice.
+		if nodeMode == common.SERVER_NODE {
 			err := common.FactoidState.AddTransactionBlock(gb)
-			if err != nil { 
+			if err != nil {
 				panic(err)
 			}
 		}
@@ -354,7 +354,7 @@ func validateDChain(c *common.DChain) error {
 		// panic for Milestone 1
 		panic("Genesis Block wasn't as expected:\n" +
 			"    Expected: " + common.GENESIS_DIR_BLOCK_HASH + "\n" +
-			"    Found:    " + prevBlkHash.String())		
+			"    Found:    " + prevBlkHash.String())
 
 	}
 

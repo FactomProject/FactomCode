@@ -1,4 +1,4 @@
-//  Goxed because it goes away too long... Maybe this should have a 
+//  Goxed because it goes away too long... Maybe this should have a
 //  short test and skip.
 
 package anchor
@@ -9,7 +9,6 @@ import (
 	//"reflect"
 	"testing"
 	//"time"
-
 	//"github.com/FactomProject/FactomCode/common"
 	//"github.com/FactomProject/FactomCode/database"
 	//"github.com/FactomProject/FactomCode/database/ldb"
@@ -19,7 +18,6 @@ import (
 	//"github.com/btcsuitereleases/btcutil"
 	//"github.com/FactomProject/go-spew/spew"
 )
-
 
 func TestInitRPCClient(t *testing.T) {
 	fmt.Println("* see details in ~/.factom/logs/factom-d.log")
@@ -254,4 +252,3 @@ func initDB() database.Db {
 	return db
 }
 */
-

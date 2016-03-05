@@ -1,9 +1,9 @@
 package util_test
 
 import (
+	. "github.com/FactomProject/FactomCode/util"
 	"gopkg.in/gcfg.v1"
 	"testing"
-	. "github.com/FactomProject/FactomCode/util"
 )
 
 func TestLoadDefaultConfig(t *testing.T) {
@@ -50,7 +50,6 @@ func TestLoadDefaultConfig(t *testing.T) {
 		t.Errorf("Wrong variable read - %v", cfg.Test.Bar)
 	}
 }
-
 
 func TestLoadDefaultConfigFull(t *testing.T) {
 	var defaultConfig string = `

@@ -5,8 +5,8 @@
 package common
 
 import (
-	"fmt"
 	"encoding/json"
+	"fmt"
 	"time"
 )
 
@@ -24,20 +24,19 @@ const (
 	MAX_TX_POOL_SIZE  = int(50000)    //Transaction mem pool size
 	MAX_BLK_POOL_SIZE = int(500000)   //Block mem bool size
 	MAX_PLIST_SIZE    = int(150000)   //MY Process List size
-	
-	MAX_ENTRY_CREDITS = uint8(10)	  //Max number of entry credits per entry
-	MAX_CHAIN_CREDITS = uint8(20)	  //Max number of entry credits per chain
-	
-	COMMIT_TIME_WINDOW = time.Duration(12)	  //Time windows for commit chain and commit entry +/- 12 hours
 
-	
+	MAX_ENTRY_CREDITS = uint8(10) //Max number of entry credits per entry
+	MAX_CHAIN_CREDITS = uint8(20) //Max number of entry credits per chain
+
+	COMMIT_TIME_WINDOW = time.Duration(12) //Time windows for commit chain and commit entry +/- 12 hours
+
 	// maxProtocolVersion is the max protocol version the peer supports.
 	//Common constants
-	VERSION_0         = byte(0)
-	FACTOMD_VERSION   = 3005002               //fixed point. resolves to 0.<minor1 release>.<minor2 release>.<minor3 release>
-	NETWORK_ID_DB 	  = uint32(4203931041) //0xFA92E5A1
-	NETWORK_ID_EB     = uint32(4203931042) //0xFA92E5A2
-	NETWORK_ID_CB     = uint32(4203931043) //0xFA92E5A3
+	VERSION_0       = byte(0)
+	FACTOMD_VERSION = 3005002            //fixed point. resolves to 0.<minor1 release>.<minor2 release>.<minor3 release>
+	NETWORK_ID_DB   = uint32(4203931041) //0xFA92E5A1
+	NETWORK_ID_EB   = uint32(4203931042) //0xFA92E5A2
+	NETWORK_ID_CB   = uint32(4203931043) //0xFA92E5A3
 
 	//For Factom TestNet
 	NETWORK_ID_TEST = uint32(0) //0x0
@@ -51,7 +50,6 @@ const (
 	GENESIS_BLK_TIMESTAMP = "2015-09-01T20:00:00+00:00"
 	//Genesis directory block hash
 	GENESIS_DIR_BLOCK_HASH = "cbd3d09db6defdc25dfc7d57f3479b339a077183cd67022e6d1ef6c041522b40"
-
 )
 
 //---------------------------------------------------------------
@@ -92,20 +90,20 @@ var ZERO_HASH = []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
 // Structure for reporting properties (used by the web API
 //
 type Properties struct {
-	Protocol_Version  int
-	Factomd_Version	  int
+	Protocol_Version int
+	Factomd_Version  int
 }
 
 func (p *Properties) MarshalJSON() ([]byte, error) {
 	type tmp struct {
-		Protocol_Version  string
-		Factomd_Version	  string
+		Protocol_Version string
+		Factomd_Version  string
 	}
 	t := new(tmp)
-	
-	t.Protocol_Version = versionToString(p.Protocol_Version*1000)
+
+	t.Protocol_Version = versionToString(p.Protocol_Version * 1000)
 	t.Factomd_Version = versionToString(p.Factomd_Version)
-	
+
 	return json.Marshal(t)
 }
 
@@ -114,9 +112,9 @@ func (p *Properties) MarshalJSON() ([]byte, error) {
 func versionToString(f int) string {
 
 	v0 := f / 1000000000
-	v1 := (f % 1000000000 ) / 1000000
+	v1 := (f % 1000000000) / 1000000
 	v2 := (f % 1000000) / 1000
 	v3 := f % 1000
-	
+
 	return fmt.Sprintf("%d.%d.%d.%d", v0, v1, v2, v3)
 }
