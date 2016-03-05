@@ -209,7 +209,7 @@ func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, d
 		if h.String() != common.GENESIS_DIR_BLOCK_HASH {
 			// panic for milestone 1
 			panic("\nGenesis block hash expected: " + common.GENESIS_DIR_BLOCK_HASH +
-				"\nGenesis block hash found:    " + h.String() + "\n")			
+				"\nGenesis block hash found:    " + h.String() + "\n")
 			//procLog.Errorf("Genesis dir block is not as expected: " + h.String())
 		}
 	}
@@ -242,7 +242,7 @@ func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, d
 				// validate every entry in EBlock
 				for _, ebEntry := range eBlkMsg.EBlk.Body.EBEntries {
 					if _, foundInMemPool := fMemPool.blockpool[ebEntry.String()]; !foundInMemPool {
-						if !bytes.Equal(ebEntry.Bytes()[:31],common.ZERO_HASH[:31]) {
+						if !bytes.Equal(ebEntry.Bytes()[:31], common.ZERO_HASH[:31]) {
 							// continue if the entry arleady exists in db
 							entry, _ := db.FetchEntryByHash(ebEntry)
 							if entry == nil {
@@ -316,7 +316,7 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 			}
 
 			// create a chain when it's the first block of the entry chain
-			if eBlkMsg.EBlk.Header.EBSequence == 0 {			
+			if eBlkMsg.EBlk.Header.EBSequence == 0 {
 				chain := new(common.EChain)
 				chain.ChainID = eBlkMsg.EBlk.Header.ChainID
 				chain.FirstEntry, _ = db.FetchEntryByHash(eBlkMsg.EBlk.Body.EBEntries[0])
@@ -325,7 +325,7 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 				}
 
 				db.InsertChain(chain)
-				chainIDMap[chain.ChainID.String()] = chain				
+				chainIDMap[chain.ChainID.String()] = chain
 			}
 
 			// for debugging
@@ -351,7 +351,7 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 
 // Validate the new blocks in mem pool and store them in db
 func deleteBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool) error {
-
+	fMemPool.Lock()
 	for _, dbEntry := range b.DBEntries {
 		switch dbEntry.ChainID.String() {
 		case ecchain.ChainID.String():
@@ -369,7 +369,7 @@ func deleteBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool) err
 		}
 	}
 	fMemPool.deleteBlockMsg(strconv.Itoa(int(b.Header.DBHeight)))
-
+	fMemPool.Unlock()
 	return nil
 }
 
