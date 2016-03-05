@@ -214,6 +214,9 @@ func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, d
 		}
 	}
 
+	fMemPool.RLock()
+	defer fMemPool.RUnlock()
+
 	for _, dbEntry := range b.DBEntries {
 		switch dbEntry.ChainID.String() {
 		case ecchain.ChainID.String():
@@ -261,6 +264,8 @@ func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, d
 // Validate the new blocks in mem pool and store them in db
 // Need to make a batch insert in db in milestone 2
 func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db database.Db) error {
+	fMemPool.RLock()
+	defer fMemPool.RUnlock()
 
 	for _, dbEntry := range b.DBEntries {
 		switch dbEntry.ChainID.String() {
@@ -351,7 +356,7 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 
 // Validate the new blocks in mem pool and store them in db
 func deleteBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool) error {
-	fMemPool.Lock()
+
 	for _, dbEntry := range b.DBEntries {
 		switch dbEntry.ChainID.String() {
 		case ecchain.ChainID.String():
@@ -361,7 +366,9 @@ func deleteBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool) err
 		case fchain.ChainID.String():
 			fMemPool.deleteBlockMsg(dbEntry.KeyMR.String())
 		default:
+			fMemPool.RLock()
 			eBlkMsg, _ := fMemPool.blockpool[dbEntry.KeyMR.String()].(*wire.MsgEBlock)
+			fMemPool.RUnlock()
 			for _, ebEntry := range eBlkMsg.EBlk.Body.EBEntries {
 				fMemPool.deleteBlockMsg(ebEntry.String())
 			}
@@ -369,7 +376,7 @@ func deleteBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool) err
 		}
 	}
 	fMemPool.deleteBlockMsg(strconv.Itoa(int(b.Header.DBHeight)))
-	fMemPool.Unlock()
+
 	return nil
 }
 
