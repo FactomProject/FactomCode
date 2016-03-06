@@ -110,7 +110,6 @@ func (mp *ftmMemPool) getMissingMsgAck(ack *wire.MsgAck) []*wire.MsgMissing {
 		return missingAcks
 	}
 	for i := int(ack.Index - 1); i >= 0; i-- {
-		fmt.Println("i=", i)
 		if mp.ackpool[uint32(i)] == nil {
 			// missing an ACK here.
 			m := wire.NewMsgMissing(ack.Height, uint32(i), wire.Unknown)
@@ -125,54 +124,33 @@ func (mp *ftmMemPool) getMissingMsgAck(ack *wire.MsgAck) []*wire.MsgMissing {
 }
 
 func (mp *ftmMemPool) assembleFollowerProcessList(ack *wire.MsgAck) error {
-	/*
-		//do a simple happy path for now ???
-		var height uint32
-		for i := len(mp.ackpool) - 1; i >= 0; i-- {
-			if mp.ackpool[i] != nil {
-				height = mp.ackpool[i].Height
-				break
-			}
-		}
-		plMgr.NextDBlockHeight = height
-		fmt.Println("assembleFollowerProcessList: (plMgr.NextDBlockHeight) target height=", height)
-		for i := 0; i < 10; i++ {
-			msgEom := &wire.MsgInt_EOM{
-				EOM_Type:         wire.EndMinute1 + byte(i),
-				NextDBlockHeight: height,
-			}
-			plMgr.AddToLeadersProcessList(msgEom, nil, msgEom.EOM_Type)
-			if ack.ChainID == nil {
-				ack.ChainID = dchain.ChainID
-			}
-		}
-		return nil
-	*/
-
 	// simply validation
 	if ack.Type != wire.EndMinute10 || mp.ackpool[ack.Index] != ack {
 		return fmt.Errorf("the last ack has to be EndMinute10")
 	}
-	//fmt.Println("acpool.len=", len(mp.ackpool)) //, spew.Sdump(mp.ackpool))
 	var msg wire.Message
+	var hash *wire.ShaHash
 	for i := 0; i < len(mp.ackpool); i++ {
 		if mp.ackpool[i] == nil {
 			// missing an ACK here
-			// todo: request for this ack, panic for now
-			//panic(fmt.Sprintf("assembleFollowerProcessList: Missing an Ack in ackpool at index=%d", i))
-			fmt.Printf("assembleFollowerProcessList: Missing an Ack in ackpool at index=%d\n", i)
+			// todo: it might be too late to request for this ack ???
+			fmt.Printf("ERROR: assembleFollowerProcessList: Missing an Ack in ackpool at index=%d\n", i)
 			continue
 		}
 		if mp.ackpool[i].Affirmation != nil {
 			msg = mp.pool[*mp.ackpool[i].Affirmation]
 		}
 		if msg == nil && !mp.ackpool[i].IsEomAck() {
-			//panic(fmt.Sprintf("assembleFollowerProcessList: Missing an msg in pool at index=%d", i))
-			fmt.Printf("assembleFollowerProcessList: Missing a MSG in pool at index=%d\n", i)
+			fmt.Printf("ERROR: assembleFollowerProcessList: Missing a MSG in pool at index=%d\n", i)
 			continue
 		}
-		plMgr.AddToFollowersProcessList(msg, mp.ackpool[i])
-		if mp.ackpool[i].Type != wire.EndMinute10 {
+		if msg == nil {
+			hash = nil
+		} else {
+			hash = mp.ackpool[i].Affirmation
+		}
+		plMgr.AddToFollowersProcessList(msg, mp.ackpool[i], hash)
+		if mp.ackpool[i].Type == wire.EndMinute10 {
 			break
 		}
 	}

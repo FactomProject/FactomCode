@@ -26,9 +26,9 @@ func NewProcessListMgr(height uint32, otherPLSize int, plSizeHint uint, privKey 
 }
 
 // Create a new process list item and add it to the MyProcessList
-func (plMgr *ProcessListMgr) AddToFollowersProcessList(msg wire.Message, ack *wire.MsgAck) error {
+func (plMgr *ProcessListMgr) AddToFollowersProcessList(msg wire.Message, ack *wire.MsgAck, hash *wire.ShaHash) error {
 	err := ack.Sign(&plMgr.serverPrivKey)
-	if err!=nil {
+	if err != nil {
 		return err
 	}
 	plMgr.MyProcessList.nextIndex++
@@ -36,18 +36,18 @@ func (plMgr *ProcessListMgr) AddToFollowersProcessList(msg wire.Message, ack *wi
 	plItem := &ProcessListItem{
 		Ack:     ack,
 		Msg:     msg,
-		MsgHash: ack.Affirmation,
+		MsgHash: hash,
 	}
 	plMgr.MyProcessList.AddToProcessList(plItem)
 	return nil
 }
 
 // Create a new process list item and add it to the MyProcessList
-func (plMgr *ProcessListMgr) AddToLeadersProcessList(msg wire.FtmInternalMsg, hash *wire.ShaHash, msgType byte) (ack *wire.MsgAck, err error) {
-	ack = wire.NewMsgAck(plMgr.NextDBlockHeight, uint32(plMgr.MyProcessList.nextIndex), hash, msgType)
+func (plMgr *ProcessListMgr) AddToLeadersProcessList(msg wire.FtmInternalMsg, hash *wire.ShaHash, msgType byte, timestamp uint32) (ack *wire.MsgAck, err error) {
+	ack = wire.NewMsgAck(plMgr.NextDBlockHeight, uint32(plMgr.MyProcessList.nextIndex), hash, msgType, timestamp)
 	// Sign the ack using server private keys
 	err = ack.Sign(&plMgr.serverPrivKey)
-	if err!=nil {
+	if err != nil {
 		return nil, err
 	}
 	plMgr.MyProcessList.nextIndex++

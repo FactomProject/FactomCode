@@ -40,13 +40,14 @@ const (
 // MsgAck is the message sent out by the leader to the followers for
 // message it receives and puts into process list.
 type MsgAck struct {
-	Height      uint32
-	ChainID     *common.Hash
-	Index       uint32
-	Type        byte
-	Affirmation *ShaHash // affirmation value -- hash of the message/object in question
-	SerialHash  [32]byte
-	Signature   [64]byte
+	Height          uint32
+	ChainID         *common.Hash
+	Index           uint32
+	Type            byte
+	DBlockTimestamp uint32   // timestamp from leader used for DBlock.Timestamp for followers
+	Affirmation     *ShaHash // affirmation value -- hash of the message/object in question
+	SerialHash      [32]byte
+	Signature       [64]byte
 }
 
 // Sign is used to sign this message
@@ -73,7 +74,8 @@ func (msg *MsgAck) GetBinaryForSignature() (data []byte, err error) {
 		buf.Write(data)
 	}
 	binary.Write(&buf, binary.BigEndian, msg.Index)
-	buf.Write([]byte{msg.Type})
+	buf.WriteByte(msg.Type)
+	//binary.Write(&buf, binary.BigEndian, msg.DBlockTimestamp)
 	buf.Write(msg.Affirmation.Bytes())
 	buf.Write(msg.SerialHash[:])
 	return buf.Bytes(), err
@@ -82,8 +84,8 @@ func (msg *MsgAck) GetBinaryForSignature() (data []byte, err error) {
 // BtcDecode decodes r using the bitcoin protocol encoding into the receiver.
 // This is part of the Message interface implementation.
 func (msg *MsgAck) BtcDecode(r io.Reader, pver uint32) error {
-	//err := readElements(r, &msg.Height, msg.ChainID, &msg.Index, &msg.Type, msg.Affirmation, &msg.SerialHash, &msg.Signature)
 	newData, err := ioutil.ReadAll(r)
+	fmt.Println("btcdecode.len=", len(newData))
 	if err != nil {
 		return fmt.Errorf("MsgAck.BtcDecode reader is invalid")
 	}
@@ -98,6 +100,7 @@ func (msg *MsgAck) BtcDecode(r io.Reader, pver uint32) error {
 
 	msg.Index, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 	msg.Type, newData = newData[0], newData[1:]
+	//msg.DBlockTimestamp, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 	msg.Affirmation, _ = NewShaHash(newData[:32])
 
 	newData = newData[32:]
@@ -110,15 +113,16 @@ func (msg *MsgAck) BtcDecode(r io.Reader, pver uint32) error {
 // BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
 // This is part of the Message interface implementation.
 func (msg *MsgAck) BtcEncode(w io.Writer, pver uint32) error {
-	//err := writeElements(w, msg.Height, msg.ChainID, msg.Index, msg.Type, msg.Affirmation, msg.SerialHash, msg.Signature)
 	var buf bytes.Buffer
 	binary.Write(&buf, binary.BigEndian, msg.Height)
 	buf.Write(msg.ChainID.Bytes())
 	binary.Write(&buf, binary.BigEndian, msg.Index)
 	buf.WriteByte(msg.Type)
+	//binary.Write(&buf, binary.BigEndian, msg.DBlockTimestamp)
 	buf.Write(msg.Affirmation.Bytes())
 	buf.Write(msg.SerialHash[:])
 	buf.Write(msg.Signature[:])
+	fmt.Println("btcencode.len=", buf.Len())
 	w.Write(buf.Bytes())
 	return nil
 }
@@ -132,22 +136,22 @@ func (msg *MsgAck) Command() string {
 // MaxPayloadLength returns the maximum length the payload can be for the
 // receiver.  This is part of the Message interface implementation.
 func (msg *MsgAck) MaxPayloadLength(pver uint32) uint32 {
-	// 10K is too big of course, TODO: adjust
-	return MaxAppMsgPayload
+	return 173 //4 + 32 + 4 + 1 + 4 + 32 + 32 + 64
 }
 
 // NewMsgAck returns a new bitcoin ping message that conforms to the Message
 // interface.  See MsgAck for details.
-func NewMsgAck(height uint32, index uint32, affirm *ShaHash, ackType byte) *MsgAck {
+func NewMsgAck(height uint32, index uint32, affirm *ShaHash, ackType byte, timestamp uint32) *MsgAck {
 	if affirm == nil {
 		affirm = new(ShaHash)
 	}
 	return &MsgAck{
-		Height:      height,
-		ChainID:     common.NewHash(), //TODO: get the correct chain id from processor
-		Index:       index,
-		Affirmation: affirm,
-		Type:        ackType,
+		Height:          height,
+		ChainID:         common.NewHash(), //TODO: get the correct chain id from processor
+		Index:           index,
+		DBlockTimestamp: timestamp,
+		Affirmation:     affirm,
+		Type:            ackType,
 	}
 }
 
@@ -163,11 +167,12 @@ func (msg *MsgAck) Sha() (ShaHash, error) {
 // Clone creates a new MsgAck with the same value
 func (msg *MsgAck) Clone() *MsgAck {
 	return &MsgAck{
-		Height:      msg.Height,
-		ChainID:     msg.ChainID,
-		Index:       msg.Index,
-		Affirmation: msg.Affirmation,
-		Type:        msg.Type,
+		Height:          msg.Height,
+		ChainID:         msg.ChainID,
+		Index:           msg.Index,
+		DBlockTimestamp: msg.DBlockTimestamp,
+		Affirmation:     msg.Affirmation,
+		Type:            msg.Type,
 	}
 }
 
@@ -184,6 +189,7 @@ func (msg *MsgAck) Equals(ack *MsgAck) bool {
 	return msg.Height == ack.Height &&
 		msg.Index == ack.Index &&
 		msg.Type == ack.Type &&
+		msg.DBlockTimestamp == ack.DBlockTimestamp &&
 		msg.Affirmation.IsEqual(ack.Affirmation) &&
 		msg.ChainID.IsSameAs(ack.ChainID) &&
 		bytes.Equal(msg.SerialHash[:], ack.SerialHash[:]) &&
@@ -191,6 +197,6 @@ func (msg *MsgAck) Equals(ack *MsgAck) bool {
 }
 
 func (msg *MsgAck) String() string {
-	return fmt.Sprintf("Ack: height=%d, index=%d, type=%v",
-		msg.Height, msg.Index, msg.Type)
+	return fmt.Sprintf("Ack: height=%d, index=%d, type=%v, timestamp=%d",
+		msg.Height, msg.Index, msg.Type, msg.DBlockTimestamp)
 }

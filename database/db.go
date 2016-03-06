@@ -125,6 +125,9 @@ type Db interface {
 	// FetchECBlockByHash gets an Entry Credit block by hash from the database.
 	FetchECBlockByHash(cBlockHash *common.Hash) (ecBlock *common.ECBlock, err error)
 
+	// FetchECBlockByHeight gets an Entry Credit block by hash from the database.
+	FetchECBlockByHeight(height uint32) (ecBlock *common.ECBlock, err error)
+
 	// Initialize External ID map for explorer search
 	InitializeExternalIDMap() (extIDMap map[string]bool, err error)
 
@@ -134,14 +137,20 @@ type Db interface {
 	// FetchABlockByHash gets an admin block by hash from the database.
 	FetchABlockByHash(aBlockHash *common.Hash) (aBlock *common.AdminBlock, err error)
 
+	// FetchABlockByHeight gets an admin block by hash from the database.
+	FetchABlockByHeight(height uint32) (aBlock *common.AdminBlock, err error)
+
 	// FetchAllABlocks gets all of the admin blocks
 	FetchAllABlocks() (aBlocks []common.AdminBlock, err error)
 
 	// ProcessABlockBatch inserts the AdminBlock
 	ProcessFBlockBatch(block.IFBlock) error
 
-	// FetchABlockByHash gets an admin block by hash from the database.
+	// FetchFBlockByHash gets an factoid block by hash from the database.
 	FetchFBlockByHash(*common.Hash) (block.IFBlock, error)
+
+	// FetchFBlockByHeight gets an factoid block by hash from the database.
+	FetchFBlockByHeight(height uint32) (block.IFBlock, error)
 
 	// FetchAllABlocks gets all of the admin blocks
 	FetchAllFBlocks() ([]block.IFBlock, error)

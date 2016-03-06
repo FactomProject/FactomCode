@@ -1,13 +1,15 @@
 package ldb
 
 import (
-	//	"errors"
+	"bytes"
 	"encoding/binary"
+	"log"
+
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/factoid/block"
 	"github.com/FactomProject/goleveldb/leveldb"
+	"github.com/FactomProject/goleveldb/leveldb/iterator"
 	"github.com/FactomProject/goleveldb/leveldb/util"
-	"log"
 )
 
 // ProcessFBlockBatch inserts the factoid block
@@ -28,13 +30,13 @@ func (db *LevelDb) ProcessFBlockBatch(block block.IFBlock) error {
 		scHash := block.GetHash()
 
 		// Insert the binary factom block
-		var key []byte = []byte{byte(TBL_SC)}
+		var key = []byte{byte(TBL_SC)}
 		key = append(key, scHash.Bytes()...)
 		db.lbatch.Put(key, binaryBlock)
 
 		// Insert the sc block number cross reference
 		key = []byte{byte(TBL_SC_NUM)}
-		key = append(key, block.GetChainID().Bytes()...)
+		key = append(key, common.FACTOID_CHAINID...)
 		bytes := make([]byte, 4)
 		binary.BigEndian.PutUint32(bytes, block.GetDBHeight())
 		key = append(key, bytes...)
@@ -47,7 +49,7 @@ func (db *LevelDb) ProcessFBlockBatch(block block.IFBlock) error {
 
 		err = db.lDb.Write(db.lbatch, db.wo)
 		if err != nil {
-			log.Println("batch failed %v\n", err)
+			log.Printf("batch failed %v\n", err)
 			return err
 		}
 
@@ -57,12 +59,12 @@ func (db *LevelDb) ProcessFBlockBatch(block block.IFBlock) error {
 
 // FetchFBlockByHash gets an factoid block by hash from the database.
 func (db *LevelDb) FetchFBlockByHash(hash *common.Hash) (FBlock block.IFBlock, err error) {
-	db.dbLock.Lock()
-	defer db.dbLock.Unlock()
-
-	var key []byte = []byte{byte(TBL_SC)}
+	var key = []byte{byte(TBL_SC)}
 	key = append(key, hash.Bytes()...)
-	data, err := db.lDb.Get(key, db.ro)
+	var data []byte
+	db.dbLock.Lock()
+	data, err = db.lDb.Get(key, db.ro)
+	db.dbLock.Unlock()
 
 	if data != nil {
 		FBlock = new(block.FBlock)
@@ -74,17 +76,40 @@ func (db *LevelDb) FetchFBlockByHash(hash *common.Hash) (FBlock block.IFBlock, e
 	return FBlock, nil
 }
 
+// FetchFBlockByHeight gets an factoid block by hash from the database.
+func (db *LevelDb) FetchFBlockByHeight(height uint32) (block.IFBlock, error) {
+	var key = []byte{byte(TBL_SC_NUM)}
+	var buf bytes.Buffer
+	binary.Write(&buf, binary.BigEndian, height)
+	key = append(key, common.FACTOID_CHAINID...)
+	key = append(key, buf.Bytes()...)
+
+	var data []byte
+	var err error
+	db.dbLock.Lock()
+	data, err = db.lDb.Get(key, db.ro)
+	db.dbLock.Unlock()
+	if err != nil {
+		return nil, err
+	}
+
+	ecBlockHash := common.NewHash()
+	_, err = ecBlockHash.UnmarshalBinaryData(data)
+	if err != nil {
+		return nil, err
+	}
+	return db.FetchFBlockByHash(ecBlockHash)
+}
+
 // FetchAllFBlocks gets all of the factoid blocks
 func (db *LevelDb) FetchAllFBlocks() (FBlocks []block.IFBlock, err error) {
-	db.dbLock.Lock()
-	defer db.dbLock.Unlock()
-
-	var fromkey []byte = []byte{byte(TBL_SC)}   // Table Name (1 bytes)						// Timestamp  (8 bytes)
-	var tokey []byte = []byte{byte(TBL_SC + 1)} // Table Name (1 bytes)
-
+	var fromkey = []byte{byte(TBL_SC)}   // Table Name (1 bytes)						// Timestamp  (8 bytes)
+	var tokey = []byte{byte(TBL_SC + 1)} // Table Name (1 bytes)
+	var iter iterator.Iterator
 	FBlockSlice := make([]block.IFBlock, 0, 10)
-
-	iter := db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
+	db.dbLock.Lock()
+	iter = db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
+	db.dbLock.Unlock()
 
 	for iter.Next() {
 		FBlock := new(block.FBlock)
