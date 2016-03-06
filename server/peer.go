@@ -134,13 +134,6 @@ func newNetAddress(addr net.Addr, services wire.ServiceFlag) (*wire.NetAddress, 
 	return na, nil
 }
 
-// ackMsg packages a ACK message and the peer it came from together
-// so the processor has access to that information.
-type ackMsg struct {
-	ack  *wire.MsgAck
-	peer *peer
-}
-
 // outMsg is used to house a message to be sent along with a channel to signal
 // when the message has been sent (or won't be sent due to things such as
 // shutdown)
@@ -492,7 +485,7 @@ func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
 	p.disableRelayTx = msg.DisableRelayTx
 	p.relayMtx.Unlock()
 
-	peerLog.Info("NodeType: ", msg.NodeType, ", NodeID: ", msg.NodeID, ", NodeSig: ", spew.Sdump(msg.NodeSig))
+	peerLog.Info("NodeType: ", msg.NodeType, ", NodeID: ", msg.NodeID)
 	// only verify id/sig for federate servers
 	if common.SERVER_NODE == msg.NodeType {
 		if msg.NodeSig.Pub.Verify([]byte(msg.NodeID), msg.NodeSig.Sig) {
@@ -2424,8 +2417,8 @@ func (p *peer) shallRelay(msg interface{}) bool {
 func (p *peer) FactomRelay(msg wire.Message) {
 	// broadcast/relay only if hadn't been done for this peer
 	if p.shallRelay(msg) {
-		//		p.server.BroadcastMessage(msg, p)
-		localServer.BroadcastMessage(msg)
+		p.server.BroadcastMessage(msg)
+		//localServer.BroadcastMessage(msg)
 	}
 }
 
@@ -2488,11 +2481,13 @@ func (p *peer) handleNextLeaderRespMsg(msg *wire.MsgNextLeaderResp) {
 func (p *peer) handleMissingMsg(msg *wire.MsgMissing) {
 	fmt.Printf("handleMissingMsg: %s\n", spew.Sdump(msg))
 	if !p.server.isLeader {
-		fmt.Println("MsgMissing has to be handled by the leader")
+		fmt.Println("handleMissingMsg: MsgMissing has to be handled by the leader")
 		return
 	}
 	m := plMgr.MyProcessList.GetMissingMsg(msg)
-	if m != nil {
-		p.QueueMessage(m, nil)
+	if m == nil {
+		fmt.Printf("handleMissingMsg: found no msg/ack for missingMsg %s\n", spew.Sdump(msg))
+
 	}
+	p.QueueMessage(m, nil)
 }

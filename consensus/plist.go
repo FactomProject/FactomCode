@@ -55,7 +55,7 @@ func (pl *ProcessList) GetPLItems() []*ProcessListItem {
 func (pl *ProcessList) GetMissingMsg(msg *wire.MsgMissing) wire.Message {
 	for _, item := range pl.plItems {
 		if item.Ack.Height == msg.Height && item.Ack.Index == msg.Index {
-			if msg.IsEomAck() {
+			if item.Ack.IsEomAck() {
 				return item.Ack
 			}
 			m, ok := item.Msg.(wire.Message)

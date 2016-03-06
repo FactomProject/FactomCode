@@ -283,7 +283,7 @@ func (s *server) handleUpdatePeerHeights(state *peerState, umsg updatePeerHeight
 // handleAddPeerMsg deals with adding new peers.  It is invoked from the
 // peerHandler goroutine.
 func (s *server) handleAddPeerMsg(state *peerState, p *peer) bool {
-	fmt.Println("handleAddPeerMsg add(1)")
+	//fmt.Println("handleAddPeerMsg add(1)")
 	s.wg.Add(1)
 	defer func() {
 		//fmt.Println("wg.Done for handleAddPeerMsg")
@@ -1154,7 +1154,7 @@ func (s *server) Start() {
 
 	// wait for peer to start and exchange version msg
 	// todo: coordinate this with a channel
-	time.Sleep(3 * time.Second)
+	//time.Sleep(3 * time.Second)
 	go StartProcessor(&s.wg, s.quit)
 
 	go s.nextLeaderHandler()
@@ -1604,6 +1604,16 @@ func (s *server) FederateServerCount() int {
 	return 0
 }
 
+func (s *server) GetMyFederateServer() *federateServer {
+	for _, fs := range s.federateServers {
+		if fs.Peer == nil {
+			return fs
+		}
+	}
+	//impossible here
+	return nil
+}
+
 func (s *server) isSingleServerMode() bool {
 	return s.FederateServerCount() == 1
 }
@@ -1674,12 +1684,8 @@ func (s *server) handleNextLeader(height uint32) {
 			fmt.Println("handleNextLeader: ** height equal, regime change for leader-elected.")
 			s.isLeader = true
 			s.isLeaderElected = false
-			for _, fed := range s.federateServers {
-				if fed.Peer == nil { //myself
-					fed.LeaderLast = height
-					break
-				}
-			}
+			fed := s.GetMyFederateServer()
+			fed.LeaderLast = height
 			// turn on BlockTimer
 		}
 		return

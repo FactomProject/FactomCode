@@ -32,6 +32,13 @@ const (
 	blockDbNamePrefix = "blocks"
 )
 
+// ackMsg packages a ACK message and the peer it came from together
+// so the processor has access to that information.
+type ackMsg struct {
+	ack  *wire.MsgAck
+	peer *peer
+}
+
 // dirBlockMsg packages a directory block message and the peer it came from together
 // so the block handler has access to that information.
 type dirBlockMsg struct {
@@ -105,13 +112,11 @@ func (c *chainState) Best() (*wire.ShaHash, int32) {
 // blockManager provides a concurrency safe block manager for handling all
 // incoming blocks.
 type blockManager struct {
-	server   *server
-	started  int32
-	shutdown int32
-	//	blockChain        *blockchain.BlockChain
-	requestedTxns   map[wire.ShaHash]struct{}
-	requestedBlocks map[wire.ShaHash]struct{}
-	//	progressLogger    *blockProgressLogger
+	server            *server
+	started           int32
+	shutdown          int32
+	requestedTxns     map[wire.ShaHash]struct{}
+	requestedBlocks   map[wire.ShaHash]struct{}
 	receivedLogBlocks int64
 	receivedLogTx     int64
 	processingReqs    bool
@@ -568,7 +573,7 @@ func (b *blockManager) handleDirInvMsg(imsg *dirInvMsg) {
 
 // QueueAck adds the passed Ack message and peer to the block handling queue.
 func (b *blockManager) QueueAck(msg *wire.MsgAck, p *peer) {
-	// Don't accept more blocks if we're shutting down.
+	// Don't accept more acks if we're shutting down.
 	if atomic.LoadInt32(&b.shutdown) != 0 {
 		p.blockProcessed <- struct{}{}
 		return
@@ -667,12 +672,8 @@ func (b *blockManager) startSyncFactom(peers *list.List) {
 		*/
 		bestPeer.PushGetDirBlocksMsg(locator, &zeroBtcHash)
 		b.syncPeer = bestPeer
-		for _, fed := range b.server.federateServers {
-			if fed.Peer == nil { //myself
-				fed.FirstJoined = uint32(bestPeer.lastBlock)
-				break
-			}
-		}
+		fed := b.server.GetMyFederateServer()
+		fed.FirstJoined = uint32(bestPeer.lastBlock)
 	} else {
 		bmgrLog.Warnf("No sync peer candidates available")
 	}
@@ -690,13 +691,14 @@ func (b *blockManager) isSyncCandidateFactom(p *peer) bool {
 
 // handleAckMsg handles ACK messages from all peers.
 func (b *blockManager) handleAckMsg(amsg *ackMsg) {
-	missingMsgs, err := processAckMsg(amsg.ack)
+	missingMsgs, err := processAckPeerMsg(amsg)
 	if err != nil {
 		fmt.Println("blockManager.handleAckMsg: ", err.Error())
 		//code, reason := errToRejectErr(err)
 		//amsg.peer.PushRejectMsg(wire.CmdAck, code, reason, blockSha, false)
 		return
 	}
+	// todo: use InvVest to send it in one msg
 	for _, m := range missingMsgs {
 		//amsg.peer.pushGetMissingMsg(m)
 		amsg.peer.QueueMessage(m, nil)

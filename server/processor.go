@@ -289,7 +289,8 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 
 	case wire.CmdAck:
 		ack, _ := msg.(*wire.MsgAck)
-		processAckMsg(ack)
+		_, err := processAckMsg(ack)
+		return err
 
 	case wire.CmdDirBlockSig:
 		//only when server is building blocks. relax it for now ???
@@ -308,46 +309,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		// followers EOM will be driven by Ack of this EOM.
 		fmt.Printf("in case.CmdInt_EOM: localServer.IsLeader=%v\n", localServer.IsLeader())
 		msgEom, _ := msg.(*wire.MsgInt_EOM)
-		var singleServerMode = localServer.isSingleServerMode()
-		fmt.Println("number of federate servers: ", localServer.FederateServerCount(),
-			", singleServerMode=", singleServerMode)
-
-		// todo: need to sync up server & peer, and make sure it connects to
-		// at least one peer if available before server getting here.
-		// this is mostly a problem of 60 seconds block rather than normally 10 minute block
-		// For now, single server mode has to have InitStart = false in config
-		// ???
-		//if !localServer.IsLeader() {
-		//return nil
-		//}
-
-		// to simplify this, for leader & followers, use the next wire.EndMinute1
-		// to trigger signature comparison of last round.
-		// todo: when to start? can NOT do this for the first EOM_1 ???
-		if msgEom.EOM_Type == wire.EndMinute1 {
-			// need to bypass the first block of newly-joined follower
-			// this is 11th minute.
-			//fmt.Println("bypass save this block?? firstBlockHeight=", firstBlockHeight, ", msgEom=", spew.Sdump(msgEom))
-			if !singleServerMode && fMemPool.LenDirBlockSig() > 0 { //msgEom.NextDBlockHeight-1 != firstBlockHeight {
-				go processDirBlockSig()
-			} else {
-				if newDBlock != nil { //&& msgEom.NextDBlockHeight-1 != firstBlockHeight {
-					go saveBlocks(newDBlock, newABlock, newECBlock, newFBlock, newEBlocks)
-				}
-			}
-		}
-		err := processLeaderEOM(msgEom)
-		if err != nil {
-			return err
-		}
-		/*
-			cp.CP.AddUpdate(
-				"MinMark",  // tag
-				"status",   // Category
-				"Progress", // Title
-				fmt.Sprintf("End of Minute %v\n", msgEom.EOM_Type)+ // Message
-					fmt.Sprintf("Directory Block Height %v", dchain.NextDBHeight),
-				0)*/
+		return processLeaderEOM(msgEom)
 
 	case wire.CmdDirBlock:
 		fmt.Printf("wire.CmdDirBlock: blockSyncing: %t\n", blockSyncing)
@@ -481,6 +443,39 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 }
 
 func processLeaderEOM(msgEom *wire.MsgInt_EOM) error {
+	var singleServerMode = localServer.isSingleServerMode()
+	fmt.Println("number of federate servers: ", localServer.FederateServerCount(),
+		", singleServerMode=", singleServerMode)
+
+	// todo: need to sync up server & peer, and make sure it connects to
+	// at least one peer if available before server getting here.
+	// this is mostly a problem of 60 seconds block rather than normally 10 minute block
+	// For now, single server mode has to have InitStart = false in config
+	// ???
+	//if !localServer.IsLeader() {
+	//return nil
+	//}
+
+	// to simplify this, for leader & followers, use the next wire.EndMinute1
+	// to trigger signature comparison of last round.
+	// todo: when to start? can NOT do this for the first EOM_1 ???
+	if msgEom.EOM_Type == wire.EndMinute1 {
+		// need to bypass the first block of newly-joined follower
+		// this is 11th minute.
+		//fmt.Println("bypass save this block?? firstBlockHeight=", firstBlockHeight, ", msgEom=", spew.Sdump(msgEom))
+		if !singleServerMode && fMemPool.lenDirBlockSig() > 0 { //msgEom.NextDBlockHeight-1 != firstBlockHeight {
+			go processDirBlockSig()
+		} else {
+			if newDBlock != nil { //&& msgEom.NextDBlockHeight-1 != firstBlockHeight {
+				go saveBlocks(newDBlock, newABlock, newECBlock, newFBlock, newEBlocks)
+			}
+		}
+	}
+	//err := processLeaderEOM(msgEom)
+	//if err != nil {
+	//return err
+	//}
+
 	//procLog.Infof("processLeaderEOM: wire.CmdInt_EOM:%+v\n", msgEom)
 	common.FactoidState.EndOfPeriod(int(msgEom.EOM_Type))
 	if msgEom.EOM_Type == wire.EndMinute10 {
@@ -508,6 +503,14 @@ func processLeaderEOM(msgEom *wire.MsgInt_EOM) error {
 			return err
 		}
 	}
+	/*
+		cp.CP.AddUpdate(
+			"MinMark",  // tag
+			"status",   // Category
+			"Progress", // Title
+			fmt.Sprintf("End of Minute %v\n", msgEom.EOM_Type)+ // Message
+				fmt.Sprintf("Directory Block Height %v", dchain.NextDBHeight),
+			0)*/
 	return nil
 }
 
@@ -599,26 +602,47 @@ func processDirBlockSig() error {
 	return nil
 }
 
+// processAckPeerMsg validates the ack and adds it to processlist
+// this is only for post-syncup followers need to deal with Ack
+func processAckPeerMsg(ack *ackMsg) ([]*wire.MsgMissing, error) {
+	fmt.Printf("processAckPeerMsg: %s\n", spew.Sdump(ack))
+	// Validate the signiture
+	bytes, err := ack.ack.GetBinaryForSignature()
+	if err != nil {
+		fmt.Println("error in GetBinaryForSignature", err.Error())
+		return nil, err
+	}
+	if !ack.peer.pubKey.Verify(bytes, &ack.ack.Signature) {
+		//to-do
+		//return errors.New(fmt.Sprintf("Invalid signature in Ack = %s\n", spew.Sdump(ack)))
+		fmt.Println("verify ack signature: FAILED")
+	} else {
+		fmt.Println("verify ack signature: SUCCESS")
+	}
+	return processAckMsg(ack.ack)
+}
+
+// processAckMsg validates the ack and adds it to processlist
+// this is only for post-syncup followers need to deal with Ack
 func processAckMsg(ack *wire.MsgAck) ([]*wire.MsgMissing, error) {
-	// only post-syncup followers need to deal with Ack
 	if nodeMode != common.SERVER_NODE || localServer.IsLeader() {
 		return nil, nil
 	}
-	//ack, _ := msg.(*wire.MsgAck)
 	_, latestHeight, _ := db.FetchBlockHeightCache()
-	fmt.Printf("in case.CmdAck: Ack.Height=%d, dchain.NextDBHeight=%d, db.latestDBHeight=%d, blockSyncing=%v\n",
-		ack.Height, dchain.NextDBHeight, latestHeight, blockSyncing)
+	fmt.Printf("in case.CmdAck: Ack.Height=%d, Ack.Index=%d, dchain.NextDBHeight=%d, db.latestDBHeight=%d, blockSyncing=%v\n",
+		ack.Height, ack.Index, dchain.NextDBHeight, latestHeight, blockSyncing)
 	//dchain.NextDBHeight is the dir block height for the network
 	//update it with ack height from the leader if necessary
 	if dchain.NextDBHeight < ack.Height {
 		dchain.NextDBHeight = ack.Height
 	}
 	//switch from block syncup to block build
-	//if dchain.NextDBHeight == db.FetchBlockHeightCache()+1 {	//&& blockSyncing {
 	if IsDChainInSync() && blockSyncing {
 		blockSyncing = false
 		firstBlockHeight = ack.Height
-		// set this federate server's FirstJoined = firstBlockHeight
+		// update this federate server
+		fs := localServer.GetMyFederateServer()
+		fs.FirstJoined = firstBlockHeight
 		fmt.Println("** reset blockSyncing=false, firstBlockHeight=", firstBlockHeight)
 	}
 	//if blockSyncing {
@@ -631,9 +655,9 @@ func processAckMsg(ack *wire.MsgAck) ([]*wire.MsgMissing, error) {
 	if ack.Type == wire.EndMinute1 {
 		// need to bypass the first block of newly-joined follower, if
 		// this is 11th minute: ack.NextDBlockHeight-1 == firstBlockHeight
-		// or is 1st minute: fMemPool.LenDirBlockSig() == 0
-		fmt.Println("bypass save this block?? firstBlockHeight=", firstBlockHeight, ", ack=", spew.Sdump(ack))
-		if fMemPool.LenDirBlockSig() > 0 { //&& ack.Height-1 != firstBlockHeight { //!singleServerMode &&
+		// or is 1st minute: fMemPool.lenDirBlockSig() == 0
+		//fmt.Println("bypass save this block?? firstBlockHeight=", firstBlockHeight, ", ack=", spew.Sdump(ack))
+		if fMemPool.lenDirBlockSig() > 0 { //&& ack.Height-1 != firstBlockHeight { //!singleServerMode &&
 			go processDirBlockSig()
 		} else {
 			// three cases go in here
@@ -645,57 +669,31 @@ func processAckMsg(ack *wire.MsgAck) ([]*wire.MsgMissing, error) {
 			}
 		}
 	}
-	//err := processAck(ack)
-	//if err != nil {
-	//return err
-	//}
-	//return nil
-	//}
-
-	// processAck validates the ack and adds it to processlist
-	// this is only for post-syncup followers need to deal with Ack
-	//func processAck(ack *wire.MsgAck) error {
-
-	fmt.Printf("processAck: %s\n", spew.Sdump(ack))
-	// Validate the signiture
-	bytes, err := ack.GetBinaryForSignature()
-	if err != nil {
-		fmt.Println("error in GetBinaryForSignature", err.Error())
-		return nil, err
-	}
-	//todo: must use the peer's, not server's, public key to verify signature here
-	if !serverPubKey.Verify(bytes, &ack.Signature) {
-		//to-do
-		//return errors.New(fmt.Sprintf("Invalid signature in Ack = %s\n", spew.Sdump(ack)))
-		fmt.Println("verify ack signature: FAILED")
-	} else {
-		fmt.Println("verify ack signature: SUCCESS")
-	}
-	//_, latestHeight, _ := db.FetchBlockHeightCache()
-	//fmt.Printf("** ack.Height=%d, dchain.NextDBHeight=%d, db.FetchBlockHeightCache()=%d\n",
-	//ack.Height, dchain.NextDBHeight, latestHeight)
 
 	var missingAcks []*wire.MsgMissing
+	missingMsg := fMemPool.addAck(ack)
 	// only check missing acks every minute
 	if ack.IsEomAck() {
 		missingAcks = fMemPool.getMissingMsgAck(ack)
 		if len(missingAcks) > 0 {
 			fmt.Printf("missing Acks total: %d\n", len(missingAcks)) //, spew.Sdump(missingAcks))
 		}
-	} else {
-		missingMsg := fMemPool.addAck(ack)
-		if missingMsg != nil {
-			fmt.Println("** missing ack: ", spew.Sdump(missingMsg))
-			missingAcks = append(missingAcks, missingMsg)
-		}
+	}
+	if missingMsg != nil {
+		fmt.Println("** missing MSG: ", spew.Sdump(missingMsg))
+		missingAcks = append(missingAcks, missingMsg)
 	}
 	if len(missingAcks) > 0 {
+		fmt.Printf("missing Acks %s\n", spew.Sdump(missingAcks))
 		return missingAcks, nil
 	}
 	// go happy path for now. todo
 	if ack.Type == wire.EndMinute10 { //}&& missingMsg == nil && len(missingAcks) == 0 {
 		fmt.Println("assembleFollowerProcessList")
-		fMemPool.assembleFollowerProcessList(ack)
+		err := fMemPool.assembleFollowerProcessList(ack)
+		if err != nil {
+			fmt.Println(err.Error())
+		}
 		//procLog.Infof("current ProcessList: %s", spew.Sdump(plMgr.MyProcessList))
 	}
 	// for firstBlockHeight, ususally there's some msg or ack missing
@@ -706,7 +704,7 @@ func processAckMsg(ack *wire.MsgAck) ([]*wire.MsgMissing, error) {
 		fmt.Println("follower buildBlocks, height=", ack.Height)
 		// buildBlocks() needs some serious refactoring to expose any exception during
 		// block building so that we can request new blocks if necessary.
-		err = buildBlocks() //broadcast new dir block sig
+		err := buildBlocks() //broadcast new dir block sig
 		if err != nil {
 			return nil, err
 		}

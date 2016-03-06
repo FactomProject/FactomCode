@@ -34,6 +34,7 @@ const (
 
 	EndMinute
 	NonEndMinute
+	Unknown
 )
 
 // MsgAck is the message sent out by the leader to the followers for
@@ -187,4 +188,9 @@ func (msg *MsgAck) Equals(ack *MsgAck) bool {
 		msg.ChainID.IsSameAs(ack.ChainID) &&
 		bytes.Equal(msg.SerialHash[:], ack.SerialHash[:]) &&
 		bytes.Equal(msg.Signature[:], ack.Signature[:])
+}
+
+func (msg *MsgAck) String() string {
+	return fmt.Sprintf("Ack: height=%d, index=%d, type=%v",
+		msg.Height, msg.Index, msg.Type)
 }
