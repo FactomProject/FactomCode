@@ -113,6 +113,7 @@ checkout goleveldb    $branch $default
 checkout FactomDocs   master  master
 checkout gocoding     master  master
 checkout btclog       $branch $default
+checkout btcutil      $branch $default
 checkout dynrsrc      $branch $default
 checkout ed25519      $branch $default
 checkout fastsha256   $branch $default
