@@ -1,18 +1,14 @@
 package ldb
 
 import (
-	//	"errors"
 	"bytes"
 	"encoding/binary"
-	"encoding/hex"
-	"fmt"
 	"log"
 
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/goleveldb/leveldb"
 	"github.com/FactomProject/goleveldb/leveldb/iterator"
 	"github.com/FactomProject/goleveldb/leveldb/util"
-	"github.com/davecgh/go-spew/spew"
 )
 
 // ProcessECBlockBatch inserts the ECBlock and update all it's cbentries in DB
@@ -46,7 +42,7 @@ func (db *LevelDb) ProcessECBlockBatch(block *common.ECBlock) error {
 		binary.Write(&buf, binary.BigEndian, block.Header.EBHeight)
 		dbNumkey = append(dbNumkey, buf.Bytes()...)
 		db.lbatch.Put(dbNumkey, hash.Bytes())
-		fmt.Println("ProcessECBlockBatch: key=", hex.EncodeToString(dbNumkey), ", hash=", hash)
+		//fmt.Println("ProcessECBlockBatch: key=", hex.EncodeToString(dbNumkey), ", hash=", hash)
 
 		// Update the chain head reference
 		key = []byte{byte(TBL_CHAIN_HEAD)}
@@ -78,7 +74,7 @@ func (db *LevelDb) FetchECBlockByHash(ecBlockHash *common.Hash) (ecBlock *common
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("FetchECBlockByHash: key=", hex.EncodeToString(key), ", data=", string(data))
+	//fmt.Println("FetchECBlockByHash: key=", hex.EncodeToString(key), ", data=", string(data))
 
 	if data != nil {
 		ecBlock = common.NewECBlock()
@@ -87,7 +83,7 @@ func (db *LevelDb) FetchECBlockByHash(ecBlockHash *common.Hash) (ecBlock *common
 			return nil, err
 		}
 	}
-	fmt.Println("FetchECBlockByHash: ecBlock=", spew.Sdump(ecBlock))
+	//fmt.Println("FetchECBlockByHash: ecBlock=", spew.Sdump(ecBlock))
 	return ecBlock, nil
 }
 
@@ -98,7 +94,7 @@ func (db *LevelDb) FetchECBlockByHeight(height uint32) (ecBlock *common.ECBlock,
 	binary.Write(&buf, binary.BigEndian, height)
 	key = append(key, common.EC_CHAINID...)
 	key = append(key, buf.Bytes()...)
-	fmt.Println("FetchECBlockByHeight: key=", hex.EncodeToString(key))
+	//fmt.Println("FetchECBlockByHeight: key=", hex.EncodeToString(key))
 
 	var data []byte
 	db.dbLock.Lock()
@@ -113,7 +109,7 @@ func (db *LevelDb) FetchECBlockByHeight(height uint32) (ecBlock *common.ECBlock,
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("FetchECBlockByHeight: data=", hex.EncodeToString(data), ", hash=", ecBlockHash)
+	//fmt.Println("FetchECBlockByHeight: data=", hex.EncodeToString(data), ", hash=", ecBlockHash)
 	return db.FetchECBlockByHash(ecBlockHash)
 }
 

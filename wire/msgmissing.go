@@ -114,3 +114,16 @@ func (msg *MsgMissing) Equals(ack *MsgMissing) bool {
 	//msg.ReqNodeID == ack.ReqNodeID &&
 	//msg.Sig.Equals(ack.Sig)
 }
+
+// ByMsgIndex sorts MsgMissing by its Index
+type ByMsgIndex []*MsgMissing
+
+func (s ByMsgIndex) Len() int {
+	return len(s)
+}
+func (s ByMsgIndex) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+func (s ByMsgIndex) Less(i, j int) bool {
+	return s[i].Index < s[j].Index
+}

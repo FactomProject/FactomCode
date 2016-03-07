@@ -75,7 +75,6 @@ func (msg *MsgAck) GetBinaryForSignature() (data []byte, err error) {
 	}
 	binary.Write(&buf, binary.BigEndian, msg.Index)
 	buf.WriteByte(msg.Type)
-	//binary.Write(&buf, binary.BigEndian, msg.DBlockTimestamp)
 	buf.Write(msg.Affirmation.Bytes())
 	buf.Write(msg.SerialHash[:])
 	return buf.Bytes(), err
@@ -89,9 +88,9 @@ func (msg *MsgAck) BtcDecode(r io.Reader, pver uint32) error {
 	if err != nil {
 		return fmt.Errorf("MsgAck.BtcDecode reader is invalid")
 	}
-	if len(newData) != 169 {
-		return fmt.Errorf("MsgAck.BtcDecode reader does not have right length: %d", len(newData))
-	}
+	//if len(newData) != 169 {
+	//return fmt.Errorf("MsgAck.BtcDecode reader does not have right length: %d", len(newData))
+	//}
 
 	msg.Height, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
@@ -100,7 +99,7 @@ func (msg *MsgAck) BtcDecode(r io.Reader, pver uint32) error {
 
 	msg.Index, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 	msg.Type, newData = newData[0], newData[1:]
-	//msg.DBlockTimestamp, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+	msg.DBlockTimestamp, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 	msg.Affirmation, _ = NewShaHash(newData[:32])
 
 	newData = newData[32:]
@@ -118,7 +117,7 @@ func (msg *MsgAck) BtcEncode(w io.Writer, pver uint32) error {
 	buf.Write(msg.ChainID.Bytes())
 	binary.Write(&buf, binary.BigEndian, msg.Index)
 	buf.WriteByte(msg.Type)
-	//binary.Write(&buf, binary.BigEndian, msg.DBlockTimestamp)
+	binary.Write(&buf, binary.BigEndian, msg.DBlockTimestamp)
 	buf.Write(msg.Affirmation.Bytes())
 	buf.Write(msg.SerialHash[:])
 	buf.Write(msg.Signature[:])

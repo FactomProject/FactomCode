@@ -68,7 +68,7 @@ func (mp *ftmMemPool) addAck(ack *wire.MsgAck) *wire.MsgMissing {
 	if ack == nil {
 		return nil
 	}
-	procLog.Infof("ftmMemPool.addAck: %s\n", ack)
+	fmt.Printf("ftmMemPool.addAck: %s\n", ack)
 	// check duplication first
 	a := mp.ackpool[ack.Index]
 	if a != nil && ack.Equals(a) {

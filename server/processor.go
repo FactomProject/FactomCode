@@ -676,11 +676,11 @@ func processAckMsg(ack *wire.MsgAck) ([]*wire.MsgMissing, error) {
 	}
 	if missingMsg != nil {
 		fmt.Println("** missing MSG: ", spew.Sdump(missingMsg))
-		// better sort it ascendingly
 		missingAcks = append(missingAcks, missingMsg)
 	}
 	if len(missingAcks) > 0 {
 		fmt.Printf("missing Acks %s\n", spew.Sdump(missingAcks))
+		sort.Sort(wire.ByMsgIndex(missingAcks))
 		return missingAcks, nil
 	}
 	// go happy path for now. todo
@@ -1276,12 +1276,12 @@ func newEntryCreditBlock(chain *common.ECChain) *common.ECBlock {
 
 	// acquire the last block
 	block := chain.NextBlock
-	fmt.Println("newEntryCreditBlock: block.Header.EBHeight = ", block.Header.EBHeight)
+	//fmt.Println("newEntryCreditBlock: block.Header.EBHeight = ", block.Header.EBHeight)
 	if block.Header.EBHeight != chain.NextBlockHeight {
 		// this is the first block after block sync up
 		block.Header.EBHeight = chain.NextBlockHeight
 		prev, err := db.FetchECBlockByHeight(chain.NextBlockHeight - 1)
-		fmt.Println("newEntryCreditBlock: prev=", spew.Sdump(prev))
+		//fmt.Println("newEntryCreditBlock: prev=", spew.Sdump(prev))
 		if err != nil {
 			fmt.Println("newEntryCreditBlock: error in db.FetchECBlockByHeight", err.Error())
 		}
@@ -1404,6 +1404,7 @@ func newFactoidBlock(chain *common.FctChain) block.IFBlock {
 		// this is the first block after block sync up
 		currentBlock.SetDBHeight(chain.NextBlockHeight)
 		prev, err := db.FetchFBlockByHeight(chain.NextBlockHeight - 1)
+		fmt.Println("newFactoidBlock: prev=", spew.Sdump(prev))
 		if err != nil {
 			fmt.Println("newFactoidBlock: error in db.FetchFBlockByHeight", err.Error())
 		}
