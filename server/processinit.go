@@ -97,10 +97,12 @@ func initECChain() {
 		ecchain.NextBlockHeight = 0
 		ecchain.NextBlock = common.NewECBlock()
 		ecchain.NextBlock.AddEntry(serverIndex)
-		for i := 0; i < 10; i++ {
-			marker := common.NewMinuteNumber()
-			marker.Number = uint8(i + 1)
-			ecchain.NextBlock.AddEntry(marker)
+		if factomConfig.App.InitLeader {
+			for i := 0; i < 10; i++ {
+				marker := common.NewMinuteNumber()
+				marker.Number = uint8(i + 1)
+				ecchain.NextBlock.AddEntry(marker)
+			}
 		}
 	} else {
 		// Entry Credit Chain should have the same height as the dir chain
@@ -110,6 +112,7 @@ func initECChain() {
 		if err != nil {
 			panic(err)
 		}
+		ecchain.NextBlock.AddEntry(serverIndex)
 	}
 
 	// create a backup copy before processing entries
@@ -194,17 +197,20 @@ func initFctChain() {
 	if len(fBlocks) == 0 || dchain.NextDBHeight == 0 {
 		common.FactoidState.SetFactoshisPerEC(FactoshisPerCredit)
 		fchain.NextBlockHeight = 0
-		// func GetGenesisFBlock(ftime uint64, ExRate uint64, addressCnt int, Factoids uint64 ) IFBlock {
-		//fchain.NextBlock = block.GetGenesisFBlock(0, FactoshisPerCredit, 10, 200000000000)
-		fchain.NextBlock = block.GetGenesisFBlock()
-		gb := fchain.NextBlock
 
-		// If a client, this block is going to get downloaded and added.  Don't do it twice.
-		if nodeMode == common.SERVER_NODE {
+		if factomConfig.App.InitLeader {
+			fchain.NextBlock = block.GetGenesisFBlock()
+			gb := fchain.NextBlock
+
+			// If a client, this block is going to get downloaded and added.  Don't do it twice.
+			//if nodeMode == common.SERVER_NODE {
 			err := common.FactoidState.AddTransactionBlock(gb)
 			if err != nil {
 				panic(err)
 			}
+			//}
+		} else {
+			fchain.NextBlock = block.NewFBlock(FactoshisPerCredit, 0)
 		}
 
 	} else {

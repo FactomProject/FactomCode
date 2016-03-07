@@ -75,8 +75,7 @@ var (
 	FactoshisPerCredit uint64
 	blockSyncing       bool
 	firstBlockHeight   uint32 // the DBHeight of the first block being built by follower after sync up
-	//doneSyncChan       = make(chan struct{})
-	zeroHash = common.NewHash()
+	zeroHash           = common.NewHash()
 
 	directoryBlockInSeconds int
 	dataStorePath           string
@@ -152,12 +151,10 @@ func InitProcessor(ldb database.Db) {
 
 // StartProcessor is started from factomd
 func StartProcessor(wg *sync.WaitGroup, quit chan struct{}) {
-	//initProcessor()
 	fmt.Println("StartProcessor: blockSyncing=", blockSyncing)
 
 	wg.Add(1)
 	defer func() {
-		//fmt.Println("wg.Done for StartProcessor")
 		wg.Done()
 	}()
 
@@ -1276,12 +1273,13 @@ func newEntryCreditBlock(chain *common.ECChain) *common.ECBlock {
 
 	// acquire the last block
 	block := chain.NextBlock
-	//fmt.Println("newEntryCreditBlock: block.Header.EBHeight = ", block.Header.EBHeight)
+	fmt.Printf("newEntryCreditBlock: block.Header.EBHeight =%d, block=%s\n ", block.Header.EBHeight, spew.Sdump(block))
 	if block.Header.EBHeight != chain.NextBlockHeight {
 		// this is the first block after block sync up
 		block.Header.EBHeight = chain.NextBlockHeight
+		//block.AddEntry(serverIndex)
 		prev, err := db.FetchECBlockByHeight(chain.NextBlockHeight - 1)
-		//fmt.Println("newEntryCreditBlock: prev=", spew.Sdump(prev))
+		fmt.Println("newEntryCreditBlock: prev=", spew.Sdump(prev))
 		if err != nil {
 			fmt.Println("newEntryCreditBlock: error in db.FetchECBlockByHeight", err.Error())
 		}

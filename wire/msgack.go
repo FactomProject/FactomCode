@@ -84,16 +84,11 @@ func (msg *MsgAck) GetBinaryForSignature() (data []byte, err error) {
 // This is part of the Message interface implementation.
 func (msg *MsgAck) BtcDecode(r io.Reader, pver uint32) error {
 	newData, err := ioutil.ReadAll(r)
-	fmt.Println("btcdecode.len=", len(newData))
 	if err != nil {
 		return fmt.Errorf("MsgAck.BtcDecode reader is invalid")
 	}
-	//if len(newData) != 169 {
-	//return fmt.Errorf("MsgAck.BtcDecode reader does not have right length: %d", len(newData))
-	//}
 
 	msg.Height, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
-
 	msg.ChainID = common.NewHash()
 	newData, _ = msg.ChainID.UnmarshalBinaryData(newData)
 
@@ -121,7 +116,6 @@ func (msg *MsgAck) BtcEncode(w io.Writer, pver uint32) error {
 	buf.Write(msg.Affirmation.Bytes())
 	buf.Write(msg.SerialHash[:])
 	buf.Write(msg.Signature[:])
-	fmt.Println("btcencode.len=", buf.Len())
 	w.Write(buf.Bytes())
 	return nil
 }
