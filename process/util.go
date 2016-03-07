@@ -25,7 +25,7 @@ func GetEntryCreditBalance(pubKey *[32]byte) (int32, error) {
 }
 
 func exportDChain(chain *common.DChain) {
-	if len(chain.Blocks) == 0 || procLog.Level() < factomlog.Info {
+	if len(chain.Blocks) == 0 || procLog.Level() < factomlog.Debug {
 		//log.Println("no blocks to save for chain: " + string (*chain.ChainID))
 		return
 	}
@@ -58,7 +58,7 @@ func exportDChain(chain *common.DChain) {
 }
 
 func exportEChain(chain *common.EChain) {
-	if procLog.Level() < factomlog.Info {
+	if procLog.Level() < factomlog.Debug {
 		return
 	}
 
@@ -90,7 +90,7 @@ func exportEChain(chain *common.EChain) {
 }
 
 func exportECChain(chain *common.ECChain) {
-	if procLog.Level() < factomlog.Info {
+	if procLog.Level() < factomlog.Debug {
 		return
 	}
 	// get all ecBlocks from db
@@ -120,7 +120,7 @@ func exportECChain(chain *common.ECChain) {
 }
 
 func exportAChain(chain *common.AdminChain) {
-	if procLog.Level() < factomlog.Info {
+	if procLog.Level() < factomlog.Debug {
 		return
 	}
 	// get all aBlocks from db
@@ -151,7 +151,7 @@ func exportAChain(chain *common.AdminChain) {
 }
 
 func exportFctChain(chain *common.FctChain) {
-	if procLog.Level() < factomlog.Info {
+	if procLog.Level() < factomlog.Debug {
 		return
 	}
 	// get all aBlocks from db
@@ -183,7 +183,7 @@ func exportFctChain(chain *common.FctChain) {
 
 // to export individual block once at a time - for debugging ------------------------
 func exportDBlock(block *common.DirectoryBlock) {
-	if block == nil || procLog.Level() < factomlog.Info {
+	if block == nil || procLog.Level() < factomlog.Debug {
 		//log.Println("no blocks to save for chain: " + string (*chain.ChainID))
 		return
 	}
@@ -210,7 +210,7 @@ func exportDBlock(block *common.DirectoryBlock) {
 }
 
 func exportEBlock(block *common.EBlock) {
-	if block == nil || procLog.Level() < factomlog.Info {
+	if block == nil || procLog.Level() < factomlog.Debug {
 		return
 	}
 
@@ -237,7 +237,7 @@ func exportEBlock(block *common.EBlock) {
 }
 
 func exportECBlock(block *common.ECBlock) {
-	if block == nil || procLog.Level() < factomlog.Info {
+	if block == nil || procLog.Level() < factomlog.Debug {
 		return
 	}
 
@@ -263,7 +263,7 @@ func exportECBlock(block *common.ECBlock) {
 }
 
 func exportABlock(block *common.AdminBlock) {
-	if block == nil || procLog.Level() < factomlog.Info {
+	if block == nil || procLog.Level() < factomlog.Debug {
 		return
 	}
 
@@ -289,7 +289,7 @@ func exportABlock(block *common.AdminBlock) {
 }
 
 func exportFctBlock(block block.IFBlock) {
-	if block == nil || procLog.Level() < factomlog.Info {
+	if block == nil || procLog.Level() < factomlog.Debug {
 		return
 	}
 
