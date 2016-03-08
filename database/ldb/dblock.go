@@ -86,7 +86,7 @@ func (db *LevelDb) ProcessDBlockMultiBatch(dblock *common.DirectoryBlock) error 
 	if dblock == nil {
 		return nil
 	}
-	
+
 	if db.lbatch == nil {
 		return fmt.Errorf("db.lbatch == nil")
 	}
@@ -247,7 +247,7 @@ func (db *LevelDb) InsertDirBlockInfoMultiBatch(dirBlockInfo *common.DirBlockInf
 	if dirBlockInfo.BTCTxHash == nil {
 		return
 	}
-	
+
 	if db.lbatch == nil {
 		return fmt.Errorf("db.lbatch == nil")
 	}

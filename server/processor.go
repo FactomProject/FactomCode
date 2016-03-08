@@ -1490,39 +1490,39 @@ func saveBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
 	// save blocks to database in a signle transaction ???
 	fmt.Println("saveBlocks: height=", dblock.Header.DBHeight)
 	err := db.ProcessFBlockMultiBatch(fblock)
-	if err!=nil {
+	if err != nil {
 		return err
 	}
 	exportFctBlock(fblock)
 	fmt.Println("Save Factoid Block: block " + strconv.FormatUint(uint64(fblock.GetDBHeight()), 10))
 
 	err = db.ProcessABlockMultiBatch(ablock)
-	if err!=nil {
+	if err != nil {
 		return err
 	}
 	exportABlock(ablock)
 	fmt.Println("Save Admin Block: block " + strconv.FormatUint(uint64(ablock.Header.DBHeight), 10))
 
 	err = db.ProcessECBlockMultiBatch(ecblock)
-	if err!=nil {
+	if err != nil {
 		return err
 	}
 	exportECBlock(ecblock)
 	fmt.Println("Save EntryCreditBlock: block " + strconv.FormatUint(uint64(ecblock.Header.EBHeight), 10))
 
 	err = db.ProcessDBlockMultiBatch(dblock)
-	if err!=nil {
+	if err != nil {
 		return err
 	}
 	err = db.InsertDirBlockInfoMultiBatch(common.NewDirBlockInfoFromDBlock(dblock))
-	if err!=nil {
+	if err != nil {
 		return err
 	}
 	fmt.Println("Save DirectoryBlock: block " + strconv.FormatUint(uint64(dblock.Header.DBHeight), 10))
 
 	for _, eblock := range eblocks {
 		err = db.ProcessEBlockMultiBatch(eblock)
-		if err!=nil {
+		if err != nil {
 			return err
 		}
 		exportEBlock(eblock)
@@ -1530,12 +1530,12 @@ func saveBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
 	}
 
 	err = db.EndBatch()
-	if err!=nil {
+	if err != nil {
 		return err
 	}
 
 	binary, err := dblock.MarshalBinary()
-	if err!=nil {
+	if err != nil {
 		return err
 	}
 	commonHash := common.Sha(binary)

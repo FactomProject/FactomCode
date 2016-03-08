@@ -41,7 +41,7 @@ func (db *LevelDb) ProcessECBlockMultiBatch(block *common.ECBlock) error {
 	if block == nil {
 		return nil
 	}
-	
+
 	if db.lbatch == nil {
 		return fmt.Errorf("db.lbatch == nil")
 	}

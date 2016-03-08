@@ -202,7 +202,7 @@ func (db *LevelDb) EndBatch() error {
 		fmt.Printf("batch failed %v\n", err)
 		return err
 	}
-	
+
 	return nil
 }
 

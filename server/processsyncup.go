@@ -360,7 +360,7 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 	}
 
 	err = db.EndBatch()
-	if err!=nil {
+	if err != nil {
 		return err
 	}
 

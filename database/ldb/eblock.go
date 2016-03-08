@@ -3,9 +3,9 @@ package ldb
 import (
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/goleveldb/leveldb"
-	"fmt"
 
 	"github.com/FactomProject/goleveldb/leveldb/util"
 )
@@ -40,7 +40,7 @@ func (db *LevelDb) ProcessEBlockMultiBatch(eblock *common.EBlock) error {
 	if eblock == nil {
 		return nil
 	}
-	
+
 	if db.lbatch == nil {
 		return fmt.Errorf("db.lbatch == nil")
 	}
@@ -188,7 +188,7 @@ func (db *LevelDb) FetchEBHashByMR(eBMR *common.Hash) (*common.Hash, error) {
 }
 
 // InsertChain inserts the newly created chain into db
-func (db *LevelDb) InsertChain(chain *common.EChain) (error) {
+func (db *LevelDb) InsertChain(chain *common.EChain) error {
 	if chain == nil {
 		return nil
 	}
@@ -213,11 +213,11 @@ func (db *LevelDb) InsertChain(chain *common.EChain) (error) {
 	return nil
 }
 
-func (db *LevelDb) InsertChainMultiBatch(chain *common.EChain) (error) {
+func (db *LevelDb) InsertChainMultiBatch(chain *common.EChain) error {
 	if chain == nil {
 		return nil
 	}
-	
+
 	if db.lbatch == nil {
 		return fmt.Errorf("db.lbatch == nil")
 	}

@@ -40,7 +40,7 @@ func (db *LevelDb) InsertEntryMultiBatch(entry *common.Entry) error {
 	if entry == nil {
 		return nil
 	}
-	
+
 	if db.lbatch == nil {
 		return fmt.Errorf("db.lbatch == nil")
 	}

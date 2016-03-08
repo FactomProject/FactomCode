@@ -42,7 +42,7 @@ func (db *LevelDb) ProcessFBlockMultiBatch(block block.IFBlock) error {
 	if block == nil {
 		return nil
 	}
-	
+
 	if db.lbatch == nil {
 		return fmt.Errorf("db.lbatch == nil")
 	}
