@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"fmt"
 
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/database"
@@ -57,61 +58,80 @@ import (
 
 // ProcessDBlockBatch inserts the DBlock and update all it's dbentries in DB
 func (db *LevelDb) ProcessDBlockBatch(dblock *common.DirectoryBlock) error {
-
-	if dblock != nil {
-		if db.lbatch == nil {
-			db.lbatch = new(leveldb.Batch)
-		}
-
-		defer db.lbatch.Reset()
-
-		binaryDblock, err := dblock.MarshalBinary()
-		if err != nil {
-			return err
-		}
-
-		if dblock.DBHash == nil {
-			dblock.DBHash = common.Sha(binaryDblock)
-		}
-
-		if dblock.KeyMR == nil {
-			dblock.BuildKeyMerkleRoot()
-		}
-
-		// Insert the binary directory block
-		var key = []byte{byte(TBL_DB)}
-		key = append(key, dblock.DBHash.Bytes()...)
-		db.lbatch.Put(key, binaryDblock)
-
-		// Insert block height cross reference
-		var dbNumkey = []byte{byte(TBL_DB_NUM)}
-		var buf bytes.Buffer
-		binary.Write(&buf, binary.BigEndian, dblock.Header.DBHeight)
-		dbNumkey = append(dbNumkey, buf.Bytes()...)
-		db.lbatch.Put(dbNumkey, dblock.DBHash.Bytes())
-
-		// Insert the directory block merkle root cross reference
-		key = []byte{byte(TBL_DB_MR)}
-		key = append(key, dblock.KeyMR.Bytes()...)
-		binaryDBHash, _ := dblock.DBHash.MarshalBinary()
-		db.lbatch.Put(key, binaryDBHash)
-
-		// Update the chain head reference
-		key = []byte{byte(TBL_CHAIN_HEAD)}
-		key = append(key, common.D_CHAINID...)
-		db.lbatch.Put(key, dblock.KeyMR.Bytes())
-
-		err = db.lDb.Write(db.lbatch, db.wo)
-		if err != nil {
-			return err
-		}
-
-		// Update DirBlock Height cache
-		db.lastDirBlkHeight = int64(dblock.Header.DBHeight)
-		db.lastDirBlkSha, _ = wire.NewShaHash(dblock.DBHash.Bytes())
-		db.lastDirBlkShaCached = true
-
+	if dblock == nil {
+		return nil
 	}
+	db.dbLock.Lock()
+	defer db.dbLock.Unlock()
+
+	if db.lbatch == nil {
+		db.lbatch = new(leveldb.Batch)
+	}
+	defer db.lbatch.Reset()
+
+	err := db.ProcessDBlockMultiBatch(dblock)
+	if err != nil {
+		return err
+	}
+
+	err = db.lDb.Write(db.lbatch, db.wo)
+	if err != nil {
+		fmt.Printf("batch failed %v\n", err)
+		return err
+	}
+	return nil
+}
+
+func (db *LevelDb) ProcessDBlockMultiBatch(dblock *common.DirectoryBlock) error {
+	if dblock == nil {
+		return nil
+	}
+	
+	if db.lbatch == nil {
+		return fmt.Errorf("db.lbatch == nil")
+	}
+
+	binaryDblock, err := dblock.MarshalBinary()
+	if err != nil {
+		return err
+	}
+
+	if dblock.DBHash == nil {
+		dblock.DBHash = common.Sha(binaryDblock)
+	}
+
+	if dblock.KeyMR == nil {
+		dblock.BuildKeyMerkleRoot()
+	}
+
+	// Insert the binary directory block
+	var key = []byte{byte(TBL_DB)}
+	key = append(key, dblock.DBHash.Bytes()...)
+	db.lbatch.Put(key, binaryDblock)
+
+	// Insert block height cross reference
+	var dbNumkey = []byte{byte(TBL_DB_NUM)}
+	var buf bytes.Buffer
+	binary.Write(&buf, binary.BigEndian, dblock.Header.DBHeight)
+	dbNumkey = append(dbNumkey, buf.Bytes()...)
+	db.lbatch.Put(dbNumkey, dblock.DBHash.Bytes())
+
+	// Insert the directory block merkle root cross reference
+	key = []byte{byte(TBL_DB_MR)}
+	key = append(key, dblock.KeyMR.Bytes()...)
+	binaryDBHash, _ := dblock.DBHash.MarshalBinary()
+	db.lbatch.Put(key, binaryDBHash)
+
+	// Update the chain head reference
+	key = []byte{byte(TBL_CHAIN_HEAD)}
+	key = append(key, common.D_CHAINID...)
+	db.lbatch.Put(key, dblock.KeyMR.Bytes())
+
+	// Update DirBlock Height cache
+	db.lastDirBlkHeight = int64(dblock.Header.DBHeight)
+	db.lastDirBlkSha, _ = wire.NewShaHash(dblock.DBHash.Bytes())
+	db.lastDirBlkShaCached = true
+
 	return nil
 }
 
@@ -193,12 +213,44 @@ func (db *LevelDb) FetchBlockHeightBySha(sha *wire.ShaHash) (int64, error) {
 
 // InsertDirBlockInfo inserts the Directory Block meta data into db
 func (db *LevelDb) InsertDirBlockInfo(dirBlockInfo *common.DirBlockInfo) (err error) {
+	if dirBlockInfo == nil {
+		return nil
+	}
 	if dirBlockInfo.BTCTxHash == nil {
 		return
 	}
-
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
+
+	if db.lbatch == nil {
+		db.lbatch = new(leveldb.Batch)
+	}
+	defer db.lbatch.Reset()
+
+	err = db.InsertDirBlockInfoMultiBatch(dirBlockInfo)
+	if err != nil {
+		return err
+	}
+
+	err = db.lDb.Write(db.lbatch, db.wo)
+	if err != nil {
+		fmt.Printf("batch failed %v\n", err)
+		return err
+	}
+	return nil
+}
+
+func (db *LevelDb) InsertDirBlockInfoMultiBatch(dirBlockInfo *common.DirBlockInfo) (err error) {
+	if dirBlockInfo == nil {
+		return nil
+	}
+	if dirBlockInfo.BTCTxHash == nil {
+		return
+	}
+	
+	if db.lbatch == nil {
+		return fmt.Errorf("db.lbatch == nil")
+	}
 
 	if db.lbatch == nil {
 		db.lbatch = new(leveldb.Batch)
@@ -209,11 +261,6 @@ func (db *LevelDb) InsertDirBlockInfo(dirBlockInfo *common.DirBlockInfo) (err er
 	key = append(key, dirBlockInfo.DBHash.Bytes()...)
 	binaryDirBlockInfo, _ := dirBlockInfo.MarshalBinary()
 	db.lbatch.Put(key, binaryDirBlockInfo)
-
-	err = db.lDb.Write(db.lbatch, db.wo)
-	if err != nil {
-		return err
-	}
 
 	return nil
 }

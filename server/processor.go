@@ -1485,31 +1485,59 @@ func newDirectoryBlock(chain *common.DChain) *common.DirectoryBlock {
 // save all blocks and anchor dir block if it's the leader
 func saveBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
 	ecblock *common.ECBlock, fblock block.IFBlock, eblocks []*common.EBlock) error {
+	db.StartBatch()
+
 	// save blocks to database in a signle transaction ???
 	fmt.Println("saveBlocks: height=", dblock.Header.DBHeight)
-	db.ProcessFBlockBatch(fblock)
+	err := db.ProcessFBlockMultiBatch(fblock)
+	if err!=nil {
+		return err
+	}
 	exportFctBlock(fblock)
 	fmt.Println("Save Factoid Block: block " + strconv.FormatUint(uint64(fblock.GetDBHeight()), 10))
 
-	db.ProcessABlockBatch(ablock)
+	err = db.ProcessABlockMultiBatch(ablock)
+	if err!=nil {
+		return err
+	}
 	exportABlock(ablock)
 	fmt.Println("Save Admin Block: block " + strconv.FormatUint(uint64(ablock.Header.DBHeight), 10))
 
-	db.ProcessECBlockBatch(ecblock)
+	err = db.ProcessECBlockMultiBatch(ecblock)
+	if err!=nil {
+		return err
+	}
 	exportECBlock(ecblock)
 	fmt.Println("Save EntryCreditBlock: block " + strconv.FormatUint(uint64(ecblock.Header.EBHeight), 10))
 
-	db.ProcessDBlockBatch(dblock)
-	db.InsertDirBlockInfo(common.NewDirBlockInfoFromDBlock(dblock))
+	err = db.ProcessDBlockMultiBatch(dblock)
+	if err!=nil {
+		return err
+	}
+	err = db.InsertDirBlockInfoMultiBatch(common.NewDirBlockInfoFromDBlock(dblock))
+	if err!=nil {
+		return err
+	}
 	fmt.Println("Save DirectoryBlock: block " + strconv.FormatUint(uint64(dblock.Header.DBHeight), 10))
 
 	for _, eblock := range eblocks {
-		db.ProcessEBlockBatch(eblock)
+		err = db.ProcessEBlockMultiBatch(eblock)
+		if err!=nil {
+			return err
+		}
 		exportEBlock(eblock)
 		fmt.Println("Save EntryBlock: block " + strconv.FormatUint(uint64(eblock.Header.EBSequence), 10))
 	}
 
-	binary, _ := dblock.MarshalBinary()
+	err = db.EndBatch()
+	if err!=nil {
+		return err
+	}
+
+	binary, err := dblock.MarshalBinary()
+	if err!=nil {
+		return err
+	}
 	commonHash := common.Sha(binary)
 	db.UpdateBlockHeightCache(dblock.Header.DBHeight, commonHash)
 	db.UpdateNextBlockHeightCache(dchain.NextDBHeight)

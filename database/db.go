@@ -29,6 +29,7 @@ type Db interface {
 
 	// InsertEntry inserts an entry
 	InsertEntry(entry *common.Entry) (err error)
+	InsertEntryMultiBatch(entry *common.Entry) (err error)
 
 	// FetchEntry gets an entry by hash from the database.
 	FetchEntryByHash(entrySha *common.Hash) (entry *common.Entry, err error)
@@ -38,12 +39,14 @@ type Db interface {
 
 	// ProcessEBlockBatche inserts the EBlock and update all it's ebentries in DB
 	ProcessEBlockBatch(eblock *common.EBlock) error
+	ProcessEBlockMultiBatch(eblock *common.EBlock) error
 
 	// FetchDBEntriesFromQueue gets all of the dbentries that have not been processed
 	//FetchDBEntriesFromQueue(startTime *[]byte) (dbentries []*common.DBEntry, err error)
 
 	// InsertChain inserts the newly created chain into db
 	InsertChain(chain *common.EChain) (err error)
+	InsertChainMultiBatch(chain *common.EChain) (err error)
 
 	// FetchChainByHash gets a chain by chainID
 	FetchChainByHash(chainID *common.Hash) (chain *common.EChain, err error)
@@ -86,6 +89,7 @@ type Db interface {
 
 	// Insert the Directory Block meta data into db
 	InsertDirBlockInfo(dirBlockInfo *common.DirBlockInfo) (err error)
+	InsertDirBlockInfoMultiBatch(dirBlockInfo *common.DirBlockInfo) (err error)
 
 	// FetchAllDirBlockInfo gets all of the dirBlockInfo
 	FetchAllDirBlockInfo() (ddirBlockInfoMap map[string]*common.DirBlockInfo, err error)
@@ -96,6 +100,7 @@ type Db interface {
 
 	// ProcessDBlockBatche inserts the EBlock and update all it's ebentries in DB
 	ProcessDBlockBatch(block *common.DirectoryBlock) error
+	ProcessDBlockMultiBatch(block *common.DirectoryBlock) error
 
 	// FetchHeightRange looks up a range of blocks by the start and ending
 	// heights.  Fetch is inclusive of the start height and exclusive of the
@@ -121,6 +126,7 @@ type Db interface {
 
 	// ProcessECBlockBatche inserts the ECBlock and update all it's ecbentries in DB
 	ProcessECBlockBatch(block *common.ECBlock) (err error)
+	ProcessECBlockMultiBatch(block *common.ECBlock) (err error)
 
 	// FetchECBlockByHash gets an Entry Credit block by hash from the database.
 	FetchECBlockByHash(cBlockHash *common.Hash) (ecBlock *common.ECBlock, err error)
@@ -133,6 +139,7 @@ type Db interface {
 
 	// ProcessABlockBatch inserts the AdminBlock
 	ProcessABlockBatch(block *common.AdminBlock) error
+	ProcessABlockMultiBatch(block *common.AdminBlock) error
 
 	// FetchABlockByHash gets an admin block by hash from the database.
 	FetchABlockByHash(aBlockHash *common.Hash) (aBlock *common.AdminBlock, err error)
@@ -145,6 +152,7 @@ type Db interface {
 
 	// ProcessABlockBatch inserts the AdminBlock
 	ProcessFBlockBatch(block.IFBlock) error
+	ProcessFBlockMultiBatch(block.IFBlock) error
 
 	// FetchFBlockByHash gets an factoid block by hash from the database.
 	FetchFBlockByHash(*common.Hash) (block.IFBlock, error)
@@ -169,4 +177,7 @@ type Db interface {
 
 	// FtchHeadMRByChainID gets a MR of the highest block from the database.
 	FetchHeadMRByChainID(chainID *common.Hash) (blkMR *common.Hash, err error)
+
+	StartBatch()
+	EndBatch() error
 }
