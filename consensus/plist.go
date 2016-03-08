@@ -66,3 +66,13 @@ func (pl *ProcessList) GetMissingMsg(msg *wire.MsgMissing) wire.Message {
 	}
 	return nil
 }
+
+// GetPLItems Get Process lit items
+func (pl *ProcessList) GetEndMinute1Ack() *wire.MsgAck {
+	for _, item := range pl.plItems {
+		if item.Ack.Type == wire.EndMinute1 {
+			return item.Ack
+		}
+	}
+	return nil
+}

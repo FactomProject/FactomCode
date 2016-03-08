@@ -141,8 +141,8 @@ func InitProcessor(ldb database.Db) {
 	err := validateDChain(dchain)
 	if err != nil {
 		if nodeMode == common.SERVER_NODE {
-			//panic("Error found in validating directory blocks: " + err.Error())
-			fmt.Println("Error found in validating directory blocks: " + err.Error())
+			panic("Error found in validating directory blocks: " + err.Error())
+			//fmt.Println("Error found in validating directory blocks: " + err.Error())
 		} else {
 			dchain.IsValidated = false
 		}
@@ -158,13 +158,15 @@ func StartProcessor(wg *sync.WaitGroup, quit chan struct{}) {
 		wg.Done()
 	}()
 
-	if dchain.NextDBHeight == 0 && localServer.IsLeader() { //nodeMode == common.SERVER_NODE && !blockSyncing {
-		buildGenesisBlocks()
-		procLog.Debug("after creating genesis block: dchain.NextDBHeight=", dchain.NextDBHeight)
-	}
-
-	// Initialize timer for the open dblock before processing messages
 	if localServer.IsLeader() {
+		if dchain.NextDBHeight == 0 {
+			buildGenesisBlocks()
+			procLog.Debug("after creating genesis block: dchain.NextDBHeight=", dchain.NextDBHeight)
+		}
+		// sign the last dir block for next admin block
+		signDirBlockForAdminBlock(dchain.Blocks[dchain.NextDBHeight-1])
+
+		// Initialize timer for the open dblock before processing messages
 		timer := &BlockTimer{
 			nextDBlockHeight: dchain.NextDBHeight,
 			inMsgQueue:       inMsgQueue,
@@ -1273,13 +1275,12 @@ func newEntryCreditBlock(chain *common.ECChain) *common.ECBlock {
 
 	// acquire the last block
 	block := chain.NextBlock
-	fmt.Printf("newEntryCreditBlock: block.Header.EBHeight =%d, block=%s\n ", block.Header.EBHeight, spew.Sdump(block))
+	//fmt.Printf("newEntryCreditBlock: block.Header.EBHeight =%d, block=%s\n ", block.Header.EBHeight, spew.Sdump(block))
 	if block.Header.EBHeight != chain.NextBlockHeight {
 		// this is the first block after block sync up
 		block.Header.EBHeight = chain.NextBlockHeight
-		//block.AddEntry(serverIndex)
 		prev, err := db.FetchECBlockByHeight(chain.NextBlockHeight - 1)
-		fmt.Println("newEntryCreditBlock: prev=", spew.Sdump(prev))
+		//fmt.Println("newEntryCreditBlock: prev=", spew.Sdump(prev))
 		if err != nil {
 			fmt.Println("newEntryCreditBlock: error in db.FetchECBlockByHeight", err.Error())
 		}
@@ -1331,6 +1332,13 @@ func newAdminBlock(chain *common.AdminChain) *common.AdminBlock {
 		if err != nil {
 			fmt.Println("newAdminBlock: error in creating LedgerKeyMR", err.Error())
 		}
+		prevDB, err := db.FetchDBlockByHeight(dchain.NextDBHeight - 1)
+		if err != nil {
+			fmt.Println("newAdminBlock: error in db.FetchDBlockByHeight", err.Error())
+		}
+		fmt.Println("newAdminBlock: prev dir block = ", spew.Sdump(prevDB))
+		signDirBlockForAdminBlock(prevDB)
+		block.AddEndOfMinuteMarker(wire.EndMinute1)
 	}
 
 	if chain.NextBlockHeight != dchain.NextDBHeight {
@@ -1398,6 +1406,7 @@ func newFactoidBlock(chain *common.FctChain) block.IFBlock {
 	*/
 	// acquire the last block
 	currentBlock := chain.NextBlock
+	fmt.Println("newFactoidBlock: block.Header.EBHeight = ", currentBlock.GetDBHeight())
 	if currentBlock.GetDBHeight() != chain.NextBlockHeight {
 		// this is the first block after block sync up
 		currentBlock.SetDBHeight(chain.NextBlockHeight)
@@ -1406,10 +1415,16 @@ func newFactoidBlock(chain *common.FctChain) block.IFBlock {
 		if err != nil {
 			fmt.Println("newFactoidBlock: error in db.FetchFBlockByHeight", err.Error())
 		}
-		kmr := prev.GetPrevKeyMR()
-		currentBlock.SetPrevKeyMR(kmr.Bytes())
-		ledger := prev.GetLedgerKeyMR()
-		currentBlock.SetPrevLedgerKeyMR(ledger.Bytes())
+		currentBlock.SetExchRate(FactoshisPerCredit)
+		currentBlock.SetPrevKeyMR(prev.GetKeyMR().Bytes())
+		currentBlock.SetPrevLedgerKeyMR(prev.GetLedgerKeyMR().Bytes())
+
+		t := block.GetCoinbase(common.FactoidState.GetTimeMilli())
+		err = currentBlock.AddCoinbase(t)
+		if err != nil {
+			fmt.Println("newFactoidBlock: error in currentBlock.AddCoinbase(): ", err.Error())
+		}
+		common.FactoidState.UpdateTransaction(t)
 	}
 
 	if chain.NextBlockHeight != dchain.NextDBHeight {
@@ -1521,29 +1536,27 @@ func saveBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
 	return nil
 }
 
-// SignDirectoryBlock signs the directory block and broadcast it
-func SignDirectoryBlock(newdb *common.DirectoryBlock) error {
-	// Only Servers can write the anchor to Bitcoin network
-	if nodeMode == common.SERVER_NODE && dchain.NextDBHeight > 0 { //&& localServer.isLeader {
-		fmt.Println("SignDirectoryBlock: dchain.NextDBHeight: ", dchain.NextDBHeight) // 11th minute
-		// get the previous directory block from db
-		// since saveBlocks happens at 11th minute, almost 1 minute after buildBlocks
-		// so the latest block height in database should be dchain.NextDBHeight - 2
-		dbBlock, _ := db.FetchDBlockByHeight(dchain.NextDBHeight - 2)
-		fmt.Printf("SignDirBlock: dbBlock from db=%s\n", spew.Sdump(dbBlock.Header))
-		fmt.Printf("SignDirBlock: new dbBlock=%s\n", spew.Sdump(newdb.Header))
-		dbHeaderBytes, _ := dbBlock.Header.MarshalBinary()
+// signDirBlockForAdminBlock signs the directory block for next admin block
+func signDirBlockForAdminBlock(newdb *common.DirectoryBlock) error {
+	if nodeMode == common.SERVER_NODE && dchain.NextDBHeight > 0 {
+		fmt.Printf("signDirBlockForAdminBlock: new dbBlock=%s\n", spew.Sdump(newdb.Header))
+		dbHeaderBytes, _ := newdb.Header.MarshalBinary()
 		identityChainID := common.NewHash() // 0 ID for milestone 1 ????
 		sig := serverPrivKey.Sign(dbHeaderBytes)
 		achain.NextBlock.AddABEntry(common.NewDBSignatureEntry(identityChainID, sig))
+	}
+	return nil
+}
 
-		//create and broadcast dir block sig message
-		dbHeaderBytes, _ = newdb.Header.MarshalBinary()
+// SignDirBlockForVote signs the directory block and broadcast it for vote for consensus
+func SignDirBlockForVote(newdb *common.DirectoryBlock) error {
+	if nodeMode == common.SERVER_NODE && dchain.NextDBHeight > 0 {
+		fmt.Printf("SignDirBlockForVote: new dbBlock=%s\n", spew.Sdump(newdb.Header))
+		dbHeaderBytes, _ := newdb.Header.MarshalBinary()
 		h := common.Hash{}
-		//h.SetBytes(dbHeaderBytes[:]) //wrong
 		hash := common.Sha(dbHeaderBytes)
 		h.SetBytes(hash.GetBytes())
-		sig = serverPrivKey.Sign(dbHeaderBytes)
+		sig := serverPrivKey.Sign(dbHeaderBytes)
 		msg := &wire.MsgDirBlockSig{
 			DBHeight:     newdb.Header.DBHeight,
 			DirBlockHash: h, //????
@@ -1554,6 +1567,13 @@ func SignDirectoryBlock(newdb *common.DirectoryBlock) error {
 		fmt.Println("my own: addDirBlockSig: ", spew.Sdump(msg))
 		fMemPool.addDirBlockSig(msg)
 	}
+	return nil
+}
+
+// SignDirectoryBlock signs the directory block and broadcast it
+func SignDirectoryBlock(newdb *common.DirectoryBlock) error {
+	signDirBlockForAdminBlock(newdb)
+	SignDirBlockForVote(newdb)
 	return nil
 }
 
