@@ -350,29 +350,9 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		// continue processing commands.
 		msgFactoidTX, ok := msg.(*wire.MsgFactoidTX)
 		if !ok || !msgFactoidTX.IsValid() {
-			break
+			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
 		}
-		// prevent replay attacks
-		h := msgFactoidTX.Transaction.GetSigHash().Bytes()
-		t := int64(msgFactoidTX.Transaction.GetMilliTimestamp() / 1000)
-
-		if !IsTSValid(h, t) {
-			return fmt.Errorf("Timestamp invalid on Factoid Transaction")
-		}
-
-		// Handle the server case
-		if nodeMode == common.SERVER_NODE && !blockSyncing {
-			t := msgFactoidTX.Transaction
-			txnum := len(common.FactoidState.GetCurrentBlock().GetTransactions())
-			if common.FactoidState.AddTransaction(txnum, t) == nil {
-				if err := processBuyEntryCredit(msgFactoidTX); err != nil {
-					return err
-				}
-			}
-		} else {
-			// Handle the client case
-			outMsgQueue <- msg
-		}
+		return processFactoidTX(msgFactoidTX)
 
 	case wire.CmdABlock:
 		if nodeMode == common.SERVER_NODE && !blockSyncing {
@@ -916,29 +896,49 @@ func processCommitChain(msg *wire.MsgCommitChain) error {
 	return nil
 }
 
-// processBuyEntryCredit validates the MsgCommitChain and adds it to processlist
-func processBuyEntryCredit(msg *wire.MsgFactoidTX) error {
+// processFactoidTX validates the MsgFactoidTX and adds it to processlist
+func processFactoidTX(msg *wire.MsgFactoidTX) error {
+	// prevent replay attacks
+	h := msg.Transaction.GetSigHash().Bytes()
+	t := int64(msg.Transaction.GetMilliTimestamp() / 1000)
+
+	if !IsTSValid(h, t) {
+		return fmt.Errorf("Timestamp invalid on Factoid Transaction")
+	}
+
+	if nodeMode != common.SERVER_NODE {
+		return nil
+	}
+	tx := msg.Transaction
+	txnum := len(common.FactoidState.GetCurrentBlock().GetTransactions())
+	err := common.FactoidState.AddTransaction(txnum, tx)
+	if err != nil {
+		return err
+	}
 	// Update the credit balance in memory
 	for _, v := range msg.Transaction.GetECOutputs() {
 		pub := new([32]byte)
 		copy(pub[:], v.GetAddress().Bytes())
-
 		cred := int32(v.GetAmount() / uint64(FactoshisPerCredit))
-
 		eCreditMap[string(pub[:])] += cred
-
 	}
 
-	h, _ := msg.Sha()
-	if plMgr.IsMyPListExceedingLimit() {
-		fmt.Println("Exceeding MyProcessList size limit!")
-		return fMemPool.addOrphanMsg(msg, &h)
+	if localServer.IsLeader() || localServer.isSingleServerMode() {
+		h, _ := msg.Sha()
+		if plMgr.IsMyPListExceedingLimit() {
+			fmt.Println("Exceeding MyProcessList size limit!")
+			return fMemPool.addOrphanMsg(msg, &h)
+		}
+		ack, err := plMgr.AddToLeadersProcessList(msg, &h, wire.AckFactoidTx, dchain.NextBlock.Header.Timestamp)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("AckFactoidTx: %s\n", spew.Sdump(ack))
+		outMsgQueue <- ack
+		//} else if localServer.IsFollower() {
+		// for followers
+		//outMsgQueue <- msg
 	}
-
-	if _, err := plMgr.AddToLeadersProcessList(msg, &h, wire.AckFactoidTx, dchain.NextBlock.Header.Timestamp); err != nil {
-		return err
-	}
-
 	return nil
 }
 
