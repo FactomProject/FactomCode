@@ -3,7 +3,7 @@ package ldb
 import (
 	"bytes"
 	"encoding/binary"
-	"log"
+	"fmt"
 
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/factoid/block"
@@ -14,46 +14,64 @@ import (
 
 // ProcessFBlockBatch inserts the factoid block
 func (db *LevelDb) ProcessFBlockBatch(block block.IFBlock) error {
-
-	if block != nil {
-		if db.lbatch == nil {
-			db.lbatch = new(leveldb.Batch)
-		}
-
-		defer db.lbatch.Reset()
-
-		binaryBlock, err := block.MarshalBinary()
-		if err != nil {
-			return err
-		}
-
-		scHash := block.GetHash()
-
-		// Insert the binary factom block
-		var key = []byte{byte(TBL_SC)}
-		key = append(key, scHash.Bytes()...)
-		db.lbatch.Put(key, binaryBlock)
-
-		// Insert the sc block number cross reference
-		key = []byte{byte(TBL_SC_NUM)}
-		key = append(key, common.FACTOID_CHAINID...)
-		bytes := make([]byte, 4)
-		binary.BigEndian.PutUint32(bytes, block.GetDBHeight())
-		key = append(key, bytes...)
-		db.lbatch.Put(key, scHash.Bytes())
-
-		// Update the chain head reference
-		key = []byte{byte(TBL_CHAIN_HEAD)}
-		key = append(key, common.FACTOID_CHAINID...)
-		db.lbatch.Put(key, scHash.Bytes())
-
-		err = db.lDb.Write(db.lbatch, db.wo)
-		if err != nil {
-			log.Printf("batch failed %v\n", err)
-			return err
-		}
-
+	if block == nil {
+		return nil
 	}
+	db.dbLock.Lock()
+	defer db.dbLock.Unlock()
+
+	if db.lbatch == nil {
+		db.lbatch = new(leveldb.Batch)
+	}
+	defer db.lbatch.Reset()
+
+	err := db.ProcessFBlockMultiBatch(block)
+	if err != nil {
+		return err
+	}
+
+	err = db.lDb.Write(db.lbatch, db.wo)
+	if err != nil {
+		fmt.Printf("batch failed %v\n", err)
+		return err
+	}
+	return nil
+}
+
+func (db *LevelDb) ProcessFBlockMultiBatch(block block.IFBlock) error {
+	if block == nil {
+		return nil
+	}
+
+	if db.lbatch == nil {
+		return fmt.Errorf("db.lbatch == nil")
+	}
+
+	binaryBlock, err := block.MarshalBinary()
+	if err != nil {
+		return err
+	}
+
+	scHash := block.GetHash()
+
+	// Insert the binary factom block
+	var key = []byte{byte(TBL_SC)}
+	key = append(key, scHash.Bytes()...)
+	db.lbatch.Put(key, binaryBlock)
+
+	// Insert the sc block number cross reference
+	key = []byte{byte(TBL_SC_NUM)}
+	key = append(key, common.FACTOID_CHAINID...)
+	bytes := make([]byte, 4)
+	binary.BigEndian.PutUint32(bytes, block.GetDBHeight())
+	key = append(key, bytes...)
+	db.lbatch.Put(key, scHash.Bytes())
+
+	// Update the chain head reference
+	key = []byte{byte(TBL_CHAIN_HEAD)}
+	key = append(key, common.FACTOID_CHAINID...)
+	db.lbatch.Put(key, scHash.Bytes())
+
 	return nil
 }
 

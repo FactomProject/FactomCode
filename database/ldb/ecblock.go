@@ -3,7 +3,7 @@ package ldb
 import (
 	"bytes"
 	"encoding/binary"
-	"log"
+	"fmt"
 
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/goleveldb/leveldb"
@@ -13,53 +13,71 @@ import (
 
 // ProcessECBlockBatch inserts the ECBlock and update all it's cbentries in DB
 func (db *LevelDb) ProcessECBlockBatch(block *common.ECBlock) error {
-
-	if block != nil {
-		if db.lbatch == nil {
-			db.lbatch = new(leveldb.Batch)
-		}
-
-		defer db.lbatch.Reset()
-
-		binaryBlock, err := block.MarshalBinary()
-		if err != nil {
-			return err
-		}
-
-		// Insert the binary factom block
-		var key = []byte{byte(TBL_CB)}
-		hash, err := block.HeaderHash()
-		if err != nil {
-			return err
-		}
-		key = append(key, hash.Bytes()...)
-		db.lbatch.Put(key, binaryBlock)
-
-		// Insert block height cross reference
-		var dbNumkey = []byte{byte(TBL_CB_NUM)}
-		dbNumkey = append(dbNumkey, common.EC_CHAINID...)
-		var buf bytes.Buffer
-		binary.Write(&buf, binary.BigEndian, block.Header.EBHeight)
-		dbNumkey = append(dbNumkey, buf.Bytes()...)
-		db.lbatch.Put(dbNumkey, hash.Bytes())
-		//fmt.Println("ProcessECBlockBatch: key=", hex.EncodeToString(dbNumkey), ", hash=", hash)
-
-		// Update the chain head reference
-		key = []byte{byte(TBL_CHAIN_HEAD)}
-		key = append(key, common.EC_CHAINID...)
-		//hash, err = block.HeaderHash()
-		//if err != nil {
-		//return err
-		//}
-		db.lbatch.Put(key, hash.Bytes())
-
-		err = db.lDb.Write(db.lbatch, db.wo)
-		if err != nil {
-			log.Printf("batch failed %v\n", err)
-			return err
-		}
-
+	if block == nil {
+		return nil
 	}
+	db.dbLock.Lock()
+	defer db.dbLock.Unlock()
+
+	if db.lbatch == nil {
+		db.lbatch = new(leveldb.Batch)
+	}
+	defer db.lbatch.Reset()
+
+	err := db.ProcessECBlockMultiBatch(block)
+	if err != nil {
+		return err
+	}
+
+	err = db.lDb.Write(db.lbatch, db.wo)
+	if err != nil {
+		fmt.Printf("batch failed %v\n", err)
+		return err
+	}
+	return nil
+}
+
+func (db *LevelDb) ProcessECBlockMultiBatch(block *common.ECBlock) error {
+	if block == nil {
+		return nil
+	}
+
+	if db.lbatch == nil {
+		return fmt.Errorf("db.lbatch == nil")
+	}
+
+	binaryBlock, err := block.MarshalBinary()
+	if err != nil {
+		return err
+	}
+
+	// Insert the binary factom block
+	var key = []byte{byte(TBL_CB)}
+	hash, err := block.HeaderHash()
+	if err != nil {
+		return err
+	}
+	key = append(key, hash.Bytes()...)
+	db.lbatch.Put(key, binaryBlock)
+
+	// Insert block height cross reference
+	var dbNumkey = []byte{byte(TBL_CB_NUM)}
+	dbNumkey = append(dbNumkey, common.EC_CHAINID...)
+	var buf bytes.Buffer
+	binary.Write(&buf, binary.BigEndian, block.Header.EBHeight)
+	dbNumkey = append(dbNumkey, buf.Bytes()...)
+	db.lbatch.Put(dbNumkey, hash.Bytes())
+	//fmt.Println("ProcessECBlockBatch: key=", hex.EncodeToString(dbNumkey), ", hash=", hash)
+
+	// Update the chain head reference
+	key = []byte{byte(TBL_CHAIN_HEAD)}
+	key = append(key, common.EC_CHAINID...)
+	//hash, err = block.HeaderHash()
+	//if err != nil {
+	//return err
+	//}
+	db.lbatch.Put(key, hash.Bytes())
+
 	return nil
 }
 
