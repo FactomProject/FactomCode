@@ -1187,6 +1187,7 @@ func (s *server) Stop() error {
 
 // WaitForShutdown blocks until the main listener and peer handlers are stopped.
 func (s *server) WaitForShutdown() {
+	<-s.quit
 	s.wg.Wait()
 }
 
