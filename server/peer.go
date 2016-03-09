@@ -1050,13 +1050,17 @@ out:
 			p.handleRevealEntryMsg(msg)
 			p.FactomRelay(msg)
 
+		case *wire.MsgFactoidTX:
+			p.handleFactoidMsg(msg, buf)
+			p.FactomRelay(msg)
+
 		case *wire.MsgAck:
 			p.handleAckMsg(msg)
-			//p.FactomRelay(msg)
+			p.FactomRelay(msg)
 
 		case *wire.MsgDirBlockSig:
 			p.handleDirBlockSigMsg(msg)
-			//p.FactomRelay(msg)
+			p.FactomRelay(msg)
 
 			// Factom blocks downloading
 		case *wire.MsgGetDirBlocks:
@@ -1091,10 +1095,6 @@ out:
 
 		case *wire.MsgEntry:
 			p.handleEntryMsg(msg, buf)
-
-		case *wire.MsgFactoidTX:
-			p.handleFactoidMsg(msg, buf)
-			p.FactomRelay(msg)
 
 		case *wire.MsgNextLeader:
 			p.handleNextLeaderMsg(msg)
@@ -2332,7 +2332,6 @@ func (p *peer) handleCommitChainMsg(msg *wire.MsgCommitChain) {
 // Handle factom app imcoming msg
 func (p *peer) handleRevealChainMsg(msg *wire.MsgRevealChain) {
 	// Add the msg to inbound msg queue
-	//inMsgQueue <- msg
 	if !ClientOnly {
 		inMsgQueue <- msg
 	}

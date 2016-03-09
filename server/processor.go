@@ -236,35 +236,31 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 	//procLog.Infof("serveMsgRequest: %s", spew.Sdump(msg))
 	switch msg.Command() {
 	case wire.CmdCommitChain:
-		msgCommitChain, _ := msg.(*wire.MsgCommitChain)
-		if msgCommitChain.IsValid() { //&& !blockSyncing {
-
+		msgCommitChain, ok := msg.(*wire.MsgCommitChain)
+		if ok && msgCommitChain.IsValid() {
 			h := msgCommitChain.CommitChain.GetSigHash().Bytes()
 			t := msgCommitChain.CommitChain.GetMilliTime() / 1000
-
 			if !IsTSValid(h, t) {
 				return fmt.Errorf("Timestamp invalid on Commit Chain")
 			}
-
 			err := processCommitChain(msgCommitChain)
 			if err != nil {
 				return err
 			}
+		} else {
+			return errors.New("Error in processing msg:" + spew.Sdump(msg))
 		}
 		// Broadcast the msg to the network if no errors
-		outMsgQueue <- msg
+		//outMsgQueue <- msg
 
 	case wire.CmdCommitEntry:
 		msgCommitEntry, ok := msg.(*wire.MsgCommitEntry)
 		if ok && msgCommitEntry.IsValid() {
-
 			h := msgCommitEntry.CommitEntry.GetSigHash().Bytes()
 			t := msgCommitEntry.CommitEntry.GetMilliTime() / 1000
-
 			if !IsTSValid(h, t) {
 				return fmt.Errorf("Timestamp invalid on Commit Entry")
 			}
-
 			err := processCommitEntry(msgCommitEntry)
 			if err != nil {
 				return err
@@ -273,7 +269,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 			return errors.New("Error in processing msg:" + spew.Sdump(msg))
 		}
 		// Broadcast the msg to the network if no errors
-		outMsgQueue <- msg
+		//outMsgQueue <- msg
 
 	case wire.CmdRevealEntry:
 		msgRevealEntry, ok := msg.(*wire.MsgRevealEntry)
@@ -286,7 +282,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 			return errors.New("Error in processing msg:" + spew.Sdump(msg))
 		}
 		// Broadcast the msg to the network if no errors
-		outMsgQueue <- msg
+		//outMsgQueue <- msg
 
 	case wire.CmdAck:
 		ack, _ := msg.(*wire.MsgAck)
@@ -689,6 +685,9 @@ func processAckMsg(ack *wire.MsgAck) ([]*wire.MsgMissing, error) {
 
 // processRevealEntry validates the MsgRevealEntry and adds it to processlist
 func processRevealEntry(msg *wire.MsgRevealEntry) error {
+	if nodeMode != common.SERVER_NODE {
+		return nil
+	}
 	e := msg.Entry
 	bin, _ := e.MarshalBinary()
 	h, _ := wire.NewShaHash(e.Hash().Bytes())
@@ -717,17 +716,14 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 			return fmt.Errorf("Credit needs to paid first before an entry is revealed: %s", e.Hash().String())
 		}
 
-		// Add the msg to the Mem pool
-		fMemPool.addMsg(msg, h)
+		// no need to add the msg to the Mem pool since it'll be added to Process list as a leader
+		//fMemPool.addMsg(msg, h)
 
-		// Add to MyPL if Server Node
-		//if nodeMode == common.SERVER_NODE {
 		if localServer.IsLeader() || localServer.isSingleServerMode() {
 			if plMgr.IsMyPListExceedingLimit() {
 				fmt.Println("Exceeding MyProcessList size limit!")
 				return fMemPool.addOrphanMsg(msg, h)
 			}
-
 			ack, err := plMgr.AddToLeadersProcessList(msg, h, wire.AckRevealEntry, dchain.NextBlock.Header.Timestamp)
 			if err != nil {
 				return err
@@ -736,13 +732,12 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 			outMsgQueue <- ack
 			//???
 			delete(commitEntryMap, e.Hash().String())
-		} else {
-			//as follower
-			h, _ := wire.NewShaHash(e.Hash().Bytes())
+
+		} else if localServer.IsFollower() {
 			fMemPool.addMsg(msg, h)
 		}
-
 		return nil
+
 	} else if c, ok := commitChainMap[e.Hash().String()]; ok { //Reveal chain ---------------------------
 		if chainIDMap[e.ChainID.String()] != nil {
 			fMemPool.addOrphanMsg(msg, h)
@@ -785,6 +780,24 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 		if !bytes.Equal(c.Weld.Bytes()[:], weld[:]) {
 			return fmt.Errorf("RevealChain's weld does not match with CommitChain: %s", e.Hash().String())
 		}
+
+		if localServer.IsLeader() || localServer.isSingleServerMode() {
+			if plMgr.IsMyPListExceedingLimit() {
+				fmt.Println("Exceeding MyProcessList size limit!")
+				return fMemPool.addOrphanMsg(msg, h)
+			}
+			ack, err := plMgr.AddToLeadersProcessList(msg, h, wire.AckRevealChain, dchain.NextBlock.Header.Timestamp)
+			if err != nil {
+				return err
+			}
+			fmt.Printf("AckRevealChain: %s\n", spew.Sdump(ack))
+			outMsgQueue <- ack
+			//???
+			delete(commitEntryMap, e.Hash().String())
+
+		} else if localServer.IsFollower() {
+			fMemPool.addMsg(msg, h)
+		}
 		return nil
 	}
 	return fmt.Errorf("No commit for entry")
@@ -792,6 +805,9 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 
 // processCommitEntry validates the MsgCommitEntry and adds it to processlist
 func processCommitEntry(msg *wire.MsgCommitEntry) error {
+	if nodeMode != common.SERVER_NODE {
+		return nil
+	}
 	c := msg.CommitEntry
 
 	// check that the CommitChain is fresh
@@ -816,35 +832,35 @@ func processCommitEntry(msg *wire.MsgCommitEntry) error {
 	// add to the commitEntryMap
 	commitEntryMap[c.EntryHash.String()] = c
 
-	// Server: add to MyPL
-	//if nodeMode == common.SERVER_NODE {
-	if localServer.IsLeader() || localServer.isSingleServerMode() {
-
-		// deduct the entry credits from the eCreditMap
+	// deduct the entry credits from the eCreditMap
+	if nodeMode == common.SERVER_NODE {
 		eCreditMap[string(c.ECPubKey[:])] -= int32(c.Credits)
+	}
 
-		h, _ := msg.Sha()
+	h, _ := msg.Sha()
+	if localServer.IsLeader() || localServer.isSingleServerMode() {
 		if plMgr.IsMyPListExceedingLimit() {
 			fmt.Println("Exceeding MyProcessList size limit!")
 			return fMemPool.addOrphanMsg(msg, &h)
 		}
-
 		ack, err := plMgr.AddToLeadersProcessList(msg, &h, wire.AckCommitEntry, dchain.NextBlock.Header.Timestamp)
 		if err != nil {
 			return err
 		}
 		fmt.Printf("AckCommitEntry: %s\n", spew.Sdump(ack))
 		outMsgQueue <- ack
-	} else {
-		//as follower
-		h, _ := wire.NewShaHash(c.Hash().Bytes())
-		fMemPool.addMsg(msg, h)
+
+	} else if localServer.IsFollower() {
+		fMemPool.addMsg(msg, &h)
 	}
 	return nil
 }
 
 // processCommitChain validates the MsgCommitChain and adds it to processlist
 func processCommitChain(msg *wire.MsgCommitChain) error {
+	if nodeMode != common.SERVER_NODE {
+		return nil
+	}
 	c := msg.CommitChain
 
 	// check that the CommitChain is fresh
@@ -869,46 +885,42 @@ func processCommitChain(msg *wire.MsgCommitChain) error {
 	// add to the commitChainMap
 	commitChainMap[c.EntryHash.String()] = c
 
-	// Server: add to MyPL
-	//if nodeMode == common.SERVER_NODE {
-	if localServer.IsLeader() || localServer.isSingleServerMode() {
-		// deduct the entry credits from the eCreditMap
+	// deduct the entry credits from the eCreditMap
+	if nodeMode == common.SERVER_NODE {
 		eCreditMap[string(c.ECPubKey[:])] -= int32(c.Credits)
+	}
 
-		h, _ := msg.Sha()
-
+	h, _ := msg.Sha()
+	if localServer.IsLeader() || localServer.isSingleServerMode() {
 		if plMgr.IsMyPListExceedingLimit() {
 			fmt.Println("Exceeding MyProcessList size limit!")
 			return fMemPool.addOrphanMsg(msg, &h)
 		}
-
 		ack, err := plMgr.AddToLeadersProcessList(msg, &h, wire.AckCommitChain, dchain.NextBlock.Header.Timestamp)
 		if err != nil {
 			return err
 		}
 		fmt.Printf("AckCommitChain: %s\n", spew.Sdump(ack))
 		outMsgQueue <- ack
-	} else {
-		//as follower
-		h, _ := wire.NewShaHash(c.Hash().Bytes())
-		fMemPool.addMsg(msg, h)
+	} else if localServer.IsFollower() {
+		fMemPool.addMsg(msg, &h)
 	}
 	return nil
 }
 
 // processFactoidTX validates the MsgFactoidTX and adds it to processlist
 func processFactoidTX(msg *wire.MsgFactoidTX) error {
-	// prevent replay attacks
-	h := msg.Transaction.GetSigHash().Bytes()
-	t := int64(msg.Transaction.GetMilliTimestamp() / 1000)
-
-	if !IsTSValid(h, t) {
-		return fmt.Errorf("Timestamp invalid on Factoid Transaction")
-	}
-
 	if nodeMode != common.SERVER_NODE {
 		return nil
 	}
+	// prevent replay attacks
+	hash := msg.Transaction.GetSigHash().Bytes()
+	t := int64(msg.Transaction.GetMilliTimestamp() / 1000)
+
+	if !IsTSValid(hash, t) {
+		return fmt.Errorf("Timestamp invalid on Factoid Transaction")
+	}
+
 	tx := msg.Transaction
 	txnum := len(common.FactoidState.GetCurrentBlock().GetTransactions())
 	err := common.FactoidState.AddTransaction(txnum, tx)
@@ -923,8 +935,8 @@ func processFactoidTX(msg *wire.MsgFactoidTX) error {
 		eCreditMap[string(pub[:])] += cred
 	}
 
+	h, _ := msg.Sha()
 	if localServer.IsLeader() || localServer.isSingleServerMode() {
-		h, _ := msg.Sha()
 		if plMgr.IsMyPListExceedingLimit() {
 			fmt.Println("Exceeding MyProcessList size limit!")
 			return fMemPool.addOrphanMsg(msg, &h)
@@ -935,9 +947,8 @@ func processFactoidTX(msg *wire.MsgFactoidTX) error {
 		}
 		fmt.Printf("AckFactoidTx: %s\n", spew.Sdump(ack))
 		outMsgQueue <- ack
-		//} else if localServer.IsFollower() {
-		// for followers
-		//outMsgQueue <- msg
+	} else if localServer.IsFollower() {
+		fMemPool.addMsg(msg, &h)
 	}
 	return nil
 }
