@@ -1153,6 +1153,8 @@ func buildBlocks() error {
 	fBlock := newFactoidBlock(fchain)
 	dchain.AddFBlockToDBEntry(fBlock)
 	fmt.Printf("buildBlocks(): factoidBlock=%s\n", spew.Sdump(fBlock))
+	fmt.Printf("buildBlocks(): factoidBlock=%#v\n\n", fBlock)
+	fmt.Printf("buildBlocks(): factoidBlock=%x\n", fBlock)
 
 	// sort the echains by chain id
 	var keys []string
