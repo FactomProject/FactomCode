@@ -1,7 +1,7 @@
 package ldb
 
 import (
-	"log"
+	"fmt"
 	"strings"
 
 	"github.com/FactomProject/FactomCode/common"
@@ -11,6 +11,10 @@ import (
 
 // InsertEntry inserts an entry
 func (db *LevelDb) InsertEntry(entry *common.Entry) error {
+	if entry == nil {
+		return nil
+	}
+
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -19,6 +23,28 @@ func (db *LevelDb) InsertEntry(entry *common.Entry) error {
 	}
 	defer db.lbatch.Reset()
 
+	err := db.InsertEntryMultiBatch(entry)
+	if err != nil {
+		return err
+	}
+
+	err = db.lDb.Write(db.lbatch, db.wo)
+	if err != nil {
+		fmt.Printf("batch failed %v\n", err)
+		return err
+	}
+	return nil
+}
+
+func (db *LevelDb) InsertEntryMultiBatch(entry *common.Entry) error {
+	if entry == nil {
+		return nil
+	}
+
+	if db.lbatch == nil {
+		return fmt.Errorf("db.lbatch == nil")
+	}
+
 	binaryEntry, err := entry.MarshalBinary()
 	if err != nil {
 		return err
@@ -26,12 +52,6 @@ func (db *LevelDb) InsertEntry(entry *common.Entry) error {
 	var entryKey []byte = []byte{byte(TBL_ENTRY)}
 	entryKey = append(entryKey, entry.Hash().Bytes()...)
 	db.lbatch.Put(entryKey, binaryEntry)
-
-	err = db.lDb.Write(db.lbatch, db.wo)
-	if err != nil {
-		log.Println("batch failed %v\n", err)
-		return err
-	}
 
 	return nil
 }
