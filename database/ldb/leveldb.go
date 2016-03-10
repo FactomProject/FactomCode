@@ -14,7 +14,7 @@ import (
 
 	"github.com/FactomProject/FactomCode/database"
 
-	"github.com/FactomProject/btcd/wire"
+	"github.com/FactomProject/FactomCode/wire"
 	"github.com/FactomProject/goleveldb/leveldb"
 	//	"github.com/FactomProject/goleveldb/leveldb/cache"
 	"github.com/FactomProject/goleveldb/leveldb/opt"
@@ -186,6 +186,24 @@ func openDB(dbpath string, create bool) (pbdb database.Db, err error) {
 	}
 
 	return
+}
+
+func (db *LevelDb) StartBatch() {
+	db.dbLock.Lock()
+	db.lbatch = new(leveldb.Batch)
+}
+
+func (db *LevelDb) EndBatch() error {
+	defer db.lbatch.Reset()
+	defer db.dbLock.Unlock()
+
+	err := db.lDb.Write(db.lbatch, db.wo)
+	if err != nil {
+		fmt.Printf("batch failed %v\n", err)
+		return err
+	}
+
+	return nil
 }
 
 func (db *LevelDb) close() error {
