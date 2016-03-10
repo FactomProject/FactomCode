@@ -82,7 +82,7 @@ type tTxInsertData struct {
 
 type LevelDb struct {
 	// lock preventing multiple entry
-	dbLock sync.Mutex
+	dbLock sync.RWMutex
 
 	// leveldb pieces
 	lDb *leveldb.DB
