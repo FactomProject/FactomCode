@@ -58,12 +58,11 @@ func (db *LevelDb) InsertEntryMultiBatch(entry *common.Entry) error {
 
 // FetchEntry gets an entry by hash from the database.
 func (db *LevelDb) FetchEntryByHash(entrySha *common.Hash) (entry *common.Entry, err error) {
-	db.dbLock.Lock()
-	defer db.dbLock.Unlock()
-
 	var key []byte = []byte{byte(TBL_ENTRY)}
 	key = append(key, entrySha.Bytes()...)
+	db.dbLock.RLock()
 	data, err := db.lDb.Get(key, db.ro)
+	db.dbLock.RUnlock()
 
 	if data != nil {
 		entry = new(common.Entry)
@@ -77,11 +76,11 @@ func (db *LevelDb) FetchEntryByHash(entrySha *common.Hash) (entry *common.Entry,
 
 // Initialize External ID map for explorer search
 func (db *LevelDb) InitializeExternalIDMap() (extIDMap map[string]bool, err error) {
+	db.dbLock.RLock()
+	defer db.dbLock.RUnlock()
 
 	var fromkey []byte = []byte{byte(TBL_ENTRY)} // Table Name (1 bytes)
-
 	var tokey []byte = []byte{byte(TBL_ENTRY + 1)} // Table Name (1 bytes)
-
 	extIDMap = make(map[string]bool)
 
 	iter := db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)

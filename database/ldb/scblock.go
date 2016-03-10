@@ -80,9 +80,9 @@ func (db *LevelDb) FetchFBlockByHash(hash *common.Hash) (FBlock block.IFBlock, e
 	var key = []byte{byte(TBL_SC)}
 	key = append(key, hash.Bytes()...)
 	var data []byte
-	db.dbLock.Lock()
+	db.dbLock.RLock()
 	data, err = db.lDb.Get(key, db.ro)
-	db.dbLock.Unlock()
+	db.dbLock.RUnlock()
 
 	if data != nil {
 		FBlock = new(block.FBlock)
@@ -104,9 +104,9 @@ func (db *LevelDb) FetchFBlockByHeight(height uint32) (block.IFBlock, error) {
 
 	var data []byte
 	var err error
-	db.dbLock.Lock()
+	db.dbLock.RLock()
 	data, err = db.lDb.Get(key, db.ro)
-	db.dbLock.Unlock()
+	db.dbLock.RUnlock()
 	if err != nil {
 		return nil, err
 	}
@@ -121,13 +121,14 @@ func (db *LevelDb) FetchFBlockByHeight(height uint32) (block.IFBlock, error) {
 
 // FetchAllFBlocks gets all of the factoid blocks
 func (db *LevelDb) FetchAllFBlocks() (FBlocks []block.IFBlock, err error) {
+	db.dbLock.RLock()
+	defer db.dbLock.RUnlock()
+	
 	var fromkey = []byte{byte(TBL_SC)}   // Table Name (1 bytes)						// Timestamp  (8 bytes)
 	var tokey = []byte{byte(TBL_SC + 1)} // Table Name (1 bytes)
 	var iter iterator.Iterator
 	FBlockSlice := make([]block.IFBlock, 0, 10)
-	db.dbLock.Lock()
 	iter = db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
-	db.dbLock.Unlock()
 
 	for iter.Next() {
 		FBlock := new(block.FBlock)
