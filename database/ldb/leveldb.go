@@ -14,7 +14,7 @@ import (
 
 	"github.com/FactomProject/FactomCode/database"
 
-	"github.com/FactomProject/FactomCode/wire"
+	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/goleveldb/leveldb"
 	//	"github.com/FactomProject/goleveldb/leveldb/cache"
 	"github.com/FactomProject/goleveldb/leveldb/opt"
@@ -82,7 +82,7 @@ type tTxInsertData struct {
 
 type LevelDb struct {
 	// lock preventing multiple entry
-	dbLock sync.Mutex
+	dbLock sync.RWMutex
 
 	// leveldb pieces
 	lDb *leveldb.DB

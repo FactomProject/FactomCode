@@ -83,9 +83,9 @@ func (db *LevelDb) FetchABlockByHash(aBlockHash *common.Hash) (aBlock *common.Ad
 	var key = []byte{byte(TBL_AB)}
 	key = append(key, aBlockHash.Bytes()...)
 	var data []byte
-	db.dbLock.Lock()
+	db.dbLock.RLock()
 	data, err = db.lDb.Get(key, db.ro)
-	db.dbLock.Unlock()
+	db.dbLock.RUnlock()
 
 	if data != nil {
 		aBlock = new(common.AdminBlock)
@@ -106,9 +106,9 @@ func (db *LevelDb) FetchABlockByHeight(height uint32) (aBlock *common.AdminBlock
 	key = append(key, buf.Bytes()...)
 
 	var data []byte
-	db.dbLock.Lock()
+	db.dbLock.RLock()
 	data, err = db.lDb.Get(key, db.ro)
-	db.dbLock.Unlock()
+	db.dbLock.RUnlock()
 	if err != nil {
 		return nil, err
 	}
@@ -123,13 +123,13 @@ func (db *LevelDb) FetchABlockByHeight(height uint32) (aBlock *common.AdminBlock
 
 // FetchAllABlocks gets all of the admin blocks
 func (db *LevelDb) FetchAllABlocks() (aBlocks []common.AdminBlock, err error) {
+	db.dbLock.RLock()
+	defer db.dbLock.RUnlock()
 	var fromkey = []byte{byte(TBL_AB)}   // Table Name (1 bytes)						// Timestamp  (8 bytes)
 	var tokey = []byte{byte(TBL_AB + 1)} // Table Name (1 bytes)
 	var iter iterator.Iterator
 	aBlockSlice := make([]common.AdminBlock, 0, 10)
-	db.dbLock.Lock()
 	iter = db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
-	db.dbLock.Unlock()
 
 	for iter.Next() {
 		var aBlock common.AdminBlock

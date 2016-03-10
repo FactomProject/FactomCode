@@ -119,12 +119,11 @@ func (db *LevelDb) FetchEBlockByMR(eBMR *common.Hash) (eBlock *common.EBlock, er
 
 // FetchEntryBlock gets an entry by hash from the database.
 func (db *LevelDb) FetchEBlockByHash(eBlockHash *common.Hash) (*common.EBlock, error) {
-	db.dbLock.Lock()
-	defer db.dbLock.Unlock()
-
 	var key []byte = []byte{byte(TBL_EB)}
 	key = append(key, eBlockHash.Bytes()...)
+	db.dbLock.RLock()
 	data, err := db.lDb.Get(key, db.ro)
+	db.dbLock.RUnlock()
 	if err != nil {
 		return nil, err
 	}
@@ -168,12 +167,11 @@ func (db *LevelDb) FetchEBlockByHash(eBlockHash *common.Hash) (*common.EBlock, e
 
 // FetchEBHashByMR gets an entry by hash from the database.
 func (db *LevelDb) FetchEBHashByMR(eBMR *common.Hash) (*common.Hash, error) {
-	db.dbLock.Lock()
-	defer db.dbLock.Unlock()
-
 	var key []byte = []byte{byte(TBL_EB_MR)}
 	key = append(key, eBMR.Bytes()...)
+	db.dbLock.RLock()
 	data, err := db.lDb.Get(key, db.ro)
+	db.dbLock.RUnlock()
 	if err != nil {
 		return nil, err
 	}
@@ -237,12 +235,11 @@ func (db *LevelDb) InsertChainMultiBatch(chain *common.EChain) error {
 
 // FetchChainByHash gets a chain by chainID
 func (db *LevelDb) FetchChainByHash(chainID *common.Hash) (*common.EChain, error) {
-	db.dbLock.Lock()
-	defer db.dbLock.Unlock()
-
 	var key []byte = []byte{byte(TBL_CHAIN_HASH)}
 	key = append(key, chainID.Bytes()...)
+	db.dbLock.RLock()
 	data, err := db.lDb.Get(key, db.ro)
+	db.dbLock.RUnlock()
 	if err != nil {
 		return nil, err
 	}
@@ -259,8 +256,8 @@ func (db *LevelDb) FetchChainByHash(chainID *common.Hash) (*common.EChain, error
 
 // FetchAllChains get all of the cahins
 func (db *LevelDb) FetchAllChains() (chains []*common.EChain, err error) {
-	db.dbLock.Lock()
-	defer db.dbLock.Unlock()
+	db.dbLock.RLock()
+	defer db.dbLock.RUnlock()
 
 	var fromkey []byte = []byte{byte(TBL_CHAIN_HASH)}   // Table Name (1 bytes)
 	var tokey []byte = []byte{byte(TBL_CHAIN_HASH + 1)} // Table Name (1 bytes)
@@ -284,8 +281,8 @@ func (db *LevelDb) FetchAllChains() (chains []*common.EChain, err error) {
 
 // FetchAllEBlocksByChain gets all of the blocks by chain id
 func (db *LevelDb) FetchAllEBlocksByChain(chainID *common.Hash) (eBlocks *[]common.EBlock, err error) {
-	db.dbLock.Lock()
-	defer db.dbLock.Unlock()
+	db.dbLock.RLock()
+	defer db.dbLock.RUnlock()
 
 	var fromkey []byte = []byte{byte(TBL_EB_CHAIN_NUM)} // Table Name (1 bytes)
 	fromkey = append(fromkey, chainID.Bytes()...)       // Chain Type (32 bytes)

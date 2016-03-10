@@ -86,9 +86,9 @@ func (db *LevelDb) FetchECBlockByHash(ecBlockHash *common.Hash) (ecBlock *common
 	var key = []byte{byte(TBL_CB)}
 	key = append(key, ecBlockHash.Bytes()...)
 	var data []byte
-	db.dbLock.Lock()
+	db.dbLock.RLock()
 	data, err = db.lDb.Get(key, db.ro)
-	db.dbLock.Unlock()
+	db.dbLock.RUnlock()
 	if err != nil {
 		return nil, err
 	}
@@ -115,9 +115,9 @@ func (db *LevelDb) FetchECBlockByHeight(height uint32) (ecBlock *common.ECBlock,
 	//fmt.Println("FetchECBlockByHeight: key=", hex.EncodeToString(key))
 
 	var data []byte
-	db.dbLock.Lock()
+	db.dbLock.RLock()
 	data, err = db.lDb.Get(key, db.ro)
-	db.dbLock.Unlock()
+	db.dbLock.RUnlock()
 	if err != nil {
 		return nil, err
 	}
@@ -133,13 +133,14 @@ func (db *LevelDb) FetchECBlockByHeight(height uint32) (ecBlock *common.ECBlock,
 
 // FetchAllECBlocks gets all of the entry credit blocks
 func (db *LevelDb) FetchAllECBlocks() (ecBlocks []common.ECBlock, err error) {
+	db.dbLock.RLock()
+	defer db.dbLock.RUnlock()
+	
 	var fromkey = []byte{byte(TBL_CB)}   // Table Name (1 bytes)						// Timestamp  (8 bytes)
 	var tokey = []byte{byte(TBL_CB + 1)} // Table Name (1 bytes)
 	ecBlockSlice := make([]common.ECBlock, 0, 10)
 	var iter iterator.Iterator
-	db.dbLock.Lock()
 	iter = db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
-	db.dbLock.Unlock()
 
 	for iter.Next() {
 		ecBlock := common.NewECBlock()
