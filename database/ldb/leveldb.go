@@ -14,7 +14,7 @@ import (
 
 	"github.com/FactomProject/FactomCode/database"
 
-	"github.com/FactomProject/FactomCode/wire"
+	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/goleveldb/leveldb"
 	//	"github.com/FactomProject/goleveldb/leveldb/cache"
 	"github.com/FactomProject/goleveldb/leveldb/opt"
