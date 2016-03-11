@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"os/user"
+	"strings"
 	"sync"
 
 	"github.com/FactomProject/FactomCode/common"
@@ -177,6 +178,9 @@ func ReReadConfig() *FactomdConfig {
 func readConfig() *FactomdConfig {
 	if len(os.Args) > 1 { //&& strings.Contains(strings.ToLower(os.Args[1]), "factomd.conf") {
 		filename = os.Args[1]
+	}
+	if strings.HasPrefix(filename, "~") {
+		filename = getHomeDir() + filename
 	}
 	cfg := new(FactomdConfig)
 	//log.Println("read factom config file: ", filename)

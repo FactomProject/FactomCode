@@ -418,6 +418,9 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 }
 
 func processLeaderEOM(msgEom *wire.MsgInt_EOM) error {
+	if nodeMode != common.SERVER_NODE {
+		return nil
+	}
 	var singleServerMode = localServer.isSingleServerMode()
 	fmt.Println("number of federate servers: ", localServer.FederateServerCount(),
 		", singleServerMode=", singleServerMode)
@@ -485,6 +488,9 @@ func processLeaderEOM(msgEom *wire.MsgInt_EOM) error {
 // processDirBlockSig check received MsgDirBlockMsg in mempool and
 // decide which dir block to save to database and for anchor.
 func processDirBlockSig() error {
+	if nodeMode != common.SERVER_NODE {
+		return nil
+	}
 	dbsigs := fMemPool.getDirBlockSigPool()
 	if len(dbsigs) == 0 {
 		fmt.Println("no dir block sig in mempool.")
@@ -673,7 +679,7 @@ func processAckMsg(ack *wire.MsgAck) ([]*wire.MsgMissing, error) {
 	if ack.Type == wire.EndMinute10 { //&& ack.Height != firstBlockHeight {
 		// followers build Blocks
 		fmt.Println("follower buildBlocks, height=", ack.Height)
-		// buildBlocks() needs some serious refactoring to expose any exception during
+		// buildBlocks needs some serious refactoring to expose any exception during
 		// block building so that we can request new blocks if necessary.
 		err := buildBlocks() //broadcast new dir block sig
 		if err != nil {
@@ -988,21 +994,6 @@ func processFromOrphanPool() error {
 	return nil
 }
 
-func buildRevealEntry(msg *wire.MsgRevealEntry) {
-	chain := chainIDMap[msg.Entry.ChainID.String()]
-
-	// store the new entry in db
-	db.InsertEntry(msg.Entry)
-
-	err := chain.NextBlock.AddEBEntry(msg.Entry)
-
-	if err != nil {
-		//panic("Error while adding Entity to Block:" + err.Error())
-		fmt.Println("Error while adding Entity to Block:" + err.Error())
-	}
-
-}
-
 func buildIncreaseBalance(msg *wire.MsgFactoidTX) {
 	t := msg.Transaction
 	for i, ecout := range t.GetECOutputs() {
@@ -1031,6 +1022,21 @@ func buildCommitEntry(msg *wire.MsgCommitEntry) {
 
 func buildCommitChain(msg *wire.MsgCommitChain) {
 	ecchain.NextBlock.AddEntry(msg.CommitChain)
+}
+
+func buildRevealEntry(msg *wire.MsgRevealEntry) {
+	chain := chainIDMap[msg.Entry.ChainID.String()]
+
+	// store the new entry in db
+	db.InsertEntry(msg.Entry)
+
+	err := chain.NextBlock.AddEBEntry(msg.Entry)
+
+	if err != nil {
+		//panic("Error while adding Entity to Block:" + err.Error())
+		fmt.Println("Error while adding Entity to Block:" + err.Error())
+	}
+
 }
 
 func buildRevealChain(msg *wire.MsgRevealEntry) {
@@ -1138,7 +1144,7 @@ func buildGenesisBlocks() error {
 // build blocks from all process lists
 func buildBlocks() error {
 	// build the Genesis blocks if the current height is 0
-	fmt.Printf("buildBlocks(): dchain.NextDBHeight=%d, achain.NextDBHeight=%d, fchain.NextDBHeight=%d, ecchain.NextDBHeight=%d\n",
+	fmt.Printf("buildBlocks: dchain.NextDBHeight=%d, achain.NextDBHeight=%d, fchain.NextDBHeight=%d, ecchain.NextDBHeight=%d\n",
 		dchain.NextDBHeight, achain.NextBlockHeight, fchain.NextBlockHeight, ecchain.NextBlockHeight)
 
 	// Allocate the first three dbentries for Admin block, ECBlock and Factoid block
@@ -1153,19 +1159,19 @@ func buildBlocks() error {
 	// Entry Credit Chain
 	ecBlock := newEntryCreditBlock(ecchain)
 	dchain.AddECBlockToDBEntry(ecBlock)
-	fmt.Printf("buildBlocks(): ecBlock=%s\n", spew.Sdump(ecBlock))
+	fmt.Printf("buildBlocks: ecBlock=%s\n", spew.Sdump(ecBlock))
 
 	// Admin chain
 	aBlock := newAdminBlock(achain)
 	dchain.AddABlockToDBEntry(aBlock)
-	fmt.Printf("buildBlocks(): adminBlock=%s\n", spew.Sdump(aBlock))
+	fmt.Printf("buildBlocks: adminBlock=%s\n", spew.Sdump(aBlock))
 
 	// Factoid chain
 	fBlock := newFactoidBlock(fchain)
 	dchain.AddFBlockToDBEntry(fBlock)
-	fmt.Printf("buildBlocks(): factoidBlock=%s\n", spew.Sdump(fBlock))
-	fmt.Printf("buildBlocks(): factoidBlock=%#v\n\n", fBlock)
-	fmt.Printf("buildBlocks(): factoidBlock=%x\n", fBlock)
+	fmt.Printf("buildBlocks: factoidBlock=%s\n", spew.Sdump(fBlock))
+	fmt.Printf("buildBlocks: factoidBlock=%#v\n\n", fBlock)
+	fmt.Printf("buildBlocks: factoidBlock=%x\n", fBlock)
 
 	// sort the echains by chain id
 	var keys []string
@@ -1193,21 +1199,21 @@ func buildBlocks() error {
 	initProcessListMgr()
 
 	// for leader / follower regime change
-	fmt.Printf("buildBlocks(): It's a leader=%t or leaderElected=%t, SingleServerMode=%t, dbheight=%d, dchain.NextDBHeight=%d\n",
+	fmt.Printf("buildBlocks: It's a leader=%t or leaderElected=%t, SingleServerMode=%t, dbheight=%d, dchain.NextDBHeight=%d\n",
 		localServer.IsLeader(), localServer.isLeaderElected, localServer.isSingleServerMode(), newDBlock.Header.DBHeight, dchain.NextDBHeight)
 
 	if localServer.IsLeader() && !localServer.isSingleServerMode() {
 		if dchain.NextDBHeight-1 == localServer.myLeaderPolicy.StartDBHeight+localServer.myLeaderPolicy.Term-1 {
-			fmt.Println("buildBlocks(): Leader turn OFF BlockTimer. newDBlock.dbheight=", newDBlock.Header.DBHeight, ", dchain.NextDBHeight=", dchain.NextDBHeight)
+			fmt.Println("buildBlocks: Leader turn OFF BlockTimer. newDBlock.dbheight=", newDBlock.Header.DBHeight, ", dchain.NextDBHeight=", dchain.NextDBHeight)
 		} else {
-			fmt.Println("buildBlocks(): Leader RESTARTs BlockTimer. newDBlock.dbheight=", newDBlock.Header.DBHeight, ", dchain.NextDBHeight=", dchain.NextDBHeight)
+			fmt.Println("buildBlocks: Leader RESTARTs BlockTimer. newDBlock.dbheight=", newDBlock.Header.DBHeight, ", dchain.NextDBHeight=", dchain.NextDBHeight)
 		}
 	}
 	if localServer.isLeaderElected && !localServer.isSingleServerMode() {
 		if dchain.NextDBHeight-1 == localServer.myLeaderPolicy.StartDBHeight-1 {
-			fmt.Println("buildBlocks(): Leader-Elected turn ON BlockTimer. newDBlock.dbheight=", newDBlock.Header.DBHeight, ", dchain.NextDBHeight=", dchain.NextDBHeight)
+			fmt.Println("buildBlocks: Leader-Elected turn ON BlockTimer. newDBlock.dbheight=", newDBlock.Header.DBHeight, ", dchain.NextDBHeight=", dchain.NextDBHeight)
 		} else {
-			fmt.Println("buildBlocks(): Leader-Elected KEEPs OFF BlockTimer. newDBlock.dbheight=", newDBlock.Header.DBHeight, ", dchain.NextDBHeight=", dchain.NextDBHeight)
+			fmt.Println("buildBlocks: Leader-Elected KEEPs OFF BlockTimer. newDBlock.dbheight=", newDBlock.Header.DBHeight, ", dchain.NextDBHeight=", dchain.NextDBHeight)
 		}
 	}
 
@@ -1225,7 +1231,7 @@ func buildBlocks() error {
 	}
 
 	if localServer.IsLeader() || localServer.isLeaderElected {
-		fmt.Println("buildBlocks(): send it to channel: localServer.latestDBHeight <- ", newDBlock.Header.DBHeight)
+		fmt.Println("buildBlocks: send it to channel: localServer.latestDBHeight <- ", newDBlock.Header.DBHeight)
 		localServer.latestDBHeight <- newDBlock.Header.DBHeight
 	}
 	return nil
@@ -1467,6 +1473,10 @@ func newDirectoryBlock(chain *common.DChain) *common.DirectoryBlock {
 		if err != nil {
 			fmt.Println("newDirectoryBlock: error in db.FetchDBlockByHeight", err.Error())
 		}
+		if prev == nil {
+			fmt.Println("newDirectoryBlock: prev == nil")
+		}
+		fmt.Println("newDirectoryBlock: prev=", spew.Sdump(prev))
 		block.Header.PrevLedgerKeyMR, err = common.CreateHash(prev)
 		if err != nil {
 			fmt.Println("newDirectoryBlock: error in creating LedgerKeyMR", err.Error())
@@ -1510,6 +1520,46 @@ func newDirectoryBlock(chain *common.DChain) *common.DirectoryBlock {
 	return block
 }
 
+// save all blocks and anchor dir block if it's the leader
+func saveBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
+	ecblock *common.ECBlock, fblock block.IFBlock, eblocks []*common.EBlock) error {
+	// save blocks to database in a signle transaction ???
+	fmt.Println("saveBlocks: height=", dblock.Header.DBHeight)
+	db.ProcessFBlockBatch(fblock)
+	exportFctBlock(fblock)
+	fmt.Println("Save Factoid Block: block " + strconv.FormatUint(uint64(fblock.GetDBHeight()), 10))
+
+	db.ProcessABlockBatch(ablock)
+	exportABlock(ablock)
+	fmt.Println("Save Admin Block: block " + strconv.FormatUint(uint64(ablock.Header.DBHeight), 10))
+
+	db.ProcessECBlockBatch(ecblock)
+	exportECBlock(ecblock)
+	fmt.Println("Save EntryCreditBlock: block " + strconv.FormatUint(uint64(ecblock.Header.EBHeight), 10))
+
+	db.ProcessDBlockBatch(dblock)
+	db.InsertDirBlockInfo(common.NewDirBlockInfoFromDBlock(dblock))
+	fmt.Println("Save DirectoryBlock: block " + strconv.FormatUint(uint64(dblock.Header.DBHeight), 10))
+
+	for _, eblock := range eblocks {
+		db.ProcessEBlockBatch(eblock)
+		exportEBlock(eblock)
+		fmt.Println("Save EntryBlock: block " + strconv.FormatUint(uint64(eblock.Header.EBSequence), 10))
+	}
+
+	binary, _ := dblock.MarshalBinary()
+	commonHash := common.Sha(binary)
+	db.UpdateBlockHeightCache(dblock.Header.DBHeight, commonHash)
+	db.UpdateNextBlockHeightCache(dchain.NextDBHeight)
+	exportDBlock(dblock)
+	fmt.Println("saveBlocks: done=", dblock.Header.DBHeight)
+
+	placeAnchor(dblock)
+	fMemPool.resetDirBlockSigPool()
+	return nil
+}
+
+/*
 // save all blocks and anchor dir block if it's the leader
 func saveBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
 	ecblock *common.ECBlock, fblock block.IFBlock, eblocks []*common.EBlock) error {
@@ -1575,7 +1625,7 @@ func saveBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
 	placeAnchor(dblock)
 	fMemPool.resetDirBlockSigPool()
 	return nil
-}
+}*/
 
 // signDirBlockForAdminBlock signs the directory block for next admin block
 func signDirBlockForAdminBlock(newdb *common.DirectoryBlock) error {

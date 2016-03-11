@@ -1020,9 +1020,6 @@ out:
 			// implementions' alert messages, we will not relay
 			// theirs.
 
-		//case *wire.MsgInv:
-		//p.handleInvMsg(msg)
-
 		case *wire.MsgNotFound:
 			// TODO(davec): Ignore this for now, but ultimately
 			// it should probably be used to detect when something
@@ -1036,10 +1033,6 @@ out:
 			// Factom additions
 		case *wire.MsgCommitChain:
 			p.handleCommitChainMsg(msg)
-			p.FactomRelay(msg)
-
-		case *wire.MsgRevealChain:
-			p.handleRevealChainMsg(msg)
 			p.FactomRelay(msg)
 
 		case *wire.MsgCommitEntry:
@@ -2330,14 +2323,6 @@ func (p *peer) handleCommitChainMsg(msg *wire.MsgCommitChain) {
 }
 
 // Handle factom app imcoming msg
-func (p *peer) handleRevealChainMsg(msg *wire.MsgRevealChain) {
-	// Add the msg to inbound msg queue
-	if !ClientOnly {
-		inMsgQueue <- msg
-	}
-}
-
-// Handle factom app imcoming msg
 func (p *peer) handleCommitEntryMsg(msg *wire.MsgCommitEntry) {
 	// Add the msg to inbound msg queue
 	if !ClientOnly {
@@ -2399,15 +2384,11 @@ func (p *peer) handleDirBlockSigMsg(msg *wire.MsgDirBlockSig) {
 func (p *peer) shallRelay(msg interface{}) bool {
 	hash, _ := wire.NewShaHashFromStruct(msg)
 	iv := wire.NewInvVect(wire.InvTypeFactomRaw, hash)
-
 	if !p.isKnownInventory(iv) {
 		p.AddKnownInventory(iv)
-
 		return true
 	}
-
 	fmt.Println("******************* SHALL NOT RELAY !!!!!!!!!!! ******************")
-
 	return false
 }
 
