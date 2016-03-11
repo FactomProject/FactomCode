@@ -8,13 +8,14 @@ import (
 	"bytes"
 	"encoding/hex"
 	"errors"
+	"fmt"
+	"strconv"
+	"time"
+
 	"github.com/FactomProject/FactomCode/common"
 	cp "github.com/FactomProject/FactomCode/controlpanel"
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/btcd/wire"
-	"github.com/davecgh/go-spew/spew"
-	"strconv"
-	"time"
 )
 
 // processDirBlock validates dir block and save it to factom db.
@@ -338,6 +339,9 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 		}
 	}
 
+	dbhash, dbHeight, _ := db.FetchBlockHeightCache()
+	fmt.Println("last block height is %d, to-be-saved block height is %d\n", dbHeight, b.Header.DBHeight)
+
 	// Store the dir block
 	err := db.ProcessDBlockBatch(b)
 	if err != nil {
@@ -350,6 +354,16 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 
 	// for debugging
 	exportDBlock(b)
+
+	// this means, there's syncup breakage happened, and let's renew syncup.
+	if uint32(dbHeight) < b.Header.DBHeight-1 {
+		startHash, _ := wire.NewShaHash(dbhash.Bytes())
+		stopHash, _ := wire.NewShaHash(commonHash.Bytes())
+		outMsgQueue <- &wire.MsgInt_ReSyncup{
+			StartHash: startHash,
+			StopHash:  stopHash,
+		}
+	}
 
 	return nil
 }
@@ -381,33 +395,33 @@ func deleteBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool) err
 }
 
 func validateDBSignature(aBlock *common.AdminBlock, dchain *common.DChain) bool {
-
-	dbSigEntry := aBlock.GetDBSignature()
-	if dbSigEntry == nil {
-		if aBlock.Header.DBHeight == 0 {
-			return true
+	/*
+		dbSigEntry := aBlock.GetDBSignature()
+		if dbSigEntry == nil {
+			if aBlock.Header.DBHeight == 0 {
+				return true
+			} else {
+				return false
+			}
 		} else {
-			return false
-		}
-	} else {
-		dbSig := dbSigEntry.(*common.DBSignatureEntry)
-		if serverPubKey.String() != dbSig.PubKey.String() {
-			return false
-		} else {
-			// obtain the previous directory block
-			dblk := dchain.Blocks[aBlock.Header.DBHeight-1]
-			if dblk == nil {
+			dbSig := dbSigEntry.(*common.DBSignatureEntry)
+			if serverPubKey.String() != dbSig.PubKey.String() {
 				return false
 			} else {
-				// validatet the signature
-				bHeader, _ := dblk.Header.MarshalBinary()
-				if !serverPubKey.Verify(bHeader, (*[64]byte)(dbSig.PrevDBSig)) {
-					procLog.Infof("No valid signature found in Admin Block = %s\n", spew.Sdump(aBlock))
+				// obtain the previous directory block
+				dblk := dchain.Blocks[aBlock.Header.DBHeight-1]
+				if dblk == nil {
 					return false
+				} else {
+					// validatet the signature
+					bHeader, _ := dblk.Header.MarshalBinary()
+					if !serverPubKey.Verify(bHeader, (*[64]byte)(dbSig.PrevDBSig)) {
+						procLog.Infof("No valid signature found in Admin Block = %s\n", spew.Sdump(aBlock))
+						return false
+					}
 				}
 			}
 		}
-	}
-
+	*/
 	return true
 }
