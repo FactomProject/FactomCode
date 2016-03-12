@@ -206,10 +206,6 @@ func (db *LevelDb) EndBatch() error {
 	return nil
 }
 
-func (db *LevelDb) close() error {
-	return db.lDb.Close()
-}
-
 // Sync verifies that the database is coherent on disk,
 // and no outstanding transactions are in flight.
 func (db *LevelDb) Sync() error {
@@ -226,7 +222,7 @@ func (db *LevelDb) Close() error {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
-	return db.close()
+	return db.lDb.Close()
 }
 
 func int64ToKey(keyint int64) []byte {
@@ -256,11 +252,4 @@ func (db *LevelDb) lBatch() *leveldb.Batch {
 		db.lbatch = new(leveldb.Batch)
 	}
 	return db.lbatch
-}
-
-func (db *LevelDb) RollbackClose() error {
-	db.dbLock.Lock()
-	defer db.dbLock.Unlock()
-
-	return db.close()
 }
