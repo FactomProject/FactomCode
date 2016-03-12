@@ -395,7 +395,7 @@ func deleteBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool) err
 }
 
 func validateDBSignature(aBlock *common.AdminBlock, dchain *common.DChain) bool {
-	/*
+	
 		dbSigEntry := aBlock.GetDBSignature()
 		if dbSigEntry == nil {
 			if aBlock.Header.DBHeight == 0 {
@@ -422,6 +422,6 @@ func validateDBSignature(aBlock *common.AdminBlock, dchain *common.DChain) bool 
 				}
 			}
 		}
-	*/
+	
 	return true
 }
