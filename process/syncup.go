@@ -16,6 +16,7 @@ import (
 	cp "github.com/FactomProject/FactomCode/controlpanel"
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/btcd/wire"
+	"github.com/davecgh/go-spew/spew"
 )
 
 // processDirBlock validates dir block and save it to factom db.
