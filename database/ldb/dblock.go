@@ -252,11 +252,6 @@ func (db *LevelDb) InsertDirBlockInfoMultiBatch(dirBlockInfo *common.DirBlockInf
 		return fmt.Errorf("db.lbatch == nil")
 	}
 
-	if db.lbatch == nil {
-		db.lbatch = new(leveldb.Batch)
-	}
-	defer db.lbatch.Reset()
-
 	var key = []byte{byte(TBL_DB_INFO)} // Table Name (1 bytes)
 	key = append(key, dirBlockInfo.DBHash.Bytes()...)
 	binaryDirBlockInfo, _ := dirBlockInfo.MarshalBinary()

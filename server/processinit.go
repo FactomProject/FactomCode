@@ -34,7 +34,10 @@ func initDChain() {
 	dchain.ChainID.SetBytes(barray)
 
 	// get all dBlocks from db
-	dBlocks, _ := db.FetchAllDBlocks()
+	dBlocks, err := db.FetchAllDBlocks()
+	if err!=nil {
+		panic(err)
+	}
 	sort.Sort(util.ByDBlockIDAccending(dBlocks))
 
 	dchain.Blocks = make([]*common.DirectoryBlock, len(dBlocks), len(dBlocks)+1)
