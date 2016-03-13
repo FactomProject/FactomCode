@@ -53,6 +53,21 @@ func processDirBlock(msg *wire.MsgDirBlock) error {
 		"MsgDirBlock DBHeigth=:"+string(msg.DBlk.Header.DBHeight), // Message
 		0) // Expire
 
+	dbhash, dbHeight, _ := db.FetchBlockHeightCache()
+	fmt.Printf("last block height in db is %d, just-arrived block height is %d\n", dbHeight, msg.DBlk.Header.DBHeight)
+
+	commonHash, _ := common.CreateHash(msg.DBlk)
+
+	// this means, there's syncup breakage happened, and let's renew syncup.
+	if uint32(dbHeight) < msg.DBlk.Header.DBHeight-500 {
+		startHash, _ := wire.NewShaHash(dbhash.Bytes())
+		stopHash, _ := wire.NewShaHash(commonHash.Bytes())
+		outMsgQueue <- &wire.MsgInt_ReSyncup{
+			StartHash: startHash,
+			StopHash:  stopHash,
+		}
+	}
+
 	return nil
 }
 
@@ -340,7 +355,7 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 	}
 
 	dbhash, dbHeight, _ := db.FetchBlockHeightCache()
-	fmt.Println("last block height is %d, to-be-saved block height is %d\n", dbHeight, b.Header.DBHeight)
+	fmt.Printf("last block height is %d, to-be-saved block height is %d\n", dbHeight, b.Header.DBHeight)
 
 	// Store the dir block
 	err := db.ProcessDBlockBatch(b)
