@@ -16,6 +16,7 @@ import (
 	cp "github.com/FactomProject/FactomCode/controlpanel"
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/btcd/wire"
+	"github.com/davecgh/go-spew/spew"
 )
 
 // processDirBlock validates dir block and save it to factom db.
@@ -410,7 +411,7 @@ func deleteBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool) err
 }
 
 func validateDBSignature(aBlock *common.AdminBlock, dchain *common.DChain) bool {
-	/*
+	
 		dbSigEntry := aBlock.GetDBSignature()
 		if dbSigEntry == nil {
 			if aBlock.Header.DBHeight == 0 {
@@ -437,6 +438,6 @@ func validateDBSignature(aBlock *common.AdminBlock, dchain *common.DChain) bool 
 				}
 			}
 		}
-	*/
+	
 	return true
 }
