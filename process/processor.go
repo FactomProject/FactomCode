@@ -199,6 +199,7 @@ func Start_Processor(
 	} else {
 		// start the go routine to process the blocks and entries downloaded
 		// from peers
+		time.Sleep(5 * time.Second)
 		go validateAndStoreBlocks(fMemPool, db, dchain, outCtlMsgQueue)
 	}
 

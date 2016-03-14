@@ -53,22 +53,22 @@ func processDirBlock(msg *wire.MsgDirBlock) error {
 		"SyncUp:",  // Title
 		"MsgDirBlock DBHeigth=:"+string(msg.DBlk.Header.DBHeight), // Message
 		0) // Expire
+	/*
+		dbhash, dbHeight, _ := db.FetchBlockHeightCache()
+		fmt.Printf("last block height in db is %d, just-arrived block height is %d\n", dbHeight, msg.DBlk.Header.DBHeight)
 
-	dbhash, dbHeight, _ := db.FetchBlockHeightCache()
-	fmt.Printf("last block height in db is %d, just-arrived block height is %d\n", dbHeight, msg.DBlk.Header.DBHeight)
+		commonHash, _ := common.CreateHash(msg.DBlk)
 
-	commonHash, _ := common.CreateHash(msg.DBlk)
-
-	// this means, there's syncup breakage happened, and let's renew syncup.
-	if uint32(dbHeight) < msg.DBlk.Header.DBHeight-500 {
-		startHash, _ := wire.NewShaHash(dbhash.Bytes())
-		stopHash, _ := wire.NewShaHash(commonHash.Bytes())
-		outMsgQueue <- &wire.MsgInt_ReSyncup{
-			StartHash: startHash,
-			StopHash:  stopHash,
+		// this means, there's syncup breakage happened, and let's renew syncup.
+		if uint32(dbHeight) < msg.DBlk.Header.DBHeight-500 {
+			startHash, _ := wire.NewShaHash(dbhash.Bytes())
+			stopHash, _ := wire.NewShaHash(commonHash.Bytes())
+			outMsgQueue <- &wire.MsgInt_ReSyncup{
+				StartHash: startHash,
+				StopHash:  stopHash,
+			}
 		}
-	}
-
+	*/
 	return nil
 }
 
@@ -179,12 +179,13 @@ func processEntry(msg *wire.MsgEntry) error {
 // Validate the new blocks in mem pool and store them in db
 func validateAndStoreBlocks(fMemPool *ftmMemPool, db database.Db, dchain *common.DChain, outCtlMsgQ chan wire.FtmInternalMsg) {
 	var myDBHeight int64
+	var dbhash *wire.ShaHash
 	var sleeptime int
 	var dblk *common.DirectoryBlock
 
 	for true {
 		dblk = nil
-		_, myDBHeight, _ = db.FetchBlockHeightCache()
+		dbhash, myDBHeight, _ = db.FetchBlockHeightCache()
 
 		adj := (len(dchain.Blocks) - int(myDBHeight))
 		if adj <= 0 {
@@ -211,8 +212,13 @@ func validateAndStoreBlocks(fMemPool *ftmMemPool, db database.Db, dchain *common
 			time.Sleep(time.Duration(sleeptime * 1000000)) // Nanoseconds for duration
 
 			//TODO: send an internal msg to sync up with peers
-		}
 
+			// this means, there could be a syncup breakage happened, and let's renew syncup.
+			//startHash, _ := wire.NewShaHash(dbhash.Bytes())
+			outMsgQueue <- &wire.MsgInt_ReSyncup{
+				StartHash: dbhash,
+			}
+		}
 	}
 
 }
@@ -411,33 +417,33 @@ func deleteBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool) err
 }
 
 func validateDBSignature(aBlock *common.AdminBlock, dchain *common.DChain) bool {
-	
-		dbSigEntry := aBlock.GetDBSignature()
-		if dbSigEntry == nil {
-			if aBlock.Header.DBHeight == 0 {
-				return true
-			} else {
-				return false
-			}
+
+	dbSigEntry := aBlock.GetDBSignature()
+	if dbSigEntry == nil {
+		if aBlock.Header.DBHeight == 0 {
+			return true
 		} else {
-			dbSig := dbSigEntry.(*common.DBSignatureEntry)
-			if serverPubKey.String() != dbSig.PubKey.String() {
+			return false
+		}
+	} else {
+		dbSig := dbSigEntry.(*common.DBSignatureEntry)
+		if serverPubKey.String() != dbSig.PubKey.String() {
+			return false
+		} else {
+			// obtain the previous directory block
+			dblk := dchain.Blocks[aBlock.Header.DBHeight-1]
+			if dblk == nil {
 				return false
 			} else {
-				// obtain the previous directory block
-				dblk := dchain.Blocks[aBlock.Header.DBHeight-1]
-				if dblk == nil {
+				// validatet the signature
+				bHeader, _ := dblk.Header.MarshalBinary()
+				if !serverPubKey.Verify(bHeader, (*[64]byte)(dbSig.PrevDBSig)) {
+					procLog.Infof("No valid signature found in Admin Block = %s\n", spew.Sdump(aBlock))
 					return false
-				} else {
-					// validatet the signature
-					bHeader, _ := dblk.Header.MarshalBinary()
-					if !serverPubKey.Verify(bHeader, (*[64]byte)(dbSig.PrevDBSig)) {
-						procLog.Infof("No valid signature found in Admin Block = %s\n", spew.Sdump(aBlock))
-						return false
-					}
 				}
 			}
 		}
-	
+	}
+
 	return true
 }
