@@ -60,8 +60,9 @@ var (
 	chainIDMapBackup map[string]*common.EChain //previous block bakcup - ChainIDMap with chainID string([32]byte) as key
 	eCreditMapBackup map[string]int32          // backup from previous block - eCreditMap with public key string([32]byte) as key, credit balance as value
 
-	fMemPool *ftmMemPool
-	plMgr    *consensus.ProcessListMgr
+	fMemPool              *ftmMemPool
+	plMgr                 *consensus.ProcessListMgr
+	lastDirBlockTimestamp uint32
 
 	//Server Private key and Public key for milestone 1
 	serverPrivKey common.PrivateKey

@@ -209,15 +209,23 @@ func validateAndStoreBlocks(fMemPool *ftmMemPool, db database.Db, dchain *common
 				time.Sleep(time.Duration(sleeptime * 1000000)) // Nanoseconds for duration
 			}
 		} else {
-			time.Sleep(time.Duration(sleeptime * 1000000)) // Nanoseconds for duration
-
 			//TODO: send an internal msg to sync up with peers
+			now := time.Now().Unix()
 
-			// this means, there could be a syncup breakage happened, and let's renew syncup.
-			//startHash, _ := wire.NewShaHash(dbhash.Bytes())
-			outMsgQueue <- &wire.MsgInt_ReSyncup{
-				StartHash: dbhash,
+			// the block is up-to-date
+			if now-int64(lastDirBlockTimestamp) < 600 {
+				time.Sleep(11 * time.Minute)
+			} else {
+				time.Sleep(time.Duration(sleeptime * 1000000)) // Nanoseconds for duration
+				// this means, there could be a syncup breakage happened, and let's renew syncup.
+				//startHash, _ := wire.NewShaHash(dbhash.Bytes())
+				if dbhash != nil {
+					outMsgQueue <- &wire.MsgInt_ReSyncup{
+						StartHash: dbhash,
+					}
+				}
 			}
+
 		}
 	}
 
@@ -369,6 +377,8 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 	if err != nil {
 		return err
 	}
+
+	lastDirBlockTimestamp = b.Header.Timestamp
 
 	// Update dir block height cache in db
 	commonHash, _ := common.CreateHash(b)
