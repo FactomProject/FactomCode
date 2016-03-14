@@ -115,7 +115,7 @@ func NewShaHashFromStruct(DataStruct interface{}) (*ShaHash, error) {
 		return nil, nil
 	}
 
-	fmt.Println("NewShaHashFromStruct =", jsonbytes)
+	//fmt.Println("NewShaHashFromStruct =", jsonbytes)
 
 	return NewShaHash(DoubleSha256(jsonbytes))
 }

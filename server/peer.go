@@ -1049,11 +1049,11 @@ out:
 
 		case *wire.MsgAck:
 			p.handleAckMsg(msg)
-			p.FactomRelay(msg)
+			//p.FactomRelay(msg)
 
 		case *wire.MsgDirBlockSig:
 			p.handleDirBlockSigMsg(msg)
-			p.FactomRelay(msg)
+			//p.FactomRelay(msg)
 
 			// Factom blocks downloading
 		case *wire.MsgGetDirBlocks:
