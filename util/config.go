@@ -14,7 +14,6 @@ import (
 
 type FactomdConfig struct {
 	App struct {
-		PortNumber              int
 		HomeDir                 string
 		LdbPath                 string
 		BoltDBPath              string
@@ -88,7 +87,6 @@ const defaultConfig = `
 ; App settings
 ; ------------------------------------------------------------------------------
 [app]
-PortNumber				      		= 8088
 HomeDir								= ""
 LdbPath					        	= "ldb"
 BoltDBPath							= ""

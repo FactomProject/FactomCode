@@ -482,16 +482,22 @@ func handleEntryCreditBalance(ctx *web.Context, eckey string) {
 
 }
 
-func handleFactoidBalance(ctx *web.Context, eckey string) {
+func handleFactoidBalance(ctx *web.Context, fkey string) {
 	type fbal struct {
 		Response string
 		Success  bool
 	}
 	var b fbal
-	adr, err := hex.DecodeString(eckey)
-	if err == nil && len(adr) != common.HASH_LENGTH {
-		b = fbal{Response: "Invalid Address", Success: false}
+
+	var adr []byte
+	var err error
+
+	if fct.ValidateFUserStr(fkey) {
+		adr = fct.ConvertUserStrToAddress(fkey)
+	} else {
+		adr, err = hex.DecodeString(fkey)
 	}
+
 	if err == nil {
 		v := int64(common.FactoidState.GetBalance(fct.NewAddress(adr)))
 		str := fmt.Sprintf("%d", v)
