@@ -82,7 +82,7 @@ type tTxInsertData struct {
 
 type LevelDb struct {
 	// lock preventing multiple entry
-	dbLock sync.Mutex
+	dbLock sync.RWMutex
 
 	// leveldb pieces
 	lDb *leveldb.DB
@@ -186,6 +186,24 @@ func openDB(dbpath string, create bool) (pbdb database.Db, err error) {
 	}
 
 	return
+}
+
+func (db *LevelDb) StartBatch() {
+	db.dbLock.Lock()
+	db.lbatch = new(leveldb.Batch)
+}
+
+func (db *LevelDb) EndBatch() error {
+	defer db.lbatch.Reset()
+	defer db.dbLock.Unlock()
+
+	err := db.lDb.Write(db.lbatch, db.wo)
+	if err != nil {
+		fmt.Printf("batch failed %v\n", err)
+		return err
+	}
+
+	return nil
 }
 
 func (db *LevelDb) close() error {
