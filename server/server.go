@@ -1189,6 +1189,7 @@ func (s *server) Stop() error {
 func (s *server) WaitForShutdown() {
 	// this break follower's sync up timing. need a better fix
 	//<-s.quit
+	time.Sleep(time.Second)
 	s.wg.Wait()
 }
 
