@@ -8,7 +8,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"errors"
-	"fmt"
+	//"fmt"
 	"strconv"
 	"time"
 
@@ -370,7 +370,7 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 	}
 
 	dbhash, dbHeight, _ := db.FetchBlockHeightCache()
-	fmt.Printf("last block height is %d, to-be-saved block height is %d\n", dbHeight, b.Header.DBHeight)
+	//fmt.Printf("last block height is %d, to-be-saved block height is %d\n", dbHeight, b.Header.DBHeight)
 
 	// Store the dir block
 	err := db.ProcessDBlockBatch(b)
