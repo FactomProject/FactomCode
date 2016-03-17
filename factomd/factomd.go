@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/FactomProject/FactomCode/common"
-	//cp "github.com/FactomProject/FactomCode/controlpanel"
+	"github.com/FactomProject/FactomCode/controlpanel"
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/database/ldb"
 	"github.com/FactomProject/FactomCode/server"
@@ -90,7 +90,7 @@ func main() {
 // Load settings from configuration file: factomd.conf
 func loadConfigurations() {
 	cfg = util.ReadConfig()
-	//cp.CP.SetPort(cfg.Controlpanel.Port)
+	controlpanel.CP.SetPort(cfg.Controlpanel.Port)
 	server.LoadConfigurations(cfg)
 }
 
