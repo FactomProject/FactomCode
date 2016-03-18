@@ -74,6 +74,9 @@ var (
 	FactomdPass string
 
 	zeroHash = common.NewHash()
+
+	SafeStop     bool
+	SafeStopDone bool
 )
 
 var (
@@ -206,17 +209,32 @@ func Start_Processor(
 
 	// Process msg from the incoming queue one by one
 	for {
-		select {
-		case msg := <-inMsgQ:
 
-			if err := serveMsgRequest(msg); err != nil {
-				procLog.Error(err)
-			}
+	queueloop:
+		for {
+			select {
+			case msg, ok := <-inMsgQ:
+				if ok {
 
-		case ctlMsg := <-inCtlMsgQueue:
-
-			if err := serveMsgRequest(ctlMsg); err != nil {
-				procLog.Error(err)
+					if err := serveMsgRequest(msg); err != nil {
+						procLog.Error(err)
+					}
+				}
+			case ctlMsg, ok := <-inCtlMsgQueue:
+				if ok {
+					if err := serveMsgRequest(ctlMsg); err != nil {
+						procLog.Error(err)
+					}
+				}
+			default:
+				time.Sleep(time.Duration(10) * time.Millisecond)
+				if SafeStop {
+					procLog.Info("Closing database")
+					db.Close()
+					procLog.Info("Database closed")
+					SafeStopDone = true
+				}
+				break queueloop
 			}
 		}
 	}
