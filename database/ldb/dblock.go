@@ -259,11 +259,6 @@ func (db *LevelDb) InsertDirBlockInfoMultiBatch(dirBlockInfo *common.DirBlockInf
 		return fmt.Errorf("db.lbatch == nil")
 	}
 
-	if db.lbatch == nil {
-		db.lbatch = new(leveldb.Batch)
-	}
-	defer db.lbatch.Reset()
-
 	var key = []byte{byte(TBL_DB_INFO)} // Table Name (1 bytes)
 	key = append(key, dirBlockInfo.DBHash.Bytes()...)
 	binaryDirBlockInfo, _ := dirBlockInfo.MarshalBinary()
@@ -274,12 +269,12 @@ func (db *LevelDb) InsertDirBlockInfoMultiBatch(dirBlockInfo *common.DirBlockInf
 
 // FetchDirBlockInfoByHash gets an DirBlockInfo obj
 func (db *LevelDb) FetchDirBlockInfoByHash(dbHash *common.Hash) (dirBlockInfo *common.DirBlockInfo, err error) {
-	db.dbLock.Lock()
-	defer db.dbLock.Unlock()
 
 	var key = []byte{byte(TBL_DB_INFO)}
 	key = append(key, dbHash.Bytes()...)
+	db.dbLock.RLock()
 	data, err := db.lDb.Get(key, db.ro)
+	db.dbLock.RUnlock()
 
 	if data != nil {
 		dirBlockInfo = new(common.DirBlockInfo)
@@ -294,12 +289,12 @@ func (db *LevelDb) FetchDirBlockInfoByHash(dbHash *common.Hash) (dirBlockInfo *c
 
 // FetchDBlockByHash gets an entry by hash from the database.
 func (db *LevelDb) FetchDBlockByHash(dBlockHash *common.Hash) (*common.DirectoryBlock, error) {
-	db.dbLock.Lock()
-	defer db.dbLock.Unlock()
 
 	var key = []byte{byte(TBL_DB)}
 	key = append(key, dBlockHash.Bytes()...)
+	db.dbLock.RLock()
 	data, _ := db.lDb.Get(key, db.ro)
+	db.dbLock.RUnlock()
 
 	dBlock := common.NewDBlock()
 	if data == nil {
@@ -332,14 +327,13 @@ func (db *LevelDb) FetchDBlockByHeight(dBlockHeight uint32) (dBlock *common.Dire
 
 // FetchDBHashByHeight gets a dBlockHash from the database.
 func (db *LevelDb) FetchDBHashByHeight(dBlockHeight uint32) (*common.Hash, error) {
-	db.dbLock.Lock()
-	defer db.dbLock.Unlock()
-
 	var key = []byte{byte(TBL_DB_NUM)}
 	var buf bytes.Buffer
 	binary.Write(&buf, binary.BigEndian, dBlockHeight)
 	key = append(key, buf.Bytes()...)
+	db.dbLock.RLock()
 	data, err := db.lDb.Get(key, db.ro)
+	db.dbLock.RUnlock()
 	if err != nil {
 		return nil, err
 	}
@@ -355,12 +349,11 @@ func (db *LevelDb) FetchDBHashByHeight(dBlockHeight uint32) (*common.Hash, error
 
 // FetchDBHashByMR gets a DBHash by MR from the database.
 func (db *LevelDb) FetchDBHashByMR(dBMR *common.Hash) (*common.Hash, error) {
-	db.dbLock.Lock()
-	defer db.dbLock.Unlock()
-
 	var key = []byte{byte(TBL_DB_MR)}
 	key = append(key, dBMR.Bytes()...)
+	db.dbLock.RLock()
 	data, err := db.lDb.Get(key, db.ro)
+	db.dbLock.RUnlock()
 	if err != nil {
 		return nil, err
 	}
@@ -395,12 +388,12 @@ func (db *LevelDb) FetchHeadMRByChainID(chainID *common.Hash) (blkMR *common.Has
 		return nil, nil
 	}
 
-	db.dbLock.Lock()
-	defer db.dbLock.Unlock()
 
 	var key = []byte{byte(TBL_CHAIN_HEAD)}
 	key = append(key, chainID.Bytes()...)
+	db.dbLock.RLock()
 	data, err := db.lDb.Get(key, db.ro)
+	db.dbLock.RUnlock()
 	if err != nil {
 		return nil, err
 	}
@@ -416,8 +409,8 @@ func (db *LevelDb) FetchHeadMRByChainID(chainID *common.Hash) (blkMR *common.Has
 
 // FetchAllDBlocks gets all of the fbInfo
 func (db *LevelDb) FetchAllDBlocks() (dBlocks []common.DirectoryBlock, err error) {
-	db.dbLock.Lock()
-	defer db.dbLock.Unlock()
+	db.dbLock.RLock()
+	defer db.dbLock.RUnlock()
 
 	var fromkey = []byte{byte(TBL_DB)}   // Table Name (1 bytes)						// Timestamp  (8 bytes)
 	var tokey = []byte{byte(TBL_DB + 1)} // Table Name (1 bytes)
@@ -446,8 +439,8 @@ func (db *LevelDb) FetchAllDBlocks() (dBlocks []common.DirectoryBlock, err error
 
 // FetchAllDirBlockInfo gets all of the dirBlockInfo
 func (db *LevelDb) FetchAllDirBlockInfo() (dirBlockInfoMap map[string]*common.DirBlockInfo, err error) {
-	db.dbLock.Lock()
-	defer db.dbLock.Unlock()
+	db.dbLock.RLock()
+	defer db.dbLock.RUnlock()
 
 	var fromkey = []byte{byte(TBL_DB_INFO)}   // Table Name (1 bytes)
 	var tokey = []byte{byte(TBL_DB_INFO + 1)} // Table Name (1 bytes)
@@ -471,8 +464,8 @@ func (db *LevelDb) FetchAllDirBlockInfo() (dirBlockInfoMap map[string]*common.Di
 
 // FetchAllUnconfirmedDirBlockInfo gets all of the dirBlockInfos that have BTC Anchor confirmation
 func (db *LevelDb) FetchAllUnconfirmedDirBlockInfo() (dirBlockInfoMap map[string]*common.DirBlockInfo, err error) {
-	db.dbLock.Lock()
-	defer db.dbLock.Unlock()
+	db.dbLock.RLock()
+	defer db.dbLock.RUnlock()
 
 	var fromkey = []byte{byte(TBL_DB_INFO)}   // Table Name (1 bytes)
 	var tokey = []byte{byte(TBL_DB_INFO + 1)} // Table Name (1 bytes)

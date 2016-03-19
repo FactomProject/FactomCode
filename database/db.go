@@ -19,10 +19,6 @@ type Db interface {
 	// Close cleanly shuts down the database and syncs all data.
 	Close() (err error)
 
-	// RollbackClose discards the recent database changes to the previously
-	// saved data at last Sync and closes the database.
-	RollbackClose() (err error)
-
 	// Sync verifies that the database is coherent on disk and no
 	// outstanding transactions are in flight.
 	Sync() (err error)

@@ -117,6 +117,12 @@ func btcdMain(serverChan chan<- *server) error {
 // StartBtcd starts btcd main
 func StartBtcd(ldb database.Db, inQ, outQ chan wire.FtmInternalMsg) {
 	db = ldb
+	defer func() {
+			err:=db.Close()
+			if err!=nil {
+				panic(err)
+			}
+		}()
 	inMsgQueue = inQ
 	outMsgQueue = outQ
 	if common.SERVER_NODE != factomConfig.App.NodeMode {
