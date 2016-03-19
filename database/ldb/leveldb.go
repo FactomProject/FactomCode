@@ -13,6 +13,7 @@ import (
 	"sync"
 
 	"github.com/FactomProject/FactomCode/database"
+	"github.com/FactomProject/FactomCode/common"
 
 	"github.com/FactomProject/FactomCode/wire"
 	"github.com/FactomProject/goleveldb/leveldb"
@@ -90,6 +91,8 @@ type LevelDb struct {
 	wo  *opt.WriteOptions
 
 	lbatch *leveldb.Batch
+
+	blockHeightCacheUpdatedNotificationBroadcastChannel *common.BroadcastChannel
 
 	nextDirBlockHeight int64
 
@@ -184,6 +187,8 @@ func openDB(dbpath string, create bool) (pbdb database.Db, err error) {
 			return
 		}
 	}
+
+	db.blockHeightCacheUpdatedNotificationBroadcastChannel = new(common.BroadcastChannel)
 
 	return
 }

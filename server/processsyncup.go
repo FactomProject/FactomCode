@@ -170,7 +170,11 @@ func validateAndStoreBlocks(fMemPool *ftmMemPool, db database.Db, dchain *common
 	var dblk *common.DirectoryBlock
 
 	procLog.Info("in validateAndStoreBlocks")
+
+	notificationChan:=db.GetBlockHeightCacheUpdatedNotificationChannel()
+
 	for true {
+		procLog.Info("validateAndStoreBlocks looped!")
 		dblk = nil
 		_, myDBHeight, _ = db.FetchBlockHeightCache()
 
@@ -200,7 +204,7 @@ func validateAndStoreBlocks(fMemPool *ftmMemPool, db database.Db, dchain *common
 
 			//TODO: send an internal msg to sync up with peers
 		}
-
+		<-notificationChan
 	}
 
 }

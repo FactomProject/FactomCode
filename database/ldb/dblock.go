@@ -142,7 +142,14 @@ func (db *LevelDb) UpdateBlockHeightCache(dirBlkHeigh uint32, dirBlkHash *common
 	db.lastDirBlkHeight = int64(dirBlkHeigh)
 	db.lastDirBlkSha, _ = wire.NewShaHash(dirBlkHash.Bytes())
 	db.lastDirBlkShaCached = true
+	db.blockHeightCacheUpdatedNotificationBroadcastChannel.Broadcast(db.lastDirBlkHeight)
 	return nil
+}
+
+func (db *LevelDb) GetBlockHeightCacheUpdatedNotificationChannel() (chan interface{}) {
+	c:=make(chan interface{})
+	db.blockHeightCacheUpdatedNotificationBroadcastChannel.AddChannel(c)
+	return c
 }
 
 // FetchBlockHeightCache returns the hash and block height of the most recent
