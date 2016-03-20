@@ -24,14 +24,29 @@ type DChain struct {
 	NextBlock    *DirectoryBlock
 	NextDBHeight uint32
 	IsValidated  bool
+
+	DChainUpdatedNotificationBroadcastChannel *BroadcastChannel
 }
 
 func NewDChain() *DChain {
 	d := new(DChain)
 	d.Blocks = make([]*DirectoryBlock, 0)
 	d.NextBlock = NewDirectoryBlock()
-
+	d.DChainUpdatedNotificationBroadcastChannel = new(BroadcastChannel)
 	return d
+}
+
+func (dc *DChain) GetDChainUpdatedNotificationBroadcastChannel() (*BroadcastChannel) {
+	if dc.DChainUpdatedNotificationBroadcastChannel == nil {
+		dc.DChainUpdatedNotificationBroadcastChannel = new(BroadcastChannel)
+	}
+	return dc.DChainUpdatedNotificationBroadcastChannel
+}
+
+func (dc *DChain) GetDChainUpdatedNotificationChannel() (chan interface{}) {
+	c:=make(chan interface{})
+	dc.GetDChainUpdatedNotificationBroadcastChannel().AddChannel(c)
+	return c
 }
 
 type DirectoryBlock struct {
@@ -577,7 +592,13 @@ func (c *DChain) AddDBlockToDChain(b *DirectoryBlock) (err error) {
 
 	c.Blocks[b.Header.DBHeight] = b
 
+	c.BlocksUpdated(b.Header.DBHeight)
+
 	return nil
+}
+
+func (c *DChain) BlocksUpdated(dbHeight uint32) {
+	c.GetDChainUpdatedNotificationBroadcastChannel().Broadcast(dbHeight)
 }
 
 // Check if the block with the input block height is existing in chain

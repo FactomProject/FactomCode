@@ -76,6 +76,11 @@ func initDChain() {
 	if dchain.NextBlock.IsSealed == true {
 		panic("dchain.Blocks[dchain.NextBlockID].IsSealed for chain:" + dchain.ChainID.String())
 	}
+	if dchain.NextDBHeight == 0 {
+		dchain.BlocksUpdated(0)
+	} else {
+		dchain.BlocksUpdated(dchain.NextDBHeight-1)
+	}
 
 }
 
