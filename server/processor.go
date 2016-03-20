@@ -14,6 +14,7 @@ package server
 
 import (
 	"bytes"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"sort"
@@ -641,6 +642,7 @@ func processAckMsg(ack *wire.MsgAck) ([]*wire.MsgMissing, error) {
 			}
 		}
 	}
+	common.FactoidState.EndOfPeriod(int(ack.Type))
 
 	var missingAcks []*wire.MsgMissing
 	missingMsg := fMemPool.addAck(ack)
@@ -1169,9 +1171,9 @@ func buildBlocks() error {
 	// Factoid chain
 	fBlock := newFactoidBlock(fchain)
 	dchain.AddFBlockToDBEntry(fBlock)
-	fmt.Printf("buildBlocks: factoidBlock=%s\n", spew.Sdump(fBlock))
-	fmt.Printf("buildBlocks: factoidBlock=%#v\n\n", fBlock)
-	fmt.Printf("buildBlocks: factoidBlock=%x\n", fBlock)
+	bytes, _ := fBlock.MarshalBinary()
+	fmt.Printf("buildBlocks: factoidBlock=%s\n", fBlock)
+	fmt.Printf("buildBlocks: factoidBlock=%s\n", hex.EncodeToString(bytes))
 
 	// sort the echains by chain id
 	var keys []string
@@ -1355,7 +1357,7 @@ func newAdminBlock(chain *common.AdminChain) *common.AdminBlock {
 		if err != nil {
 			fmt.Println("newAdminBlock: error in db.FetchDBlockByHeight", err.Error())
 		}
-		fmt.Println("newAdminBlock: prev dir block = ", spew.Sdump(prevDB))
+		fmt.Println("newAdminBlock: get prev DirBlock for aBlock signature: prev dirBlock = ", spew.Sdump(prevDB))
 		signDirBlockForAdminBlock(prevDB)
 		block.AddEndOfMinuteMarker(wire.EndMinute1)
 	}
@@ -1444,6 +1446,7 @@ func newFactoidBlock(chain *common.FctChain) block.IFBlock {
 			fmt.Println("newFactoidBlock: error in currentBlock.AddCoinbase(): ", err.Error())
 		}
 		common.FactoidState.UpdateTransaction(t)
+		common.FactoidState.SetCurrentBlock(currentBlock)
 	}
 
 	if chain.NextBlockHeight != dchain.NextDBHeight {
