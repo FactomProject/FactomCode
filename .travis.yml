@@ -5,32 +5,32 @@ language: go
 go:
   - tip
 
-install:
-- go get -t -v github.com/FactomProject/btcd      
-- go get -t -v github.com/FactomProject/factoid   
-- go get -t -v github.com/FactomProject/fctwallet 
-- go get -t -v github.com/FactomProject/factom    
-- go get -t -v github.com/FactomProject/factom-cli
-- go get -t -v github.com/FactomProject/Testing   
-- go get -t -v github.com/FactomProject/btcrpcclient
-- go get -t -v github.com/FactomProject/btcutil    
-- go get -t -v github.com/FactomProject/btcws     
-- go get -t -v github.com/FactomProject/gobundle  
-- go get -t -v github.com/FactomProject/goleveldb 
-- go get -t -v github.com/FactomProject/FactomDocs
-- go get -t -v github.com/FactomProject/gocoding
-- go get -t -v github.com/FactomProject/btcjson   
-- go get -t -v github.com/FactomProject/btclog    
-- go get -t -v github.com/FactomProject/dynrsrc   
-- go get -t -v github.com/FactomProject/ed25519   
-- go get -t -v github.com/FactomProject/fastsha256 
-- go get -t -v github.com/FactomProject/go-bip32  
-- go get -t -v github.com/FactomProject/go-bip39  
-- go get -t -v github.com/FactomProject/go-flags  
-- go get -t -v github.com/FactomProject/go-socks  
-- go get -t -v github.com/FactomProject/seelog    
-- go get -t -v github.com/FactomProject/snappy-go 
-- go get -t -v github.com/FactomProject/websocket 
-- go get -t -v github.com/FactomProject/walletapp 
+# install:
+# - go get -t -v github.com/FactomProject/btcd      
+# - go get -t -v github.com/FactomProject/factoid   
+# - go get -t -v github.com/FactomProject/fctwallet 
+# - go get -t -v github.com/FactomProject/factom    
+# - go get -t -v github.com/FactomProject/factom-cli
+# - go get -t -v github.com/FactomProject/Testing   
+# - go get -t -v github.com/FactomProject/btcrpcclient
+# - go get -t -v github.com/FactomProject/btcutil    
+# - go get -t -v github.com/FactomProject/btcws     
+# - go get -t -v github.com/FactomProject/gobundle  
+# - go get -t -v github.com/FactomProject/goleveldb 
+# - go get -t -v github.com/FactomProject/FactomDocs
+# - go get -t -v github.com/FactomProject/gocoding
+# - go get -t -v github.com/FactomProject/btcjson   
+# - go get -t -v github.com/FactomProject/btclog    
+# - go get -t -v github.com/FactomProject/dynrsrc   
+# - go get -t -v github.com/FactomProject/ed25519   
+# - go get -t -v github.com/FactomProject/fastsha256 
+# - go get -t -v github.com/FactomProject/go-bip32  
+# - go get -t -v github.com/FactomProject/go-bip39  
+# - go get -t -v github.com/FactomProject/go-flags  
+# - go get -t -v github.com/FactomProject/go-socks  
+# - go get -t -v github.com/FactomProject/seelog    
+# - go get -t -v github.com/FactomProject/snappy-go 
+# - go get -t -v github.com/FactomProject/websocket 
+# - go get -t -v github.com/FactomProject/walletapp 
 
 
