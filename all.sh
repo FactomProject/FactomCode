@@ -19,7 +19,6 @@
 # Any repository that doesn't have a development branch in this last case
 # is going to default to master.
 #
-
 cd ..
 
 if [ ${!#} == -nocov ]; then noparameters=$(($#-1)); else noparameters=$#; fi
