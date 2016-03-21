@@ -499,9 +499,9 @@ func processDirBlockSig() error {
 		return nil
 	}
 	totalServerNum := localServer.FederateServerCount()
-	fmt.Printf("processDirBlockSig(): By EOM_1, there're %d dirblock signatures arrived out of %d federate servers.\n",
+	fmt.Printf("processDirBlockSig: By EOM_1, there're %d dirblock signatures arrived out of %d federate servers.\n",
 		len(dbsigs), totalServerNum)
-	//fmt.Println("processDirBlockSig(): DirBlockSigPool: ", spew.Sdump(dbsigs))
+	//fmt.Println("processDirBlockSig: DirBlockSigPool: ", spew.Sdump(dbsigs))
 
 	dgsMap := make(map[string][]*wire.MsgDirBlockSig)
 	for _, v := range dbsigs {
@@ -511,14 +511,12 @@ func processDirBlockSig() error {
 		//}
 		if v.DBHeight != dchain.NextDBHeight-1 {
 			// need to remove this one
-			fmt.Println("filter out later-coming last block's sig: ", spew.Sdump(v))
+			//fmt.Println("filter out later-coming last block's sig: ", spew.Sdump(v))
 			continue
 		}
 		key := v.DirBlockHash.String()
 		val := dgsMap[key]
-		//fmt.Printf("key0=%s, dir block sig=%s\n", key, spew.Sdump(val))
 		if val == nil {
-			//fmt.Println("sig is nil.")
 			val = make([]*wire.MsgDirBlockSig, 0, 32)
 			val = append(val, v)
 			dgsMap[key] = val
@@ -526,25 +524,25 @@ func processDirBlockSig() error {
 			val = append(val, v)
 			dgsMap[key] = val
 		}
-		//fmt.Printf("key=%s, dir block sig=%s\n", key, spew.Sdump(dgsMap[key]))
 	}
 
 	var winner *wire.MsgDirBlockSig
-	for _, v := range dgsMap {
+	for k, v := range dgsMap {
 		n := float32(len(v)) / float32(totalServerNum)
-		//fmt.Printf("key=%s, len=%d, n=%v\n", k, len(v), n)
-		if n > float32(0.5) {
+		fmt.Printf("key=%s, len=%d, n=%v\n", k, len(v), n)
+		if n == float32(1.0) {
+			fmt.Printf("A full consensus !")
+		} else if n > float32(0.5) {
+			fmt.Printf("A majority !")
 			winner = v[0]
 			break
 		} else if n == float32(0.5) {
-			//to-do: choose what leader has got to break the tie
 			var leaderID string
 			if localServer.GetLeaderPeer() == nil {
 				leaderID = localServer.nodeID
 			} else {
 				leaderID = localServer.GetLeaderPeer().GetNodeID()
 			}
-			fmt.Println("Got a tie, and need to choose what the leader has for the winner of dirblock sig. leaderPeer=", leaderID)
 			for _, d := range v {
 				fmt.Println("leaderID=", leaderID, ", fed server id=", d.SourceNodeID)
 				if leaderID == d.SourceNodeID {
@@ -552,8 +550,8 @@ func processDirBlockSig() error {
 					break
 				}
 			}
-			// a tie without leader's dir block sig
 			if winner != nil {
+				fmt.Println("A tie with leader. leaderPeer=", leaderID)
 				break
 			}
 		}
@@ -565,8 +563,7 @@ func processDirBlockSig() error {
 		// req := wire.NewDirBlockSigMsg()
 		// localServer.GetLeaderPeer().pushGetDirBlockSig(req)
 		// how to coordinate when the response comes ???
-		//panic("No winner in dirblock signature comparison.")
-		fmt.Println("No winner in dirblock signature comparison.")
+		fmt.Println("No winner.")
 	} else {
 		fmt.Println("winner: ", spew.Sdump(winner))
 	}
@@ -1198,8 +1195,10 @@ func buildBlocks() error {
 	}
 
 	// Directory Block chain
-	procLog.Debug("in buildBlocks")
-	newDirectoryBlock(dchain) //sign dir block and broadcast it
+	dBlock := newDirectoryBlock(dchain) //sign dir block and broadcast it
+	bytes, _ = dBlock.MarshalBinary()
+	//fmt.Printf("buildBlocks: dirBlock=%s\n", spew.Sdump(dBlock))
+	fmt.Printf("buildBlocks: dirBlock=%s\n", hex.EncodeToString(bytes))
 
 	// should keep this process list for a while ????
 	// re-initialize the process lit manager

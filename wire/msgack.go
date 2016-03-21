@@ -40,14 +40,15 @@ const (
 // MsgAck is the message sent out by the leader to the followers for
 // message it receives and puts into process list.
 type MsgAck struct {
-	Height          uint32
-	ChainID         *common.Hash
-	Index           uint32
-	Type            byte
-	DBlockTimestamp uint32   // timestamp from leader used for DBlock.Timestamp for followers
-	Affirmation     *ShaHash // affirmation value -- hash of the message/object in question
-	SerialHash      [32]byte
-	Signature       [64]byte
+	Height            uint32
+	ChainID           *common.Hash
+	Index             uint32
+	Type              byte
+	DBlockTimestamp   uint32   // timestamp from leader used for DBlock.Timestamp for followers
+	CoinbaseTimestamp uint64   // timestamp from leader used for FBlock coinbase.MilliTimestamp
+	Affirmation       *ShaHash // affirmation value -- hash of the message/object in question
+	SerialHash        [32]byte
+	Signature         [64]byte
 }
 
 // Sign is used to sign this message
@@ -75,6 +76,8 @@ func (msg *MsgAck) GetBinaryForSignature() (data []byte, err error) {
 	}
 	binary.Write(&buf, binary.BigEndian, msg.Index)
 	buf.WriteByte(msg.Type)
+	binary.Write(&buf, binary.BigEndian, msg.DBlockTimestamp)
+	binary.Write(&buf, binary.BigEndian, msg.CoinbaseTimestamp)
 	buf.Write(msg.Affirmation.Bytes())
 	buf.Write(msg.SerialHash[:])
 	return buf.Bytes(), err
@@ -95,6 +98,7 @@ func (msg *MsgAck) BtcDecode(r io.Reader, pver uint32) error {
 	msg.Index, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 	msg.Type, newData = newData[0], newData[1:]
 	msg.DBlockTimestamp, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+	msg.CoinbaseTimestamp, newData = binary.BigEndian.Uint64(newData[0:8]), newData[8:]
 	msg.Affirmation, _ = NewShaHash(newData[:32])
 
 	newData = newData[32:]
@@ -113,6 +117,7 @@ func (msg *MsgAck) BtcEncode(w io.Writer, pver uint32) error {
 	binary.Write(&buf, binary.BigEndian, msg.Index)
 	buf.WriteByte(msg.Type)
 	binary.Write(&buf, binary.BigEndian, msg.DBlockTimestamp)
+	binary.Write(&buf, binary.BigEndian, msg.CoinbaseTimestamp)
 	buf.Write(msg.Affirmation.Bytes())
 	buf.Write(msg.SerialHash[:])
 	buf.Write(msg.Signature[:])
@@ -129,7 +134,7 @@ func (msg *MsgAck) Command() string {
 // MaxPayloadLength returns the maximum length the payload can be for the
 // receiver.  This is part of the Message interface implementation.
 func (msg *MsgAck) MaxPayloadLength(pver uint32) uint32 {
-	return 173 //4 + 32 + 4 + 1 + 4 + 32 + 32 + 64
+	return 181 //4 + 32 + 4 + 1 + 4 + 8 + 32 + 32 + 64
 }
 
 // NewMsgAck returns a new bitcoin ping message that conforms to the Message
@@ -183,6 +188,7 @@ func (msg *MsgAck) Equals(ack *MsgAck) bool {
 		msg.Index == ack.Index &&
 		msg.Type == ack.Type &&
 		msg.DBlockTimestamp == ack.DBlockTimestamp &&
+		msg.CoinbaseTimestamp == ack.CoinbaseTimestamp &&
 		msg.Affirmation.IsEqual(ack.Affirmation) &&
 		msg.ChainID.IsSameAs(ack.ChainID) &&
 		bytes.Equal(msg.SerialHash[:], ack.SerialHash[:]) &&
@@ -190,6 +196,6 @@ func (msg *MsgAck) Equals(ack *MsgAck) bool {
 }
 
 func (msg *MsgAck) String() string {
-	return fmt.Sprintf("Ack: height=%d, index=%d, type=%v, timestamp=%d",
-		msg.Height, msg.Index, msg.Type, msg.DBlockTimestamp)
+	return fmt.Sprintf("Ack: height=%d, index=%d, type=%v, dblock.timestamp=%d, coinbase.timestamp=%d",
+		msg.Height, msg.Index, msg.Type, msg.DBlockTimestamp, msg.CoinbaseTimestamp)
 }
