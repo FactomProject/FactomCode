@@ -6,7 +6,6 @@ go:
   - tip
 
 install:
-- go get -t -v github.com/FactomProject/FactomCode
 - go get -t -v github.com/FactomProject/btcd      
 - go get -t -v github.com/FactomProject/factoid   
 - go get -t -v github.com/FactomProject/fctwallet 
