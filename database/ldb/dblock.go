@@ -146,7 +146,7 @@ func (db *LevelDb) UpdateBlockHeightCache(dirBlkHeigh uint32, dirBlkHash *common
 	return nil
 }
 
-func (db *LevelDb) GetBlockHeightCacheUpdatedNotificationChannel() (chan interface{}) {
+func (db *LevelDb) GetBlockHeightCacheUpdatedNotificationChannel() chan interface{} {
 	return db.blockHeightCacheUpdatedNotificationBroadcastChannel.NewChannel()
 }
 
@@ -385,7 +385,6 @@ func (db *LevelDb) FetchHeadMRByChainID(chainID *common.Hash) (blkMR *common.Has
 	if chainID == nil {
 		return nil, nil
 	}
-
 
 	var key = []byte{byte(TBL_CHAIN_HEAD)}
 	key = append(key, chainID.Bytes()...)

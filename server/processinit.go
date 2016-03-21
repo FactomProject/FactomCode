@@ -35,7 +35,7 @@ func initDChain() {
 
 	// get all dBlocks from db
 	dBlocks, err := db.FetchAllDBlocks()
-	if err!=nil {
+	if err != nil {
 		panic(err)
 	}
 	sort.Sort(util.ByDBlockIDAccending(dBlocks))
@@ -79,7 +79,7 @@ func initDChain() {
 	if dchain.NextDBHeight == 0 {
 		dchain.BlocksUpdated(0)
 	} else {
-		dchain.BlocksUpdated(dchain.NextDBHeight-1)
+		dchain.BlocksUpdated(dchain.NextDBHeight - 1)
 	}
 
 }

@@ -36,14 +36,14 @@ func NewDChain() *DChain {
 	return d
 }
 
-func (dc *DChain) GetDChainUpdatedNotificationBroadcastChannel() (*BroadcastChannel) {
+func (dc *DChain) GetDChainUpdatedNotificationBroadcastChannel() *BroadcastChannel {
 	if dc.DChainUpdatedNotificationBroadcastChannel == nil {
 		dc.DChainUpdatedNotificationBroadcastChannel = new(BroadcastChannel)
 	}
 	return dc.DChainUpdatedNotificationBroadcastChannel
 }
 
-func (dc *DChain) GetDChainUpdatedNotificationChannel() (chan interface{}) {
+func (dc *DChain) GetDChainUpdatedNotificationChannel() chan interface{} {
 	return dc.GetDChainUpdatedNotificationBroadcastChannel().NewChannel()
 }
 
