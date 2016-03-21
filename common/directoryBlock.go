@@ -44,9 +44,7 @@ func (dc *DChain) GetDChainUpdatedNotificationBroadcastChannel() (*BroadcastChan
 }
 
 func (dc *DChain) GetDChainUpdatedNotificationChannel() (chan interface{}) {
-	c:=make(chan interface{})
-	dc.GetDChainUpdatedNotificationBroadcastChannel().AddChannel(c)
-	return c
+	return dc.GetDChainUpdatedNotificationBroadcastChannel().NewChannel()
 }
 
 type DirectoryBlock struct {

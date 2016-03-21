@@ -172,10 +172,9 @@ func validateAndStoreBlocks(fMemPool *ftmMemPool, db database.Db, dchain *common
 	procLog.Info("in validateAndStoreBlocks")
 
 	dchainChan:=dchain.GetDChainUpdatedNotificationChannel()
-	dbChan:=db.GetBlockHeightCacheUpdatedNotificationChannel()
+	//dbChan:=db.GetBlockHeightCacheUpdatedNotificationChannel()
 
 	for true {
-		procLog.Info("validateAndStoreBlocks looped!")
 		dblk = nil
 		_, myDBHeight, _ = db.FetchBlockHeightCache()
 
@@ -202,16 +201,17 @@ func validateAndStoreBlocks(fMemPool *ftmMemPool, db database.Db, dchain *common
 			}
 		} else {
 			time.Sleep(time.Duration(sleeptime * 1000000)) // Nanoseconds for duration
-
 			//TODO: send an internal msg to sync up with peers
 		}
+		<-dchainChan
+		/*
 		select {
 		    case <-dchainChan:
 				procLog.Info("validateAndStoreBlocks looped dchainChan!")
 		    case <-dbChan:
 				procLog.Info("validateAndStoreBlocks looped dbChan!")
 		}
-		
+		*/
 	}
 
 }
