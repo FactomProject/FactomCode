@@ -25,6 +25,7 @@ import (
 	"github.com/FactomProject/FactomCode/anchor"
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/consensus"
+	"github.com/agl/ed25519"
 	//cp "github.com/FactomProject/FactomCode/controlpanel"
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/util"
@@ -1161,17 +1162,21 @@ func buildBlocks() error {
 	// Entry Credit Chain
 	ecBlock := newEntryCreditBlock(ecchain)
 	dchain.AddECBlockToDBEntry(ecBlock)
+	bytes, _ := ecBlock.MarshalBinary()
 	fmt.Printf("buildBlocks: ecBlock=%s\n", spew.Sdump(ecBlock))
+	fmt.Printf("buildBlocks: ecBlock=%s\n", hex.EncodeToString(bytes))
 
 	// Admin chain
 	aBlock := newAdminBlock(achain)
 	dchain.AddABlockToDBEntry(aBlock)
+	bytes, _ = aBlock.MarshalBinary()
 	fmt.Printf("buildBlocks: adminBlock=%s\n", spew.Sdump(aBlock))
+	fmt.Printf("buildBlocks: adminBlock=%s\n", hex.EncodeToString(bytes))
 
 	// Factoid chain
 	fBlock := newFactoidBlock(fchain)
 	dchain.AddFBlockToDBEntry(fBlock)
-	bytes, _ := fBlock.MarshalBinary()
+	bytes, _ = fBlock.MarshalBinary()
 	fmt.Printf("buildBlocks: factoidBlock=%s\n", fBlock)
 	fmt.Printf("buildBlocks: factoidBlock=%s\n", hex.EncodeToString(bytes))
 
@@ -1397,12 +1402,10 @@ func newAdminBlock(chain *common.AdminChain) *common.AdminBlock {
 
 // Seals the current open block, store it in db and create the next open block
 func newFactoidBlock(chain *common.FctChain) block.IFBlock {
-
-	//older := FactoshisPerCredit
-
 	cfg := util.ReReadConfig()
 	FactoshisPerCredit = cfg.App.ExchangeRate
 	/*
+		older := FactoshisPerCredit
 		rate := fmt.Sprintf("Current Exchange rate is %v",
 			strings.TrimSpace(fct.ConvertDecimal(FactoshisPerCredit)))
 		if older != FactoshisPerCredit {
@@ -1634,9 +1637,17 @@ func saveBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
 func signDirBlockForAdminBlock(newdb *common.DirectoryBlock) error {
 	if nodeMode == common.SERVER_NODE && dchain.NextDBHeight > 0 {
 		fmt.Printf("signDirBlockForAdminBlock: new dbBlock=%s\n", spew.Sdump(newdb.Header))
-		dbHeaderBytes, _ := newdb.Header.MarshalBinary()
+		//dbHeaderBytes, _ := newdb.Header.MarshalBinary()
 		identityChainID := common.NewHash() // 0 ID for milestone 1 ????
-		sig := serverPrivKey.Sign(dbHeaderBytes)
+		//sig := serverPrivKey.Sign(dbHeaderBytes)
+		//achain.NextBlock.AddABEntry(common.NewDBSignatureEntry(identityChainID, sig))
+		pub := common.PublicKey{
+			Key: new([ed25519.PublicKeySize]byte),
+		}
+		sig := common.Signature{
+			Pub: pub,
+			Sig: new([ed25519.SignatureSize]byte),
+		}
 		achain.NextBlock.AddABEntry(common.NewDBSignatureEntry(identityChainID, sig))
 	}
 	return nil
