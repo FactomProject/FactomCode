@@ -14,6 +14,7 @@ package server
 
 import (
 	"bytes"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"sort"
@@ -24,6 +25,7 @@ import (
 	"github.com/FactomProject/FactomCode/anchor"
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/consensus"
+	"github.com/FactomProject/ed25519"
 	//cp "github.com/FactomProject/FactomCode/controlpanel"
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/util"
@@ -497,9 +499,9 @@ func processDirBlockSig() error {
 		return nil
 	}
 	totalServerNum := localServer.FederateServerCount()
-	fmt.Printf("processDirBlockSig(): By EOM_1, there're %d dirblock signatures arrived out of %d federate servers.\n",
+	fmt.Printf("processDirBlockSig: By EOM_1, there're %d dirblock signatures arrived out of %d federate servers.\n",
 		len(dbsigs), totalServerNum)
-	//fmt.Println("processDirBlockSig(): DirBlockSigPool: ", spew.Sdump(dbsigs))
+	//fmt.Println("processDirBlockSig: DirBlockSigPool: ", spew.Sdump(dbsigs))
 
 	dgsMap := make(map[string][]*wire.MsgDirBlockSig)
 	for _, v := range dbsigs {
@@ -509,14 +511,12 @@ func processDirBlockSig() error {
 		//}
 		if v.DBHeight != dchain.NextDBHeight-1 {
 			// need to remove this one
-			fmt.Println("filter out later-coming last block's sig: ", spew.Sdump(v))
+			//fmt.Println("filter out later-coming last block's sig: ", spew.Sdump(v))
 			continue
 		}
 		key := v.DirBlockHash.String()
 		val := dgsMap[key]
-		//fmt.Printf("key0=%s, dir block sig=%s\n", key, spew.Sdump(val))
 		if val == nil {
-			//fmt.Println("sig is nil.")
 			val = make([]*wire.MsgDirBlockSig, 0, 32)
 			val = append(val, v)
 			dgsMap[key] = val
@@ -524,25 +524,25 @@ func processDirBlockSig() error {
 			val = append(val, v)
 			dgsMap[key] = val
 		}
-		//fmt.Printf("key=%s, dir block sig=%s\n", key, spew.Sdump(dgsMap[key]))
 	}
 
 	var winner *wire.MsgDirBlockSig
-	for _, v := range dgsMap {
+	for k, v := range dgsMap {
 		n := float32(len(v)) / float32(totalServerNum)
-		//fmt.Printf("key=%s, len=%d, n=%v\n", k, len(v), n)
-		if n > float32(0.5) {
+		fmt.Printf("key=%s, len=%d, n=%v\n", k, len(v), n)
+		if n == float32(1.0) {
+			fmt.Printf("A full consensus !")
+		} else if n > float32(0.5) {
+			fmt.Printf("A majority !")
 			winner = v[0]
 			break
 		} else if n == float32(0.5) {
-			//to-do: choose what leader has got to break the tie
 			var leaderID string
 			if localServer.GetLeaderPeer() == nil {
 				leaderID = localServer.nodeID
 			} else {
 				leaderID = localServer.GetLeaderPeer().GetNodeID()
 			}
-			fmt.Println("Got a tie, and need to choose what the leader has for the winner of dirblock sig. leaderPeer=", leaderID)
 			for _, d := range v {
 				fmt.Println("leaderID=", leaderID, ", fed server id=", d.SourceNodeID)
 				if leaderID == d.SourceNodeID {
@@ -550,8 +550,8 @@ func processDirBlockSig() error {
 					break
 				}
 			}
-			// a tie without leader's dir block sig
 			if winner != nil {
+				fmt.Println("A tie with leader. leaderPeer=", leaderID)
 				break
 			}
 		}
@@ -563,8 +563,7 @@ func processDirBlockSig() error {
 		// req := wire.NewDirBlockSigMsg()
 		// localServer.GetLeaderPeer().pushGetDirBlockSig(req)
 		// how to coordinate when the response comes ???
-		//panic("No winner in dirblock signature comparison.")
-		fmt.Println("No winner in dirblock signature comparison.")
+		fmt.Println("No winner.")
 	} else {
 		fmt.Println("winner: ", spew.Sdump(winner))
 	}
@@ -641,6 +640,7 @@ func processAckMsg(ack *wire.MsgAck) ([]*wire.MsgMissing, error) {
 			}
 		}
 	}
+	common.FactoidState.EndOfPeriod(int(ack.Type))
 
 	var missingAcks []*wire.MsgMissing
 	missingMsg := fMemPool.addAck(ack)
@@ -1159,19 +1159,23 @@ func buildBlocks() error {
 	// Entry Credit Chain
 	ecBlock := newEntryCreditBlock(ecchain)
 	dchain.AddECBlockToDBEntry(ecBlock)
+	bytes, _ := ecBlock.MarshalBinary()
 	fmt.Printf("buildBlocks: ecBlock=%s\n", spew.Sdump(ecBlock))
+	fmt.Printf("buildBlocks: ecBlock=%s\n", hex.EncodeToString(bytes))
 
 	// Admin chain
 	aBlock := newAdminBlock(achain)
 	dchain.AddABlockToDBEntry(aBlock)
+	bytes, _ = aBlock.MarshalBinary()
 	fmt.Printf("buildBlocks: adminBlock=%s\n", spew.Sdump(aBlock))
+	fmt.Printf("buildBlocks: adminBlock=%s\n", hex.EncodeToString(bytes))
 
 	// Factoid chain
 	fBlock := newFactoidBlock(fchain)
 	dchain.AddFBlockToDBEntry(fBlock)
-	fmt.Printf("buildBlocks: factoidBlock=%s\n", spew.Sdump(fBlock))
-	fmt.Printf("buildBlocks: factoidBlock=%#v\n\n", fBlock)
-	fmt.Printf("buildBlocks: factoidBlock=%x\n", fBlock)
+	bytes, _ = fBlock.MarshalBinary()
+	fmt.Printf("buildBlocks: factoidBlock=%s\n", fBlock)
+	fmt.Printf("buildBlocks: factoidBlock=%s\n", hex.EncodeToString(bytes))
 
 	// sort the echains by chain id
 	var keys []string
@@ -1191,8 +1195,10 @@ func buildBlocks() error {
 	}
 
 	// Directory Block chain
-	procLog.Debug("in buildBlocks")
-	newDirectoryBlock(dchain) //sign dir block and broadcast it
+	dBlock := newDirectoryBlock(dchain) //sign dir block and broadcast it
+	bytes, _ = dBlock.MarshalBinary()
+	//fmt.Printf("buildBlocks: dirBlock=%s\n", spew.Sdump(dBlock))
+	fmt.Printf("buildBlocks: dirBlock=%s\n", hex.EncodeToString(bytes))
 
 	// should keep this process list for a while ????
 	// re-initialize the process lit manager
@@ -1355,7 +1361,7 @@ func newAdminBlock(chain *common.AdminChain) *common.AdminBlock {
 		if err != nil {
 			fmt.Println("newAdminBlock: error in db.FetchDBlockByHeight", err.Error())
 		}
-		fmt.Println("newAdminBlock: prev dir block = ", spew.Sdump(prevDB))
+		fmt.Println("newAdminBlock: get prev DirBlock for aBlock signature: prev dirBlock = ", spew.Sdump(prevDB))
 		signDirBlockForAdminBlock(prevDB)
 		block.AddEndOfMinuteMarker(wire.EndMinute1)
 	}
@@ -1395,12 +1401,10 @@ func newAdminBlock(chain *common.AdminChain) *common.AdminBlock {
 
 // Seals the current open block, store it in db and create the next open block
 func newFactoidBlock(chain *common.FctChain) block.IFBlock {
-
-	//older := FactoshisPerCredit
-
 	cfg := util.ReReadConfig()
 	FactoshisPerCredit = cfg.App.ExchangeRate
 	/*
+		older := FactoshisPerCredit
 		rate := fmt.Sprintf("Current Exchange rate is %v",
 			strings.TrimSpace(fct.ConvertDecimal(FactoshisPerCredit)))
 		if older != FactoshisPerCredit {
@@ -1444,6 +1448,7 @@ func newFactoidBlock(chain *common.FctChain) block.IFBlock {
 			fmt.Println("newFactoidBlock: error in currentBlock.AddCoinbase(): ", err.Error())
 		}
 		common.FactoidState.UpdateTransaction(t)
+		common.FactoidState.SetCurrentBlock(currentBlock)
 	}
 
 	if chain.NextBlockHeight != dchain.NextDBHeight {
@@ -1631,9 +1636,17 @@ func saveBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
 func signDirBlockForAdminBlock(newdb *common.DirectoryBlock) error {
 	if nodeMode == common.SERVER_NODE && dchain.NextDBHeight > 0 {
 		fmt.Printf("signDirBlockForAdminBlock: new dbBlock=%s\n", spew.Sdump(newdb.Header))
-		dbHeaderBytes, _ := newdb.Header.MarshalBinary()
+		//dbHeaderBytes, _ := newdb.Header.MarshalBinary()
 		identityChainID := common.NewHash() // 0 ID for milestone 1 ????
-		sig := serverPrivKey.Sign(dbHeaderBytes)
+		//sig := serverPrivKey.Sign(dbHeaderBytes)
+		//achain.NextBlock.AddABEntry(common.NewDBSignatureEntry(identityChainID, sig))
+		pub := common.PublicKey{
+			Key: new([ed25519.PublicKeySize]byte),
+		}
+		sig := common.Signature{
+			Pub: pub,
+			Sig: new([ed25519.SignatureSize]byte),
+		}
 		achain.NextBlock.AddABEntry(common.NewDBSignatureEntry(identityChainID, sig))
 	}
 	return nil
