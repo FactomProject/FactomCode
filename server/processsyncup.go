@@ -172,7 +172,6 @@ func validateAndStoreBlocks(fMemPool *ftmMemPool, db database.Db, dchain *common
 	procLog.Info("in validateAndStoreBlocks")
 
 	dchainChan := dchain.GetDChainUpdatedNotificationChannel()
-	//dbChan:=db.GetBlockHeightCacheUpdatedNotificationChannel()
 
 	for true {
 		dblk = nil
@@ -204,14 +203,6 @@ func validateAndStoreBlocks(fMemPool *ftmMemPool, db database.Db, dchain *common
 			//TODO: send an internal msg to sync up with peers
 		}
 		<-dchainChan
-		/*
-			select {
-			    case <-dchainChan:
-					procLog.Info("validateAndStoreBlocks looped dchainChan!")
-			    case <-dbChan:
-					procLog.Info("validateAndStoreBlocks looped dbChan!")
-			}
-		*/
 	}
 
 }

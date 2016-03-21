@@ -165,9 +165,6 @@ type Db interface {
 	// FetchBlockHeightCache returns the hash and block height of the most recent dir block
 	FetchBlockHeightCache() (sha *wire.ShaHash, height int64, err error)
 
-	//Returns a notification channel for when BlockHeightCache is updated
-	GetBlockHeightCacheUpdatedNotificationChannel() chan interface{}
-
 	// UpdateNextBlockHeightCache updates the next dir block height cache (from server) in db
 	UpdateNextBlockHeightCache(dirBlkHeigh uint32) error
 
