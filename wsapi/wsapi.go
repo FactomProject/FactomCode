@@ -457,12 +457,24 @@ func handleEntryCreditBalance(ctx *web.Context, eckey string) {
 		Success  bool
 	}
 	var b ecbal
-	adr, err := hex.DecodeString(eckey)
-	if err == nil && len(adr) != common.HASH_LENGTH {
-		b = ecbal{Response: "Invalid Address", Success: false}
+
+	var adr []byte
+	var err error
+
+	if fct.ValidateECUserStr(eckey) {
+		adr = fct.ConvertUserStrToAddress(eckey)
+	} else {
+		adr, err = hex.DecodeString(eckey)
+		if err == nil && len(adr) != common.HASH_LENGTH {
+			b = ecbal{Response: "Invalid Address", Success: false}
+		}
+		if err != nil {
+			b = ecbal{Response: "Invalid Address", Success: false}
+		}
 	}
+
 	if err == nil {
-		if bal, err := factomapi.ECBalance(eckey); err != nil {
+		if bal, err := factomapi.ECAddressBalance(adr); err != nil {
 			wsLog.Error(err)
 			return
 		} else {
