@@ -90,6 +90,13 @@ func EBlockByKeyMR(keymr string) (*common.EBlock, error) {
 	return r, nil
 }
 
+func ECAddressBalance(add []byte) (uint32, error) {
+	key := new([32]byte)
+	copy(key[:], add)
+	val, err := server.GetEntryCreditBalance(key)
+	return uint32(val), err
+}
+
 func ECBalance(eckey string) (uint32, error) {
 	key := new([32]byte)
 	if p, err := hex.DecodeString(eckey); err != nil {
@@ -97,8 +104,8 @@ func ECBalance(eckey string) (uint32, error) {
 	} else {
 		copy(key[:], p)
 	}
-	val, _ := server.GetEntryCreditBalance(key)
-	return uint32(val), nil
+	val, err := server.GetEntryCreditBalance(key)
+	return uint32(val), err
 }
 
 func EntryByHash(hash string) (*common.Entry, error) {
