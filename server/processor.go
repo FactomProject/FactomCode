@@ -74,10 +74,11 @@ var (
 	serverPubKey  common.PublicKey
 
 	// FactoshisPerCredit is .001 / .15 * 100000000 (assuming a Factoid is .15 cents, entry credit = .1 cents
-	FactoshisPerCredit uint64
-	blockSyncing       bool
-	firstBlockHeight   uint32 // the DBHeight of the first block being built by follower after sync up
-	zeroHash           = common.NewHash()
+	FactoshisPerCredit                 uint64
+	blockSyncing                       bool
+	firstBlockHeight                   uint32 // the DBHeight of the first block being built by follower after sync up
+	doneSetFollowersCointbaseTimeStamp bool
+	zeroHash                           = common.NewHash()
 
 	directoryBlockInSeconds int
 	dataStorePath           string
@@ -458,7 +459,7 @@ func processLeaderEOM(msgEom *wire.MsgInt_EOM) error {
 		processFromOrphanPool()
 	}
 
-	ack, err := plMgr.AddToLeadersProcessList(msgEom, nil, msgEom.EOM_Type, dchain.NextBlock.Header.Timestamp)
+	ack, err := plMgr.AddToLeadersProcessList(msgEom, nil, msgEom.EOM_Type, dchain.NextBlock.Header.Timestamp, fchain.NextBlock.GetCoinbaseTimestamp())
 	if err != nil {
 		return err
 	}
@@ -616,6 +617,11 @@ func processAckMsg(ack *wire.MsgAck) ([]*wire.MsgMissing, error) {
 		fs.FirstJoined = firstBlockHeight
 		fmt.Println("** reset blockSyncing=false, firstBlockHeight=", firstBlockHeight)
 	}
+	if !doneSetFollowersCointbaseTimeStamp && ack.CoinbaseTimestamp > 0 {
+		fchain.NextBlock.SetCoinbaseTimestamp(ack.CoinbaseTimestamp)
+		doneSetFollowersCointbaseTimeStamp = true
+		fmt.Printf("reset follower's CoinbaseTimestamp: %d\n", ack.CoinbaseTimestamp)
+	}
 	//if blockSyncing {
 	//return nil
 	//}
@@ -730,7 +736,7 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 				fmt.Println("Exceeding MyProcessList size limit!")
 				return fMemPool.addOrphanMsg(msg, h)
 			}
-			ack, err := plMgr.AddToLeadersProcessList(msg, h, wire.AckRevealEntry, dchain.NextBlock.Header.Timestamp)
+			ack, err := plMgr.AddToLeadersProcessList(msg, h, wire.AckRevealEntry, dchain.NextBlock.Header.Timestamp, fchain.NextBlock.GetCoinbaseTimestamp())
 			if err != nil {
 				return err
 			}
@@ -792,7 +798,7 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 				fmt.Println("Exceeding MyProcessList size limit!")
 				return fMemPool.addOrphanMsg(msg, h)
 			}
-			ack, err := plMgr.AddToLeadersProcessList(msg, h, wire.AckRevealChain, dchain.NextBlock.Header.Timestamp)
+			ack, err := plMgr.AddToLeadersProcessList(msg, h, wire.AckRevealChain, dchain.NextBlock.Header.Timestamp, fchain.NextBlock.GetCoinbaseTimestamp())
 			if err != nil {
 				return err
 			}
@@ -849,7 +855,7 @@ func processCommitEntry(msg *wire.MsgCommitEntry) error {
 			fmt.Println("Exceeding MyProcessList size limit!")
 			return fMemPool.addOrphanMsg(msg, &h)
 		}
-		ack, err := plMgr.AddToLeadersProcessList(msg, &h, wire.AckCommitEntry, dchain.NextBlock.Header.Timestamp)
+		ack, err := plMgr.AddToLeadersProcessList(msg, &h, wire.AckCommitEntry, dchain.NextBlock.Header.Timestamp, fchain.NextBlock.GetCoinbaseTimestamp())
 		if err != nil {
 			return err
 		}
@@ -902,7 +908,7 @@ func processCommitChain(msg *wire.MsgCommitChain) error {
 			fmt.Println("Exceeding MyProcessList size limit!")
 			return fMemPool.addOrphanMsg(msg, &h)
 		}
-		ack, err := plMgr.AddToLeadersProcessList(msg, &h, wire.AckCommitChain, dchain.NextBlock.Header.Timestamp)
+		ack, err := plMgr.AddToLeadersProcessList(msg, &h, wire.AckCommitChain, dchain.NextBlock.Header.Timestamp, fchain.NextBlock.GetCoinbaseTimestamp())
 		if err != nil {
 			return err
 		}
@@ -947,7 +953,7 @@ func processFactoidTX(msg *wire.MsgFactoidTX) error {
 			fmt.Println("Exceeding MyProcessList size limit!")
 			return fMemPool.addOrphanMsg(msg, &h)
 		}
-		ack, err := plMgr.AddToLeadersProcessList(msg, &h, wire.AckFactoidTx, dchain.NextBlock.Header.Timestamp)
+		ack, err := plMgr.AddToLeadersProcessList(msg, &h, wire.AckFactoidTx, dchain.NextBlock.Header.Timestamp, fchain.NextBlock.GetCoinbaseTimestamp())
 		if err != nil {
 			return err
 		}
@@ -1464,6 +1470,7 @@ func newFactoidBlock(chain *common.FctChain) block.IFBlock {
 	chain.NextBlock = common.FactoidState.GetCurrentBlock()
 	chain.BlockMutex.Unlock()
 	newFBlock = currentBlock
+	doneSetFollowersCointbaseTimeStamp = false
 	return currentBlock
 }
 

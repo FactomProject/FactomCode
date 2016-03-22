@@ -139,17 +139,18 @@ func (msg *MsgAck) MaxPayloadLength(pver uint32) uint32 {
 
 // NewMsgAck returns a new bitcoin ping message that conforms to the Message
 // interface.  See MsgAck for details.
-func NewMsgAck(height uint32, index uint32, affirm *ShaHash, ackType byte, timestamp uint32) *MsgAck {
+func NewMsgAck(height uint32, index uint32, affirm *ShaHash, ackType byte, timestamp uint32, coinbaseTS uint64) *MsgAck {
 	if affirm == nil {
 		affirm = new(ShaHash)
 	}
 	return &MsgAck{
-		Height:          height,
-		ChainID:         common.NewHash(), //TODO: get the correct chain id from processor
-		Index:           index,
-		DBlockTimestamp: timestamp,
-		Affirmation:     affirm,
-		Type:            ackType,
+		Height:            height,
+		ChainID:           common.NewHash(), //TODO: get the correct chain id from processor
+		Index:             index,
+		DBlockTimestamp:   timestamp,
+		CoinbaseTimestamp: coinbaseTS,
+		Affirmation:       affirm,
+		Type:              ackType,
 	}
 }
 
@@ -165,12 +166,13 @@ func (msg *MsgAck) Sha() (ShaHash, error) {
 // Clone creates a new MsgAck with the same value
 func (msg *MsgAck) Clone() *MsgAck {
 	return &MsgAck{
-		Height:          msg.Height,
-		ChainID:         msg.ChainID,
-		Index:           msg.Index,
-		DBlockTimestamp: msg.DBlockTimestamp,
-		Affirmation:     msg.Affirmation,
-		Type:            msg.Type,
+		Height:            msg.Height,
+		ChainID:           msg.ChainID,
+		Index:             msg.Index,
+		DBlockTimestamp:   msg.DBlockTimestamp,
+		CoinbaseTimestamp: msg.CoinbaseTimestamp,
+		Affirmation:       msg.Affirmation,
+		Type:              msg.Type,
 	}
 }
 
