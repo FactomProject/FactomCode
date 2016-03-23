@@ -20,7 +20,7 @@ script:
 #  - go build -a -v ./...
 #  - go get -d -t -a -v ./...
 
-&
+
  - go get -d -t -v ./FactomCode
  - go get -d -t -v ./btcd
  - go get -d -t -v ./factoid
