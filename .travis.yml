@@ -1,4 +1,4 @@
-# To be run from within the FactomProject project.
+# To be run from within the FactomCode project.
 
 language: go
 
@@ -11,4 +11,70 @@ branches:
     - Hotfix6
     - m2
     - m2s
+
+script:
+#  - go test-v ./... && go build -v ./...
+#  - go test -v ./...
+
+#  - go test -v ./...
+#  - go build -a -v ./...
+#  - go test -a -v ./...
+
+
+ - go get -d -t-v ./FactomCode    && go build -v ./FactomCode
+ - go get -d -t-v ./btcd          && go build -v ./btcd
+ - go get -d -t-v ./factoid       && go build -v ./factoid
+ - go get -d -t-v ./fctwallet     && go build -v ./fctwallet
+ - go get -d -t-v ./factom        && go build -v ./factom 
+ - go get -d -t-v ./factom-cli    && go build -v ./factom-cli
+ - go get -d -t-v ./Testing       && go build -v ./Testing
+ - go get -d -t-v ./btcrpcclient  && go build -v ./btcrpcclient
+ - go get -d -t-v ./btcutil       && go build -v ./btcutil 
+ - go get -d -t-v ./btcws         && go build -v ./btcws
+ - go get -d -t-v ./gobundle      && go build -v ./gobundle
+ - go get -d -t-v ./goleveldb     && go build -v ./goleveldb
+ - go get -d -t-v ./FactomDocs    && go build -v ./FactomDocs 
+ - go get -d -t-v ./gocoding      && go build -v ./gocoding
+ - go get -d -t-v ./btcjson       && go build -v ./btcjson
+ - go get -d -t-v ./btclog        && go build -v ./btclog
+ - go get -d -t-v ./dynrsrc       && go build -v ./dynrsrc
+ - go get -d -t-v ./ed25519       && go build -v ./ed25519
+ - go get -d -t-v ./fastsha256    && go build -v ./fastsha256 
+ - go get -d -t-v ./go-bip32      && go build -v ./go-bip32 
+ - go get -d -t-v ./go-bip39      && go build -v ./go-bip39
+ - go get -d -t-v ./go-flags      && go build -v ./go-flags 
+ - go get -d -t-v ./go-socks      && go build -v ./go-socks
+ - go get -d -t-v ./seelog        && go build -v ./seelog
+ - go get -d -t-v ./snappy-go     && go build -v ./snappy-go
+ - go get -d -t-v ./websocket     && go build -v ./websocket
+ - go get -d -t-v ./walletapp     && go build -v ./walletapp 
+
+ - go test-v ./FactomCode
+ - go test-v ./btcd
+ - go test-v ./factoid
+ - go test-v ./fctwallet
+ - go test-v ./factom 
+ - go test-v ./factom-cli
+ - go test-v ./Testing
+ - go test-v ./btcrpcclient
+ - go test-v ./btcutil
+ - go test-v ./btcws
+ - go test-v ./gobundle
+ - go test-v ./goleveldb
+ - go test-v ./FactomDocs 
+ - go test-v ./gocoding
+ - go test-v ./btcjson
+ - go test-v ./btclog
+ - go test-v ./dynrsrc
+ - go test-v ./ed25519
+ - go test-v ./fastsha256
+ - go test-v ./go-bip32
+ - go test-v ./go-bip39
+ - go test-v ./go-flags 
+ - go test-v ./go-socks
+ - go test-v ./seelog
+ - go test-v ./snappy-go
+ - go test-v ./websocket
+ - go test-v ./walletapp 
+
 
