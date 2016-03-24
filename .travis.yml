@@ -13,32 +13,32 @@ branches:
     - m2s
 
 script:
- - go get -d -v ./FactomCode
- - go get -d -v ./btcd
- - go get -d -v ./factoid
- - go get -d -v ./fctwallet
- - go get -d -v ./factom 
- - go get -d -v ./factom-cli
- - go get -d -v ./get -d -ting
- - go get -d -v ./btcrpcclient
- - go get -d -v ./btcutil
- - go get -d -v ./btcws
- - go get -d -v ./gobundle
- - go get -d -v ./goleveldb
- - go get -d -v ./FactomDocs 
- - go get -d -v ./gocoding
- - go get -d -v ./btcjson
- - go get -d -v ./btclog
- - go get -d -v ./dynrsrc
- - go get -d -v ./ed25519
- - go get -d -v ./fastsha256
- - go get -d -v ./go-bip32
- - go get -d -v ./go-bip39
- - go get -d -v ./go-flags 
- - go get -d -v ./go-socks
- - go get -d -v ./seelog
- - go get -d -v ./snappy-go
- - go get -d -v ./websocket
- - go get -d -v ./walletapp 
+ - go get -t -v ./FactomCode
+ - go get -t -v ./btcd
+ - go get -t -v ./factoid
+ - go get -t -v ./fctwallet
+ - go get -t -v ./factom 
+ - go get -t -v ./factom-cli
+ - go get -t -v ./get -t -ting
+ - go get -t -v ./btcrpcclient
+ - go get -t -v ./btcutil
+ - go get -t -v ./btcws
+ - go get -t -v ./gobundle
+ - go get -t -v ./goleveldb
+ - go get -t -v ./FactomDocs 
+ - go get -t -v ./gocoding
+ - go get -t -v ./btcjson
+ - go get -t -v ./btclog
+ - go get -t -v ./dynrsrc
+ - go get -t -v ./ed25519
+ - go get -t -v ./fastsha256
+ - go get -t -v ./go-bip32
+ - go get -t -v ./go-bip39
+ - go get -t -v ./go-flags 
+ - go get -t -v ./go-socks
+ - go get -t -v ./seelog
+ - go get -t -v ./snappy-go
+ - go get -t -v ./websocket
+ - go get -t -v ./walletapp 
 
 
