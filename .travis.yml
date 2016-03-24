@@ -12,6 +12,7 @@ branches:
     - m2
     - m2s
 
+
 install:
  - go get -d -t -v ./FactomCode/factomd    && go build -v ./FactomCode
  - go get -d -t -v ./fctwallet     && go build -v ./fctwallet
