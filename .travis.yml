@@ -3,7 +3,7 @@
 language: go
 
 go:
-  - tip
+  - 1.4
 
 branches:
   only:
@@ -13,6 +13,7 @@ branches:
     - m2s
 
 script:
+ - go get -d -v ./FactomCode
  - go get -d -v ./btcd
  - go get -d -v ./factoid
  - go get -d -v ./fctwallet
