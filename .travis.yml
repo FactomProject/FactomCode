@@ -13,32 +13,32 @@ branches:
     - m2s
 
 script:
- - go get -t -v ./FactomCode
- - go get -t -v ./btcd
- - go get -t -v ./factoid
- - go get -t -v ./fctwallet
- - go get -t -v ./factom 
- - go get -t -v ./factom-cli
- - go get -t -v ./get -t -ting
- - go get -t -v ./btcrpcclient
- - go get -t -v ./btcutil
- - go get -t -v ./btcws
- - go get -t -v ./gobundle
- - go get -t -v ./goleveldb
- - go get -t -v ./FactomDocs 
- - go get -t -v ./gocoding
- - go get -t -v ./btcjson
- - go get -t -v ./btclog
- - go get -t -v ./dynrsrc
- - go get -t -v ./ed25519
- - go get -t -v ./fastsha256
- - go get -t -v ./go-bip32
- - go get -t -v ./go-bip39
- - go get -t -v ./go-flags 
- - go get -t -v ./go-socks
- - go get -t -v ./seelog
- - go get -t -v ./snappy-go
- - go get -t -v ./websocket
- - go get -t -v ./walletapp 
+ - go get -d -t -v ./FactomCode    && go build -v ./FactomCode
+ - go get -d -t -v ./btcd          && go build -v ./btcd
+ - go get -d -t -v ./factoid       && go build -v ./factoid
+ - go get -d -t -v ./fctwallet     && go build -v ./fctwallet
+ - go get -d -t -v ./factom        && go build -v ./factom 
+ - go get -d -t -v ./factom-cli    && go build -v ./factom-cli
+ - go get -d -t -v ./Testing       && go build -v ./Testing
+ - go get -d -t -v ./btcrpcclient  && go build -v ./btcrpcclient
+ - go get -d -t -v ./btcutil       && go build -v ./btcutil 
+ - go get -d -t -v ./btcws         && go build -v ./btcws
+ - go get -d -t -v ./gobundle      && go build -v ./gobundle
+ - go get -d -t -v ./goleveldb     && go build -v ./goleveldb
+ - go get -d -t -v ./FactomDocs    && go build -v ./FactomDocs 
+ - go get -d -t -v ./gocoding      && go build -v ./gocoding
+ - go get -d -t -v ./btcjson       && go build -v ./btcjson
+ - go get -d -t -v ./btclog        && go build -v ./btclog
+ - go get -d -t -v ./dynrsrc       && go build -v ./dynrsrc
+ - go get -d -t -v ./ed25519       && go build -v ./ed25519
+ - go get -d -t -v ./fastsha256    && go build -v ./fastsha256 
+ - go get -d -t -v ./go-bip32      && go build -v ./go-bip32 
+ - go get -d -t -v ./go-bip39      && go build -v ./go-bip39
+ - go get -d -t -v ./go-flags      && go build -v ./go-flags 
+ - go get -d -t -v ./go-socks      && go build -v ./go-socks
+ - go get -d -t -v ./seelog        && go build -v ./seelog
+ - go get -d -t -v ./snappy-go     && go build -v ./snappy-go
+ - go get -d -t -v ./websocket     && go build -v ./websocket
+ - go get -d -t -v ./walletapp     && go build -v ./walletapp 
 
 
