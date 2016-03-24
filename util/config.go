@@ -12,19 +12,20 @@ import (
 type FactomdConfig struct {
 	App struct {
 		PortNumber              int
-		HomeDir					string 
-		LdbPath                 string 
-		BoltDBPath              string 
-		DataStorePath           string 
+		HomeDir                 string
+		LdbPath                 string
+		BoltDBPath              string
+		DataStorePath           string
 		DirectoryBlockInSeconds int
 		NodeMode                string
 		ServerPrivKey           string
+		ServerPubKey            string
 		ExchangeRate            uint64
 	}
 	Anchor struct {
-		ServerECKey         	string
-		AnchorChainID         	string		
-		ConfirmationsNeeded 	int	
+		ServerECKey         string
+		AnchorChainID       string
+		ConfirmationsNeeded int
 	}
 	Btc struct {
 		BTCPubAddr         string
@@ -63,9 +64,9 @@ type FactomdConfig struct {
 		FactomdAddress   string
 		FactomdPort      int
 	}
-    	Controlpanel struct {
-        	Port            string
-    	}
+	Controlpanel struct {
+		Port string
+	}
 
 	//	AddPeers     []string `short:"a" long:"addpeer" description:"Add a peer to connect with at startup"`
 	//	ConnectPeers []string `long:"connect" description:"Connect only to the specified peers at startup"`
@@ -90,8 +91,9 @@ BoltDBPath							= ""
 DataStorePath			      		= "data/export/"
 DirectoryBlockInSeconds				= 60
 ; --------------- NodeMode: FULL | SERVER | LIGHT ----------------
-NodeMode				        	= FULL
-ServerPrivKey			      		= 07c0d52cb74f4ca3106d80c4a70488426886bccc6ebc10c6bafb37bf8a65f4c38cee85c62a9e48039d4ac294da97943c2001be1539809ea5f54721f0c5477a0a
+NodeMode                            = FULL
+ServerPrivKey                       = 07c0d52cb74f4ca3106d80c4a70488426886bccc6ebc10c6bafb37bf8a65f4c38cee85c62a9e48039d4ac294da97943c2001be1539809ea5f54721f0c5477a0a
+ServerPubKey                        = "0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a"
 ExchangeRate                        = 00666600
 
 [anchor]
@@ -109,8 +111,8 @@ RpcClientPass 						= "notarychain"
 BtcTransFee				  			= 0.0001
 CertHomePathBtcd					= "btcd"
 RpcBtcdHost 			  			= "localhost:18334"
-RpcUser								=testuser
-RpcPass								=notarychain
+RpcUser								= testuser
+RpcPass								= notarychain
 
 [wsapi]
 ApplicationName						= "Factom/wsapi"
@@ -120,7 +122,7 @@ PortNumber				  			= 8088
 ; logLevel - allowed values are: debug, info, notice, warning, error, critical, alert, emergency and none
 ; ------------------------------------------------------------------------------
 [log]
-logLevel 							= debug
+logLevel 							= info
 LogPath								= "factom-d.log"
 
 ; ------------------------------------------------------------------------------
@@ -146,7 +148,7 @@ var cfg *FactomdConfig
 var once sync.Once
 var filename = getHomeDir() + "/.factom/factomd.conf"
 
-// GetConfig reads the default factomd.conf file and returns a FactomConfig
+// ReadConfig reads the default factomd.conf file and returns a FactomConfig
 // object corresponding to the state of the file.
 func ReadConfig() *FactomdConfig {
 	once.Do(func() {
@@ -158,7 +160,7 @@ func ReadConfig() *FactomdConfig {
 
 func ReReadConfig() *FactomdConfig {
 	cfg = readConfig()
-		
+
 	return cfg
 }
 
@@ -178,24 +180,32 @@ func readConfig() *FactomdConfig {
 	//LdbPath					 = filepath.Join(defaultDataDir, "ldb9")
 	//DataStorePath		 = filepath.Join(defaultDataDir, "store/seed/")
 
-	err := gcfg.ReadFileInto(cfg, filename)
+	err := gcfg.ReadStringInto(cfg, defaultConfig)
 	if err != nil {
-		log.Println("ERROR Reading config file!\nServer starting with default settings...\n",err)
-		gcfg.ReadStringInto(cfg, defaultConfig)
-	} 
-	
+		panic(err)
+	}
+
+	err = gcfg.ReadFileInto(cfg, filename)
+	if err != nil {
+		log.Println("ERROR Reading config file!\nServer starting with default settings...\n", err)
+		err = gcfg.ReadStringInto(cfg, defaultConfig)
+		if err != nil {
+			panic(err)
+		}
+	}
+
 	// Default to home directory if not set
 	if len(cfg.App.HomeDir) < 1 {
 		cfg.App.HomeDir = getHomeDir() + "/.factom/"
 	}
-	
+
 	// TODO: improve the paths after milestone 1
 	cfg.App.LdbPath = cfg.App.HomeDir + cfg.App.LdbPath
-	cfg.App.BoltDBPath = cfg.App.HomeDir + cfg.App.BoltDBPath	
+	cfg.App.BoltDBPath = cfg.App.HomeDir + cfg.App.BoltDBPath
 	cfg.App.DataStorePath = cfg.App.HomeDir + cfg.App.DataStorePath
 	cfg.Log.LogPath = cfg.App.HomeDir + cfg.Log.LogPath
-	cfg.Wallet.BoltDBPath = cfg.App.HomeDir + cfg.Wallet.BoltDBPath		
-	
+	cfg.Wallet.BoltDBPath = cfg.App.HomeDir + cfg.Wallet.BoltDBPath
+
 	return cfg
 }
 

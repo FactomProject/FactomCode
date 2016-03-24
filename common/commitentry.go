@@ -97,13 +97,13 @@ func (c *CommitEntry) IsValid() bool {
 	//double check the credits in the commit
 	if c.Credits < 1 || c.Version != 0 {
 		return false
-	}	
-	
+	}
+
 	return ed.VerifyCanonical(c.ECPubKey, c.CommitMsg(), c.Sig)
 }
 
-func (c *CommitEntry)GetHash() *Hash {
-	h,_ :=	c.MarshalBinary()
+func (c *CommitEntry) GetHash() *Hash {
+	h, _ := c.MarshalBinary()
 	return Sha(h)
 }
 
@@ -111,8 +111,6 @@ func (c *CommitEntry) GetSigHash() *Hash {
 	data := c.CommitMsg()
 	return Sha(data)
 }
-
-
 
 func (c *CommitEntry) MarshalBinary() ([]byte, error) {
 	buf := new(bytes.Buffer)

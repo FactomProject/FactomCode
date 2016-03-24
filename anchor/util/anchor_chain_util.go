@@ -18,8 +18,8 @@ import (
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/database/ldb"
 	"github.com/FactomProject/FactomCode/util"
+	"github.com/FactomProject/go-spew/spew"
 	"github.com/btcsuitereleases/btcd/wire"
-	"github.com/davecgh/go-spew/spew"
 )
 
 var (
@@ -163,7 +163,7 @@ func entryToAnchorRecord(entry *common.Entry) (*anchor.AnchorRecord, error) {
 	//fmt.Printf("    jsonSig: %s\n", string(jsonSigBytes))
 
 	pubKeySlice := make([]byte, 32, 32)
-	pubKey := common.PubKeyFromString(common.SERVER_PUB_KEY)
+	pubKey := common.PubKeyFromString(cfg.App.ServerPubKey)
 	copy(pubKeySlice, pubKey.Key[:])
 	verified := common.VerifySlice(pubKeySlice, jsonARecord, jsonSig)
 

@@ -12,7 +12,7 @@ import (
 	cp "github.com/FactomProject/FactomCode/controlpanel"
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/btcd/wire"
-	"github.com/davecgh/go-spew/spew"
+	"github.com/FactomProject/go-spew/spew"
 	"strconv"
 	"time"
 )
@@ -51,7 +51,22 @@ func processDirBlock(msg *wire.MsgDirBlock) error {
 		"SyncUp:",  // Title
 		"MsgDirBlock DBHeigth=:"+string(msg.DBlk.Header.DBHeight), // Message
 		0) // Expire
+	/*
+		dbhash, dbHeight, _ := db.FetchBlockHeightCache()
+		fmt.Printf("last block height in db is %d, just-arrived block height is %d\n", dbHeight, msg.DBlk.Header.DBHeight)
 
+		commonHash, _ := common.CreateHash(msg.DBlk)
+
+		// this means, there's syncup breakage happened, and let's renew syncup.
+		if uint32(dbHeight) < msg.DBlk.Header.DBHeight-500 {
+			startHash, _ := wire.NewShaHash(dbhash.Bytes())
+			stopHash, _ := wire.NewShaHash(commonHash.Bytes())
+			outMsgQueue <- &wire.MsgInt_ReSyncup{
+				StartHash: startHash,
+				StopHash:  stopHash,
+			}
+		}
+	*/
 	return nil
 }
 
@@ -162,12 +177,13 @@ func processEntry(msg *wire.MsgEntry) error {
 // Validate the new blocks in mem pool and store them in db
 func validateAndStoreBlocks(fMemPool *ftmMemPool, db database.Db, dchain *common.DChain, outCtlMsgQ chan wire.FtmInternalMsg) {
 	var myDBHeight int64
+	var dbhash *wire.ShaHash
 	var sleeptime int
 	var dblk *common.DirectoryBlock
 
 	for true {
 		dblk = nil
-		_, myDBHeight, _ = db.FetchBlockHeightCache()
+		dbhash, myDBHeight, _ = db.FetchBlockHeightCache()
 
 		adj := (len(dchain.Blocks) - int(myDBHeight))
 		if adj <= 0 {
@@ -191,11 +207,24 @@ func validateAndStoreBlocks(fMemPool *ftmMemPool, db database.Db, dchain *common
 				time.Sleep(time.Duration(sleeptime * 1000000)) // Nanoseconds for duration
 			}
 		} else {
-			time.Sleep(time.Duration(sleeptime * 1000000)) // Nanoseconds for duration
-
 			//TODO: send an internal msg to sync up with peers
-		}
+			now := time.Now().Unix()
 
+			// the block is up-to-date
+			if now-int64(lastDirBlockTimestamp) < 600 {
+				time.Sleep(11 * time.Minute)
+			} else {
+				time.Sleep(time.Duration(sleeptime * 1000000)) // Nanoseconds for duration
+				// this means, there could be a syncup breakage happened, and let's renew syncup.
+				//startHash, _ := wire.NewShaHash(dbhash.Bytes())
+				if dbhash != nil {
+					outMsgQueue <- &wire.MsgInt_ReSyncup{
+						StartHash: dbhash,
+					}
+				}
+			}
+
+		}
 	}
 
 }
@@ -209,10 +238,13 @@ func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, d
 		if h.String() != common.GENESIS_DIR_BLOCK_HASH {
 			// panic for milestone 1
 			panic("\nGenesis block hash expected: " + common.GENESIS_DIR_BLOCK_HASH +
-				"\nGenesis block hash found:    " + h.String() + "\n")			
+				"\nGenesis block hash found:    " + h.String() + "\n")
 			//procLog.Errorf("Genesis dir block is not as expected: " + h.String())
 		}
 	}
+
+	fMemPool.RLock()
+	defer fMemPool.RUnlock()
 
 	for _, dbEntry := range b.DBEntries {
 		switch dbEntry.ChainID.String() {
@@ -242,7 +274,7 @@ func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, d
 				// validate every entry in EBlock
 				for _, ebEntry := range eBlkMsg.EBlk.Body.EBEntries {
 					if _, foundInMemPool := fMemPool.blockpool[ebEntry.String()]; !foundInMemPool {
-						if !bytes.Equal(ebEntry.Bytes()[:31],common.ZERO_HASH[:31]) {
+						if !bytes.Equal(ebEntry.Bytes()[:31], common.ZERO_HASH[:31]) {
 							// continue if the entry arleady exists in db
 							entry, _ := db.FetchEntryByHash(ebEntry)
 							if entry == nil {
@@ -261,6 +293,8 @@ func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, d
 // Validate the new blocks in mem pool and store them in db
 // Need to make a batch insert in db in milestone 2
 func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db database.Db) error {
+	fMemPool.RLock()
+	defer fMemPool.RUnlock()
 
 	for _, dbEntry := range b.DBEntries {
 		switch dbEntry.ChainID.String() {
@@ -316,7 +350,7 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 			}
 
 			// create a chain when it's the first block of the entry chain
-			if eBlkMsg.EBlk.Header.EBSequence == 0 {			
+			if eBlkMsg.EBlk.Header.EBSequence == 0 {
 				chain := new(common.EChain)
 				chain.ChainID = eBlkMsg.EBlk.Header.ChainID
 				chain.FirstEntry, _ = db.FetchEntryByHash(eBlkMsg.EBlk.Body.EBEntries[0])
@@ -325,7 +359,7 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 				}
 
 				db.InsertChain(chain)
-				chainIDMap[chain.ChainID.String()] = chain				
+				chainIDMap[chain.ChainID.String()] = chain
 			}
 
 			// for debugging
@@ -333,11 +367,16 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 		}
 	}
 
+	dbhash, dbHeight, _ := db.FetchBlockHeightCache()
+	//fmt.Printf("last block height is %d, to-be-saved block height is %d\n", dbHeight, b.Header.DBHeight)
+
 	// Store the dir block
 	err := db.ProcessDBlockBatch(b)
 	if err != nil {
 		return err
 	}
+
+	lastDirBlockTimestamp = b.Header.Timestamp
 
 	// Update dir block height cache in db
 	commonHash, _ := common.CreateHash(b)
@@ -345,6 +384,16 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 
 	// for debugging
 	exportDBlock(b)
+
+	// this means, there's syncup breakage happened, and let's renew syncup.
+	if uint32(dbHeight) < b.Header.DBHeight-1 {
+		startHash, _ := wire.NewShaHash(dbhash.Bytes())
+		stopHash, _ := wire.NewShaHash(commonHash.Bytes())
+		outMsgQueue <- &wire.MsgInt_ReSyncup{
+			StartHash: startHash,
+			StopHash:  stopHash,
+		}
+	}
 
 	return nil
 }
@@ -361,7 +410,9 @@ func deleteBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool) err
 		case fchain.ChainID.String():
 			fMemPool.deleteBlockMsg(dbEntry.KeyMR.String())
 		default:
+			fMemPool.RLock()
 			eBlkMsg, _ := fMemPool.blockpool[dbEntry.KeyMR.String()].(*wire.MsgEBlock)
+			fMemPool.RUnlock()
 			for _, ebEntry := range eBlkMsg.EBlk.Body.EBEntries {
 				fMemPool.deleteBlockMsg(ebEntry.String())
 			}

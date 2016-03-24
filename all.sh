@@ -117,8 +117,8 @@ checkout btcutil      $branch $default
 checkout btcws        $branch $default
 checkout gobundle     $branch $default
 checkout goleveldb    $branch $default
-checkout FactomDocs   master  master
-checkout gocoding     master  master
+checkout FactomDocs   $branch $default
+checkout gocoding     $branch $default
 checkout btcjson      $branch $default
 checkout btclog       $branch $default
 checkout dynrsrc      $branch $default
