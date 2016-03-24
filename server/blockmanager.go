@@ -691,6 +691,9 @@ func (b *blockManager) isSyncCandidateFactom(p *peer) bool {
 
 // handleAckMsg handles ACK messages from all peers.
 func (b *blockManager) handleAckMsg(amsg *ackMsg) {
+	if b.server.IsLeader() {
+		return
+	}
 	missingMsgs, err := processAckPeerMsg(amsg)
 	if err != nil {
 		fmt.Println("blockManager.handleAckMsg: ", err.Error())

@@ -80,3 +80,8 @@ func NewNextLeaderRespMsg(currLeaderID string, nextLeaderID string,
 		Confirmed:     confirmed,
 	}
 }
+
+func (msg *MsgNextLeaderResp) String() string {
+	return fmt.Sprintf("Ack: CurrLeaderID=%s, NextLeaderID=%s, StartDBHeight=%d",
+		msg.CurrLeaderID, msg.NextLeaderID, msg.StartDBHeight)
+}

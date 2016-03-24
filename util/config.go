@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"os/user"
+	"strings"
 	"sync"
 
 	"github.com/FactomProject/FactomCode/common"
@@ -13,7 +14,6 @@ import (
 
 type FactomdConfig struct {
 	App struct {
-		PortNumber              int
 		HomeDir                 string
 		LdbPath                 string
 		BoltDBPath              string
@@ -87,7 +87,6 @@ const defaultConfig = `
 ; App settings
 ; ------------------------------------------------------------------------------
 [app]
-PortNumber				      		= 8088
 HomeDir								= ""
 LdbPath					        	= "ldb"
 BoltDBPath							= ""
@@ -177,6 +176,9 @@ func ReReadConfig() *FactomdConfig {
 func readConfig() *FactomdConfig {
 	if len(os.Args) > 1 { //&& strings.Contains(strings.ToLower(os.Args[1]), "factomd.conf") {
 		filename = os.Args[1]
+	}
+	if strings.HasPrefix(filename, "~") {
+		filename = getHomeDir() + filename
 	}
 	cfg := new(FactomdConfig)
 	//log.Println("read factom config file: ", filename)

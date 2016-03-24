@@ -457,12 +457,24 @@ func handleEntryCreditBalance(ctx *web.Context, eckey string) {
 		Success  bool
 	}
 	var b ecbal
-	adr, err := hex.DecodeString(eckey)
-	if err == nil && len(adr) != common.HASH_LENGTH {
-		b = ecbal{Response: "Invalid Address", Success: false}
+
+	var adr []byte
+	var err error
+
+	if fct.ValidateECUserStr(eckey) {
+		adr = fct.ConvertUserStrToAddress(eckey)
+	} else {
+		adr, err = hex.DecodeString(eckey)
+		if err == nil && len(adr) != common.HASH_LENGTH {
+			b = ecbal{Response: "Invalid Address", Success: false}
+		}
+		if err != nil {
+			b = ecbal{Response: "Invalid Address", Success: false}
+		}
 	}
+
 	if err == nil {
-		if bal, err := factomapi.ECBalance(eckey); err != nil {
+		if bal, err := factomapi.ECAddressBalance(adr); err != nil {
 			wsLog.Error(err)
 			return
 		} else {
@@ -482,16 +494,22 @@ func handleEntryCreditBalance(ctx *web.Context, eckey string) {
 
 }
 
-func handleFactoidBalance(ctx *web.Context, eckey string) {
+func handleFactoidBalance(ctx *web.Context, fkey string) {
 	type fbal struct {
 		Response string
 		Success  bool
 	}
 	var b fbal
-	adr, err := hex.DecodeString(eckey)
-	if err == nil && len(adr) != common.HASH_LENGTH {
-		b = fbal{Response: "Invalid Address", Success: false}
+
+	var adr []byte
+	var err error
+
+	if fct.ValidateFUserStr(fkey) {
+		adr = fct.ConvertUserStrToAddress(fkey)
+	} else {
+		adr, err = hex.DecodeString(fkey)
 	}
+
 	if err == nil {
 		v := int64(common.FactoidState.GetBalance(fct.NewAddress(adr)))
 		str := fmt.Sprintf("%d", v)

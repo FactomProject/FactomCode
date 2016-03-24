@@ -104,27 +104,28 @@ compile() {
     return $cerr
 }
 
-checkout FactomCode   $branch $default
-checkout factoid      $branch $default
-checkout fctwallet    $branch $default
-checkout factom       $branch $default
-checkout factom-cli   $branch $default
-checkout goleveldb    $branch $default
-checkout FactomDocs   master  master
-checkout gocoding     master  master
-checkout btclog       $branch $default
-checkout btcutil      $branch $default
-checkout dynrsrc      $branch $default
-checkout ed25519      $branch $default
-checkout fastsha256   $branch $default
-checkout go-bip32     $branch $default
-checkout go-bip39     $branch $default
-checkout go-flags     $branch $default
-checkout go-socks     $branch $default
-checkout seelog       $branch $default
-checkout snappy-go    $branch $default
-checkout websocket    $branch $default
-checkout walletapp    $branch $default
+checkout FactomCode                 $branch $default
+checkout factoid                    $branch $default
+checkout fctwallet                  $branch $default
+checkout factom                     $branch $default
+checkout factom-cli                 $branch $default
+checkout goleveldb                  $branch $default
+checkout FactomDocs                 master  master
+checkout gocoding                   master  master
+checkout btclog                     $branch $default
+checkout btcutil                    $branch $default
+checkout dynrsrc                    $branch $default
+checkout ed25519                    $branch $default
+checkout fastsha256                 $branch $default
+checkout go-bip32                   $branch $default
+checkout go-bip39                   $branch $default
+checkout go-flags                   $branch $default
+checkout go-socks                   $branch $default
+checkout seelog                     $branch $default
+checkout snappy-go                  $branch $default
+checkout websocket                  $branch $default
+checkout walletapp                  $branch $default
+checkout netki-go-partner-client    $branch $default
 
 echo "
 ********************************************************
