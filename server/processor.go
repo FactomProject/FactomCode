@@ -532,11 +532,11 @@ func processDirBlockSig() error {
 		n := float32(len(v)) / float32(totalServerNum)
 		fmt.Printf("key=%s, len=%d, n=%v\n", k, len(v), n)
 		if n == float32(1.0) {
-			fmt.Printf("A full consensus !")
+			fmt.Println("A full consensus !")
 			winner = v[0]
 			break
 		} else if n > float32(0.5) {
-			fmt.Printf("A majority !")
+			fmt.Println("A majority !")
 			winner = v[0]
 			break
 		} else if n == float32(0.5) {
@@ -1539,6 +1539,40 @@ func newDirectoryBlock(chain *common.DChain) *common.DirectoryBlock {
 // save all blocks and anchor dir block if it's the leader
 func saveBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
 	ecblock *common.ECBlock, fblock block.IFBlock, eblocks []*common.EBlock) error {
+	// save blocks to database in a signle transaction ???
+	fmt.Println("saveBlocks: height=", dblock.Header.DBHeight)
+	db.ProcessFBlockBatch(fblock)
+	exportFctBlock(fblock)
+	fmt.Println("Save Factoid Block: block " + strconv.FormatUint(uint64(fblock.GetDBHeight()), 10))
+	db.ProcessABlockBatch(ablock)
+	exportABlock(ablock)
+	fmt.Println("Save Admin Block: block " + strconv.FormatUint(uint64(ablock.Header.DBHeight), 10))
+	db.ProcessECBlockBatch(ecblock)
+	exportECBlock(ecblock)
+	fmt.Println("Save EntryCreditBlock: block " + strconv.FormatUint(uint64(ecblock.Header.EBHeight), 10))
+	db.ProcessDBlockBatch(dblock)
+	db.InsertDirBlockInfo(common.NewDirBlockInfoFromDBlock(dblock))
+	fmt.Println("Save DirectoryBlock: block " + strconv.FormatUint(uint64(dblock.Header.DBHeight), 10))
+	for _, eblock := range eblocks {
+		db.ProcessEBlockBatch(eblock)
+		exportEBlock(eblock)
+		fmt.Println("Save EntryBlock: block " + strconv.FormatUint(uint64(eblock.Header.EBSequence), 10))
+	}
+	binary, _ := dblock.MarshalBinary()
+	commonHash := common.Sha(binary)
+	db.UpdateBlockHeightCache(dblock.Header.DBHeight, commonHash)
+	db.UpdateNextBlockHeightCache(dchain.NextDBHeight)
+	exportDBlock(dblock)
+	fmt.Println("saveBlocks: done=", dblock.Header.DBHeight)
+	placeAnchor(dblock)
+	fMemPool.resetDirBlockSigPool()
+	return nil
+}
+
+/*
+// save all blocks and anchor dir block if it's the leader
+func saveBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
+	ecblock *common.ECBlock, fblock block.IFBlock, eblocks []*common.EBlock) error {
 	db.StartBatch()
 
 	// save blocks to database in a signle transaction ???
@@ -1601,7 +1635,7 @@ func saveBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
 	placeAnchor(dblock)
 	fMemPool.resetDirBlockSigPool()
 	return nil
-}
+}*/
 
 // signDirBlockForAdminBlock signs the directory block for next admin block
 func signDirBlockForAdminBlock(newdb *common.DirectoryBlock) error {
