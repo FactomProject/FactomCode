@@ -7,13 +7,11 @@ go:
 
 branches:
   only:
-#    - Hotfix7
-    - master
+    - Hotfix7
 
 install:
  - go get github.com/axw/gocov/gocov
  - go get gopkg.in/matm/v1/gocov-html
-# - ./all-travis.sh Hotfix7 master
- - ./all-travis.sh Hotfix6 master
+ - ./all-travis.sh Hotfix7 master
 
 
