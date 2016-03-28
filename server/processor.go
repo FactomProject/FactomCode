@@ -74,10 +74,11 @@ var (
 	serverPubKey  common.PublicKey
 
 	// FactoshisPerCredit is .001 / .15 * 100000000 (assuming a Factoid is .15 cents, entry credit = .1 cents
-	FactoshisPerCredit uint64
-	blockSyncing       bool
-	firstBlockHeight   uint32 // the DBHeight of the first block being built by follower after sync up
-	zeroHash           = common.NewHash()
+	FactoshisPerCredit                 uint64
+	blockSyncing                       bool
+	firstBlockHeight                   uint32 // the DBHeight of the first block being built by follower after sync up
+	doneSetFollowersCointbaseTimeStamp bool
+	zeroHash                           = common.NewHash()
 
 	directoryBlockInSeconds int
 	dataStorePath           string
@@ -458,7 +459,7 @@ func processLeaderEOM(msgEom *wire.MsgInt_EOM) error {
 		processFromOrphanPool()
 	}
 
-	ack, err := plMgr.AddToLeadersProcessList(msgEom, nil, msgEom.EOM_Type, dchain.NextBlock.Header.Timestamp)
+	ack, err := plMgr.AddToLeadersProcessList(msgEom, nil, msgEom.EOM_Type, dchain.NextBlock.Header.Timestamp, fchain.NextBlock.GetCoinbaseTimestamp())
 	if err != nil {
 		return err
 	}
@@ -470,7 +471,7 @@ func processLeaderEOM(msgEom *wire.MsgInt_EOM) error {
 	outMsgQueue <- ack
 
 	if msgEom.EOM_Type == wire.EndMinute10 {
-		fmt.Println("processLeaderEOM: EndMinute10: ", spew.Sdump(plMgr.MyProcessList))
+		//fmt.Println("processLeaderEOM: EndMinute10: ", spew.Sdump(plMgr.MyProcessList))
 		err = buildBlocks() //broadcast new dir block sig
 		if err != nil {
 			return err
@@ -531,9 +532,11 @@ func processDirBlockSig() error {
 		n := float32(len(v)) / float32(totalServerNum)
 		fmt.Printf("key=%s, len=%d, n=%v\n", k, len(v), n)
 		if n == float32(1.0) {
-			fmt.Printf("A full consensus !")
+			fmt.Println("A full consensus !")
+			winner = v[0]
+			break
 		} else if n > float32(0.5) {
-			fmt.Printf("A majority !")
+			fmt.Println("A majority !")
 			winner = v[0]
 			break
 		} else if n == float32(0.5) {
@@ -616,6 +619,11 @@ func processAckMsg(ack *wire.MsgAck) ([]*wire.MsgMissing, error) {
 		fs.FirstJoined = firstBlockHeight
 		fmt.Println("** reset blockSyncing=false, firstBlockHeight=", firstBlockHeight)
 	}
+	if !doneSetFollowersCointbaseTimeStamp && ack.CoinbaseTimestamp > 0 {
+		fchain.NextBlock.SetCoinbaseTimestamp(ack.CoinbaseTimestamp)
+		doneSetFollowersCointbaseTimeStamp = true
+		fmt.Printf("reset follower's CoinbaseTimestamp: %d\n", ack.CoinbaseTimestamp)
+	}
 	//if blockSyncing {
 	//return nil
 	//}
@@ -640,7 +648,9 @@ func processAckMsg(ack *wire.MsgAck) ([]*wire.MsgMissing, error) {
 			}
 		}
 	}
-	common.FactoidState.EndOfPeriod(int(ack.Type))
+	if ack.IsEomAck() {
+		common.FactoidState.EndOfPeriod(int(ack.Type))
+	}
 
 	var missingAcks []*wire.MsgMissing
 	missingMsg := fMemPool.addAck(ack)
@@ -671,7 +681,7 @@ func processAckMsg(ack *wire.MsgAck) ([]*wire.MsgMissing, error) {
 		if err != nil {
 			fmt.Println(err.Error())
 		}
-		fmt.Printf("follower ProcessList: %s\n", spew.Sdump(plMgr.MyProcessList))
+		//fmt.Printf("follower ProcessList: %s\n", spew.Sdump(plMgr.MyProcessList))
 	}
 	// for firstBlockHeight, ususally there's some msg or ack missing
 	// let's bypass the first one to give the follower time to round up.
@@ -730,7 +740,7 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 				fmt.Println("Exceeding MyProcessList size limit!")
 				return fMemPool.addOrphanMsg(msg, h)
 			}
-			ack, err := plMgr.AddToLeadersProcessList(msg, h, wire.AckRevealEntry, dchain.NextBlock.Header.Timestamp)
+			ack, err := plMgr.AddToLeadersProcessList(msg, h, wire.AckRevealEntry, dchain.NextBlock.Header.Timestamp, fchain.NextBlock.GetCoinbaseTimestamp())
 			if err != nil {
 				return err
 			}
@@ -792,7 +802,7 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 				fmt.Println("Exceeding MyProcessList size limit!")
 				return fMemPool.addOrphanMsg(msg, h)
 			}
-			ack, err := plMgr.AddToLeadersProcessList(msg, h, wire.AckRevealChain, dchain.NextBlock.Header.Timestamp)
+			ack, err := plMgr.AddToLeadersProcessList(msg, h, wire.AckRevealChain, dchain.NextBlock.Header.Timestamp, fchain.NextBlock.GetCoinbaseTimestamp())
 			if err != nil {
 				return err
 			}
@@ -849,7 +859,7 @@ func processCommitEntry(msg *wire.MsgCommitEntry) error {
 			fmt.Println("Exceeding MyProcessList size limit!")
 			return fMemPool.addOrphanMsg(msg, &h)
 		}
-		ack, err := plMgr.AddToLeadersProcessList(msg, &h, wire.AckCommitEntry, dchain.NextBlock.Header.Timestamp)
+		ack, err := plMgr.AddToLeadersProcessList(msg, &h, wire.AckCommitEntry, dchain.NextBlock.Header.Timestamp, fchain.NextBlock.GetCoinbaseTimestamp())
 		if err != nil {
 			return err
 		}
@@ -902,7 +912,7 @@ func processCommitChain(msg *wire.MsgCommitChain) error {
 			fmt.Println("Exceeding MyProcessList size limit!")
 			return fMemPool.addOrphanMsg(msg, &h)
 		}
-		ack, err := plMgr.AddToLeadersProcessList(msg, &h, wire.AckCommitChain, dchain.NextBlock.Header.Timestamp)
+		ack, err := plMgr.AddToLeadersProcessList(msg, &h, wire.AckCommitChain, dchain.NextBlock.Header.Timestamp, fchain.NextBlock.GetCoinbaseTimestamp())
 		if err != nil {
 			return err
 		}
@@ -947,7 +957,7 @@ func processFactoidTX(msg *wire.MsgFactoidTX) error {
 			fmt.Println("Exceeding MyProcessList size limit!")
 			return fMemPool.addOrphanMsg(msg, &h)
 		}
-		ack, err := plMgr.AddToLeadersProcessList(msg, &h, wire.AckFactoidTx, dchain.NextBlock.Header.Timestamp)
+		ack, err := plMgr.AddToLeadersProcessList(msg, &h, wire.AckFactoidTx, dchain.NextBlock.Header.Timestamp, fchain.NextBlock.GetCoinbaseTimestamp())
 		if err != nil {
 			return err
 		}
@@ -1434,7 +1444,7 @@ func newFactoidBlock(chain *common.FctChain) block.IFBlock {
 		// this is the first block after block sync up
 		currentBlock.SetDBHeight(chain.NextBlockHeight)
 		prev, err := db.FetchFBlockByHeight(chain.NextBlockHeight - 1)
-		fmt.Println("newFactoidBlock: prev=", spew.Sdump(prev))
+		//fmt.Println("newFactoidBlock: prev=", spew.Sdump(prev))
 		if err != nil {
 			fmt.Println("newFactoidBlock: error in db.FetchFBlockByHeight", err.Error())
 		}
@@ -1442,7 +1452,7 @@ func newFactoidBlock(chain *common.FctChain) block.IFBlock {
 		currentBlock.SetPrevKeyMR(prev.GetKeyMR().Bytes())
 		currentBlock.SetPrevLedgerKeyMR(prev.GetLedgerKeyMR().Bytes())
 
-		t := block.GetCoinbase(common.FactoidState.GetTimeMilli())
+		t := block.GetCoinbase(plMgr.MyProcessList.GetEndMinuteAck(wire.EndMinute10).CoinbaseTimestamp)
 		err = currentBlock.AddCoinbase(t)
 		if err != nil {
 			fmt.Println("newFactoidBlock: error in currentBlock.AddCoinbase(): ", err.Error())
@@ -1464,6 +1474,7 @@ func newFactoidBlock(chain *common.FctChain) block.IFBlock {
 	chain.NextBlock = common.FactoidState.GetCurrentBlock()
 	chain.BlockMutex.Unlock()
 	newFBlock = currentBlock
+	doneSetFollowersCointbaseTimeStamp = false
 	return currentBlock
 }
 
@@ -1481,7 +1492,7 @@ func newDirectoryBlock(chain *common.DChain) *common.DirectoryBlock {
 		if prev == nil {
 			fmt.Println("newDirectoryBlock: prev == nil")
 		}
-		fmt.Println("newDirectoryBlock: prev=", spew.Sdump(prev))
+		//fmt.Println("newDirectoryBlock: prev=", spew.Sdump(prev))
 		block.Header.PrevLedgerKeyMR, err = common.CreateHash(prev)
 		if err != nil {
 			fmt.Println("newDirectoryBlock: error in creating LedgerKeyMR", err.Error())
@@ -1534,32 +1545,26 @@ func saveBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
 	db.ProcessFBlockBatch(fblock)
 	exportFctBlock(fblock)
 	fmt.Println("Save Factoid Block: block " + strconv.FormatUint(uint64(fblock.GetDBHeight()), 10))
-
 	db.ProcessABlockBatch(ablock)
 	exportABlock(ablock)
 	fmt.Println("Save Admin Block: block " + strconv.FormatUint(uint64(ablock.Header.DBHeight), 10))
-
 	db.ProcessECBlockBatch(ecblock)
 	exportECBlock(ecblock)
 	fmt.Println("Save EntryCreditBlock: block " + strconv.FormatUint(uint64(ecblock.Header.EBHeight), 10))
-
 	db.ProcessDBlockBatch(dblock)
 	db.InsertDirBlockInfo(common.NewDirBlockInfoFromDBlock(dblock))
 	fmt.Println("Save DirectoryBlock: block " + strconv.FormatUint(uint64(dblock.Header.DBHeight), 10))
-
 	for _, eblock := range eblocks {
 		db.ProcessEBlockBatch(eblock)
 		exportEBlock(eblock)
 		fmt.Println("Save EntryBlock: block " + strconv.FormatUint(uint64(eblock.Header.EBSequence), 10))
 	}
-
 	binary, _ := dblock.MarshalBinary()
 	commonHash := common.Sha(binary)
 	db.UpdateBlockHeightCache(dblock.Header.DBHeight, commonHash)
 	db.UpdateNextBlockHeightCache(dchain.NextDBHeight)
 	exportDBlock(dblock)
 	fmt.Println("saveBlocks: done=", dblock.Header.DBHeight)
-
 	placeAnchor(dblock)
 	fMemPool.resetDirBlockSigPool()
 	return nil
