@@ -7,15 +7,13 @@ go:
 
 branches:
   only:
+#    - Hotfix7
     - master
-    - Hotfix6
-    - m2
-    - m2s
 
 install:
- - go get -t -v ../FactomCode/factomd
- - go get -t -v ../fctwallet
- - go get -t -v ../factom-cli
- - go get -t -v ../walletapp
+ - go get github.com/axw/gocov/gocov
+ - go get gopkg.in/matm/v1/gocov-html
+# - ./all-travis.sh Hotfix7 master
+ - ./all-travis.sh Hotfix6 master
 
 
