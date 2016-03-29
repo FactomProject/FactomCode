@@ -506,10 +506,10 @@ func processDirBlockSig() error {
 
 	dgsMap := make(map[string][]*wire.MsgDirBlockSig)
 	for _, v := range dbsigs {
-		if !v.Sig.Verify(v.DirBlockHash.Bytes()) {
-			fmt.Println("processDirBlockSig: could not verify sig: ", spew.Sdump(v))
-			continue
-		}
+		//if !v.Sig.Verify(v.DirBlockHash.Bytes()) {
+		//fmt.Println("processDirBlockSig: could not verify sig: ", spew.Sdump(v))
+		//continue
+		//}
 		if v.DBHeight != dchain.NextDBHeight-1 {
 			// need to remove this one
 			//fmt.Println("filter out later-coming last block's sig: ", spew.Sdump(v))
@@ -1554,7 +1554,7 @@ func saveBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
 	for _, eblock := range eblocks {
 		db.ProcessEBlockBatch(eblock)
 		exportEBlock(eblock)
-		fmt.Println("Save EntryBlock: block " + strconv.FormatUint(uint64(eblock.Header.EBSequence), 10))
+		//fmt.Println("Save EntryBlock: block " + strconv.FormatUint(uint64(eblock.Header.EBSequence), 10))
 	}
 	binary, _ := dblock.MarshalBinary()
 	commonHash := common.Sha(binary)
