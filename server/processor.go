@@ -1464,7 +1464,7 @@ func newFactoidBlock(chain *common.FctChain) block.IFBlock {
 		//fmt.Println("newFactoidBlock: error in currentBlock.AddCoinbase(): ", err.Error())
 		//}
 		//common.FactoidState.UpdateTransaction(t)
-		common.FactoidState.SetCurrentBlock(currentBlock)
+		//common.FactoidState.SetCurrentBlock(currentBlock)
 	}
 
 	if chain.NextBlockHeight != dchain.NextDBHeight {

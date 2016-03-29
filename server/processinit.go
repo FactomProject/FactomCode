@@ -209,8 +209,8 @@ func initFctChain() {
 				panic(err)
 			}
 			//}
-			//} else {
-			//fchain.NextBlock = block.NewFBlock(FactoshisPerCredit, 0)
+		} else {
+			fchain.NextBlock = block.NewFBlock(FactoshisPerCredit, 0)
 		}
 
 	} else {
