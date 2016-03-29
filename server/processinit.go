@@ -211,6 +211,9 @@ func initFctChain() {
 			//}
 		} else {
 			fchain.NextBlock = block.NewFBlock(FactoshisPerCredit, 0)
+			t := block.GetCoinbase(common.FactoidState.GetTimeMilli())
+			fchain.NextBlock.AddCoinbase(t)
+			common.FactoidState.UpdateTransaction(t)
 		}
 
 	} else {

@@ -1457,14 +1457,6 @@ func newFactoidBlock(chain *common.FctChain) block.IFBlock {
 		currentBlock.SetPrevKeyMR(prev.GetKeyMR().Bytes())
 		currentBlock.SetPrevLedgerKeyMR(prev.GetLedgerKeyMR().Bytes())
 		currentBlock.SetCoinbaseTimestamp(plMgr.MyProcessList.GetEndMinuteAck(wire.EndMinute10).CoinbaseTimestamp)
-
-		//t := block.GetCoinbase(plMgr.MyProcessList.GetEndMinuteAck(wire.EndMinute10).CoinbaseTimestamp)
-		//err = currentBlock.AddCoinbase(t)
-		//if err != nil {
-		//fmt.Println("newFactoidBlock: error in currentBlock.AddCoinbase(): ", err.Error())
-		//}
-		//common.FactoidState.UpdateTransaction(t)
-		//common.FactoidState.SetCurrentBlock(currentBlock)
 	}
 
 	if chain.NextBlockHeight != dchain.NextDBHeight {
