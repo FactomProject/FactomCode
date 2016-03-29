@@ -209,37 +209,34 @@ func initFctChain() {
 				panic(err)
 			}
 			//}
-		} else {
-			fchain.NextBlock = block.NewFBlock(FactoshisPerCredit, 0)
+			//} else {
+			//fchain.NextBlock = block.NewFBlock(FactoshisPerCredit, 0)
 		}
 
 	} else {
 		fchain.NextBlockHeight = dchain.NextDBHeight
 		common.FactoidState.ProcessEndOfBlock2(dchain.NextDBHeight)
 		fchain.NextBlock = common.FactoidState.GetCurrentBlock()
+
+		t := block.GetCoinbase(common.FactoidState.GetTimeMilli())
+		fchain.NextBlock.AddCoinbase(t)
+		common.FactoidState.UpdateTransaction(t)
 	}
-
 	exportFctChain(fchain)
-
 }
 
 // Initialize Entry Block Chains from database
 func initEChains() {
-
 	chainIDMap = make(map[string]*common.EChain)
-
 	chains, err := db.FetchAllChains()
-
 	if err != nil {
 		panic(err)
 	}
-
 	for _, chain := range chains {
 		var newChain = chain
 		chainIDMap[newChain.ChainID.String()] = newChain
 		exportEChain(chain)
 	}
-
 }
 
 // Re-calculate Entry Credit Balance Map with a new Entry Credit Block

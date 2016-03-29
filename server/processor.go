@@ -506,10 +506,10 @@ func processDirBlockSig() error {
 
 	dgsMap := make(map[string][]*wire.MsgDirBlockSig)
 	for _, v := range dbsigs {
-		//if !v.Sig.Pub.Verify(v.DirBlockHash.Bytes(), v.Sig.Sig) {
-		//fmt.Println("could not verify sig. dir block hash: ", v.DirBlockHash)
-		//continue
-		//}
+		if !v.Sig.Verify(v.DirBlockHash.Bytes()) {
+			fmt.Println("processDirBlockSig: could not verify sig: ", spew.Sdump(v))
+			continue
+		}
 		if v.DBHeight != dchain.NextDBHeight-1 {
 			// need to remove this one
 			//fmt.Println("filter out later-coming last block's sig: ", spew.Sdump(v))
@@ -599,7 +599,7 @@ func processAckPeerMsg(ack *ackMsg) ([]*wire.MsgMissing, error) {
 // processAckMsg validates the ack and adds it to processlist
 // this is only for post-syncup followers need to deal with Ack
 func processAckMsg(ack *wire.MsgAck) ([]*wire.MsgMissing, error) {
-	if nodeMode != common.SERVER_NODE || localServer.IsLeader() {
+	if nodeMode != common.SERVER_NODE || localServer == nil || localServer.IsLeader() {
 		return nil, nil
 	}
 	_, latestHeight, _ := db.FetchBlockHeightCache()
@@ -614,6 +614,10 @@ func processAckMsg(ack *wire.MsgAck) ([]*wire.MsgMissing, error) {
 	if IsDChainInSync() && blockSyncing {
 		blockSyncing = false
 		firstBlockHeight = ack.Height
+		// when sync up, FactoidState.CurrentBlock is using the last block being synced-up
+		// as it's needed for balance update.
+		// when done sync up, reset its current block, for EndOfPeriod
+		common.FactoidState.SetCurrentBlock(fchain.NextBlock)
 		// update this federate server
 		fs := localServer.GetMyFederateServer()
 		fs.FirstJoined = firstBlockHeight
@@ -649,6 +653,7 @@ func processAckMsg(ack *wire.MsgAck) ([]*wire.MsgMissing, error) {
 		}
 	}
 	if ack.IsEomAck() {
+		fmt.Println("follower's EndOfPeriod: type=", int(ack.Type))
 		common.FactoidState.EndOfPeriod(int(ack.Type))
 	}
 
@@ -1451,13 +1456,14 @@ func newFactoidBlock(chain *common.FctChain) block.IFBlock {
 		currentBlock.SetExchRate(FactoshisPerCredit)
 		currentBlock.SetPrevKeyMR(prev.GetKeyMR().Bytes())
 		currentBlock.SetPrevLedgerKeyMR(prev.GetLedgerKeyMR().Bytes())
+		currentBlock.SetCoinbaseTimestamp(plMgr.MyProcessList.GetEndMinuteAck(wire.EndMinute10).CoinbaseTimestamp)
 
-		t := block.GetCoinbase(plMgr.MyProcessList.GetEndMinuteAck(wire.EndMinute10).CoinbaseTimestamp)
-		err = currentBlock.AddCoinbase(t)
-		if err != nil {
-			fmt.Println("newFactoidBlock: error in currentBlock.AddCoinbase(): ", err.Error())
-		}
-		common.FactoidState.UpdateTransaction(t)
+		//t := block.GetCoinbase(plMgr.MyProcessList.GetEndMinuteAck(wire.EndMinute10).CoinbaseTimestamp)
+		//err = currentBlock.AddCoinbase(t)
+		//if err != nil {
+		//fmt.Println("newFactoidBlock: error in currentBlock.AddCoinbase(): ", err.Error())
+		//}
+		//common.FactoidState.UpdateTransaction(t)
 		common.FactoidState.SetCurrentBlock(currentBlock)
 	}
 
