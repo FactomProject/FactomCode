@@ -3,7 +3,7 @@
 language: go
 
 go:
-  - 1.5.3
+  - 1.6
 
 branches:
   only:
@@ -14,8 +14,6 @@ install:
  - go get -t -v ../fctwallet
  - go get -t -v ../factom-cli
  - go get -t -v ../walletapp
- - go get github.com/axw/gocov/gocov
- - go get gopkg.in/matm/v1/gocov-html
  - ./all-travis.sh Hotfix7 master
 
 
