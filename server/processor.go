@@ -471,7 +471,7 @@ func processLeaderEOM(msgEom *wire.MsgInt_EOM) error {
 	outMsgQueue <- ack
 
 	if msgEom.EOM_Type == wire.EndMinute10 {
-		//fmt.Println("processLeaderEOM: EndMinute10: ", spew.Sdump(plMgr.MyProcessList))
+		fmt.Println("leader's ProcessList: ", spew.Sdump(plMgr.MyProcessList))
 		err = buildBlocks() //broadcast new dir block sig
 		if err != nil {
 			return err
@@ -686,7 +686,7 @@ func processAckMsg(ack *wire.MsgAck) ([]*wire.MsgMissing, error) {
 		if err != nil {
 			fmt.Println(err.Error())
 		}
-		//fmt.Printf("follower ProcessList: %s\n", spew.Sdump(plMgr.MyProcessList))
+		fmt.Printf("follower ProcessList: %s\n", spew.Sdump(plMgr.MyProcessList))
 	}
 	// for firstBlockHeight, ususally there's some msg or ack missing
 	// let's bypass the first one to give the follower time to round up.
@@ -969,6 +969,9 @@ func processFactoidTX(msg *wire.MsgFactoidTX) error {
 		ack, err := plMgr.AddToLeadersProcessList(msg, &h, wire.AckFactoidTx, dchain.NextBlock.Header.Timestamp, fchain.NextBlock.GetCoinbaseTimestamp())
 		if err != nil {
 			return err
+		}
+		if ack == nil {
+			return fmt.Errorf("processFactoidTX: ack is nil")
 		}
 		fmt.Printf("AckFactoidTx: %s\n", spew.Sdump(ack))
 		outMsgQueue <- ack

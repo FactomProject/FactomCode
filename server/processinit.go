@@ -287,7 +287,7 @@ func initServerKeys() {
 
 // Initialize the process list manager with the proper dir block height
 func initProcessListMgr() {
-	plMgr = consensus.NewProcessListMgr(dchain.NextDBHeight, 1, 10, serverPrivKey)
+	plMgr = consensus.NewProcessListMgr(dchain.NextDBHeight, 100, serverPrivKey)
 
 }
 
