@@ -45,11 +45,11 @@ var (
 	inMsgQueue   chan wire.FtmInternalMsg
 	outMsgQueue  chan wire.FtmInternalMsg
 
-	dchain   *common.DChain     //Directory Block Chain
-	ecchain  *common.ECChain    //Entry Credit Chain
-	achain   *common.AdminChain //Admin Chain
-	fchain   *common.FctChain   // factoid Chain
-	fchainID *common.Hash
+	dchain  *common.DChain     //Directory Block Chain
+	ecchain *common.ECChain    //Entry Credit Chain
+	achain  *common.AdminChain //Admin Chain
+	fchain  *common.FctChain   // factoid Chain
+	//fchainID *common.Hash
 
 	newDBlock  *common.DirectoryBlock
 	newABlock  *common.AdminBlock
@@ -1205,8 +1205,8 @@ func buildBlocks() error {
 		eblock := newEntryBlock(chain)
 		if eblock != nil {
 			dchain.AddEBlockToDBEntry(eblock)
+			newEBlocks = append(newEBlocks, eblock)
 		}
-		newEBlocks = append(newEBlocks, eblock)
 	}
 
 	// Directory Block chain
@@ -1291,14 +1291,40 @@ func newEntryBlock(chain *common.EChain) *common.EBlock {
 		return nil
 	}
 	if len(block.Body.EBEntries) < 1 {
-		procLog.Debug("No new entry found. No block created for chain: " + chain.ChainID.String())
+		procLog.Debug("newEntryBlock: No new entry found. No block created for chain: " + chain.ChainID.String())
 		return nil
+	}
+
+	fmt.Printf("newEntryBlock: block.Header.EBHeight =%d, EBSequenc=%d, dchain.NextDBHeight=%d, block=%s\n ",
+		block.Header.EBHeight, block.Header.EBSequence, dchain.NextDBHeight, spew.Sdump(block))
+
+	if block.Header.EBSequence != chain.NextBlockHeight {
+		// this is the first block after block sync up
+		block.Header.EBSequence = chain.NextBlockHeight
+		block.Header.ChainID = chain.ChainID
+		prev, err := db.FetchEBlockByHeight(chain.ChainID, chain.NextBlockHeight-1)
+		fmt.Println("newEntryBlock: prev=", spew.Sdump(prev))
+		if err != nil {
+			fmt.Println("newEntryBlock: error in db.FetchEBlockByHeight", err.Error())
+			return nil
+		}
+		block.Header.PrevLedgerKeyMR, err = prev.Hash()
+		if err != nil {
+			fmt.Println("newEntryBlock: ", err.Error())
+			return nil
+		}
+		block.Header.PrevKeyMR, err = prev.KeyMR()
+		if err != nil {
+			fmt.Println("newEntryBlock: ", err.Error())
+			return nil
+		}
 	}
 
 	// Create the block and add a new block for new coming entries
 	block.Header.EBHeight = dchain.NextDBHeight
 	block.Header.EntryCount = uint32(len(block.Body.EBEntries))
-	fmt.Println("newEntryBlock: block.Header.EBHeight = ", block.Header.EBHeight)
+	fmt.Printf("newEntryBlock: block.Header.EBHeight =%d, EBSequenc=%d, dchain.NextDBHeight=%d\n ",
+		block.Header.EBHeight, block.Header.EBSequence, dchain.NextDBHeight)
 
 	chain.NextBlockHeight++
 	var err error
@@ -1312,7 +1338,6 @@ func newEntryBlock(chain *common.EChain) *common.EBlock {
 
 // Seals the current open block, store it in db and create the next open block
 func newEntryCreditBlock(chain *common.ECChain) *common.ECBlock {
-
 	// acquire the last block
 	block := chain.NextBlock
 	//fmt.Printf("newEntryCreditBlock: block.Header.EBHeight =%d, block=%s\n ", block.Header.EBHeight, spew.Sdump(block))
@@ -1358,7 +1383,6 @@ func newEntryCreditBlock(chain *common.ECChain) *common.ECBlock {
 
 // Seals the current open block, store it in db and create the next open block
 func newAdminBlock(chain *common.AdminChain) *common.AdminBlock {
-
 	// acquire the last block
 	block := chain.NextBlock
 	if block.Header.DBHeight != chain.NextBlockHeight {
@@ -1552,9 +1576,12 @@ func saveBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
 	db.InsertDirBlockInfo(common.NewDirBlockInfoFromDBlock(dblock))
 	fmt.Println("Save DirectoryBlock: block " + strconv.FormatUint(uint64(dblock.Header.DBHeight), 10))
 	for _, eblock := range eblocks {
+		if eblock == nil {
+			continue
+		}
 		db.ProcessEBlockBatch(eblock)
 		exportEBlock(eblock)
-		//fmt.Println("Save EntryBlock: block " + strconv.FormatUint(uint64(eblock.Header.EBSequence), 10))
+		fmt.Println("Save EntryBlock: block " + strconv.FormatUint(uint64(eblock.Header.EBSequence), 10))
 	}
 	binary, _ := dblock.MarshalBinary()
 	commonHash := common.Sha(binary)
