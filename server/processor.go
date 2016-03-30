@@ -506,10 +506,10 @@ func processDirBlockSig() error {
 
 	dgsMap := make(map[string][]*wire.MsgDirBlockSig)
 	for _, v := range dbsigs {
-		//if !v.Sig.Verify(v.DirBlockHash.Bytes()) {
-		//fmt.Println("processDirBlockSig: could not verify sig: ", spew.Sdump(v))
-		//continue
-		//}
+		if !v.Sig.Verify(v.DirBlockHash.GetBytes()) {
+			fmt.Println("processDirBlockSig: could not verify sig: ", spew.Sdump(v))
+			continue
+		}
 		if v.DBHeight != dchain.NextDBHeight-1 {
 			// need to remove this one
 			//fmt.Println("filter out later-coming last block's sig: ", spew.Sdump(v))
@@ -1663,7 +1663,7 @@ func SignDirBlockForVote(newdb *common.DirectoryBlock) error {
 		h := common.Hash{}
 		hash := common.Sha(dbHeaderBytes)
 		h.SetBytes(hash.GetBytes())
-		sig := serverPrivKey.Sign(dbHeaderBytes)
+		sig := serverPrivKey.Sign(h.GetBytes()) //dbHeaderBytes)
 		msg := &wire.MsgDirBlockSig{
 			DBHeight:     newdb.Header.DBHeight,
 			DirBlockHash: h, //????
