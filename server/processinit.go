@@ -200,17 +200,18 @@ func initFctChain() {
 
 		if factomConfig.App.InitLeader {
 			fchain.NextBlock = block.GetGenesisFBlock()
-			gb := fchain.NextBlock
 
 			// If a client, this block is going to get downloaded and added.  Don't do it twice.
 			//if nodeMode == common.SERVER_NODE {
-			err := common.FactoidState.AddTransactionBlock(gb)
+			err := common.FactoidState.AddTransactionBlock(fchain.NextBlock)
 			if err != nil {
 				panic(err)
 			}
 			//}
 		} else {
-			fchain.NextBlock = block.NewFBlock(FactoshisPerCredit, 0)
+			//fchain.NextBlock = block.NewFBlock(FactoshisPerCredit, 0)
+			common.FactoidState.ProcessEndOfBlock2(dchain.NextDBHeight)
+			fchain.NextBlock = common.FactoidState.GetCurrentBlock()
 			t := block.GetCoinbase(common.FactoidState.GetTimeMilli())
 			fchain.NextBlock.AddCoinbase(t)
 			common.FactoidState.UpdateTransaction(t)

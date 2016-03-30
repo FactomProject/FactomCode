@@ -943,7 +943,11 @@ func processFactoidTX(msg *wire.MsgFactoidTX) error {
 	}
 
 	tx := msg.Transaction
-	txnum := len(common.FactoidState.GetCurrentBlock().GetTransactions())
+	txnum := 0
+	if common.FactoidState.GetCurrentBlock() == nil {
+		return fmt.Errorf("FactoidState.GetCurrentBlock() == nil")
+	}
+	txnum = len(common.FactoidState.GetCurrentBlock().GetTransactions())
 	err := common.FactoidState.AddTransaction(txnum, tx)
 	if err != nil {
 		return err
