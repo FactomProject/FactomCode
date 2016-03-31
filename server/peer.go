@@ -1033,19 +1033,19 @@ out:
 			// Factom additions
 		case *wire.MsgCommitChain:
 			p.handleCommitChainMsg(msg)
-			p.FactomRelay(msg)
+			//p.FactomRelay(msg)
 
 		case *wire.MsgCommitEntry:
 			p.handleCommitEntryMsg(msg)
-			p.FactomRelay(msg)
+			//p.FactomRelay(msg)
 
 		case *wire.MsgRevealEntry:
 			p.handleRevealEntryMsg(msg)
-			p.FactomRelay(msg)
+			//p.FactomRelay(msg)
 
 		case *wire.MsgFactoidTX:
 			p.handleFactoidMsg(msg, buf)
-			p.FactomRelay(msg)
+			//p.FactomRelay(msg)
 
 		case *wire.MsgAck:
 			p.handleAckMsg(msg)

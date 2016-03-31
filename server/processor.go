@@ -196,6 +196,7 @@ func StartProcessor(wg *sync.WaitGroup, quit chan struct{}) {
 				// once it's done block syncing, this is only needed for CLIENT
 				// Use broadcast to exclude federate servers
 				// todo ???
+				fmt.Println("StartProcessor: case of MsgInt_DirBlock: ", spew.Sdump(msg))
 				dirBlock, _ := msg.(*wire.MsgInt_DirBlock)
 				iv := wire.NewInvVect(wire.InvTypeFactomDirBlock, dirBlock.ShaHash)
 				localServer.RelayInventory(iv, nil)
@@ -211,6 +212,7 @@ func StartProcessor(wg *sync.WaitGroup, quit chan struct{}) {
 				// commitEntry/chain, revealEntry/Chain and MsgDirBlockSig
 				// need to exclude all peers that are not federate servers
 				// todo ???
+				fmt.Println("StartProcessor: case of Message (outMsgQueue): ", spew.Sdump(msg))
 				wireMsg, _ := msg.(wire.Message)
 				localServer.BroadcastMessage(wireMsg)
 				/*
@@ -253,8 +255,13 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		} else {
 			return errors.New("Error in processing msg:" + spew.Sdump(msg))
 		}
-		// Broadcast the msg to the network if no errors
-		//outMsgQueue <- msg
+		// broadcast it to other federate servers only if it's new to me
+		h, _ := msgCommitChain.Sha()
+		if fMemPool.haveMsg(&h) {
+			fmt.Println("processCommitChain: already in mempool. ", spew.Sdump(msgCommitChain))
+			return nil
+		}
+		outMsgQueue <- msgCommitChain
 
 	case wire.CmdCommitEntry:
 		msgCommitEntry, ok := msg.(*wire.MsgCommitEntry)
@@ -271,8 +278,13 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		} else {
 			return errors.New("Error in processing msg:" + spew.Sdump(msg))
 		}
-		// Broadcast the msg to the network if no errors
-		//outMsgQueue <- msg
+		// broadcast it to other federate servers only if it's new to me
+		h, _ := msgCommitEntry.Sha()
+		if fMemPool.haveMsg(&h) {
+			fmt.Println("processCommitChain: already in mempool. ", spew.Sdump(msgCommitEntry))
+			return nil
+		}
+		outMsgQueue <- msgCommitEntry
 
 	case wire.CmdRevealEntry:
 		msgRevealEntry, ok := msg.(*wire.MsgRevealEntry)
@@ -284,8 +296,13 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		} else {
 			return errors.New("Error in processing msg:" + spew.Sdump(msg))
 		}
-		// Broadcast the msg to the network if no errors
-		//outMsgQueue <- msg
+		// broadcast it to other federate servers only if it's new to me
+		h, _ := msgRevealEntry.Sha()
+		if fMemPool.haveMsg(&h) {
+			fmt.Println("processCommitChain: already in mempool. ", spew.Sdump(msgRevealEntry))
+			return nil
+		}
+		outMsgQueue <- msgRevealEntry
 
 	case wire.CmdAck:
 		ack, _ := msg.(*wire.MsgAck)
@@ -942,10 +959,18 @@ func processFactoidTX(msg *wire.MsgFactoidTX) error {
 		return fmt.Errorf("Timestamp invalid on Factoid Transaction")
 	}
 
+	// broadcast it to other federate servers only if it's new to me
+	h, _ := msg.Sha()
+	if fMemPool.haveMsg(&h) {
+		fmt.Println("processFactoidTX: already in mempool. ", spew.Sdump(msg))
+		return nil
+	}
+	outMsgQueue <- msg
+
 	tx := msg.Transaction
 	txnum := 0
 	if common.FactoidState.GetCurrentBlock() == nil {
-		return fmt.Errorf("FactoidState.GetCurrentBlock() == nil")
+		return fmt.Errorf("FactoidState.GetCurrentBlock() is nil")
 	}
 	txnum = len(common.FactoidState.GetCurrentBlock().GetTransactions())
 	err := common.FactoidState.AddTransaction(txnum, tx)
@@ -960,7 +985,6 @@ func processFactoidTX(msg *wire.MsgFactoidTX) error {
 		eCreditMap[string(pub[:])] += cred
 	}
 
-	h, _ := msg.Sha()
 	if localServer.IsLeader() || localServer.isSingleServerMode() {
 		if plMgr.IsMyPListExceedingLimit() {
 			fmt.Println("Exceeding MyProcessList size limit!")

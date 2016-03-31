@@ -157,6 +157,14 @@ func (mp *ftmMemPool) assembleFollowerProcessList(ack *wire.MsgAck) error {
 	return nil
 }
 
+func (mp *ftmMemPool) haveMsg(hash *wire.ShaHash) bool {
+	m := mp.pool[*hash]
+	if m != nil {
+		return true
+	}
+	return false
+}
+
 // Add a factom message to the  Mem pool
 func (mp *ftmMemPool) addMsg(msg wire.Message, hash *wire.ShaHash) error {
 	if len(mp.pool) > common.MAX_TX_POOL_SIZE {

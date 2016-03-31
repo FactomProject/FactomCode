@@ -23,7 +23,7 @@ type ProcessListItem struct {
 // NewProcessList creates a new process list
 func NewProcessList(sizeHint uint) *ProcessList {
 	return &ProcessList{
-		plItems:    make([]*ProcessListItem, 0, sizeHint),
+		plItems:    make([]*ProcessListItem, 15, sizeHint),
 		nextIndex:  0,
 		totalItems: 0,
 	}
