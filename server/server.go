@@ -389,11 +389,11 @@ func (s *server) handleDonePeerMsg(state *peerState, p *peer) {
 			break
 		}
 	}
-	for _, fedServer := range s.federateServers {
-		//srvrLog.Debugf("handleDonePeerMsg: need to remove %s, federate server candidate: %s\n", p, spew.Sdump(fedServer))
+	for i, fedServer := range s.federateServers {
+		srvrLog.Debugf("handleDonePeerMsg: need to remove %s, federate server candidate: %s\n", p, spew.Sdump(fedServer))
 		if fedServer.Peer == p {
-			//fs.Remove(e)
-			srvrLog.Debugf("to-be-Removed federate server %s", p)
+			s.federateServers = append(s.federateServers[:i], s.federateServers[i+1:]...)
+			srvrLog.Debugf("Removed federate server: %s", p)
 			return
 		}
 	}
@@ -1154,7 +1154,7 @@ func (s *server) Start() {
 
 	// wait for peer to start and exchange version msg
 	// todo: coordinate this with a channel
-	//time.Sleep(3 * time.Second)
+	time.Sleep(3 * time.Second)
 	go StartProcessor(&s.wg, s.quit)
 
 	go s.nextLeaderHandler()

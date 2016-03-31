@@ -45,11 +45,11 @@ var (
 	inMsgQueue   chan wire.FtmInternalMsg
 	outMsgQueue  chan wire.FtmInternalMsg
 
-	dchain   *common.DChain     //Directory Block Chain
-	ecchain  *common.ECChain    //Entry Credit Chain
-	achain   *common.AdminChain //Admin Chain
-	fchain   *common.FctChain   // factoid Chain
-	fchainID *common.Hash
+	dchain  *common.DChain     //Directory Block Chain
+	ecchain *common.ECChain    //Entry Credit Chain
+	achain  *common.AdminChain //Admin Chain
+	fchain  *common.FctChain   // factoid Chain
+	//fchainID *common.Hash
 
 	newDBlock  *common.DirectoryBlock
 	newABlock  *common.AdminBlock
@@ -471,7 +471,7 @@ func processLeaderEOM(msgEom *wire.MsgInt_EOM) error {
 	outMsgQueue <- ack
 
 	if msgEom.EOM_Type == wire.EndMinute10 {
-		//fmt.Println("processLeaderEOM: EndMinute10: ", spew.Sdump(plMgr.MyProcessList))
+		fmt.Println("leader's ProcessList: ", spew.Sdump(plMgr.MyProcessList))
 		err = buildBlocks() //broadcast new dir block sig
 		if err != nil {
 			return err
@@ -506,10 +506,10 @@ func processDirBlockSig() error {
 
 	dgsMap := make(map[string][]*wire.MsgDirBlockSig)
 	for _, v := range dbsigs {
-		//if !v.Sig.Pub.Verify(v.DirBlockHash.Bytes(), v.Sig.Sig) {
-		//fmt.Println("could not verify sig. dir block hash: ", v.DirBlockHash)
-		//continue
-		//}
+		if !v.Sig.Verify(v.DirBlockHash.GetBytes()) {
+			fmt.Println("processDirBlockSig: could not verify sig: ", spew.Sdump(v))
+			continue
+		}
 		if v.DBHeight != dchain.NextDBHeight-1 {
 			// need to remove this one
 			//fmt.Println("filter out later-coming last block's sig: ", spew.Sdump(v))
@@ -599,7 +599,7 @@ func processAckPeerMsg(ack *ackMsg) ([]*wire.MsgMissing, error) {
 // processAckMsg validates the ack and adds it to processlist
 // this is only for post-syncup followers need to deal with Ack
 func processAckMsg(ack *wire.MsgAck) ([]*wire.MsgMissing, error) {
-	if nodeMode != common.SERVER_NODE || localServer.IsLeader() {
+	if nodeMode != common.SERVER_NODE || localServer == nil || localServer.IsLeader() {
 		return nil, nil
 	}
 	_, latestHeight, _ := db.FetchBlockHeightCache()
@@ -614,6 +614,10 @@ func processAckMsg(ack *wire.MsgAck) ([]*wire.MsgMissing, error) {
 	if IsDChainInSync() && blockSyncing {
 		blockSyncing = false
 		firstBlockHeight = ack.Height
+		// when sync up, FactoidState.CurrentBlock is using the last block being synced-up
+		// as it's needed for balance update.
+		// when done sync up, reset its current block, for EndOfPeriod
+		common.FactoidState.SetCurrentBlock(fchain.NextBlock)
 		// update this federate server
 		fs := localServer.GetMyFederateServer()
 		fs.FirstJoined = firstBlockHeight
@@ -649,6 +653,7 @@ func processAckMsg(ack *wire.MsgAck) ([]*wire.MsgMissing, error) {
 		}
 	}
 	if ack.IsEomAck() {
+		fmt.Println("follower's EndOfPeriod: type=", int(ack.Type))
 		common.FactoidState.EndOfPeriod(int(ack.Type))
 	}
 
@@ -681,7 +686,7 @@ func processAckMsg(ack *wire.MsgAck) ([]*wire.MsgMissing, error) {
 		if err != nil {
 			fmt.Println(err.Error())
 		}
-		//fmt.Printf("follower ProcessList: %s\n", spew.Sdump(plMgr.MyProcessList))
+		fmt.Printf("follower ProcessList: %s\n", spew.Sdump(plMgr.MyProcessList))
 	}
 	// for firstBlockHeight, ususally there's some msg or ack missing
 	// let's bypass the first one to give the follower time to round up.
@@ -938,7 +943,11 @@ func processFactoidTX(msg *wire.MsgFactoidTX) error {
 	}
 
 	tx := msg.Transaction
-	txnum := len(common.FactoidState.GetCurrentBlock().GetTransactions())
+	txnum := 0
+	if common.FactoidState.GetCurrentBlock() == nil {
+		return fmt.Errorf("FactoidState.GetCurrentBlock() == nil")
+	}
+	txnum = len(common.FactoidState.GetCurrentBlock().GetTransactions())
 	err := common.FactoidState.AddTransaction(txnum, tx)
 	if err != nil {
 		return err
@@ -960,6 +969,9 @@ func processFactoidTX(msg *wire.MsgFactoidTX) error {
 		ack, err := plMgr.AddToLeadersProcessList(msg, &h, wire.AckFactoidTx, dchain.NextBlock.Header.Timestamp, fchain.NextBlock.GetCoinbaseTimestamp())
 		if err != nil {
 			return err
+		}
+		if ack == nil {
+			return fmt.Errorf("processFactoidTX: ack is nil")
 		}
 		fmt.Printf("AckFactoidTx: %s\n", spew.Sdump(ack))
 		outMsgQueue <- ack
@@ -1200,8 +1212,8 @@ func buildBlocks() error {
 		eblock := newEntryBlock(chain)
 		if eblock != nil {
 			dchain.AddEBlockToDBEntry(eblock)
+			newEBlocks = append(newEBlocks, eblock)
 		}
-		newEBlocks = append(newEBlocks, eblock)
 	}
 
 	// Directory Block chain
@@ -1286,14 +1298,40 @@ func newEntryBlock(chain *common.EChain) *common.EBlock {
 		return nil
 	}
 	if len(block.Body.EBEntries) < 1 {
-		procLog.Debug("No new entry found. No block created for chain: " + chain.ChainID.String())
+		procLog.Debug("newEntryBlock: No new entry found. No block created for chain: " + chain.ChainID.String())
 		return nil
+	}
+
+	fmt.Printf("newEntryBlock: block.Header.EBHeight =%d, EBSequenc=%d, dchain.NextDBHeight=%d, block=%s\n ",
+		block.Header.EBHeight, block.Header.EBSequence, dchain.NextDBHeight, spew.Sdump(block))
+
+	if block.Header.EBSequence != chain.NextBlockHeight {
+		// this is the first block after block sync up
+		block.Header.EBSequence = chain.NextBlockHeight
+		block.Header.ChainID = chain.ChainID
+		prev, err := db.FetchEBlockByHeight(chain.ChainID, chain.NextBlockHeight-1)
+		fmt.Println("newEntryBlock: prev=", spew.Sdump(prev))
+		if err != nil {
+			fmt.Println("newEntryBlock: error in db.FetchEBlockByHeight", err.Error())
+			return nil
+		}
+		block.Header.PrevLedgerKeyMR, err = prev.Hash()
+		if err != nil {
+			fmt.Println("newEntryBlock: ", err.Error())
+			return nil
+		}
+		block.Header.PrevKeyMR, err = prev.KeyMR()
+		if err != nil {
+			fmt.Println("newEntryBlock: ", err.Error())
+			return nil
+		}
 	}
 
 	// Create the block and add a new block for new coming entries
 	block.Header.EBHeight = dchain.NextDBHeight
 	block.Header.EntryCount = uint32(len(block.Body.EBEntries))
-	fmt.Println("newEntryBlock: block.Header.EBHeight = ", block.Header.EBHeight)
+	fmt.Printf("newEntryBlock: block.Header.EBHeight =%d, EBSequenc=%d, dchain.NextDBHeight=%d\n ",
+		block.Header.EBHeight, block.Header.EBSequence, dchain.NextDBHeight)
 
 	chain.NextBlockHeight++
 	var err error
@@ -1307,7 +1345,6 @@ func newEntryBlock(chain *common.EChain) *common.EBlock {
 
 // Seals the current open block, store it in db and create the next open block
 func newEntryCreditBlock(chain *common.ECChain) *common.ECBlock {
-
 	// acquire the last block
 	block := chain.NextBlock
 	//fmt.Printf("newEntryCreditBlock: block.Header.EBHeight =%d, block=%s\n ", block.Header.EBHeight, spew.Sdump(block))
@@ -1353,7 +1390,6 @@ func newEntryCreditBlock(chain *common.ECChain) *common.ECBlock {
 
 // Seals the current open block, store it in db and create the next open block
 func newAdminBlock(chain *common.AdminChain) *common.AdminBlock {
-
 	// acquire the last block
 	block := chain.NextBlock
 	if block.Header.DBHeight != chain.NextBlockHeight {
@@ -1451,14 +1487,7 @@ func newFactoidBlock(chain *common.FctChain) block.IFBlock {
 		currentBlock.SetExchRate(FactoshisPerCredit)
 		currentBlock.SetPrevKeyMR(prev.GetKeyMR().Bytes())
 		currentBlock.SetPrevLedgerKeyMR(prev.GetLedgerKeyMR().Bytes())
-
-		t := block.GetCoinbase(plMgr.MyProcessList.GetEndMinuteAck(wire.EndMinute10).CoinbaseTimestamp)
-		err = currentBlock.AddCoinbase(t)
-		if err != nil {
-			fmt.Println("newFactoidBlock: error in currentBlock.AddCoinbase(): ", err.Error())
-		}
-		common.FactoidState.UpdateTransaction(t)
-		common.FactoidState.SetCurrentBlock(currentBlock)
+		currentBlock.SetCoinbaseTimestamp(plMgr.MyProcessList.GetEndMinuteAck(wire.EndMinute10).CoinbaseTimestamp)
 	}
 
 	if chain.NextBlockHeight != dchain.NextDBHeight {
@@ -1554,6 +1583,9 @@ func saveBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
 	db.InsertDirBlockInfo(common.NewDirBlockInfoFromDBlock(dblock))
 	fmt.Println("Save DirectoryBlock: block " + strconv.FormatUint(uint64(dblock.Header.DBHeight), 10))
 	for _, eblock := range eblocks {
+		if eblock == nil {
+			continue
+		}
 		db.ProcessEBlockBatch(eblock)
 		exportEBlock(eblock)
 		fmt.Println("Save EntryBlock: block " + strconv.FormatUint(uint64(eblock.Header.EBSequence), 10))
@@ -1665,7 +1697,7 @@ func SignDirBlockForVote(newdb *common.DirectoryBlock) error {
 		h := common.Hash{}
 		hash := common.Sha(dbHeaderBytes)
 		h.SetBytes(hash.GetBytes())
-		sig := serverPrivKey.Sign(dbHeaderBytes)
+		sig := serverPrivKey.Sign(h.GetBytes()) //dbHeaderBytes)
 		msg := &wire.MsgDirBlockSig{
 			DBHeight:     newdb.Header.DBHeight,
 			DirBlockHash: h, //????
