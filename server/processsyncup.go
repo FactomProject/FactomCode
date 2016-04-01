@@ -50,6 +50,7 @@ func processDirBlock(msg *wire.MsgDirBlock) error {
 			"MsgDirBlock DBHeigth=:"+string(msg.DBlk.Header.DBHeight), // Message
 			0) // Expire
 	*/
+	fMemPool.DBlockUpdated(msg.DBlk.Header.DBHeight)
 	return nil
 }
 
@@ -122,6 +123,7 @@ func validateAndStoreBlocks(fMemPool *ftmMemPool, db database.Db, dchain *common
 	procLog.Info("in validateAndStoreBlocks")
 
 	dchainChan := dchain.GetDChainUpdatedNotificationChannel()
+	fMPChan := fMemPool.GetDChainUpdatedNotificationChannel()
 
 	for true {
 		dblk = nil
@@ -152,7 +154,14 @@ func validateAndStoreBlocks(fMemPool *ftmMemPool, db database.Db, dchain *common
 			time.Sleep(time.Duration(sleeptime * 1000000)) // Nanoseconds for duration
 			//TODO: send an internal msg to sync up with peers
 		}
-		<-dchainChan
+		select {
+		case <-dchainChan:
+			//fmt.Println("dchainChan looped")
+			break
+		case <-fMPChan:
+			//fmt.Println("fMPChan looped")
+			break
+		}
 	}
 
 }
@@ -171,6 +180,9 @@ func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, d
 			//procLog.Errorf("Genesis dir block is not as expected: " + h.String())
 		}
 	}
+
+	fMemPool.RLock()
+	defer fMemPool.RUnlock()
 
 	for _, dbEntry := range b.DBEntries {
 		switch dbEntry.ChainID.String() {

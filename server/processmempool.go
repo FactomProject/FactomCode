@@ -26,6 +26,23 @@ type ftmMemPool struct {
 	dirBlockSigs     []*wire.MsgDirBlockSig
 	processListItems []*consensus.ProcessListItem
 	lastUpdated      time.Time // last time pool was updated
+
+	DChainUpdatedNotificationBroadcastChannel *common.BroadcastChannel
+}
+
+func (dc *ftmMemPool) GetDChainUpdatedNotificationBroadcastChannel() *common.BroadcastChannel {
+	if dc.DChainUpdatedNotificationBroadcastChannel == nil {
+		dc.DChainUpdatedNotificationBroadcastChannel = new(common.BroadcastChannel)
+	}
+	return dc.DChainUpdatedNotificationBroadcastChannel
+}
+
+func (dc *ftmMemPool) GetDChainUpdatedNotificationChannel() chan interface{} {
+	return dc.GetDChainUpdatedNotificationBroadcastChannel().NewChannel()
+}
+
+func (c *ftmMemPool) DBlockUpdated(dbHeight uint32) {
+	c.GetDChainUpdatedNotificationBroadcastChannel().Broadcast(dbHeight)
 }
 
 // Add a factom message to the orphan pool

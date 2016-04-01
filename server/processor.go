@@ -17,6 +17,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"runtime/debug"
 	"sort"
 	"strconv"
 	"sync"
@@ -713,6 +714,11 @@ func processAckMsg(ack *wire.MsgAck) ([]*wire.MsgMissing, error) {
 		fmt.Println("follower buildBlocks, height=", ack.Height)
 		// buildBlocks needs some serious refactoring to expose any exception during
 		// block building so that we can request new blocks if necessary.
+
+		//TODO: use a dedicated breadcast channel rather than ponying on fMemPool
+		fMemPool.DBlockUpdated(0)
+		time.Sleep(time.Second)
+		debug.SetTraceback("all")
 		err := buildBlocks() //broadcast new dir block sig
 		if err != nil {
 			return nil, err
@@ -1421,7 +1427,7 @@ func newAdminBlock(chain *common.AdminChain) *common.AdminBlock {
 		block.Header.DBHeight = chain.NextBlockHeight
 		prev, err := db.FetchABlockByHeight(chain.NextBlockHeight - 1)
 		if err != nil {
-			fmt.Println("newAdminBlock: error in db.FetchABlockByHeight", err.Error())
+			fmt.Printf("newAdminBlock: error in db.FetchABlockByHeight for height %v - %v\n", chain.NextBlockHeight-1, err.Error())
 		}
 		block.Header.PrevLedgerKeyMR, err = prev.LedgerKeyMR()
 		if err != nil {
@@ -1429,7 +1435,7 @@ func newAdminBlock(chain *common.AdminChain) *common.AdminBlock {
 		}
 		prevDB, err := db.FetchDBlockByHeight(dchain.NextDBHeight - 1)
 		if err != nil {
-			fmt.Println("newAdminBlock: error in db.FetchDBlockByHeight", err.Error())
+			fmt.Printf("newAdminBlock: error in db.FetchDBlockByHeight for height %v - %v\n", dchain.NextDBHeight-1, err.Error())
 		}
 		fmt.Println("newAdminBlock: get prev DirBlock for aBlock signature: prev dirBlock = ", spew.Sdump(prevDB))
 		signDirBlockForAdminBlock(prevDB)
@@ -1540,7 +1546,7 @@ func newDirectoryBlock(chain *common.DChain) *common.DirectoryBlock {
 		block.Header.DBHeight = chain.NextDBHeight
 		prev, err := db.FetchDBlockByHeight(chain.NextDBHeight - 1)
 		if err != nil {
-			fmt.Println("newDirectoryBlock: error in db.FetchDBlockByHeight", err.Error())
+			fmt.Printf("newDirectoryBlock: error in db.FetchDBlockByHeight for height %v - %v\n", chain.NextDBHeight-1, err.Error())
 		}
 		if prev == nil {
 			fmt.Println("newDirectoryBlock: prev == nil")
