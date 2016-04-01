@@ -17,7 +17,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"runtime/debug"
 	"sort"
 	"strconv"
 	"sync"
@@ -718,7 +717,6 @@ func processAckMsg(ack *wire.MsgAck) ([]*wire.MsgMissing, error) {
 		//TODO: use a dedicated breadcast channel rather than ponying on fMemPool
 		fMemPool.DBlockUpdated(0)
 		time.Sleep(time.Second)
-		debug.SetTraceback("all")
 		err := buildBlocks() //broadcast new dir block sig
 		if err != nil {
 			return nil, err
