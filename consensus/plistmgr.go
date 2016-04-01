@@ -17,7 +17,7 @@ type ProcessListMgr struct {
 }
 
 // NewProcessListMgr create sa new process list
-func NewProcessListMgr(height uint32, otherPLSize int, plSizeHint uint, privKey common.PrivateKey) *ProcessListMgr {
+func NewProcessListMgr(height uint32, plSizeHint uint, privKey common.PrivateKey) *ProcessListMgr {
 	plMgr := new(ProcessListMgr)
 	plMgr.MyProcessList = NewProcessList(plSizeHint)
 	plMgr.NextDBlockHeight = height

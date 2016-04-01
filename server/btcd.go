@@ -83,6 +83,7 @@ func btcdMain(serverChan chan<- *server) error {
 			cfg.Listeners, err)
 		return err
 	}
+	localServer = server
 	addInterruptHandler(func() {
 		ftmdLog.Infof("Gracefully shutting down the server...")
 		server.Stop()
@@ -92,8 +93,6 @@ func btcdMain(serverChan chan<- *server) error {
 	if serverChan != nil {
 		serverChan <- server
 	}
-
-	localServer = server
 
 	// Monitor for graceful server shutdown and signal the main goroutine
 	// when done.  This is done in a separate goroutine rather than waiting

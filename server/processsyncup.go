@@ -22,13 +22,7 @@ import (
 // processDirBlock validates dir block and save it to factom db.
 // similar to blockChain.BC_ProcessBlock
 func processDirBlock(msg *wire.MsgDirBlock) error {
-
-	// Error condiftion for Milestone 1
-	//if nodeMode == common.SERVER_NODE {
-	//return errors.New("Server received msg:" + msg.Command())
-	//}
 	procLog.Info("processDirBlock: height:", msg.DBlk.Header.DBHeight)
-
 	blk, _ := db.FetchDBlockByHeight(msg.DBlk.Header.DBHeight)
 	if blk != nil {
 		/*
@@ -62,18 +56,10 @@ func processDirBlock(msg *wire.MsgDirBlock) error {
 // processFBlock validates admin block and save it to factom db.
 // similar to blockChain.BC_ProcessBlock
 func processFBlock(msg *wire.MsgFBlock) error {
-
-	// Error condiftion for Milestone 1
-	//if nodeMode == common.SERVER_NODE {
-	//return errors.New("Server received msg:" + msg.Command())
-	//}
-
 	key := hex.EncodeToString(msg.SC.GetHash().Bytes())
 	//Add it to mem pool before saving it in db
 	fMemPool.addBlockMsg(msg, string(key)) // stored in mem pool with the MR as the key
-
 	//procLog.Debug("SyncUp: MsgFBlock DBHeight=", msg.SC.GetDBHeight())
-
 	return nil
 
 }
@@ -81,85 +67,49 @@ func processFBlock(msg *wire.MsgFBlock) error {
 // processABlock validates admin block and save it to factom db.
 // similar to blockChain.BC_ProcessBlock
 func processABlock(msg *wire.MsgABlock) error {
-
-	// Error condiftion for Milestone 1
-	//if nodeMode == common.SERVER_NODE {
-	//return errors.New("Server received msg:" + msg.Command())
-	//}
-
 	//Add it to mem pool before saving it in db
 	abHash, err := msg.ABlk.PartialHash()
 	if err != nil {
 		return err
 	}
 	fMemPool.addBlockMsg(msg, abHash.String()) // store in mem pool with ABHash as key
-
 	//procLog.Debug("SyncUp: MsgABlock DBHeight=", msg.ABlk.Header.DBHeight)
-
 	return nil
 }
 
 // procesFBlock validates entry credit block and save it to factom db.
 // similar to blockChain.BC_ProcessBlock
 func procesECBlock(msg *wire.MsgECBlock) error {
-
-	// Error condiftion for Milestone 1
-	//if nodeMode == common.SERVER_NODE {
-	//return errors.New("Server received msg:" + msg.Command())
-	//}
-
 	//Add it to mem pool before saving it in db
 	hash, err := msg.ECBlock.HeaderHash()
 	if err != nil {
 		return err
 	}
 	fMemPool.addBlockMsg(msg, hash.String())
-
 	//procLog.Debug("SyncUp: MsgCBlock DBHeight=", msg.ECBlock.Header.EBHeight)
-
 	return nil
 }
 
 // processEBlock validates entry block and save it to factom db.
 // similar to blockChain.BC_ProcessBlock
 func processEBlock(msg *wire.MsgEBlock) error {
-
-	// Error condiftion for Milestone 1
-	//if nodeMode == common.SERVER_NODE {
-	//return errors.New("Server received msg:" + msg.Command())
-	//}
-	/*
-		if msg.EBlk.Header.DBHeight >= dchain.NextBlockHeight || msg.EBlk.Header.DBHeight < 0 {
-			return errors.New("MsgEBlock has an invalid DBHeight:" + strconv.Itoa(int(msg.EBlk.Header.DBHeight)))
-		}
-	*/
 	//Add it to mem pool before saving it in db
 	keyMR, err := msg.EBlk.KeyMR()
 	if err != nil {
 		return err
 	}
 	fMemPool.addBlockMsg(msg, keyMR.String()) // store it in mem pool with MR as the key
-
 	//procLog.Debug("SyncUp: MsgEBlock DBHeight=", msg.EBlk.Header.EBHeight)
-
 	return nil
 }
 
 // processEntry validates entry and save it to factom db.
 // similar to blockChain.BC_ProcessBlock
 func processEntry(msg *wire.MsgEntry) error {
-
-	// Error condiftion for Milestone 1
-	//if nodeMode == common.SERVER_NODE {
-	//return errors.New("Server received msg:" + msg.Command())
-	//}
-
 	// store the entry in mem pool
 	h := msg.Entry.Hash()
 	fMemPool.addBlockMsg(msg, h.String()) // store it in mem pool with hash as the key
-
 	//procLog.Debug("SyncUp: MsgEntry hash=", msg.Entry.Hash())
-
 	return nil
 }
 
@@ -348,6 +298,10 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 					return err
 				}
 				chainIDMap[chain.ChainID.String()] = chain
+			}
+			echain := chainIDMap[eBlkMsg.EBlk.Header.ChainID.String()]
+			if echain.NextBlockHeight <= eBlkMsg.EBlk.Header.EBSequence {
+				echain.NextBlockHeight = eBlkMsg.EBlk.Header.EBSequence + 1
 			}
 
 			// for debugging
