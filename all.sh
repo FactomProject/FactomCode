@@ -122,7 +122,6 @@ checkout go-flags                   $branch $default
 checkout go-socks                   $branch $default
 checkout seelog                     $branch $default
 checkout snappy-go                  $branch $default
-checkout websocket                  $branch $default
 checkout netki-go-partner-client    $branch $default
 
 echo "
