@@ -110,7 +110,7 @@ checkout fctwallet                  $branch $default
 checkout factom                     $branch $default
 checkout factom-cli                 $branch $default
 checkout goleveldb                  $branch $default
-checkout gocoding                   master  master
+checkout gocoding                   $branch $default
 checkout btclog                     $branch $default
 checkout btcutil                    $branch $default
 checkout dynrsrc                    $branch $default
@@ -123,6 +123,7 @@ checkout go-socks                   $branch $default
 checkout seelog                     $branch $default
 checkout snappy-go                  $branch $default
 checkout netki-go-partner-client    $branch $default
+checkout walletapp                  $branch $default
 
 echo "
 ********************************************************
