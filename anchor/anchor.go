@@ -555,7 +555,11 @@ func saveDirBlockInfo(transaction *btcutil.Tx, details *btcjson.BlockDetails) {
 			anchorRec.KeyMR = dirBlockInfo.DBMerkleRoot.String()
 			_, recordHeight, _ := db.FetchBlockHeightCache()
 			anchorRec.RecordHeight = uint32(recordHeight)
-			anchorRec.Bitcoin.Address = defaultAddress.String()
+			if defaultAddress != nil {
+				anchorRec.Bitcoin.Address = defaultAddress.String()
+			} else {
+				anchorRec.Bitcoin.Address = balances[0].address.String()
+			}
 			anchorRec.Bitcoin.TXID = transaction.Sha().String()
 			anchorRec.Bitcoin.BlockHeight = details.Height
 			anchorRec.Bitcoin.BlockHash = details.Hash
