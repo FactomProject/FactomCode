@@ -672,8 +672,10 @@ func (b *blockManager) startSyncFactom(peers *list.List) {
 		*/
 		bestPeer.PushGetDirBlocksMsg(locator, &zeroBtcHash)
 		b.syncPeer = bestPeer
-		fed := b.server.GetMyFederateServer()
-		fed.FirstJoined = uint32(bestPeer.lastBlock)
+		if common.SERVER_NODE == b.server.nodeType {
+			fed := b.server.GetMyFederateServer()
+			fed.FirstJoined = uint32(bestPeer.lastBlock)
+		}
 	} else {
 		bmgrLog.Warnf("No sync peer candidates available")
 	}
