@@ -93,7 +93,7 @@ type DirBlockInfo struct {
 
 	DBHeight uint32 //directory block height
 
-	Timestamp int64 // time of this dir block info being created
+	Timestamp int64 // time of this dir block info being created or updated
 
 	// BTCTxHash is the Tx hash returned from rpcclient.SendRawTransaction
 	BTCTxHash *Hash // use string or *btcwire.ShaHash ???
