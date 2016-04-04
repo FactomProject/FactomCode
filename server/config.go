@@ -17,49 +17,14 @@ import (
 	"strings"
 	"time"
 
-	//	"github.com/FactomProject/btcd/database"
-	//	_ "github.com/FactomProject/btcd/database/ldb"
-	//	_ "github.com/FactomProject/btcd/database/memdb"
+	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/FactomCode/wire"
-	//	"github.com/FactomProject/btcutil"
 	flags "github.com/FactomProject/go-flags"
 	"github.com/FactomProject/go-socks/socks"
 )
 
-const (
-	defaultConfigFilename = "NONE.conf"
-	//	defaultDataDirname       = "data"
-	defaultLogLevel    = "info"
-	defaultLogDirname  = ""
-	defaultLogFilename = "btcd.log"
-	//	defaultMaxPeers          = 125
-	// defaultMaxPeers          = 10
-	defaultMaxPeers = 125
-	//	defaultBanDuration       = time.Hour * 24
-	defaultBanDuration       = time.Minute // used in Factom to ban old clients, for a minute...
-	defaultMaxRPCClients     = 10
-	defaultMaxRPCWebsockets  = 25
-	defaultVerifyEnabled     = false
-	defaultDbType            = "leveldb"
-	defaultFreeTxRelayLimit  = 15.0
-	defaultBlockMinSize      = 0
-	defaultBlockMaxSize      = 750000
-	blockMaxSizeMin          = 1000
-	blockMaxSizeMax          = wire.MaxBlockPayload - 1000
-	defaultBlockPrioritySize = 50000
-	defaultGenerate          = false
-	defaultAddrIndex         = false
-)
-
 var (
-	btcdHomeDir       = getHomeDir() + "/.factom/"
-	defaultConfigFile = filepath.Join(btcdHomeDir, defaultConfigFilename)
-	//	defaultDataDir    = filepath.Join(btcdHomeDir, defaultDataDirname)
-	defaultDataDir = filepath.Join(btcdHomeDir)
-	//	knownDbTypes       = database.SupportedDBs()
-	defaultRPCKeyFile  = filepath.Join(btcdHomeDir, "rpc.key")
-	defaultRPCCertFile = filepath.Join(btcdHomeDir, "rpc.cert")
-	defaultLogDir      = filepath.Join(btcdHomeDir, defaultLogDirname)
+	btcdHomeDir = getHomeDir() + "/.factom/"
 
 	factomdUser string
 	factomdPass string
@@ -70,63 +35,6 @@ var (
 // runServiceCommand is only set to a real function on Windows.  It is used
 // to parse and execute service commands specified via the -s flag.
 var runServiceCommand func(string) error
-
-// config defines the configuration options for btcd.
-//
-// See loadConfig for details on the configuration load process.
-type config struct {
-	ShowVersion   bool          `short:"V" long:"version" description:"Display version information and exit"`
-	ConfigFile    string        `short:"C" long:"configfile" description:"Path to configuration file"`
-	DataDir       string        `short:"b" long:"datadir" description:"Directory to store data"`
-	LogDir        string        `long:"logdir" description:"Directory to log output."`
-	AddPeers      []string      `short:"a" long:"addpeer" description:"Add a peer to connect with at startup"`
-	ConnectPeers  []string      `long:"connect" description:"Connect only to the specified peers at startup"`
-	DisableListen bool          `long:"nolisten" description:"Disable listening for incoming connections -- NOTE: Listening is automatically disabled if the --connect or --proxy options are used without also specifying listen interfaces via --listen"`
-	Listeners     []string      `long:"listen" description:"Add an interface/port to listen for connections (default all interfaces port: 8108, testnet: 18108)"`
-	MaxPeers      int           `long:"maxpeers" description:"Max number of inbound and outbound peers"`
-	BanDuration   time.Duration `long:"banduration" description:"How long to ban misbehaving peers.  Valid time units are {s, m, h}.  Minimum 1 second"`
-	//	RPCUser            string        `short:"u" long:"rpcuser" description:"Username for RPC connections"`
-	//	RPCPass            string        `short:"P" long:"rpcpass" default-mask:"-" description:"Password for RPC connections"`
-	RPCListeners       []string `long:"rpclisten" description:"Add an interface/port to listen for RPC connections (default port: 8384, testnet: 18334)"`
-	RPCCert            string   `long:"rpccert" description:"File containing the certificate file"`
-	RPCKey             string   `long:"rpckey" description:"File containing the certificate key"`
-	RPCMaxClients      int      `long:"rpcmaxclients" description:"Max number of RPC clients for standard connections"`
-	RPCMaxWebsockets   int      `long:"rpcmaxwebsockets" description:"Max number of RPC websocket connections"`
-	DisableRPC         bool     `long:"norpc" description:"Disable built-in RPC server -- NOTE: The RPC server is disabled by default if no rpcuser/rpcpass is specified"`
-	DisableTLS         bool     `long:"notls" description:"Disable TLS for the RPC server -- NOTE: This is only allowed if the RPC server is bound to localhost"`
-	DisableDNSSeed     bool     `long:"nodnsseed" description:"Disable DNS seeding for peers"`
-	ExternalIPs        []string `long:"externalip" description:"Add an ip to the list of local addresses we claim to listen on to peers"`
-	Proxy              string   `long:"proxy" description:"Connect via SOCKS5 proxy (eg. 127.0.0.1:9050)"`
-	ProxyUser          string   `long:"proxyuser" description:"Username for proxy server"`
-	ProxyPass          string   `long:"proxypass" default-mask:"-" description:"Password for proxy server"`
-	OnionProxy         string   `long:"onion" description:"Connect to tor hidden services via SOCKS5 proxy (eg. 127.0.0.1:9050)"`
-	OnionProxyUser     string   `long:"onionuser" description:"Username for onion proxy server"`
-	OnionProxyPass     string   `long:"onionpass" default-mask:"-" description:"Password for onion proxy server"`
-	NoOnion            bool     `long:"noonion" description:"Disable connecting to tor hidden services"`
-	TestNet3           bool     `long:"testnet" description:"Use the test network"`
-	RegressionTest     bool     `long:"devnet" description:"Use the devnet test network"`
-	SimNet             bool     `long:"simnet" description:"Use the simulation test network"`
-	DisableCheckpoints bool     `long:"nocheckpoints" description:"Disable built-in checkpoints.  Don't do this unless you know what you're doing."`
-	DbType             string   `long:"dbtype" description:"Database backend to use for the Block Chain"`
-	Profile            string   `long:"profile" description:"Enable HTTP profiling on given port -- NOTE port must be between 1024 and 65536"`
-	CPUProfile         string   `long:"cpuprofile" description:"Write CPU profile to the specified file"`
-	DebugLevel         string   `short:"d" long:"debuglevel" description:"Logging level for all subsystems {trace, debug, info, warn, error, critical} -- You may also specify <subsystem>=<level>,<subsystem2>=<level>,... to set the log level for individual subsystems -- Use show to list available subsystems"`
-	Upnp               bool     `long:"upnp" description:"Use UPnP to map our listening port outside of NAT"`
-	FreeTxRelayLimit   float64  `long:"limitfreerelay" description:"Limit relay of transactions with no transaction fee to the given amount in thousands of bytes per minute"`
-	Generate           bool     `long:"generate" description:"Generate (mine) bitcoins using the CPU"`
-	MiningAddrs        []string `long:"miningaddr" description:"Add the specified payment address to the list of addresses to use for generated blocks -- At least one address is required if the generate option is set"`
-	BlockMinSize       uint32   `long:"blockminsize" description:"Mininum block size in bytes to be used when creating a block"`
-	BlockMaxSize       uint32   `long:"blockmaxsize" description:"Maximum block size in bytes to be used when creating a block"`
-	BlockPrioritySize  uint32   `long:"blockprioritysize" description:"Size in bytes for high-priority/low-fee transactions when creating a block"`
-	GetWorkKeys        []string `long:"getworkkey" description:"DEPRECATED -- Use the --miningaddr option instead"`
-	AddrIndex          bool     `long:"addrindex" description:"Build and maintain a full address index. Currently only supported by leveldb."`
-	DropAddrIndex      bool     `long:"dropaddrindex" description:"Deletes the address-based transaction index from the database on start up, and the exits."`
-	onionlookup        func(string) ([]net.IP, error)
-	lookup             func(string) ([]net.IP, error)
-	oniondial          func(string, string) (net.Conn, error)
-	dial               func(string, string) (net.Conn, error)
-	//	miningAddrs        []btcutil.Address
-}
 
 // serviceOptions defines the configuration options for btcd as a service on
 // Windows.
@@ -290,7 +198,7 @@ func fileExists(name string) bool {
 }
 
 // newConfigParser returns a new command line flags parser.
-func newConfigParser(cfg *config, so *serviceOptions, options flags.Options) *flags.Parser {
+func newConfigParser(cfg *util.FactomdConfig, so *serviceOptions, options flags.Options) *flags.Parser {
 	parser := flags.NewParser(cfg, options)
 	if runtime.GOOS == "windows" {
 		parser.AddGroup("Service Options", "Service Options", so)
@@ -310,100 +218,51 @@ func newConfigParser(cfg *config, so *serviceOptions, options flags.Options) *fl
 // The above results in btcd functioning properly without any config settings
 // while still allowing the user to override settings with config files and
 // command line options.  Command line options always take precedence.
-func loadConfig() (*config, []string, error) {
-	// Default config.
-	cfg := config{
-		ConfigFile:        defaultConfigFile,
-		DebugLevel:        defaultLogLevel,
-		MaxPeers:          defaultMaxPeers,
-		BanDuration:       defaultBanDuration,
-		RPCMaxClients:     defaultMaxRPCClients,
-		RPCMaxWebsockets:  defaultMaxRPCWebsockets,
-		DataDir:           defaultDataDir,
-		LogDir:            defaultLogDir,
-		DbType:            defaultDbType,
-		RPCKey:            defaultRPCKeyFile,
-		RPCCert:           defaultRPCCertFile,
-		FreeTxRelayLimit:  defaultFreeTxRelayLimit,
-		BlockMinSize:      defaultBlockMinSize,
-		BlockMaxSize:      defaultBlockMaxSize,
-		BlockPrioritySize: defaultBlockPrioritySize,
-		Generate:          defaultGenerate,
-		AddrIndex:         defaultAddrIndex,
+func loadConfig() (*util.BTCDConfig, []string, error) {
+	config := util.ReadConfig()
+	cfg := config.BTCD
+
+	defaultConfigFilename := "factomd.conf"
+	defaultLogDirname := ""
+	defaultConfigFile := filepath.Join(btcdHomeDir, defaultConfigFilename)
+	defaultDataDir := filepath.Join(btcdHomeDir)
+	defaultRPCKeyFile := filepath.Join(btcdHomeDir, "rpc.key")
+	defaultRPCCertFile := filepath.Join(btcdHomeDir, "rpc.cert")
+	defaultLogDir := filepath.Join(btcdHomeDir, defaultLogDirname)
+
+	if cfg.ConfigFile == "" {
+		cfg.ConfigFile = defaultConfigFile
+	}
+	if cfg.DataDir == "" {
+		cfg.DataDir = defaultDataDir
+	}
+	if cfg.RPCKey == "" {
+		cfg.RPCKey = defaultRPCKeyFile
+	}
+	if cfg.RPCCert == "" {
+		cfg.RPCCert = defaultRPCCertFile
+	}
+	if cfg.LogDir == "" {
+		cfg.LogDir = defaultLogDir
 	}
 
-	// Service options which are only added on Windows.
-	serviceOpts := serviceOptions{}
-
-	// Pre-parse the command line options to see if an alternative config
-	// file or the version flag was specified.  Any errors aside from the
-	// help message error can be ignored here since they will be caught by
-	// the final parse below.
-	preCfg := cfg
-	preParser := newConfigParser(&preCfg, &serviceOpts, flags.HelpFlag)
-	_, err := preParser.Parse()
-	if err != nil {
-		if e, ok := err.(*flags.Error); ok && e.Type == flags.ErrHelp {
-			fmt.Fprintln(os.Stderr, err)
-			return nil, nil, err
-		}
-	}
+	defaultLogLevel := "info"
+	defaultLogFilename := "btcd.log"
+	var blockMaxSizeMin uint32 = 1000
+	var blockMaxSizeMax uint32 = wire.MaxBlockPayload - 1000
 
 	// Show the version and exit if the version flag was specified.
 	appName := filepath.Base(os.Args[0])
 	appName = strings.TrimSuffix(appName, filepath.Ext(appName))
 	usageMessage := fmt.Sprintf("Use %s -h to show usage", appName)
-	if preCfg.ShowVersion {
+	if cfg.ShowVersion {
 		fmt.Println(appName, "version", version())
 		os.Exit(0)
 	}
 
-	// Perform service command and exit if specified.  Invalid service
-	// commands show an appropriate error.  Only runs on Windows since
-	// the runServiceCommand function will be nil when not on Windows.
-	if serviceOpts.ServiceCommand != "" && runServiceCommand != nil {
-		err := runServiceCommand(serviceOpts.ServiceCommand)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-		}
-		os.Exit(0)
-	}
-
-	// Load additional config from file.
-	var configFileError error
-	parser := newConfigParser(&cfg, &serviceOpts, flags.Default)
-	if !(preCfg.RegressionTest || preCfg.SimNet) || preCfg.ConfigFile !=
-		defaultConfigFile {
-
-		err := flags.NewIniParser(parser).ParseFile(preCfg.ConfigFile)
-		if err != nil {
-			if _, ok := err.(*os.PathError); !ok {
-				fmt.Fprintf(os.Stderr, "Error parsing config "+
-					"file: %v\n", err)
-				fmt.Fprintln(os.Stderr, usageMessage)
-				return nil, nil, err
-			}
-			configFileError = err
-		}
-	}
-
-	// Don't add peers from the config file when in regression test mode.
-	if preCfg.RegressionTest && len(cfg.AddPeers) > 0 {
-		cfg.AddPeers = nil
-	}
-
-	// Parse command line options again to ensure they take precedence.
-	remainingArgs, err := parser.Parse()
-	if err != nil {
-		if e, ok := err.(*flags.Error); !ok || e.Type != flags.ErrHelp {
-			fmt.Fprintln(os.Stderr, usageMessage)
-		}
-		return nil, nil, err
-	}
-
 	// Create the home directory if it doesn't already exist.
 	funcName := "loadConfig"
-	err = os.MkdirAll(btcdHomeDir, 0700)
+	err := os.MkdirAll(btcdHomeDir, 0700)
 	if err != nil {
 		// Show a nicer error message if it's because a symlink is
 		// linked to a directory that does not exist (probably because
@@ -705,17 +564,17 @@ func loadConfig() (*config, []string, error) {
 	// specified, the dial function is set to the proxy specific dial
 	// function and the lookup is set to use tor (unless --noonion is
 	// specified in which case the system DNS resolver is used).
-	cfg.dial = net.Dial
-	cfg.lookup = net.LookupIP
+	cfg.Dial = net.Dial
+	cfg.Lookup = net.LookupIP
 	if cfg.Proxy != "" {
 		proxy := &socks.Proxy{
 			Addr:     cfg.Proxy,
 			Username: cfg.ProxyUser,
 			Password: cfg.ProxyPass,
 		}
-		cfg.dial = proxy.Dial
+		cfg.Dial = proxy.Dial
 		if !cfg.NoOnion {
-			cfg.lookup = func(host string) ([]net.IP, error) {
+			cfg.Lookup = func(host string) ([]net.IP, error) {
 				return torLookupIP(host, cfg.Proxy)
 			}
 		}
@@ -730,7 +589,7 @@ func loadConfig() (*config, []string, error) {
 	// This allows .onion address traffic to be routed through a different
 	// proxy than normal traffic.
 	if cfg.OnionProxy != "" {
-		cfg.oniondial = func(a, b string) (net.Conn, error) {
+		cfg.Oniondial = func(a, b string) (net.Conn, error) {
 			proxy := &socks.Proxy{
 				Addr:     cfg.OnionProxy,
 				Username: cfg.OnionProxyUser,
@@ -738,21 +597,21 @@ func loadConfig() (*config, []string, error) {
 			}
 			return proxy.Dial(a, b)
 		}
-		cfg.onionlookup = func(host string) ([]net.IP, error) {
+		cfg.Onionlookup = func(host string) ([]net.IP, error) {
 			return torLookupIP(host, cfg.OnionProxy)
 		}
 	} else {
-		cfg.oniondial = cfg.dial
-		cfg.onionlookup = cfg.lookup
+		cfg.Oniondial = cfg.Dial
+		cfg.Onionlookup = cfg.Lookup
 	}
 
 	// Specifying --noonion means the onion address dial and DNS resolution
 	// (lookup) functions result in an error.
 	if cfg.NoOnion {
-		cfg.oniondial = func(a, b string) (net.Conn, error) {
+		cfg.Oniondial = func(a, b string) (net.Conn, error) {
 			return nil, errors.New("tor has been disabled")
 		}
-		cfg.onionlookup = func(a string) ([]net.IP, error) {
+		cfg.Onionlookup = func(a string) ([]net.IP, error) {
 			return nil, errors.New("tor has been disabled")
 		}
 	}
@@ -760,11 +619,12 @@ func loadConfig() (*config, []string, error) {
 	// Warn about missing config file only after all other configuration is
 	// done.  This prevents the warning on help messages and invalid
 	// options.  Note this should go directly before the return.
-	if configFileError != nil {
+	/*if configFileError != nil {
 		ftmdLog.Warnf("%v", configFileError)
-	}
+	}*/
 
-	return &cfg, remainingArgs, nil
+	//return &cfg, remainingArgs, nil
+	return &cfg, nil, nil
 }
 
 // btcdDial connects to the address on the named network using the appropriate
@@ -774,9 +634,9 @@ func loadConfig() (*config, []string, error) {
 // could itself use a proxy or not).
 func btcdDial(network, address string) (net.Conn, error) {
 	if strings.HasSuffix(address, ".onion") {
-		return cfg.oniondial(network, address)
+		return cfg.Oniondial(network, address)
 	}
-	return cfg.dial(network, address)
+	return cfg.Dial(network, address)
 }
 
 // btcdLookup returns the correct DNS lookup function to use depending on the
@@ -788,9 +648,9 @@ func btcdDial(network, address string) (net.Conn, error) {
 // specified in which case the normal system DNS resolver will be used.
 func btcdLookup(host string) ([]net.IP, error) {
 	if strings.HasSuffix(host, ".onion") {
-		return cfg.onionlookup(host)
+		return cfg.Onionlookup(host)
 	}
-	return cfg.lookup(host)
+	return cfg.Lookup(host)
 }
 
 func getHomeDir() string {
