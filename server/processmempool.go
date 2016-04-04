@@ -7,6 +7,7 @@ package server
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"sync"
 	"time"
 
@@ -191,6 +192,27 @@ func (mp *ftmMemPool) addBlockMsg(msg wire.Message, hash string) error {
 	mp.Lock()
 	mp.blockpool[hash] = msg
 	mp.Unlock()
+	return nil
+}
+
+//DirblockMsg is using height as key in mempool.blockpool
+func (mp *ftmMemPool) getDirBlockMsg(height uint32) *common.DirectoryBlock {
+	h := strconv.Itoa(int(height))
+	msg := mp.blockpool[h]
+	fmt.Println("ftmMemPool.getDirBlockMsg: height=", h, ", msg=", msg)
+	if msg != nil && msg.Command() == wire.CmdDirBlock {
+		dirBlockMsg, _ := msg.(*wire.MsgDirBlock)
+		return dirBlockMsg.DBlk
+	}
+	for _, msg := range mp.blockpool {
+		fmt.Println(msg.Command())
+		if msg.Command() == wire.CmdDirBlock {
+			dirBlockMsg, _ := msg.(*wire.MsgDirBlock)
+			if dirBlockMsg.DBlk.Header.DBHeight == height {
+				return dirBlockMsg.DBlk
+			}
+		}
+	}
 	return nil
 }
 

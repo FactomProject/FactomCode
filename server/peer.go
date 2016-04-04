@@ -170,10 +170,11 @@ type peer struct {
 	na         *wire.NetAddress
 	id         int32
 
-	nodeType string //nodeMode
-	nodeID   string //*wire.ShaHash
-	pubKey   common.PublicKey
-	isLeader bool
+	nodeType    string //nodeMode
+	nodeID      string //*wire.ShaHash
+	pubKey      common.PublicKey
+	isLeader    bool
+	isCandidate bool // is a candidate who just joined and is in process of syncup
 
 	inbound            bool
 	persistent         bool
@@ -523,6 +524,7 @@ func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
 		}
 	}
 
+	p.isCandidate = true
 	p.nodeType = msg.NodeType
 	p.nodeID = msg.NodeID
 	p.pubKey = msg.NodeSig.Pub
@@ -1053,6 +1055,10 @@ out:
 
 		case *wire.MsgDirBlockSig:
 			p.handleDirBlockSigMsg(msg)
+			//p.FactomRelay(msg)
+
+		case *wire.MsgCandidate:
+			p.handleCandidateMsg(msg)
 			//p.FactomRelay(msg)
 
 			// Factom blocks downloading
@@ -2353,7 +2359,9 @@ func (p *peer) handleAckMsg(msg *wire.MsgAck) {
 	if p != p.server.GetLeaderPeer() && p.isFederateServer() {
 		peerLog.Debugf("handleAckMsg: RESET Leader Peer to %s", p)
 		p.isLeader = true
+		p.server.SetPrevLeaderPeer(p.server.GetLeaderPeer())
 		p.server.SetLeaderPeer(p)
+		p.server.latestLeaderSwitchDBHeight = msg.Height
 	}
 }
 
@@ -2470,4 +2478,17 @@ func (p *peer) handleMissingMsg(msg *wire.MsgMissing) {
 
 	}
 	p.QueueMessage(m, nil)
+}
+
+func (p *peer) handleCandidateMsg(msg *wire.MsgCandidate) {
+	fmt.Printf("handleCandidateMsg: %s\n", spew.Sdump(msg))
+	if !msg.Sig.Verify([]byte(string(dchain.NextDBHeight) + msg.SourceNodeID)) {
+		fmt.Println("handleCandidateMsg: signature verify FAILED.")
+		return
+	}
+	_, latestHeight, _ := db.FetchBlockHeightCache()
+	if p.nodeID == msg.SourceNodeID && uint32(latestHeight) == msg.DBHeight-1 {
+		p.isCandidate = false
+		fmt.Println("handleCandidateMsg: isCandidate turned to follower.")
+	}
 }

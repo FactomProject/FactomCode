@@ -83,8 +83,7 @@ func (msg *MsgAck) GetBinaryForSignature() (data []byte, err error) {
 	return buf.Bytes(), err
 }
 
-// BtcDecode decodes r using the bitcoin protocol encoding into the receiver.
-// This is part of the Message interface implementation.
+// BtcDecode is part of the Message interface implementation.
 func (msg *MsgAck) BtcDecode(r io.Reader, pver uint32) error {
 	newData, err := ioutil.ReadAll(r)
 	if err != nil {
@@ -108,8 +107,7 @@ func (msg *MsgAck) BtcDecode(r io.Reader, pver uint32) error {
 	return nil
 }
 
-// BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
-// This is part of the Message interface implementation.
+// BtcEncode is part of the Message interface implementation.
 func (msg *MsgAck) BtcEncode(w io.Writer, pver uint32) error {
 	var buf bytes.Buffer
 	binary.Write(&buf, binary.BigEndian, msg.Height)
@@ -137,7 +135,7 @@ func (msg *MsgAck) MaxPayloadLength(pver uint32) uint32 {
 	return 181 //4 + 32 + 4 + 1 + 4 + 8 + 32 + 32 + 64
 }
 
-// NewMsgAck returns a new bitcoin ping message that conforms to the Message
+// NewMsgAck returns a new ack message that conforms to the Message
 // interface.  See MsgAck for details.
 func NewMsgAck(height uint32, index uint32, affirm *ShaHash, ackType byte, timestamp uint32, coinbaseTS uint64) *MsgAck {
 	if affirm == nil {

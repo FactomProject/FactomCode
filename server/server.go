@@ -140,15 +140,18 @@ type server struct {
 	nat                  NAT
 	//	db                   database.Db
 	//timeSource      blockchain.MedianTimeSource
-	nodeType        string
-	nodeID          string
-	privKey         common.PrivateKey
-	leaderPeer      *peer
-	isLeader        bool
-	isLeaderElected bool
-	latestDBHeight  chan uint32
-	federateServers []*federateServer //*list.List
-	myLeaderPolicy  *leaderPolicy
+	nodeType                   string
+	nodeID                     string
+	privKey                    common.PrivateKey
+	leaderPeer                 *peer // current leader
+	prevLeaderPeer             *peer
+	isLeader                   bool
+	isLeaderElected            bool
+	isCandidate                bool   // need refactor server state: candidate, follower, leaderElected, & leader
+	latestLeaderSwitchDBHeight uint32 // latest dbheight when regime change happens
+	latestDBHeight             chan uint32
+	federateServers            []*federateServer //*list.List
+	myLeaderPolicy             *leaderPolicy
 }
 
 type leaderPolicy struct {
@@ -162,7 +165,8 @@ type leaderPolicy struct {
 
 type federateServer struct {
 	Peer            *peer
-	FirstJoined     uint32 //DBHeight when this peer joins the network as a federate server
+	FirstJoined     uint32 //DBHeight when this peer joins the network as a candidate federate server
+	FirstAsFollower uint32 //DBHeight when this peer becomes a follower the first time.
 	LastSuccessVote uint32 //DBHeight of first successful vote of dir block signature
 	LeaderLast      uint32 //DBHeight when this peer was the leader the last time
 }
@@ -1569,6 +1573,14 @@ func (s *server) GetLeaderPeer() *peer {
 	return s.leaderPeer
 }
 
+func (s *server) SetPrevLeaderPeer(p *peer) {
+	s.prevLeaderPeer = p
+}
+
+func (s *server) GetPrevLeaderPeer() *peer {
+	return s.prevLeaderPeer
+}
+
 func (s *server) SetIsLeader(l bool) {
 	s.isLeader = l
 }
@@ -1605,6 +1617,35 @@ func (s *server) FederateServerCount() int {
 		return len(s.federateServers)
 	}
 	return 0
+}
+
+func (s *server) FederateServerCountMinusCandidate() int {
+	if s.nodeType == common.SERVER_NODE {
+		var found = false
+		for _, fs := range s.federateServers {
+			if fs.Peer != nil && fs.Peer.isCandidate {
+				found = true
+			}
+		}
+		if found {
+			return len(s.federateServers) - 1
+		}
+		return len(s.federateServers)
+	}
+	return 0
+}
+
+func (s *server) nonCandidateServers() (fservers, candidates []*federateServer) {
+	fservers = make([]*federateServer, 0, 32)
+	candidates = make([]*federateServer, 0, 32)
+	for _, fs := range s.federateServers {
+		if fs.Peer == nil || !fs.Peer.isCandidate {
+			fservers = append(fservers, fs)
+		} else {
+			candidates = append(candidates, fs)
+		}
+	}
+	return fservers, candidates
 }
 
 func (s *server) GetMyFederateServer() *federateServer {
@@ -1707,6 +1748,14 @@ func (s *server) handleNextLeader(height uint32) {
 
 	} else if height == s.myLeaderPolicy.StartDBHeight+s.myLeaderPolicy.NotifyDBHeight-1 {
 		// determine who's the next qualified leader.
+		// exclude candidate servers and check if the only one left is myself
+		// then update my policy
+		nonCandidates, candidates := s.nonCandidateServers()
+		if len(nonCandidates) == 1 && nonCandidates[0].Peer == nil {
+			s.myLeaderPolicy.StartDBHeight = height + 3
+			fmt.Printf("handleNextLeader: no next leader choosen. non-candidates=%s, candidates=%s\n", spew.Sdump(nonCandidates), spew.Sdump(candidates))
+			return
+		}
 		// simple round robin for now
 		sort.Sort(ByLeaderLast(s.federateServers))
 		for _, fed := range s.federateServers {

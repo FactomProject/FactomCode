@@ -8,28 +8,27 @@ import (
 	"github.com/FactomProject/FactomCode/common"
 )
 
-// MsgDirBlockSig is the msg of the dir block sig after a new dir block is created
-type MsgDirBlockSig struct {
+// MsgCandidate shows the dbheight when a candidate is turned into a follower officically
+type MsgCandidate struct {
 	DBHeight     uint32
-	DirBlockHash common.Hash
 	Sig          common.Signature
 	SourceNodeID string
 }
 
 // Command returns the protocol command string for the message.  This is part
 // of the Message interface implementation.
-func (msg *MsgDirBlockSig) Command() string {
-	return CmdDirBlockSig
+func (msg *MsgCandidate) Command() string {
+	return CmdCandidate
 }
 
 // BtcDecode is part of the Message interface implementation.
-func (msg *MsgDirBlockSig) BtcDecode(r io.Reader, pver uint32) error {
+func (msg *MsgCandidate) BtcDecode(r io.Reader, pver uint32) error {
 	buf, ok := r.(*bytes.Buffer)
 	if !ok {
-		return fmt.Errorf("MsgDirBlockSig.BtcDecode reader is not a " +
+		return fmt.Errorf("MsgCandidate.BtcDecode reader is not a " +
 			"*bytes.Buffer")
 	}
-	err := readElements(buf, &msg.DBHeight, &msg.DirBlockHash, &msg.Sig)
+	err := readElements(buf, &msg.DBHeight, &msg.Sig)
 	if err != nil {
 		return err
 	}
@@ -44,8 +43,8 @@ func (msg *MsgDirBlockSig) BtcDecode(r io.Reader, pver uint32) error {
 }
 
 // BtcEncode is part of the Message interface implementation.
-func (msg *MsgDirBlockSig) BtcEncode(w io.Writer, pver uint32) error {
-	err := writeElements(w, msg.DBHeight, msg.DirBlockHash, msg.Sig)
+func (msg *MsgCandidate) BtcEncode(w io.Writer, pver uint32) error {
+	err := writeElements(w, msg.DBHeight, msg.Sig)
 	if err != nil {
 		fmt.Errorf(err.Error())
 		return err
@@ -59,12 +58,22 @@ func (msg *MsgDirBlockSig) BtcEncode(w io.Writer, pver uint32) error {
 
 // MaxPayloadLength returns the maximum length the payload can be for the
 // receiver.  This is part of the Message interface implementation.
-func (msg *MsgDirBlockSig) MaxPayloadLength(pver uint32) uint32 {
+func (msg *MsgCandidate) MaxPayloadLength(pver uint32) uint32 {
 	return MaxAppMsgPayload
 }
 
 // Equals shows if both msg is the same
-func (msg *MsgDirBlockSig) Equals(m *MsgDirBlockSig) bool {
+func (msg *MsgCandidate) Equals(m *MsgCandidate) bool {
 	return msg.DBHeight == m.DBHeight &&
-		msg.DirBlockHash == m.DirBlockHash
+		msg.SourceNodeID == m.SourceNodeID
+}
+
+// NewMsgCandidate returns a new ack message that conforms to the Message
+// interface.
+func NewMsgCandidate(height uint32, id string, sig common.Signature) *MsgCandidate {
+	return &MsgCandidate{
+		DBHeight:     height,
+		SourceNodeID: id,
+		Sig:          sig,
+	}
 }
