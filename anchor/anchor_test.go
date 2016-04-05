@@ -9,7 +9,6 @@ import (
 	//"reflect"
 	"testing"
 	//"time"
-
 	//"github.com/FactomProject/FactomCode/common"
 	//"github.com/FactomProject/FactomCode/database"
 	//"github.com/FactomProject/FactomCode/database/ldb"
