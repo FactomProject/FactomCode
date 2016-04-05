@@ -12,13 +12,14 @@ import (
 	"runtime/pprof"
 
 	"github.com/FactomProject/FactomCode/common"
+	"github.com/FactomProject/FactomCode/util"
 	//cp "github.com/FactomProject/FactomCode/controlpanel"
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/wire"
 )
 
 var (
-	cfg             *config
+	cfg             *util.BTCDConfig
 	shutdownChannel = make(chan struct{})
 )
 
@@ -117,11 +118,11 @@ func btcdMain(serverChan chan<- *server) error {
 func StartBtcd(ldb database.Db, inQ, outQ chan wire.FtmInternalMsg) {
 	db = ldb
 	defer func() {
-			err:=db.Close()
-			if err!=nil {
-				panic(err)
-			}
-		}()
+		err := db.Close()
+		if err != nil {
+			panic(err)
+		}
+	}()
 	inMsgQueue = inQ
 	outMsgQueue = outQ
 	if common.SERVER_NODE != factomConfig.App.NodeMode {
