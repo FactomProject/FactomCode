@@ -134,10 +134,10 @@ type BTCDConfig struct {
 	GetWorkKeys        []string `long:"getworkkey" description:"DEPRECATED -- Use the --miningaddr option instead"`
 	AddrIndex          bool     `long:"addrindex" description:"Build and maintain a full address index. Currently only supported by leveldb."`
 	DropAddrIndex      bool     `long:"dropaddrindex" description:"Deletes the address-based transaction index from the database on start up, and the exits."`
-	Onionlookup        func(string) ([]net.IP, error)
-	Lookup             func(string) ([]net.IP, error)
-	Oniondial          func(string, string) (net.Conn, error)
-	Dial               func(string, string) (net.Conn, error)
+	Onionlookup        func(string) ([]net.IP, error) `json:"-"`
+	Lookup             func(string) ([]net.IP, error)`json:"-"`
+	Oniondial          func(string, string) (net.Conn, error)`json:"-"`
+	Dial               func(string, string) (net.Conn, error)`json:"-"`
 	//	miningAddrs        []btcutil.Address
 }
 
