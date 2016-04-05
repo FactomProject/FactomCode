@@ -1621,16 +1621,8 @@ func (s *server) FederateServerCount() int {
 
 func (s *server) FederateServerCountMinusCandidate() int {
 	if s.nodeType == common.SERVER_NODE {
-		var found = false
-		for _, fs := range s.federateServers {
-			if fs.Peer != nil && fs.Peer.isCandidate {
-				found = true
-			}
-		}
-		if found {
-			return len(s.federateServers) - 1
-		}
-		return len(s.federateServers)
+		fs, _ := s.nonCandidateServers()
+		return len(fs)
 	}
 	return 0
 }
@@ -1639,10 +1631,18 @@ func (s *server) nonCandidateServers() (fservers, candidates []*federateServer) 
 	fservers = make([]*federateServer, 0, 32)
 	candidates = make([]*federateServer, 0, 32)
 	for _, fs := range s.federateServers {
-		if fs.Peer == nil || !fs.Peer.isCandidate {
-			fservers = append(fservers, fs)
+		if fs.Peer != nil {
+			if fs.Peer.isCandidate {
+				candidates = append(candidates, fs)
+			} else {
+				fservers = append(fservers, fs)
+			}
 		} else {
-			candidates = append(candidates, fs)
+			if s.isCandidate {
+				candidates = append(candidates, fs)
+			} else {
+				fservers = append(fservers, fs)
+			}
 		}
 	}
 	return fservers, candidates
