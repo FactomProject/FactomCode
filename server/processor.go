@@ -329,13 +329,13 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		return processLeaderEOM(msgEom)
 
 	case wire.CmdDirBlock:
-		fmt.Printf("wire.CmdDirBlock: blockSyncing: %t\n", blockSyncing)
 		if nodeMode == common.SERVER_NODE && !blockSyncing {
 			break
 		}
 
 		dirBlock, ok := msg.(*wire.MsgDirBlock)
 		if ok {
+			fmt.Printf("wire.CmdDirBlock: blockSyncing=%t, height=%d\n", blockSyncing, dirBlock.DBlk.Header.DBHeight)
 			err := processDirBlock(dirBlock)
 			if err != nil {
 				return err
@@ -442,8 +442,8 @@ func processLeaderEOM(msgEom *wire.MsgInt_EOM) error {
 		return nil
 	}
 	var singleServerMode = localServer.isSingleServerMode()
-	fmt.Println("federate servers #: ", localServer.FederateServerCount(),
-		"Non-candidate federate servers #: ", localServer.FederateServerCountMinusCandidate(),
+	fmt.Println("processLeaderEOM: federate servers #: ", localServer.FederateServerCount(),
+		", Non-candidate federate servers #: ", localServer.FederateServerCountMinusCandidate(),
 		", singleServerMode=", singleServerMode)
 
 	// to simplify this, for leader & followers, use the next wire.EndMinute1
@@ -688,7 +688,7 @@ func processAckMsg(ack *wire.MsgAck) ([]*wire.MsgMissing, error) {
 		return nil, nil
 	}
 	_, latestHeight, _ := db.FetchBlockHeightCache()
-	fmt.Printf("in case.CmdAck: Ack.Height=%d, Ack.Index=%d, dchain.NextDBHeight=%d, db.latestDBHeight=%d, blockSyncing=%v\n",
+	fmt.Printf("processAckMsg: Ack.Height=%d, Ack.Index=%d, dchain.NextDBHeight=%d, db.latestDBHeight=%d, blockSyncing=%v\n",
 		ack.Height, ack.Index, dchain.NextDBHeight, latestHeight, blockSyncing)
 	//dchain.NextDBHeight is the dir block height for the network
 	//update it with ack height from the leader if necessary
@@ -747,12 +747,12 @@ func processAckMsg(ack *wire.MsgAck) ([]*wire.MsgMissing, error) {
 	// to simplify this, for leader & followers, use the next wire.EndMinute1
 	// to trigger signature comparison of last round.
 	// todo: when to start? can NOT do this for the first EOM_1 ???
-	if ack.Type == wire.EndMinute2 {
+	if ack.Type == wire.EndMinute1 {
 		// need to bypass the first block of newly-joined follower, if
 		// this is 11th minute: ack.NextDBlockHeight-1 == firstBlockHeight
 		// or is 1st minute: fMemPool.lenDirBlockSig() == 0
-		fmt.Println("bypass save this block?? firstBlockHeight=", firstBlockHeight, ", DirBlockSig.len=", fMemPool.lenDirBlockSig(), ", ack=", spew.Sdump(ack))
-		if fMemPool.lenDirBlockSig() > 0 && ack.Height > firstBlockHeight && firstBlockHeight > 0 { // && !localServer.isSingleServerMode() {
+		fmt.Println("bypass save this block?? firstBlockHeight=", firstBlockHeight, ", DirBlockSig.len=", fMemPool.lenDirBlockSig(), ", isCandidate=", localServer.isCandidate, ", ack=", spew.Sdump(ack))
+		if fMemPool.lenDirBlockSig() > 0 && ack.Height > firstBlockHeight && !localServer.isCandidate {
 			go processDirBlockSig()
 			//} else {
 			// newDBlock is nil: first EOM_1 with no sync up needed for this follower
@@ -1467,12 +1467,12 @@ func newEntryBlock(chain *common.EChain) *common.EBlock {
 func newEntryCreditBlock(chain *common.ECChain) *common.ECBlock {
 	// acquire the last block
 	block := chain.NextBlock
-	//fmt.Printf("newEntryCreditBlock: block.Header.EBHeight =%d, block=%s\n ", block.Header.EBHeight, spew.Sdump(block))
+	fmt.Printf("newEntryCreditBlock: block.Header.EBHeight =%d, chain.NextBlockHeight=%d\n ", block.Header.EBHeight, chain.NextBlockHeight)
 	if block.Header.EBHeight != chain.NextBlockHeight {
 		// this is the first block after block sync up
 		block.Header.EBHeight = chain.NextBlockHeight
 		prev, err := db.FetchECBlockByHeight(chain.NextBlockHeight - 1)
-		//fmt.Println("newEntryCreditBlock: prev=", spew.Sdump(prev))
+		fmt.Println("newEntryCreditBlock: prev=", spew.Sdump(prev))
 		if err != nil {
 			fmt.Println("newEntryCreditBlock: error in db.FetchECBlockByHeight", err.Error())
 		}
@@ -1512,6 +1512,7 @@ func newEntryCreditBlock(chain *common.ECChain) *common.ECBlock {
 func newAdminBlock(chain *common.AdminChain) *common.AdminBlock {
 	// acquire the last block
 	block := chain.NextBlock
+	fmt.Printf("newAdminBlock: block.Header.DBHeight=%d, chain.NextBlockHeight=%d\n ", block.Header.DBHeight, chain.NextBlockHeight)
 	if block.Header.DBHeight != chain.NextBlockHeight {
 		// this is the first block after block sync up
 		block.Header.DBHeight = chain.NextBlockHeight
@@ -1533,7 +1534,7 @@ func newAdminBlock(chain *common.AdminChain) *common.AdminBlock {
 	}
 
 	if chain.NextBlockHeight != dchain.NextDBHeight {
-		fmt.Printf("Admin Block height does not match Directory Block height: ablock height=%d, dblock height=%d",
+		fmt.Printf("Admin Block height does not match Directory Block height: ablock height=%d, dblock height=%d\n",
 			chain.NextBlockHeight, dchain.NextDBHeight)
 		//panic("Admin Block height does not match Directory Block height:" + string(dchain.NextDBHeight))
 	}
@@ -1595,7 +1596,7 @@ func newFactoidBlock(chain *common.FctChain) block.IFBlock {
 	*/
 	// acquire the last block
 	currentBlock := chain.NextBlock
-	fmt.Println("newFactoidBlock: block.Header.EBHeight = ", currentBlock.GetDBHeight())
+	fmt.Println("newFactoidBlock: block.Header.EBHeight = ", currentBlock.GetDBHeight(), ", chain.NextBlockHeight=", chain.NextBlockHeight)
 	if currentBlock.GetDBHeight() != chain.NextBlockHeight {
 		// this is the first block after block sync up
 		currentBlock.SetDBHeight(chain.NextBlockHeight)

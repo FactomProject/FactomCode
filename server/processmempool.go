@@ -189,6 +189,11 @@ func (mp *ftmMemPool) addBlockMsg(msg wire.Message, hash string) error {
 	if len(mp.blockpool) > common.MAX_BLK_POOL_SIZE {
 		return errors.New("Block mem pool exceeds the limit. Please restart.")
 	}
+	fmt.Println("ftmMemPool.addBlockMsg: msg.Command=", msg.Command())
+	if msg != nil && msg.Command() == wire.CmdDirBlock {
+		dirBlockMsg, _ := msg.(*wire.MsgDirBlock)
+		fmt.Println("dir block:", dirBlockMsg.DBlk.Header.DBHeight)
+	}
 	mp.Lock()
 	mp.blockpool[hash] = msg
 	mp.Unlock()

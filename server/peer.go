@@ -1607,17 +1607,23 @@ func isVersionMismatch(us, them int32) bool {
 
 // handleFBlockMsg is invoked when a peer receives a factoid block message.
 func (p *peer) handleFBlockMsg(msg *wire.MsgFBlock, buf []byte) {
+	processFBlock(msg)
 	binary, _ := msg.SC.MarshalBinary()
 	commonHash := common.Sha(binary)
 	hash, _ := wire.NewShaHash(commonHash.Bytes())
 
 	iv := wire.NewInvVect(wire.InvTypeFactomFBlock, hash)
 	p.AddKnownInventory(iv)
-	inMsgQueue <- msg
+	//inMsgQueue <- msg
 }
 
 // handleDirBlockMsg is invoked when a peer receives a dir block message.
 func (p *peer) handleDirBlockMsg(msg *wire.MsgDirBlock, buf []byte) {
+	fmt.Println("handleDirBlockMsg: dir block msg: ", spew.Sdump(msg.DBlk.Header))
+	processDirBlock(msg)
+	//inMsgQueue <- msg
+	//fmt.Println("handleDirBlockMsg: inMsgQ.len: ", len(inMsgQueue))
+
 	binary, _ := msg.DBlk.MarshalBinary()
 	commonHash := common.Sha(binary)
 	hash, _ := wire.NewShaHash(commonHash.Bytes())
@@ -1626,8 +1632,6 @@ func (p *peer) handleDirBlockMsg(msg *wire.MsgDirBlock, buf []byte) {
 	p.AddKnownInventory(iv)
 
 	p.pushGetNonDirDataMsg(msg.DBlk)
-
-	inMsgQueue <- msg
 
 	delete(p.requestedBlocks, *hash)
 	delete(p.server.blockManager.requestedBlocks, *hash)
@@ -1672,55 +1676,51 @@ func (p *peer) handleDirBlockMsg(msg *wire.MsgDirBlock, buf []byte) {
 
 // handleABlockMsg is invoked when a peer receives a entry credit block message.
 func (p *peer) handleABlockMsg(msg *wire.MsgABlock, buf []byte) {
+	processABlock(msg)
 	binary, _ := msg.ABlk.MarshalBinary()
 	commonHash := common.Sha(binary)
 	hash, _ := wire.NewShaHash(commonHash.Bytes())
 
 	iv := wire.NewInvVect(wire.InvTypeFactomAdminBlock, hash)
 	p.AddKnownInventory(iv)
-	inMsgQueue <- msg
+	//inMsgQueue <- msg
 }
 
 // handleECBlockMsg is invoked when a peer receives a entry credit block
 // message.
 func (p *peer) handleECBlockMsg(msg *wire.MsgECBlock, buf []byte) {
+	procesECBlock(msg)
 	headerHash, err := msg.ECBlock.HeaderHash()
 	if err != nil {
 		panic(err)
 	}
 	hash := wire.FactomHashToShaHash(headerHash)
-
 	iv := wire.NewInvVect(wire.InvTypeFactomEntryCreditBlock, hash)
 	p.AddKnownInventory(iv)
-
-	inMsgQueue <- msg
+	//inMsgQueue <- msg
 }
 
 // handleEBlockMsg is invoked when a peer receives an entry block bitcoin message.
 func (p *peer) handleEBlockMsg(msg *wire.MsgEBlock, buf []byte) {
+	processEBlock(msg)
 	binary, _ := msg.EBlk.MarshalBinary()
 	commonHash := common.Sha(binary)
 	hash, _ := wire.NewShaHash(commonHash.Bytes())
-
 	iv := wire.NewInvVect(wire.InvTypeFactomEntryBlock, hash)
 	p.AddKnownInventory(iv)
-
 	p.pushGetEntryDataMsg(msg.EBlk)
-
-	inMsgQueue <- msg
-
+	//inMsgQueue <- msg
 }
 
 // handleEntryMsg is invoked when a peer receives a EBlock Entry message.
 func (p *peer) handleEntryMsg(msg *wire.MsgEntry, buf []byte) {
+	processEntry(msg)
 	binary, _ := msg.Entry.MarshalBinary()
 	commonHash := common.Sha(binary)
 	hash, _ := wire.NewShaHash(commonHash.Bytes())
-
 	iv := wire.NewInvVect(wire.InvTypeFactomEntry, hash)
 	p.AddKnownInventory(iv)
-
-	inMsgQueue <- msg
+	//inMsgQueue <- msg
 }
 
 // handleGetEntryDataMsg is invoked when a peer receives a get entry data message and
