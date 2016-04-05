@@ -79,7 +79,7 @@ func (db *LevelDb) InitializeExternalIDMap() (extIDMap map[string]bool, err erro
 	db.dbLock.RLock()
 	defer db.dbLock.RUnlock()
 
-	var fromkey []byte = []byte{byte(TBL_ENTRY)} // Table Name (1 bytes)
+	var fromkey []byte = []byte{byte(TBL_ENTRY)}   // Table Name (1 bytes)
 	var tokey []byte = []byte{byte(TBL_ENTRY + 1)} // Table Name (1 bytes)
 	extIDMap = make(map[string]bool)
 

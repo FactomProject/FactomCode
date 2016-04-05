@@ -7,7 +7,6 @@ package wire
 import (
 	"fmt"
 	"io"
-
 	//"github.com/FactomProject/FactomCode/util"
 )
 

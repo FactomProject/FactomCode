@@ -1691,6 +1691,7 @@ func newDirectoryBlock(chain *common.DChain) *common.DirectoryBlock {
 	}
 	return block
 }
+
 /*
 // save all blocks and anchor dir block if it's the leader
 func saveBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
@@ -1727,7 +1728,6 @@ func saveBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
 	fMemPool.resetDirBlockSigPool()
 	return nil
 }*/
-
 
 // save all blocks and anchor dir block if it's the leader
 func saveBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,

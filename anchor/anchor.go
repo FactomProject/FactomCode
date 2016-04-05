@@ -40,7 +40,7 @@ var (
 	dirBlockInfoMap  map[string]*common.DirBlockInfo //DBMerkleRoot string as key
 	db               database.Db
 	walletLocked     = true
-	reAnchorAfter    = 4 // hours. For anchors that do not get bitcoin callback info for over 10 hours, then re-anchor them.
+	reAnchorAfter    = 4  // hours. For anchors that do not get bitcoin callback info for over 10 hours, then re-anchor them.
 	tenMinutes       = 10 // 10 minute mark
 	defaultAddress   btcutil.Address
 	minBalance       btcutil.Amount

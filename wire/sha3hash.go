@@ -17,7 +17,6 @@ import (
 	"encoding/hex"
 	//	"encoding/json"
 	"fmt"
-
 	//	"github.com/FactomProject/golangcrypto/sha3"
 )
 

@@ -123,7 +123,7 @@ func (db *LevelDb) FetchFBlockByHeight(height uint32) (block.IFBlock, error) {
 func (db *LevelDb) FetchAllFBlocks() (FBlocks []block.IFBlock, err error) {
 	db.dbLock.RLock()
 	defer db.dbLock.RUnlock()
-	
+
 	var fromkey = []byte{byte(TBL_SC)}   // Table Name (1 bytes)						// Timestamp  (8 bytes)
 	var tokey = []byte{byte(TBL_SC + 1)} // Table Name (1 bytes)
 	var iter iterator.Iterator
