@@ -15,7 +15,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"encoding/json"
 	"time"
 
 	"github.com/FactomProject/FactomCode/util"
@@ -623,13 +622,6 @@ func loadConfig() (*util.BTCDConfig, []string, error) {
 	/*if configFileError != nil {
 		ftmdLog.Warnf("%v", configFileError)
 	}*/
-
-	b, err:=json.Marshal(cfg)
-	if err!=nil {
-		panic(err)
-	}
-	fmt.Printf("BTCD config - %v\n", string(b))
-	panic("boo")
 
 	//return &cfg, remainingArgs, nil
 	return &cfg, nil, nil

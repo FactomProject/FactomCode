@@ -260,7 +260,13 @@ func readConfig() *FactomdConfig {
 	cfg := new(FactomdConfig)
 	//log.Println("read factom config file: ", filename)
 
-	err := gcfg.ReadFileInto(cfg, filename)
+
+	err := gcfg.ReadStringInto(cfg, defaultConfig)
+	if err != nil {
+		panic(err)
+	}
+
+	err = gcfg.ReadFileInto(cfg, filename)
 	if err != nil {
 		log.Println("ERROR Reading config file!\nServer starting with default settings...\n", err)
 		gcfg.ReadStringInto(cfg, defaultConfig)
