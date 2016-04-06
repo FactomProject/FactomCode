@@ -630,7 +630,7 @@ func downloadNewDirBlock(p *peer, hash common.Hash, height uint32) {
 	if hash == *zeroHash {
 		//todo: implement get dir block by height
 		//panic("Not implemented: get dir block by height")
-		//for now, this is caused by leader's dirblcoksig arriveing on time
+		//for now, this is caused by leader's dirblcoksig not arriveing on time
 		//let's save block
 		go saveBlocks(newDBlock, newABlock, newECBlock, newFBlock, newEBlocks)
 	}
