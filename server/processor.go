@@ -1157,6 +1157,13 @@ func buildRevealChain(msg *wire.MsgRevealEntry) {
 func buildEndOfMinute(pl *consensus.ProcessList, pli *consensus.ProcessListItem) {
 	tmpChains := make(map[string]*common.EChain)
 	for _, v := range pl.GetPLItems()[:pli.Ack.Index] {
+		if v == nil {
+			fmt.Println("process list item v is nil. ")
+			continue
+		} else if v.Ack == nil {
+			fmt.Println("process list item ack v.ack is nil. ")
+			continue
+		}
 		if v.Ack.Type == wire.AckRevealEntry ||
 			v.Ack.Type == wire.AckRevealChain {
 			cid := v.Msg.(*wire.MsgRevealEntry).Entry.ChainID.String()
