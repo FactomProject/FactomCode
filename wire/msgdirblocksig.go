@@ -2,6 +2,7 @@ package wire
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"io"
 
@@ -67,4 +68,9 @@ func (msg *MsgDirBlockSig) MaxPayloadLength(pver uint32) uint32 {
 func (msg *MsgDirBlockSig) Equals(m *MsgDirBlockSig) bool {
 	return msg.DBHeight == m.DBHeight &&
 		msg.DirBlockHash == m.DirBlockHash
+}
+
+// String returns str value
+func (msg *MsgDirBlockSig) String() string {
+	return fmt.Sprintf("DBHeight=%d, DirBlockHash=%s", msg.DBHeight, hex.EncodeToString(msg.DirBlockHash.Bytes()))
 }

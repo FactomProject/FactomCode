@@ -224,7 +224,7 @@ type peer struct {
 // String returns the peer's address and directionality as a human-readable
 // string.
 func (p *peer) String() string {
-	return fmt.Sprintf("%s (%s); nodeID=%s, id=%d", p.addr, directionString(p.inbound), p.nodeID, p.id)
+	return fmt.Sprintf("%s (%s); nodeID=%s, id=%d, isCandidate=%t", p.addr, directionString(p.inbound), p.nodeID, p.id, p.isCandidate)
 }
 
 // isKnownInventory returns whether or not the peer is known to have the passed
@@ -351,6 +351,7 @@ func (p *peer) pushVersionMsg() error {
 	// Advertise our max supported protocol version.
 	msg.ProtocolVersion = maxProtocolVersion
 
+	msg.IsCandidate = p.server.isCandidate
 	msg.NodeType = p.server.nodeType
 	msg.NodeID = p.server.nodeID
 	msg.NodeSig = p.server.privKey.Sign([]byte(p.server.nodeID))
@@ -524,7 +525,7 @@ func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
 		}
 	}
 
-	p.isCandidate = true
+	p.isCandidate = msg.IsCandidate
 	p.nodeType = msg.NodeType
 	p.nodeID = msg.NodeID
 	p.pubKey = msg.NodeSig.Pub
@@ -1619,7 +1620,7 @@ func (p *peer) handleFBlockMsg(msg *wire.MsgFBlock, buf []byte) {
 
 // handleDirBlockMsg is invoked when a peer receives a dir block message.
 func (p *peer) handleDirBlockMsg(msg *wire.MsgDirBlock, buf []byte) {
-	fmt.Println("handleDirBlockMsg: dir block msg: ", spew.Sdump(msg.DBlk.Header))
+	//fmt.Println("handleDirBlockMsg: dir block msg: ", spew.Sdump(msg.DBlk.Header))
 	processDirBlock(msg)
 	//inMsgQueue <- msg
 	//fmt.Println("handleDirBlockMsg: inMsgQ.len: ", len(inMsgQueue))

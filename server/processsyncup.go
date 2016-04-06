@@ -22,9 +22,6 @@ import (
 // processDirBlock validates dir block and save it to factom db.
 // similar to blockChain.BC_ProcessBlock
 func processDirBlock(msg *wire.MsgDirBlock) error {
-	if nodeMode == common.SERVER_NODE && !blockSyncing {
-		return nil
-	}
 	procLog.Info("processDirBlock: height:", msg.DBlk.Header.DBHeight)
 	blk, _ := db.FetchDBlockByHeight(msg.DBlk.Header.DBHeight)
 	if blk != nil {
@@ -59,9 +56,6 @@ func processDirBlock(msg *wire.MsgDirBlock) error {
 // processFBlock validates admin block and save it to factom db.
 // similar to blockChain.BC_ProcessBlock
 func processFBlock(msg *wire.MsgFBlock) error {
-	if nodeMode == common.SERVER_NODE && !blockSyncing {
-		return nil
-	}
 	key := hex.EncodeToString(msg.SC.GetHash().Bytes())
 	//Add it to mem pool before saving it in db
 	fMemPool.addBlockMsg(msg, string(key)) // stored in mem pool with the MR as the key
@@ -73,9 +67,6 @@ func processFBlock(msg *wire.MsgFBlock) error {
 // processABlock validates admin block and save it to factom db.
 // similar to blockChain.BC_ProcessBlock
 func processABlock(msg *wire.MsgABlock) error {
-	if nodeMode == common.SERVER_NODE && !blockSyncing {
-		return nil
-	}
 	//Add it to mem pool before saving it in db
 	abHash, err := msg.ABlk.PartialHash()
 	if err != nil {
@@ -89,9 +80,6 @@ func processABlock(msg *wire.MsgABlock) error {
 // procesFBlock validates entry credit block and save it to factom db.
 // similar to blockChain.BC_ProcessBlock
 func procesECBlock(msg *wire.MsgECBlock) error {
-	if nodeMode == common.SERVER_NODE && !blockSyncing {
-		return nil
-	}
 	//Add it to mem pool before saving it in db
 	hash, err := msg.ECBlock.HeaderHash()
 	if err != nil {
@@ -105,9 +93,6 @@ func procesECBlock(msg *wire.MsgECBlock) error {
 // processEBlock validates entry block and save it to factom db.
 // similar to blockChain.BC_ProcessBlock
 func processEBlock(msg *wire.MsgEBlock) error {
-	if nodeMode == common.SERVER_NODE && !blockSyncing {
-		return nil
-	}
 	//Add it to mem pool before saving it in db
 	keyMR, err := msg.EBlk.KeyMR()
 	if err != nil {
@@ -121,9 +106,6 @@ func processEBlock(msg *wire.MsgEBlock) error {
 // processEntry validates entry and save it to factom db.
 // similar to blockChain.BC_ProcessBlock
 func processEntry(msg *wire.MsgEntry) error {
-	if nodeMode == common.SERVER_NODE && !blockSyncing {
-		return nil
-	}
 	// store the entry in mem pool
 	h := msg.Entry.Hash()
 	fMemPool.addBlockMsg(msg, h.String()) // store it in mem pool with hash as the key

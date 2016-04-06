@@ -14,6 +14,7 @@ import (
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/consensus"
 	"github.com/FactomProject/FactomCode/wire"
+	"github.com/FactomProject/factoid/block"
 )
 
 // ftmMemPool is used as a source of factom transactions
@@ -190,34 +191,13 @@ func (mp *ftmMemPool) addBlockMsg(msg wire.Message, hash string) error {
 		return errors.New("Block mem pool exceeds the limit. Please restart.")
 	}
 	fmt.Println("ftmMemPool.addBlockMsg: msg.Command=", msg.Command())
-	if msg != nil && msg.Command() == wire.CmdDirBlock {
-		dirBlockMsg, _ := msg.(*wire.MsgDirBlock)
-		fmt.Println("dir block:", dirBlockMsg.DBlk.Header.DBHeight)
-	}
+	//if msg != nil && msg.Command() == wire.CmdDirBlock {
+	//dirBlockMsg, _ := msg.(*wire.MsgDirBlock)
+	//fmt.Println("dir block:", dirBlockMsg.DBlk.Header.DBHeight)
+	//}
 	mp.Lock()
 	mp.blockpool[hash] = msg
 	mp.Unlock()
-	return nil
-}
-
-//DirblockMsg is using height as key in mempool.blockpool
-func (mp *ftmMemPool) getDirBlockMsg(height uint32) *common.DirectoryBlock {
-	h := strconv.Itoa(int(height))
-	msg := mp.blockpool[h]
-	fmt.Println("ftmMemPool.getDirBlockMsg: height=", h, ", msg=", msg)
-	if msg != nil && msg.Command() == wire.CmdDirBlock {
-		dirBlockMsg, _ := msg.(*wire.MsgDirBlock)
-		return dirBlockMsg.DBlk
-	}
-	for _, msg := range mp.blockpool {
-		fmt.Println(msg.Command())
-		if msg.Command() == wire.CmdDirBlock {
-			dirBlockMsg, _ := msg.(*wire.MsgDirBlock)
-			if dirBlockMsg.DBlk.Header.DBHeight == height {
-				return dirBlockMsg.DBlk
-			}
-		}
-	}
 	return nil
 }
 
@@ -227,6 +207,70 @@ func (mp *ftmMemPool) deleteBlockMsg(hash string) error {
 		mp.Lock()
 		delete(fMemPool.blockpool, hash)
 		mp.Unlock()
+	}
+	return nil
+}
+
+//getDirBlock return a dir block by height
+func (mp *ftmMemPool) getDirBlock(height uint32) *common.DirectoryBlock {
+	h := strconv.Itoa(int(height))
+	msg := mp.blockpool[h]
+	fmt.Println("ftmMemPool.getDirBlock: height=", h, ", msg=", msg)
+	if msg != nil && msg.Command() == wire.CmdDirBlock {
+		dirBlockMsg, _ := msg.(*wire.MsgDirBlock)
+		return dirBlockMsg.DBlk
+	}
+	return nil
+}
+
+func (mp *ftmMemPool) getFBlock(height uint32) block.IFBlock {
+	for _, msg := range mp.blockpool {
+		fmt.Println(msg.Command())
+		if msg.Command() == wire.CmdFBlock {
+			fBlockMsg, _ := msg.(*wire.MsgFBlock)
+			if fBlockMsg.SC.GetDBHeight() == height {
+				return fBlockMsg.SC
+			}
+		}
+	}
+	return nil
+}
+
+func (mp *ftmMemPool) getECBlock(height uint32) *common.ECBlock {
+	for _, msg := range mp.blockpool {
+		fmt.Println(msg.Command())
+		if msg.Command() == wire.CmdECBlock {
+			ecBlockMsg, _ := msg.(*wire.MsgECBlock)
+			if ecBlockMsg.ECBlock.Header.EBHeight == height {
+				return ecBlockMsg.ECBlock
+			}
+		}
+	}
+	return nil
+}
+
+func (mp *ftmMemPool) getABlock(height uint32) *common.AdminBlock {
+	for _, msg := range mp.blockpool {
+		fmt.Println(msg.Command())
+		if msg.Command() == wire.CmdABlock {
+			aBlockMsg, _ := msg.(*wire.MsgABlock)
+			if aBlockMsg.ABlk.Header.DBHeight == height {
+				return aBlockMsg.ABlk
+			}
+		}
+	}
+	return nil
+}
+
+func (mp *ftmMemPool) getEBlock(height uint32) *common.EBlock {
+	for _, msg := range mp.blockpool {
+		fmt.Println(msg.Command())
+		if msg.Command() == wire.CmdEBlock {
+			eBlockMsg, _ := msg.(*wire.MsgEBlock)
+			if eBlockMsg.EBlk.Header.EBSequence == height {
+				return eBlockMsg.EBlk
+			}
+		}
 	}
 	return nil
 }

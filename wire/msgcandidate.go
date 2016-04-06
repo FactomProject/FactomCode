@@ -77,3 +77,8 @@ func NewMsgCandidate(height uint32, id string, sig common.Signature) *MsgCandida
 		Sig:          sig,
 	}
 }
+
+// String returns str value
+func (msg *MsgCandidate) String() string {
+	return fmt.Sprintf("DBHeight=%d, SourceNodeID=%s", msg.DBHeight, msg.SourceNodeID)
+}

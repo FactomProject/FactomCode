@@ -1506,7 +1506,7 @@ func newServer(listenAddrs []string, chainParams *Params) (*server, error) {
 
 	_, newestHeight, _ := db.FetchBlockHeightCache()
 	//dirty fix for newestHeight when a new level db is created
-	if newestHeight > 429496729 || newestHeight < 0 {
+	if newestHeight < 0 {
 		newestHeight = 0
 	}
 	h := uint32(newestHeight)
@@ -1533,6 +1533,7 @@ func newServer(listenAddrs []string, chainParams *Params) (*server, error) {
 		s.myLeaderPolicy = policy
 	} else {
 		blockSyncing = true
+		s.isCandidate = true
 	}
 	fmt.Println("newServer: blockSyncing=", blockSyncing)
 

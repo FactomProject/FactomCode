@@ -59,6 +59,9 @@ type MsgVersion struct {
 	// Don't announce transactions to peer.
 	DisableRelayTx bool
 
+	// true means this server is new to the network
+	IsCandidate bool
+
 	// NodeType is one of SERVER, FULL, LIGHT
 	NodeType string
 
@@ -167,6 +170,13 @@ func (msg *MsgVersion) BtcDecode(r io.Reader, pver uint32) error {
 		}*/
 
 	if buf.Len() > 0 {
+		err = readElement(buf, &msg.IsCandidate)
+		if err != nil {
+			return err
+		}
+	}
+
+	if buf.Len() > 0 {
 		nodeType, err := readVarString(buf, pver)
 		if err != nil {
 			return err
@@ -240,6 +250,11 @@ func (msg *MsgVersion) BtcEncode(w io.Writer, pver uint32) error {
 	//return err
 	//}
 	//}
+
+	err = writeElement(w, msg.IsCandidate)
+	if err != nil {
+		return err
+	}
 
 	err = writeVarString(w, pver, msg.NodeType)
 	if err != nil {

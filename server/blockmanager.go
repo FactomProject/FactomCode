@@ -699,13 +699,10 @@ func (b *blockManager) handleAckMsg(amsg *ackMsg) {
 	missingMsgs, err := processAckPeerMsg(amsg)
 	if err != nil {
 		fmt.Println("blockManager.handleAckMsg: ", err.Error())
-		//code, reason := errToRejectErr(err)
-		//amsg.peer.PushRejectMsg(wire.CmdAck, code, reason, blockSha, false)
 		return
 	}
 	// todo: use InvVest to send it in one msg
 	for _, m := range missingMsgs {
-		//amsg.peer.pushGetMissingMsg(m)
 		amsg.peer.QueueMessage(m, nil)
 	}
 }
