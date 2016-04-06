@@ -423,7 +423,7 @@ func processLeaderEOM(msgEom *wire.MsgInt_EOM) error {
 	// to simplify this, for leader & followers, use the next wire.EndMinute1
 	// to trigger signature comparison of last round.
 	// todo: when to start? can NOT do this for the first EOM_1 ???
-	if msgEom.EOM_Type == wire.EndMinute1 {
+	if msgEom.EOM_Type == wire.EndMinute2 {
 		if !localServer.isSingleServerMode() && fMemPool.lenDirBlockSig() > 0 {
 			go processDirBlockSig()
 		} else {
@@ -551,7 +551,7 @@ func processDirBlockSig() error {
 	for k, v := range dgsMap {
 		n := float32(len(v)) / float32(totalServerNum)
 		fmt.Printf("key=%s, len=%d, n=%v\n", k, len(v), n)
-		if n == float32(1.0) {
+		if n >= float32(1.0) {
 			fmt.Println("A full consensus !")
 			winner = myDirBlockSig
 			needDownload = false
@@ -676,7 +676,7 @@ func processAckMsg(ack *wire.MsgAck) ([]*wire.MsgMissing, error) {
 	if dchain.NextDBHeight == uint32(latestHeight)+1 && blockSyncing {
 		blockSyncing = false
 		firstBlockHeight = ack.Height
-		fmt.Println("** reset blockSyncing=false, firstBlockHeight=", firstBlockHeight)
+		fmt.Println("** reset blockSyncing=false, bypass building this block: firstBlockHeight=", firstBlockHeight)
 	}
 	if !doneSetFollowersCointbaseTimeStamp && ack.CoinbaseTimestamp > 0 {
 		fchain.NextBlock.SetCoinbaseTimestamp(ack.CoinbaseTimestamp)
@@ -696,14 +696,13 @@ func processAckMsg(ack *wire.MsgAck) ([]*wire.MsgMissing, error) {
 		// when sync up, FactoidState.CurrentBlock is using the last block being synced-up
 		// as it's needed for balance update.
 		// when done sync up, reset its current block, for EndOfPeriod
-		fmt.Println("bypass building this block: dbheight=", firstBlockHeight)
 		common.FactoidState.SetCurrentBlock(fchain.NextBlock)
 		if !doneSentCandidateMsg {
 			sig := localServer.privKey.Sign([]byte(string(dchain.NextDBHeight) + localServer.nodeID))
 			m := wire.NewMsgCandidate(dchain.NextDBHeight, localServer.nodeID, sig)
 			outMsgQueue <- m
 			doneSentCandidateMsg = true
-			//fmt.Println("sending MsgCandidate: ", spew.Sdump(m))
+			fmt.Println("sending MsgCandidate: ", spew.Sdump(m))
 		}
 		// update this federate server
 		fs := localServer.GetMyFederateServer()
@@ -713,7 +712,7 @@ func processAckMsg(ack *wire.MsgAck) ([]*wire.MsgMissing, error) {
 	// to simplify this, for leader & followers, use the next wire.EndMinute1
 	// to trigger signature comparison of last round.
 	// todo: when to start? can NOT do this for the first EOM_1 ???
-	if ack.Type == wire.EndMinute1 {
+	if ack.Type == wire.EndMinute2 {
 		// need to bypass the first block of newly-joined follower, if
 		// this is 11th minute: ack.NextDBlockHeight-1 == firstBlockHeight
 		// or is 1st minute: fMemPool.lenDirBlockSig() == 0
@@ -725,7 +724,7 @@ func processAckMsg(ack *wire.MsgAck) ([]*wire.MsgMissing, error) {
 
 	// for candidate server, bypass block building
 	if localServer.isCandidate {
-		//fmt.Println("is candidate, return.")
+		fmt.Println("is candidate, return.")
 		return nil, nil
 	}
 
