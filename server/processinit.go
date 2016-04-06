@@ -35,7 +35,7 @@ func initDChain() {
 
 	// get all dBlocks from db
 	dBlocks, err := db.FetchAllDBlocks()
-	if err!=nil {
+	if err != nil {
 		panic(err)
 	}
 	sort.Sort(util.ByDBlockIDAccending(dBlocks))

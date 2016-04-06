@@ -1700,6 +1700,7 @@ func newDirectoryBlock(chain *common.DChain) *common.DirectoryBlock {
 	return block
 }
 
+/*
 // save all blocks and anchor dir block if it's the leader
 func saveBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
 	ecblock *common.ECBlock, fblock block.IFBlock, eblocks []*common.EBlock) error {
@@ -1758,9 +1759,8 @@ func saveBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
 	placeAnchor(dblock)
 	fMemPool.resetDirBlockSigPool()
 	return nil
-}
+}*/
 
-/*
 // save all blocks and anchor dir block if it's the leader
 func saveBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
 	ecblock *common.ECBlock, fblock block.IFBlock, eblocks []*common.EBlock) error {
@@ -1826,7 +1826,7 @@ func saveBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
 	placeAnchor(dblock)
 	fMemPool.resetDirBlockSigPool()
 	return nil
-}*/
+}
 
 // signDirBlockForAdminBlock signs the directory block for next admin block
 func signDirBlockForAdminBlock(newdb *common.DirectoryBlock) error {

@@ -381,7 +381,6 @@ func (db *LevelDb) FetchHeadMRByChainID(chainID *common.Hash) (blkMR *common.Has
 		return nil, nil
 	}
 
-
 	var key = []byte{byte(TBL_CHAIN_HEAD)}
 	key = append(key, chainID.Bytes()...)
 	db.dbLock.RLock()

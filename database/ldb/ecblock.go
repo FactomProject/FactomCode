@@ -135,7 +135,7 @@ func (db *LevelDb) FetchECBlockByHeight(height uint32) (ecBlock *common.ECBlock,
 func (db *LevelDb) FetchAllECBlocks() (ecBlocks []common.ECBlock, err error) {
 	db.dbLock.RLock()
 	defer db.dbLock.RUnlock()
-	
+
 	var fromkey = []byte{byte(TBL_CB)}   // Table Name (1 bytes)						// Timestamp  (8 bytes)
 	var tokey = []byte{byte(TBL_CB + 1)} // Table Name (1 bytes)
 	ecBlockSlice := make([]common.ECBlock, 0, 10)
