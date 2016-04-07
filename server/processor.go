@@ -1449,16 +1449,27 @@ func newEntryBlock(chain *common.EChain) *common.EBlock {
 	return block
 }
 
-// Seals the current open block, store it in db and create the next open block
+// Note: on directory block heights 22881, 22884, 22941, 22950, 22977, and 22979,
+// the ECBlock height fell behind DBHeight by 1, and
+// then it fell behind by 2 on block 23269.
+// In other words, there're two ecblocks of 22880, 22882, 22938, 22946,
+// 22972, 22973, 23261 & 23262.
+// ECBlocks:  22879, 22880, 22880, 22881, 22882, 22882, ..., 22938, 22938, ..., 22946, 22946, ..., 22972, 22972, 22973, 22973, ..., 23260, 23261, 23262, 23261, 23262, 23263, ...
+// DirBlocks: 22879, 22880, 22881, 22882, 22883, 22884, ..., 22940, 22941, ..., 22949, 22950, ..., 22976, 22977, 22978, 22979, ..., 23266, 23267, 23268, 23269, 23270, 23271, ...
 func newEntryCreditBlock(chain *common.ECChain) *common.ECBlock {
 	// acquire the last block
 	block := chain.NextBlock
 	fmt.Printf("newEntryCreditBlock: block.Header.EBHeight =%d, chain.NextBlockHeight=%d\n ", block.Header.EBHeight, chain.NextBlockHeight)
+	// do not intend to recreate the existing ec chain here
+	// just simply make it work for echeight > 23263
+	if block.Header.EBHeight > 23263 && block.Header.EBHeight >= chain.NextBlockHeight-8 {
+		chain.NextBlockHeight = chain.NextBlockHeight - 8
+		fmt.Printf("after adjust chain.NextBlockHeight - 8: block.Header.EBHeight =%d, chain.NextBlockHeight=%d\n ", block.Header.EBHeight, chain.NextBlockHeight)
+	}
 	if block.Header.EBHeight != chain.NextBlockHeight {
 		// this is the first block after block sync up
 		block.Header.EBHeight = chain.NextBlockHeight
 		prev, err := db.FetchECBlockByHeight(chain.NextBlockHeight - 1)
-		fmt.Println("newEntryCreditBlock: prev=", spew.Sdump(prev.Header))
 		if err != nil {
 			fmt.Println("newEntryCreditBlock: error in db.FetchECBlockByHeight", err.Error())
 		}
@@ -1471,6 +1482,7 @@ func newEntryCreditBlock(chain *common.ECChain) *common.ECBlock {
 			fmt.Println("newEntryCreditBlock from mempool: prev == nil")
 			return nil
 		}
+		fmt.Println("newEntryCreditBlock: prev=", spew.Sdump(prev.Header))
 		block.Header.PrevHeaderHash, err = prev.HeaderHash()
 		if err != nil {
 			fmt.Println("newEntryCreditBlock: ", err.Error())
@@ -1599,6 +1611,7 @@ func newFactoidBlock(chain *common.FctChain) block.IFBlock {
 				0)
 		}
 	*/
+
 	// acquire the last block
 	currentBlock := chain.NextBlock
 	fmt.Println("newFactoidBlock: block.Header.EBHeight = ", currentBlock.GetDBHeight(), ", chain.NextBlockHeight=", chain.NextBlockHeight)
