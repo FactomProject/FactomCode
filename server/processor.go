@@ -1622,7 +1622,7 @@ func newFactoidBlock(chain *common.FctChain) block.IFBlock {
 		currentBlock.SetExchRate(FactoshisPerCredit)
 		currentBlock.SetPrevKeyMR(prev.GetKeyMR().Bytes())
 		currentBlock.SetPrevLedgerKeyMR(prev.GetLedgerKeyMR().Bytes())
-		currentBlock.SetCoinbaseTimestamp(plMgr.MyProcessList.GetEndMinuteAck(wire.EndMinute10).CoinbaseTimestamp)
+		currentBlock.SetCoinbaseTimestamp(plMgr.MyProcessList.GetCoinbaseTimestamp())
 	}
 
 	if chain.NextBlockHeight != dchain.NextDBHeight {

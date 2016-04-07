@@ -70,9 +70,19 @@ func (pl *ProcessList) GetMissingMsg(msg *wire.MsgMissing) wire.Message {
 // GetEndMinuteAck return end of minute ack based on eom type provided
 func (pl *ProcessList) GetEndMinuteAck(EOMType byte) *wire.MsgAck {
 	for _, item := range pl.plItems {
-		if item.Ack.Type == EOMType {
+		if item != nil && item.Ack != nil && item.Ack.Type == EOMType {
 			return item.Ack
 		}
 	}
 	return nil
+}
+
+// GetCoinbaseTimestamp return the CoinbaseTimestampt`for this process list
+func (pl *ProcessList) GetCoinbaseTimestamp() uint64 {
+	for _, item := range pl.plItems {
+		if item != nil && item.Ack != nil && item.Ack.IsEomAck() {
+			return item.Ack.CoinbaseTimestamp
+		}
+	}
+	return 0
 }
