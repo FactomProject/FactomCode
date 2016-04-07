@@ -42,23 +42,38 @@ func (mp *ftmMemPool) initFtmMemPool() error {
 }
 
 func (mp *ftmMemPool) addDirBlockSig(dbsig *wire.MsgDirBlockSig) {
+	mp.Lock()
+	defer mp.Unlock()
+
 	mp.dirBlockSigs = append(mp.dirBlockSigs, dbsig)
 }
 
 func (mp *ftmMemPool) lenDirBlockSig() int {
+	mp.RLock()
+	defer mp.RUnlock()
+
 	return len(mp.dirBlockSigs)
 }
 
 func (mp *ftmMemPool) getDirBlockSigPool() []*wire.MsgDirBlockSig {
+	mp.RLock()
+	defer mp.RUnlock()
+
 	return mp.dirBlockSigs
 }
 
 func (mp *ftmMemPool) resetDirBlockSigPool() {
+	mp.Lock()
+	defer mp.Unlock()
+
 	fmt.Println("resetDirBlockSigPool")
 	mp.dirBlockSigs = make([]*wire.MsgDirBlockSig, 0, 32)
 }
 
 func (mp *ftmMemPool) resetAckPool() {
+	mp.Lock()
+	defer mp.Unlock()
+
 	fmt.Println("resetAckPool")
 	mp.ackpool = make([]*wire.MsgAck, 100, 20000)
 }
@@ -70,6 +85,10 @@ func (mp *ftmMemPool) addAck(ack *wire.MsgAck) *wire.MsgMissing {
 	if ack == nil {
 		return nil
 	}
+
+	mp.Lock()
+	defer mp.Unlock()
+
 	fmt.Printf("ftmMemPool.addAck: %s\n", ack)
 	// check duplication first
 	a := mp.ackpool[ack.Index]
@@ -111,6 +130,10 @@ func (mp *ftmMemPool) getMissingMsgAck(ack *wire.MsgAck) []*wire.MsgMissing {
 	if ack.Index == 0 {
 		return missingAcks
 	}
+
+	mp.RLock()
+	mp.RUnlock()
+
 	for i := int(ack.Index - 1); i >= 0; i-- {
 		if mp.ackpool[uint32(i)] == nil {
 			// missing an ACK here.
@@ -126,6 +149,9 @@ func (mp *ftmMemPool) getMissingMsgAck(ack *wire.MsgAck) []*wire.MsgMissing {
 }
 
 func (mp *ftmMemPool) assembleFollowerProcessList(ack *wire.MsgAck) error {
+	mp.RLock()
+	defer mp.RUnlock()
+
 	// simply validation
 	if ack.Type != wire.EndMinute10 || mp.ackpool[ack.Index] != ack {
 		return fmt.Errorf("the last ack has to be EndMinute10")
@@ -160,6 +186,9 @@ func (mp *ftmMemPool) assembleFollowerProcessList(ack *wire.MsgAck) error {
 }
 
 func (mp *ftmMemPool) haveMsg(hash *wire.ShaHash) bool {
+	mp.RLock()
+	defer mp.RUnlock()
+
 	m := mp.pool[*hash]
 	if m != nil {
 		return true
@@ -169,6 +198,9 @@ func (mp *ftmMemPool) haveMsg(hash *wire.ShaHash) bool {
 
 // Add a factom message to the  Mem pool
 func (mp *ftmMemPool) addMsg(msg wire.Message, hash *wire.ShaHash) error {
+	mp.Lock()
+	defer mp.Unlock()
+
 	if len(mp.pool) > common.MAX_TX_POOL_SIZE {
 		return errors.New("Transaction mem pool exceeds the limit.")
 	}
@@ -178,6 +210,9 @@ func (mp *ftmMemPool) addMsg(msg wire.Message, hash *wire.ShaHash) error {
 
 // Add a factom message to the orphan pool
 func (mp *ftmMemPool) addOrphanMsg(msg wire.Message, hash *wire.ShaHash) error {
+	mp.Lock()
+	defer mp.Unlock()
+
 	if len(mp.orphans) > common.MAX_ORPHAN_SIZE {
 		return errors.New("Ophan mem pool exceeds the limit.")
 	}
@@ -187,6 +222,9 @@ func (mp *ftmMemPool) addOrphanMsg(msg wire.Message, hash *wire.ShaHash) error {
 
 // Add a factom block message to the  Mem pool
 func (mp *ftmMemPool) addBlockMsg(msg wire.Message, hash string) error {
+	mp.Lock()
+	defer mp.Unlock()
+
 	if len(mp.blockpool) > common.MAX_BLK_POOL_SIZE {
 		return errors.New("Block mem pool exceeds the limit. Please restart.")
 	}
@@ -195,24 +233,26 @@ func (mp *ftmMemPool) addBlockMsg(msg wire.Message, hash string) error {
 	//dirBlockMsg, _ := msg.(*wire.MsgDirBlock)
 	//fmt.Println("dir block:", dirBlockMsg.DBlk.Header.DBHeight)
 	//}
-	mp.Lock()
 	mp.blockpool[hash] = msg
-	mp.Unlock()
 	return nil
 }
 
 // Delete a factom block message from the  Mem pool
 func (mp *ftmMemPool) deleteBlockMsg(hash string) error {
+	mp.Lock()
+	defer mp.Unlock()
+
 	if mp.blockpool[hash] != nil {
-		mp.Lock()
 		delete(fMemPool.blockpool, hash)
-		mp.Unlock()
 	}
 	return nil
 }
 
 //getDirBlock return a dir block by height
 func (mp *ftmMemPool) getDirBlock(height uint32) *common.DirectoryBlock {
+	mp.RLock()
+	defer mp.RUnlock()
+
 	h := strconv.Itoa(int(height))
 	msg := mp.blockpool[h]
 	fmt.Println("ftmMemPool.getDirBlock: height=", h, ", msg=", msg)
@@ -224,6 +264,9 @@ func (mp *ftmMemPool) getDirBlock(height uint32) *common.DirectoryBlock {
 }
 
 func (mp *ftmMemPool) getFBlock(height uint32) block.IFBlock {
+	mp.RLock()
+	defer mp.RUnlock()
+
 	for _, msg := range mp.blockpool {
 		fmt.Println(msg.Command())
 		if msg.Command() == wire.CmdFBlock {
@@ -237,6 +280,9 @@ func (mp *ftmMemPool) getFBlock(height uint32) block.IFBlock {
 }
 
 func (mp *ftmMemPool) getECBlock(height uint32) *common.ECBlock {
+	mp.RLock()
+	defer mp.RUnlock()
+
 	for _, msg := range mp.blockpool {
 		fmt.Println(msg.Command())
 		if msg.Command() == wire.CmdECBlock {
@@ -250,6 +296,9 @@ func (mp *ftmMemPool) getECBlock(height uint32) *common.ECBlock {
 }
 
 func (mp *ftmMemPool) getABlock(height uint32) *common.AdminBlock {
+	mp.RLock()
+	defer mp.RUnlock()
+
 	for _, msg := range mp.blockpool {
 		fmt.Println(msg.Command())
 		if msg.Command() == wire.CmdABlock {
@@ -263,6 +312,9 @@ func (mp *ftmMemPool) getABlock(height uint32) *common.AdminBlock {
 }
 
 func (mp *ftmMemPool) getEBlock(height uint32) *common.EBlock {
+	mp.RLock()
+	defer mp.RUnlock()
+
 	for _, msg := range mp.blockpool {
 		fmt.Println(msg.Command())
 		if msg.Command() == wire.CmdEBlock {
