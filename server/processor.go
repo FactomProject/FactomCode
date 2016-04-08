@@ -1262,7 +1262,8 @@ func buildBlocks() error {
 	// Entry Credit Chain
 	ecBlock := newEntryCreditBlock(ecchain)
 	if ecBlock == nil {
-		errStr = "ecBlock is nil; "
+		errStr = "buildBlocks: ecBlock is nil; "
+		fmt.Println(errStr)
 	} else {
 		dchain.AddECBlockToDBEntry(ecBlock)
 		bytes, _ := ecBlock.MarshalBinary()
@@ -1310,13 +1311,15 @@ func buildBlocks() error {
 	}
 
 	// Directory Block chain
-	dBlock := newDirectoryBlock(dchain) //sign dir block and broadcast it
-	if dBlock == nil {
-		errStr = errStr + "fBlock is nil; "
-	} else {
-		bytes, _ := dBlock.MarshalBinary()
-		//fmt.Printf("buildBlocks: dirBlock=%s\n", spew.Sdump(dBlock))
-		fmt.Printf("buildBlocks: dirBlock=%s\n", hex.EncodeToString(bytes))
+	if aBlock != nil && ecBlock != nil && fBlock != nil {
+		dBlock := newDirectoryBlock(dchain) //sign dir block and broadcast it
+		if dBlock == nil {
+			errStr = errStr + "fBlock is nil; "
+		} else {
+			bytes, _ := dBlock.MarshalBinary()
+			//fmt.Printf("buildBlocks: dirBlock=%s\n", spew.Sdump(dBlock))
+			fmt.Printf("buildBlocks: dirBlock=%s\n", hex.EncodeToString(bytes))
+		}
 	}
 
 	// should keep this process list for a while ????
@@ -1713,7 +1716,7 @@ func newDirectoryBlock(chain *common.DChain) *common.DirectoryBlock {
 	block.BuildKeyMerkleRoot()
 
 	// send out dir block sig first
-	if dchain.NextDBHeight > 1 {
+	if dchain.NextDBHeight > 1 && block != nil {
 		SignDirectoryBlock(block)
 	}
 	return block
