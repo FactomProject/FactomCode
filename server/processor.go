@@ -1722,11 +1722,10 @@ func newDirectoryBlock(chain *common.DChain) *common.DirectoryBlock {
 	return block
 }
 
-/*
 // save all blocks and anchor dir block if it's the leader
 func saveBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
 	ecblock *common.ECBlock, fblock block.IFBlock, eblocks []*common.EBlock) error {
-	// save blocks to database in a signle transaction ???
+	// in case of any block building failure, download them immediately
 	hash := zeroHash
 	if dblock != nil {
 		binaryDblock, err := dblock.MarshalBinary()
@@ -1781,11 +1780,37 @@ func saveBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
 	placeAnchor(dblock)
 	fMemPool.resetDirBlockSigPool()
 	return nil
-}*/
+}
 
+/*
 // save all blocks and anchor dir block if it's the leader
 func saveBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
 	ecblock *common.ECBlock, fblock block.IFBlock, eblocks []*common.EBlock) error {
+	// in case of any block building failure, download them immediately
+	hash := zeroHash
+	if dblock != nil {
+		binaryDblock, err := dblock.MarshalBinary()
+		if err != nil {
+			return err
+		}
+		hash = common.Sha(binaryDblock)
+	}
+	h := common.Hash{}
+	h.SetBytes(hash.GetBytes())
+	if dblock == nil || ablock == nil || ecblock == nil || fblock == nil {
+		peer := localServer.leaderPeer
+		if peer == nil {
+			for _, fs := range localServer.federateServers {
+				if fs.Peer != nil {
+					peer = fs.Peer
+					break
+				}
+			}
+		}
+		downloadNewDirBlock(peer, h, dchain.NextDBHeight)
+		return nil
+	}
+
 	db.StartBatch()
 
 	// save blocks to database in a signle transaction ???
@@ -1794,22 +1819,16 @@ func saveBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
 	if err != nil {
 		return err
 	}
-	exportFctBlock(fblock)
-	fmt.Println("Save Factoid Block: block " + strconv.FormatUint(uint64(fblock.GetDBHeight()), 10))
 
 	err = db.ProcessABlockMultiBatch(ablock)
 	if err != nil {
 		return err
 	}
-	exportABlock(ablock)
-	fmt.Println("Save Admin Block: block " + strconv.FormatUint(uint64(ablock.Header.DBHeight), 10))
 
 	err = db.ProcessECBlockMultiBatch(ecblock)
 	if err != nil {
 		return err
 	}
-	exportECBlock(ecblock)
-	fmt.Println("Save EntryCreditBlock: block " + strconv.FormatUint(uint64(ecblock.Header.EBHeight), 10))
 
 	err = db.ProcessDBlockMultiBatch(dblock)
 	if err != nil {
@@ -1819,20 +1838,31 @@ func saveBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
 	if err != nil {
 		return err
 	}
-	fmt.Println("Save DirectoryBlock: block " + strconv.FormatUint(uint64(dblock.Header.DBHeight), 10))
 
 	for _, eblock := range eblocks {
 		err = db.ProcessEBlockMultiBatch(eblock)
 		if err != nil {
 			return err
 		}
-		exportEBlock(eblock)
-		fmt.Println("Save EntryBlock: block " + strconv.FormatUint(uint64(eblock.Header.EBSequence), 10))
 	}
 
 	err = db.EndBatch()
 	if err != nil {
 		return err
+	}
+
+	// export blocks here for less database lock time
+	exportFctBlock(fblock)
+	fmt.Println("Save Factoid Block: block " + strconv.FormatUint(uint64(fblock.GetDBHeight()), 10))
+	exportABlock(ablock)
+	fmt.Println("Save Admin Block: block " + strconv.FormatUint(uint64(ablock.Header.DBHeight), 10))
+	exportECBlock(ecblock)
+	fmt.Println("Save EntryCreditBlock: block " + strconv.FormatUint(uint64(ecblock.Header.EBHeight), 10))
+	exportFctBlock(dblock)
+	fmt.Println("Save DirectoryBlock: block " + strconv.FormatUint(uint64(dblock.Header.DBHeight), 10))
+	for _, eblock := range eblocks {
+		exportEBlock(eblock)
+		fmt.Println("Save EntryBlock: block " + strconv.FormatUint(uint64(eblock.Header.EBSequence), 10))
 	}
 
 	binary, err := dblock.MarshalBinary()
@@ -1848,7 +1878,7 @@ func saveBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
 	placeAnchor(dblock)
 	fMemPool.resetDirBlockSigPool()
 	return nil
-}
+}*/
 
 // signDirBlockForAdminBlock signs the directory block for next admin block
 func signDirBlockForAdminBlock(newdb *common.DirectoryBlock) error {
