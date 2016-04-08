@@ -1015,6 +1015,7 @@ func processFactoidTX(msg *wire.MsgFactoidTX) error {
 		return nil
 	}
 	outMsgQueue <- msg
+	fMemPool.addMsg(msg, &h)
 
 	tx := msg.Transaction
 	txnum := 0
@@ -1048,8 +1049,8 @@ func processFactoidTX(msg *wire.MsgFactoidTX) error {
 		}
 		fmt.Printf("AckFactoidTx: %s\n", spew.Sdump(ack))
 		outMsgQueue <- ack
-	} else if localServer.IsFollower() {
-		fMemPool.addMsg(msg, &h)
+		//} else if localServer.IsFollower() {
+		//fMemPool.addMsg(msg, &h)
 	}
 	return nil
 }

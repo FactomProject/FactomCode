@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/FactomProject/FactomCode/common"
-	"github.com/FactomProject/FactomCode/consensus"
+	//"github.com/FactomProject/FactomCode/consensus"
 	"github.com/FactomProject/FactomCode/wire"
 	"github.com/FactomProject/factoid/block"
 )
@@ -22,13 +22,13 @@ import (
 // (CommitChain, RevealChain, CommitEntry, RevealEntry, Ack, EOM, DirBlockSig)
 type ftmMemPool struct {
 	sync.RWMutex
-	pool             map[wire.ShaHash]wire.Message
-	orphans          map[wire.ShaHash]wire.Message
-	blockpool        map[string]wire.Message // to hold the blocks or entries downloaded from peers
-	ackpool          []*wire.MsgAck
-	dirBlockSigs     []*wire.MsgDirBlockSig
-	processListItems []*consensus.ProcessListItem
-	lastUpdated      time.Time // last time pool was updated
+	pool         map[wire.ShaHash]wire.Message
+	orphans      map[wire.ShaHash]wire.Message
+	blockpool    map[string]wire.Message // to hold the blocks or entries downloaded from peers
+	ackpool      []*wire.MsgAck
+	dirBlockSigs []*wire.MsgDirBlockSig
+	//processListItems []*consensus.ProcessListItem
+	lastUpdated time.Time // last time pool was updated
 }
 
 // Add a factom message to the orphan pool
@@ -38,7 +38,7 @@ func (mp *ftmMemPool) initFtmMemPool() error {
 	mp.blockpool = make(map[string]wire.Message)
 	mp.ackpool = make([]*wire.MsgAck, 100, 20000)
 	mp.dirBlockSigs = make([]*wire.MsgDirBlockSig, 0, 32)
-	mp.processListItems = make([]*consensus.ProcessListItem, 100, 20000)
+	//mp.processListItems = make([]*consensus.ProcessListItem, 100, 20000)
 	return nil
 }
 
@@ -107,20 +107,6 @@ func (mp *ftmMemPool) addAck(ack *wire.MsgAck) *wire.MsgMissing {
 			// create a new msg type
 			return wire.NewMsgMissing(ack.Height, ack.Index, ack.Type)
 		}
-		pli := &consensus.ProcessListItem{
-			Ack:     ack,
-			Msg:     msg,
-			MsgHash: ack.Affirmation,
-		}
-		mp.processListItems[ack.Index] = pli
-
-	} else if ack.IsEomAck() {
-		pli := &consensus.ProcessListItem{
-			Ack:     ack,
-			Msg:     ack,
-			MsgHash: nil,
-		}
-		mp.processListItems[ack.Index] = pli
 	}
 	return nil
 }

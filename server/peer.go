@@ -2475,7 +2475,7 @@ func (p *peer) handleMissingMsg(msg *wire.MsgMissing) {
 	}
 	m := plMgr.MyProcessList.GetMissingMsg(msg)
 	if m == nil {
-		fmt.Printf("handleMissingMsg: found no msg/ack for missingMsg %s\n", spew.Sdump(msg))
+		fmt.Printf("handleMissingMsg: found no msg/ack it in process list. %s\n", spew.Sdump(msg))
 		return
 	}
 	p.QueueMessage(m, nil)
