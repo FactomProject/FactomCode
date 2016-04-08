@@ -248,6 +248,16 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 			if !IsTSValid(h, t) {
 				return fmt.Errorf("Timestamp invalid on Commit Chain")
 			}
+
+			// broadcast it to other federate servers only if it's new to me
+			hash, _ := msgCommitChain.Sha()
+			if fMemPool.haveMsg(&hash) {
+				fmt.Println("processCommitChain: already in mempool. ", spew.Sdump(msgCommitChain))
+				return nil
+			}
+			fMemPool.addMsg(msgCommitChain, &hash)
+			outMsgQueue <- msgCommitChain
+
 			err := processCommitChain(msgCommitChain)
 			if err != nil {
 				return err
@@ -255,13 +265,6 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		} else {
 			return errors.New("Error in processing msg:" + spew.Sdump(msg))
 		}
-		// broadcast it to other federate servers only if it's new to me
-		h, _ := msgCommitChain.Sha()
-		if fMemPool.haveMsg(&h) {
-			fmt.Println("processCommitChain: already in mempool. ", spew.Sdump(msgCommitChain))
-			return nil
-		}
-		outMsgQueue <- msgCommitChain
 
 	case wire.CmdCommitEntry:
 		msgCommitEntry, ok := msg.(*wire.MsgCommitEntry)
@@ -271,6 +274,16 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 			if !IsTSValid(h, t) {
 				return fmt.Errorf("Timestamp invalid on Commit Entry")
 			}
+
+			// broadcast it to other federate servers only if it's new to me
+			hash, _ := msgCommitEntry.Sha()
+			if fMemPool.haveMsg(&hash) {
+				fmt.Println("processCommitEntry: already in mempool. ", spew.Sdump(msgCommitEntry))
+				return nil
+			}
+			fMemPool.addMsg(msgCommitEntry, &hash)
+			outMsgQueue <- msgCommitEntry
+
 			err := processCommitEntry(msgCommitEntry)
 			if err != nil {
 				return err
@@ -278,17 +291,19 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		} else {
 			return errors.New("Error in processing msg:" + spew.Sdump(msg))
 		}
-		// broadcast it to other federate servers only if it's new to me
-		h, _ := msgCommitEntry.Sha()
-		if fMemPool.haveMsg(&h) {
-			fmt.Println("processCommitChain: already in mempool. ", spew.Sdump(msgCommitEntry))
-			return nil
-		}
-		outMsgQueue <- msgCommitEntry
 
 	case wire.CmdRevealEntry:
 		msgRevealEntry, ok := msg.(*wire.MsgRevealEntry)
 		if ok && msgRevealEntry.IsValid() {
+			// broadcast it to other federate servers only if it's new to me
+			h, _ := msgRevealEntry.Sha()
+			if fMemPool.haveMsg(&h) {
+				fmt.Println("processCommitChain: already in mempool. ", spew.Sdump(msgRevealEntry))
+				return nil
+			}
+			fMemPool.addMsg(msgRevealEntry, &h)
+			outMsgQueue <- msgRevealEntry
+
 			err := processRevealEntry(msgRevealEntry)
 			if err != nil {
 				return err
@@ -296,13 +311,6 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		} else {
 			return errors.New("Error in processing msg:" + spew.Sdump(msg))
 		}
-		// broadcast it to other federate servers only if it's new to me
-		h, _ := msgRevealEntry.Sha()
-		if fMemPool.haveMsg(&h) {
-			fmt.Println("processCommitChain: already in mempool. ", spew.Sdump(msgRevealEntry))
-			return nil
-		}
-		outMsgQueue <- msgRevealEntry
 
 	case wire.CmdAck:
 		ack, _ := msg.(*wire.MsgAck)
@@ -821,8 +829,8 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 			//???
 			delete(commitEntryMap, e.Hash().String())
 
-		} else if localServer.IsFollower() {
-			fMemPool.addMsg(msg, h)
+			//} else if localServer.IsFollower() {
+			//fMemPool.addMsg(msg, h)
 		}
 		return nil
 
@@ -883,8 +891,8 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 			//???
 			delete(commitEntryMap, e.Hash().String())
 
-		} else if localServer.IsFollower() {
-			fMemPool.addMsg(msg, h)
+			//} else if localServer.IsFollower() {
+			//fMemPool.addMsg(msg, h)
 		}
 		return nil
 	}
@@ -935,9 +943,6 @@ func processCommitEntry(msg *wire.MsgCommitEntry) error {
 		}
 		fmt.Printf("AckCommitEntry: %s\n", spew.Sdump(ack))
 		outMsgQueue <- ack
-
-	} else if localServer.IsFollower() {
-		fMemPool.addMsg(msg, &h)
 	}
 	return nil
 }
@@ -972,9 +977,7 @@ func processCommitChain(msg *wire.MsgCommitChain) error {
 	commitChainMap[c.EntryHash.String()] = c
 
 	// deduct the entry credits from the eCreditMap
-	if nodeMode == common.SERVER_NODE {
-		eCreditMap[string(c.ECPubKey[:])] -= int32(c.Credits)
-	}
+	eCreditMap[string(c.ECPubKey[:])] -= int32(c.Credits)
 
 	h, _ := msg.Sha()
 	if localServer.IsLeader() || localServer.isSingleServerMode() {
@@ -988,8 +991,6 @@ func processCommitChain(msg *wire.MsgCommitChain) error {
 		}
 		fmt.Printf("AckCommitChain: %s\n", spew.Sdump(ack))
 		outMsgQueue <- ack
-	} else if localServer.IsFollower() {
-		fMemPool.addMsg(msg, &h)
 	}
 	return nil
 }
@@ -1750,27 +1751,18 @@ func saveBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
 		return nil
 	}
 
-	fmt.Println("saveBlocks: height=", dblock.Header.DBHeight)
 	db.ProcessFBlockBatch(fblock)
-	exportFctBlock(fblock)
-	fmt.Println("Save Factoid Block: block " + strconv.FormatUint(uint64(fblock.GetDBHeight()), 10))
 	db.ProcessABlockBatch(ablock)
-	exportABlock(ablock)
-	fmt.Println("Save Admin Block: block " + strconv.FormatUint(uint64(ablock.Header.DBHeight), 10))
 	db.ProcessECBlockBatch(ecblock)
-	exportECBlock(ecblock)
-	fmt.Println("Save EntryCreditBlock: block " + strconv.FormatUint(uint64(ecblock.Header.EBHeight), 10))
 	db.ProcessDBlockBatch(dblock)
 	db.InsertDirBlockInfo(common.NewDirBlockInfoFromDBlock(dblock))
-	fmt.Println("Save DirectoryBlock: block " + strconv.FormatUint(uint64(dblock.Header.DBHeight), 10))
 	for _, eblock := range eblocks {
 		if eblock == nil {
 			continue
 		}
 		db.ProcessEBlockBatch(eblock)
-		exportEBlock(eblock)
-		fmt.Println("Save EntryBlock: block " + strconv.FormatUint(uint64(eblock.Header.EBSequence), 10))
 	}
+
 	binary, _ := dblock.MarshalBinary()
 	commonHash := common.Sha(binary)
 	db.UpdateBlockHeightCache(dblock.Header.DBHeight, commonHash)
@@ -1779,6 +1771,7 @@ func saveBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
 	fmt.Println("saveBlocks: done=", dblock.Header.DBHeight)
 	placeAnchor(dblock)
 	fMemPool.resetDirBlockSigPool()
+	exportBlocks(newDBlock, newABlock, newECBlock, newFBlock, newEBlocks)
 	return nil
 }
 
@@ -1841,6 +1834,9 @@ func saveBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
 
 	for _, eblock := range eblocks {
 		err = db.ProcessEBlockMultiBatch(eblock)
+		if eblock == nil {
+			continue
+		}
 		if err != nil {
 			return err
 		}
@@ -1851,20 +1847,6 @@ func saveBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
 		return err
 	}
 
-	// export blocks here for less database lock time
-	exportFctBlock(fblock)
-	fmt.Println("Save Factoid Block: block " + strconv.FormatUint(uint64(fblock.GetDBHeight()), 10))
-	exportABlock(ablock)
-	fmt.Println("Save Admin Block: block " + strconv.FormatUint(uint64(ablock.Header.DBHeight), 10))
-	exportECBlock(ecblock)
-	fmt.Println("Save EntryCreditBlock: block " + strconv.FormatUint(uint64(ecblock.Header.EBHeight), 10))
-	exportFctBlock(dblock)
-	fmt.Println("Save DirectoryBlock: block " + strconv.FormatUint(uint64(dblock.Header.DBHeight), 10))
-	for _, eblock := range eblocks {
-		exportEBlock(eblock)
-		fmt.Println("Save EntryBlock: block " + strconv.FormatUint(uint64(eblock.Header.EBSequence), 10))
-	}
-
 	binary, err := dblock.MarshalBinary()
 	if err != nil {
 		return err
@@ -1872,13 +1854,31 @@ func saveBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
 	commonHash := common.Sha(binary)
 	db.UpdateBlockHeightCache(dblock.Header.DBHeight, commonHash)
 	db.UpdateNextBlockHeightCache(dchain.NextDBHeight)
-	exportDBlock(dblock)
 	fmt.Println("saveBlocks: done=", dblock.Header.DBHeight)
 
 	placeAnchor(dblock)
 	fMemPool.resetDirBlockSigPool()
+
+	// export blocks here for less database lock time
+	exportBlocks(newDBlock, newABlock, newECBlock, newFBlock, newEBlocks)
 	return nil
 }*/
+
+func exportBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
+	ecblock *common.ECBlock, fblock block.IFBlock, eblocks []*common.EBlock) {
+	exportFctBlock(fblock)
+	fmt.Println("Save Factoid Block: block " + strconv.FormatUint(uint64(fblock.GetDBHeight()), 10))
+	exportABlock(ablock)
+	fmt.Println("Save Admin Block: block " + strconv.FormatUint(uint64(ablock.Header.DBHeight), 10))
+	exportECBlock(ecblock)
+	fmt.Println("Save EntryCreditBlock: block " + strconv.FormatUint(uint64(ecblock.Header.EBHeight), 10))
+	exportDBlock(dblock)
+	fmt.Println("Save DirectoryBlock: block " + strconv.FormatUint(uint64(dblock.Header.DBHeight), 10))
+	for _, eblock := range eblocks {
+		exportEBlock(eblock)
+		fmt.Println("Save EntryBlock: block " + strconv.FormatUint(uint64(eblock.Header.EBSequence), 10))
+	}
+}
 
 // signDirBlockForAdminBlock signs the directory block for next admin block
 func signDirBlockForAdminBlock(newdb *common.DirectoryBlock) error {
