@@ -810,10 +810,10 @@ func (p *peer) readMessage() (wire.Message, []byte, error) {
 		return fmt.Sprintf("Received %v%s from %s",
 			msg.Command(), summary, p)
 	}))
-	peerLog.Debugf("read: %v", newLogClosure(func() string {
+	/*peerLog.Debugf("read: %v", newLogClosure(func() string {
 		return spew.Sdump(msg)
 	}))
-	/*	peerLog.Debugf("%v", newLogClosure(func() string {
+		peerLog.Debugf("%v", newLogClosure(func() string {
 		return spew.Sdump(buf)
 	})) */
 
@@ -850,10 +850,10 @@ func (p *peer) writeMessage(msg wire.Message) {
 		return fmt.Sprintf("Sending %v%s to %s", msg.Command(),
 			summary, p)
 	}))
-	peerLog.Debugf("write: %v", newLogClosure(func() string {
+	/*peerLog.Debugf("write: %v", newLogClosure(func() string {
 		return spew.Sdump(msg)
 	}))
-	/*	peerLog.Debugf("%v", newLogClosure(func() string {
+		peerLog.Debugf("%v", newLogClosure(func() string {
 		var buf bytes.Buffer
 		err := wire.WriteMessage(&buf, msg, p.ProtocolVersion(),
 			p.fctnet)
@@ -2482,14 +2482,14 @@ func (p *peer) handleMissingMsg(msg *wire.MsgMissing) {
 }
 
 func (p *peer) handleCandidateMsg(msg *wire.MsgCandidate) {
-	fmt.Printf("handleCandidateMsg: %s\n", spew.Sdump(msg))
+	fmt.Printf("handleCandidateMsg: %s\n", msg)
 	if !msg.Sig.Verify([]byte(string(dchain.NextDBHeight) + msg.SourceNodeID)) {
 		fmt.Println("handleCandidateMsg: signature verify FAILED.")
 		return
 	}
-	_, latestHeight, _ := db.FetchBlockHeightCache()
-	if p.nodeID == msg.SourceNodeID && uint32(latestHeight) == msg.DBHeight-1 {
+	//_, latestHeight, _ := db.FetchBlockHeightCache()
+	if p.nodeID == msg.SourceNodeID { //&& uint32(latestHeight) == msg.DBHeight-1 {
 		p.isCandidate = false
-		fmt.Println("handleCandidateMsg: isCandidate turned to follower.")
+		fmt.Println("handleCandidateMsg: isCandidate turned to follower: ", msg)
 	}
 }
