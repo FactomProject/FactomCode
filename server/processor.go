@@ -789,7 +789,8 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 	}
 	e := msg.Entry
 	bin, _ := e.MarshalBinary()
-	h, _ := msgRevealEntry.Sha()
+	hash, _ := msg.Sha()
+	h := &hash
 	//h, _ := wire.NewShaHash(e.Hash().Bytes())
 
 	// Check if the chain id is valid

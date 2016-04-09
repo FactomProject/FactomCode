@@ -36,7 +36,7 @@ func (mp *ftmMemPool) initFtmMemPool() error {
 	mp.pool = make(map[wire.ShaHash]wire.Message)
 	mp.orphans = make(map[wire.ShaHash]wire.Message)
 	mp.blockpool = make(map[string]wire.Message)
-	mp.ackpool = make([]*wire.MsgAck, 100, 20000)
+	mp.ackpool = make([]*wire.MsgAck, 100, 200)
 	mp.dirBlockSigs = make([]*wire.MsgDirBlockSig, 0, 32)
 	//mp.processListItems = make([]*consensus.ProcessListItem, 100, 20000)
 	return nil
@@ -76,7 +76,7 @@ func (mp *ftmMemPool) resetAckPool() {
 	defer mp.Unlock()
 
 	fmt.Println("resetAckPool")
-	mp.ackpool = make([]*wire.MsgAck, 100, 20000)
+	mp.ackpool = make([]*wire.MsgAck, 100, 200)
 }
 
 // addAck add the ack to ackpool and find it's acknowledged msg.
@@ -90,13 +90,25 @@ func (mp *ftmMemPool) addAck(ack *wire.MsgAck) *wire.MsgMissing {
 	mp.Lock()
 	defer mp.Unlock()
 
-	fmt.Printf("ftmMemPool.addAck: %s\n", ack)
+	// reset it at the very beginning
+	if ack.Index == 0 {
+		mp.ackpool = make([]*wire.MsgAck, 100, 200)
+	} else if ack.Index == uint32(len(mp.ackpool)) {
+		mp.ackpool = mp.ackpool[0 : ack.Index+50]
+	} else if ack.Index == uint32(cap(mp.ackpool)) {
+		temp := make([]*wire.MsgAck, ack.Index*2, ack.Index*2)
+		copy(temp, mp.ackpool)
+		mp.ackpool = temp
+	}
+
 	// check duplication first
 	a := mp.ackpool[ack.Index]
 	if a != nil && ack.Equals(a) {
 		fmt.Println("duplicated ack: ignore it")
 		return nil
 	}
+
+	fmt.Printf("ftmMemPool.addAck: %s\n", ack)
 	mp.ackpool[ack.Index] = ack
 	if ack.Type == wire.AckRevealEntry || ack.Type == wire.AckRevealChain ||
 		ack.Type == wire.AckCommitChain || ack.Type == wire.AckCommitEntry ||
