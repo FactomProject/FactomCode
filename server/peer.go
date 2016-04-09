@@ -2478,6 +2478,7 @@ func (p *peer) handleMissingMsg(msg *wire.MsgMissing) {
 		fmt.Printf("handleMissingMsg: found no msg/ack it in process list. %s\n", spew.Sdump(msg))
 		return
 	}
+	fmt.Printf("handleMissingMsg: found missing msg and sending it: %s\n", spew.Sdump(m))
 	p.QueueMessage(m, nil)
 }
 

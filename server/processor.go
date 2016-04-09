@@ -298,7 +298,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 			// broadcast it to other federate servers only if it's new to me
 			h, _ := msgRevealEntry.Sha()
 			if fMemPool.haveMsg(&h) {
-				fmt.Println("processCommitChain: already in mempool. ", spew.Sdump(msgRevealEntry))
+				fmt.Println("processRevealEntry: already in mempool. ", spew.Sdump(msgRevealEntry))
 				return nil
 			}
 			fMemPool.addMsg(msgRevealEntry, &h)
@@ -789,7 +789,8 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 	}
 	e := msg.Entry
 	bin, _ := e.MarshalBinary()
-	h, _ := wire.NewShaHash(e.Hash().Bytes())
+	h, _ := msgRevealEntry.Sha()
+	//h, _ := wire.NewShaHash(e.Hash().Bytes())
 
 	// Check if the chain id is valid
 	if e.ChainID.IsSameAs(zeroHash) || e.ChainID.IsSameAs(dchain.ChainID) || e.ChainID.IsSameAs(achain.ChainID) ||
@@ -889,7 +890,7 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 			fmt.Printf("AckRevealChain: %s\n", spew.Sdump(ack))
 			outMsgQueue <- ack
 			//???
-			delete(commitEntryMap, e.Hash().String())
+			delete(commitChainMap, e.Hash().String())
 
 			//} else if localServer.IsFollower() {
 			//fMemPool.addMsg(msg, h)

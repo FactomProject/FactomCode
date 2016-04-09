@@ -18,6 +18,7 @@ type MsgMissing struct {
 	Height uint32 //DBHeight for this process list
 	Index  uint32 //offset in this process list
 	Type   byte   //See Ack / msg types and InvTypes of blocks
+	IsAck	 bool		//yes means this missing msg is an ack, otherwise it's a msg
 	//ReqNodeID string // requestor's nodeID
 	//Sig       common.Signature
 }

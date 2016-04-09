@@ -6,8 +6,10 @@ package wire
 
 import (
 	"bytes"
-	"github.com/FactomProject/FactomCode/common"
+	"fmt"
 	"io"
+
+	"github.com/FactomProject/FactomCode/common"
 )
 
 // MsgRevealChain implements the Message interface and represents a factom
@@ -64,13 +66,12 @@ func (msg *MsgRevealChain) MaxPayloadLength(pver uint32) uint32 {
 	return MaxAppMsgPayload
 }
 
-// NewMsgInv returns a new bitcoin inv message that conforms to the Message
-// interface.  See MsgInv for details.
+// NewMsgRevealChain returns a new .MsgRevealChain
 func NewMsgRevealChain() *MsgRevealChain {
 	return &MsgRevealChain{}
 }
 
-// Create a sha hash from the message binary (output of BtcEncode)
+// Sha Creates a sha hash from the message binary (output of BtcEncode)
 func (msg *MsgRevealChain) Sha() (ShaHash, error) {
 
 	buf := bytes.NewBuffer(nil)
@@ -79,4 +80,9 @@ func (msg *MsgRevealChain) Sha() (ShaHash, error) {
 	_ = sha.SetBytes(Sha256(buf.Bytes()))
 
 	return sha, nil
+}
+
+// String returns its shows representation
+func (msg *MsgRevealChain) String() string {
+	return fmt.Sprintf("MsgRevealChain: entry.chainID: %s", msg.FirstEntry.ChainID.String())
 }

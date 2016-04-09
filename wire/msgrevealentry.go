@@ -6,8 +6,10 @@ package wire
 
 import (
 	"bytes"
-	"github.com/FactomProject/FactomCode/common"
+	"fmt"
 	"io"
+
+	"github.com/FactomProject/FactomCode/common"
 )
 
 // MsgRevealEntry implements the Message interface and represents a factom
@@ -84,4 +86,9 @@ func (msg *MsgRevealEntry) Sha() (ShaHash, error) {
 // Check whether the msg can pass the message level validations
 func (msg *MsgRevealEntry) IsValid() bool {
 	return msg.Entry.IsValid()
+}
+
+// String returns its shows representation
+func (msg *MsgRevealEntry) String() string {
+	return fmt.Sprintf("entry.chainID: %s", msg.Entry.ChainID.String())
 }
