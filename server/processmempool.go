@@ -243,7 +243,7 @@ func (mp *ftmMemPool) deleteBlockMsg(hash string) error {
 	defer mp.Unlock()
 
 	if mp.blockpool[hash] != nil {
-		delete(fMemPool.blockpool, hash)
+		delete(mp.blockpool, hash)
 	}
 	return nil
 }
@@ -325,4 +325,18 @@ func (mp *ftmMemPool) getEBlock(height uint32) *common.EBlock {
 		}
 	}
 	return nil
+}
+
+// after blocks being built, remove messages included in the process list
+func (mp *ftmMemPool) cleanUpMemPool() {
+	mp.Lock()
+	defer mp.Unlock()
+
+	plItems := plMgr.MyProcessList.GetPLItems()
+	for _, item := range plItems {
+		if item.MsgHash != nil {
+			fmt.Println("cleanUpMemPool: ", item.MsgHash.String())
+			delete(mp.pool, *item.MsgHash)
+		}
+	}
 }

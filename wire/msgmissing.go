@@ -10,16 +10,19 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+
+	"github.com/btcsuite/btcd/wire"
 )
 
 // MsgMissing is used to request missing msg, ack and blocks during or after
 // process list and building blocks
 type MsgMissing struct {
-	Height uint32 //DBHeight for this process list
-	Index  uint32 //offset in this process list
-	Type   byte   //See Ack / msg types and InvTypes of blocks
-	IsAck	 bool		//yes means this missing msg is an ack, otherwise it's a msg
-	//ReqNodeID string // requestor's nodeID
+	Height    uint32       //DBHeight for this process list
+	Index     uint32       //offset in this process list
+	Type      byte         //See Ack / msg types and InvTypes of blocks
+	IsAck     bool         //yes means this missing msg is an ack, otherwise it's a msg
+	ShaHash   wire.ShaHash //shahash of the msg if IsAck is false
+	ReqNodeID string       // requestor's nodeID
 	//Sig       common.Signature
 }
 
