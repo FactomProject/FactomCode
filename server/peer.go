@@ -2473,9 +2473,18 @@ func (p *peer) handleMissingMsg(msg *wire.MsgMissing) {
 		fmt.Println("handleMissingMsg: MsgMissing has to be handled by the leader")
 		return
 	}
+	if !msg.Sig.Verify(msg.GetBinaryForSignature()) {
+		fmt.Println("handleMissingMsg: could not verify sig: ", spew.Sdump(msg))
+		return
+	}
 	m := plMgr.MyProcessList.GetMissingMsg(msg)
 	if m == nil {
 		fmt.Printf("handleMissingMsg: found no msg/ack it in process list. %s\n", spew.Sdump(msg))
+		if !msg.IsAck {
+			m = fMemPool.getMsg(msg.ShaHash)
+		}
+	}
+	if m == nil {
 		return
 	}
 	fmt.Printf("handleMissingMsg: found missing msg and sending it: %s\n", spew.Sdump(m))

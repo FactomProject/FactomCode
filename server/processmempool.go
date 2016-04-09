@@ -117,7 +117,9 @@ func (mp *ftmMemPool) addAck(ack *wire.MsgAck) *wire.MsgMissing {
 		if msg == nil {
 			// missing msg and request it from the leader ???
 			// create a new msg type
-			return wire.NewMsgMissing(ack.Height, ack.Index, ack.Type)
+			miss := wire.NewMsgMissing(ack.Height, ack.Index, ack.Type, false, *ack.Affirmation, localServer.nodeID)
+			miss.Sig = serverPrivKey.Sign(miss.GetBinaryForSignature())
+			return miss
 		}
 	}
 	return nil
@@ -136,7 +138,8 @@ func (mp *ftmMemPool) getMissingMsgAck(ack *wire.MsgAck) []*wire.MsgMissing {
 	for i := int(ack.Index - 1); i >= 0; i-- {
 		if mp.ackpool[uint32(i)] == nil {
 			// missing an ACK here.
-			m := wire.NewMsgMissing(ack.Height, uint32(i), wire.Unknown)
+			m := wire.NewMsgMissing(ack.Height, uint32(i), wire.Unknown, true, zeroBtcHash, localServer.nodeID)
+			m.Sig = localServer.privKey.Sign(m.GetBinaryForSignature())
 			missingAcks = append(missingAcks, m)
 			fmt.Printf("ftmMemPool.getMissingMsgAck: Missing an Ack at index=%d\n", i)
 		} else if mp.ackpool[uint32(i)].IsEomAck() {
@@ -184,16 +187,23 @@ func (mp *ftmMemPool) assembleFollowerProcessList(ack *wire.MsgAck) error {
 	return nil
 }
 
-func (mp *ftmMemPool) haveMsg(hash *wire.ShaHash) bool {
+func (mp *ftmMemPool) haveMsg(hash wire.ShaHash) bool {
 	mp.RLock()
 	defer mp.RUnlock()
 
-	m := mp.pool[*hash]
+	m := mp.pool[hash]
 	if m != nil {
 		fmt.Println("hasMsg: hash=", hex.EncodeToString(hash.Bytes()))
 		return true
 	}
 	return false
+}
+
+func (mp *ftmMemPool) getMsg(hash wire.ShaHash) wire.Message {
+	mp.RLock()
+	defer mp.RUnlock()
+
+	return mp.pool[hash]
 }
 
 // Add a factom message to the  Mem pool

@@ -1726,12 +1726,18 @@ func (s *server) handleNextLeader(height uint32) {
 			return
 		} else if height == s.myLeaderPolicy.StartDBHeight-1 {
 			// regime change for leader-elected
-			fmt.Println("handleNextLeader: ** height equal, regime change for leader-elected.")
 			s.isLeader = true
 			s.isLeaderElected = false
 			fed := s.GetMyFederateServer()
 			fed.LeaderLast = height
-			// turn on BlockTimer
+			// turn on BlockTimer in processor
+			fmt.Println("handleNextLeader: ** height equal, regime change for leader-elected.")
+			fmt.Println("\n//////////////////////")
+			fmt.Println("///                ///")
+			fmt.Println("///   New Leader   ///")
+			fmt.Println("///                ///")
+			fmt.Println("//////////////////////")
+			fmt.Println()
 		}
 		return
 	}

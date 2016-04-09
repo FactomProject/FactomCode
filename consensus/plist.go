@@ -54,8 +54,9 @@ func (pl *ProcessList) GetPLItems() []*ProcessListItem {
 // ack or msg based on the type of msg missing.
 func (pl *ProcessList) GetMissingMsg(msg *wire.MsgMissing) wire.Message {
 	for _, item := range pl.plItems {
+		// todo: what if missing both msg and ack for the same height and index?
 		if item.Ack.Height == msg.Height && item.Ack.Index == msg.Index {
-			if item.Ack.IsEomAck() {
+			if item.Ack.IsEomAck() || msg.IsAck {
 				return item.Ack
 			}
 			m, ok := item.Msg.(wire.Message)

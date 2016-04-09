@@ -9,65 +9,95 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
-	"io/ioutil"
 
-	"github.com/btcsuite/btcd/wire"
+	"github.com/FactomProject/FactomCode/common"
 )
 
 // MsgMissing is used to request missing msg, ack and blocks during or after
 // process list and building blocks
 type MsgMissing struct {
-	Height    uint32       //DBHeight for this process list
-	Index     uint32       //offset in this process list
-	Type      byte         //See Ack / msg types and InvTypes of blocks
-	IsAck     bool         //yes means this missing msg is an ack, otherwise it's a msg
-	ShaHash   wire.ShaHash //shahash of the msg if IsAck is false
-	ReqNodeID string       // requestor's nodeID
-	//Sig       common.Signature
+	Height    uint32  //DBHeight for this process list
+	Index     uint32  //offset in this process list
+	Type      byte    //See Ack / msg types and InvTypes of blocks
+	IsAck     bool    //yes means this missing msg is an ack, otherwise it's a msg
+	ShaHash   ShaHash //shahash of the msg if IsAck is false
+	ReqNodeID string  // requestor's nodeID
+	Sig       common.Signature
 }
 
 // GetBinaryForSignature Writes out the MsgMissing (excluding Signature) to binary.
-func (msg *MsgMissing) GetBinaryForSignature() (data []byte, err error) {
+func (msg *MsgMissing) GetBinaryForSignature() []byte {
 	var buf bytes.Buffer
 	binary.Write(&buf, binary.BigEndian, msg.Height)
 	binary.Write(&buf, binary.BigEndian, msg.Index)
 	buf.WriteByte(msg.Type)
-	//buf.Write([]byte(msg.ReqNodeID))
-	return buf.Bytes(), err
-}
-
-// BtcDecode decodes r using the bitcoin protocol encoding into the receiver.
-// This is part of the Message interface implementation.
-func (msg *MsgMissing) BtcDecode(r io.Reader, pver uint32) error {
-	//err := readElements(r, &msg.Height, msg.ChainID, &msg.Index, &msg.Type, msg.Affirmation, &msg.SerialHash, &msg.Signature)
-	newData, err := ioutil.ReadAll(r)
-	if err != nil {
-		return fmt.Errorf("MsgMissing.BtcDecode reader is invalid")
+	var b byte
+	if msg.IsAck {
+		b = 1
 	}
-
-	msg.Height, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
-	msg.Index, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
-	msg.Type = newData[0]
-	//msg.Type, newData = newData[0], newData[1:]
-	//len := len(newData) - 96
-	//msg.ReqNodeID = string(newData[:len])
-	//msg.Sig = common.UnmarshalBinarySignature(newData[len:])
-	return nil
+	buf.WriteByte(b)
+	buf.Write(msg.ShaHash.Bytes())
+	buf.Write([]byte(msg.ReqNodeID))
+	return buf.Bytes()
 }
 
-// BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
-// This is part of the Message interface implementation.
-func (msg *MsgMissing) BtcEncode(w io.Writer, pver uint32) error {
-	//err := writeElements(w, msg.Height, msg.ChainID, msg.Index, msg.Type, msg.Affirmation, msg.SerialHash, msg.Signature)
-	var buf bytes.Buffer
-	binary.Write(&buf, binary.BigEndian, msg.Height)
-	binary.Write(&buf, binary.BigEndian, msg.Index)
-	buf.WriteByte(msg.Type)
-	//buf.Write([]byte(msg.ReqNodeID))
-	//data := common.MarshalBinarySignature(msg.Sig)
-	//buf.Write(data[:])
-	w.Write(buf.Bytes())
+// BtcDecode is part of the Message interface implementation.
+func (msg *MsgMissing) BtcDecode(r io.Reader, pver uint32) error {
+	buf, ok := r.(*bytes.Buffer)
+	if !ok {
+		return fmt.Errorf("MsgMissing.BtcDecode reader is not a " + "*bytes.Buffer")
+	}
+	err := readElements(buf, &msg.Height, &msg.Index, &msg.Type, &msg.IsAck, &msg.ShaHash, &msg.Sig)
+	if err != nil {
+		return err
+	}
+	if buf.Len() > 0 {
+		nodeID, err := readVarString(buf, pver)
+		if err != nil {
+			return err
+		}
+		msg.ReqNodeID = nodeID
+	}
 	return nil
+	/*
+		newData, err := ioutil.ReadAll(r)
+		if err != nil {
+			return fmt.Errorf("MsgMissing.BtcDecode reader is invalid")
+		}
+
+		msg.Height, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+		msg.Index, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+		msg.Type = newData[0]
+		//msg.Type, newData = newData[0], newData[1:]
+		//len := len(newData) - 96
+		//msg.ReqNodeID = string(newData[:len])
+		//msg.Sig = common.UnmarshalBinarySignature(newData[len:])
+		return nil
+	*/
+}
+
+// BtcEncode is part of the Message interface implementation.
+func (msg *MsgMissing) BtcEncode(w io.Writer, pver uint32) error {
+	err := writeElements(w, msg.Height, msg.Index, msg.Type, msg.IsAck, msg.ShaHash, msg.Sig)
+	if err != nil {
+		fmt.Errorf(err.Error())
+		return err
+	}
+	err = writeVarString(w, pver, msg.ReqNodeID)
+	if err != nil {
+		return err
+	}
+	return nil
+	/*
+		var buf bytes.Buffer
+		binary.Write(&buf, binary.BigEndian, msg.Height)
+		binary.Write(&buf, binary.BigEndian, msg.Index)
+		buf.WriteByte(msg.Type)
+		//buf.Write([]byte(msg.ReqNodeID))
+		//data := common.MarshalBinarySignature(msg.Sig)
+		//buf.Write(data[:])
+		w.Write(buf.Bytes())
+		return nil*/
 }
 
 // Command returns the protocol command string for the message.  This is part
@@ -84,12 +114,15 @@ func (msg *MsgMissing) MaxPayloadLength(pver uint32) uint32 {
 
 // NewMsgMissing returns a new bitcoin ping message that conforms to the Message
 // interface.  See MsgMissing for details.
-func NewMsgMissing(height uint32, index uint32, typ byte) *MsgMissing {
+func NewMsgMissing(height uint32, index uint32, typ byte, isAck bool,
+	shaHash ShaHash, sourceID string) *MsgMissing {
 	return &MsgMissing{
-		Height: height,
-		Index:  index,
-		Type:   typ,
-		//ReqNodeID: sourceID,
+		Height:    height,
+		Index:     index,
+		Type:      typ,
+		IsAck:     isAck,
+		ShaHash:   shaHash,
+		ReqNodeID: sourceID,
 	}
 }
 
@@ -114,9 +147,11 @@ func (msg *MsgMissing) IsEomAck() bool {
 func (msg *MsgMissing) Equals(ack *MsgMissing) bool {
 	return msg.Height == ack.Height &&
 		msg.Index == ack.Index &&
-		msg.Type == ack.Type //&&
-	//msg.ReqNodeID == ack.ReqNodeID &&
-	//msg.Sig.Equals(ack.Sig)
+		msg.Type == ack.Type &&
+		msg.IsAck == ack.IsAck &&
+		bytes.Compare(msg.ShaHash.Bytes(), ack.ShaHash.Bytes()) == 0 &&
+		msg.ReqNodeID == ack.ReqNodeID &&
+		msg.Sig.Equals(ack.Sig)
 }
 
 // ByMsgIndex sorts MsgMissing by its Index

@@ -251,7 +251,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 
 			// broadcast it to other federate servers only if it's new to me
 			hash, _ := msgCommitChain.Sha()
-			if fMemPool.haveMsg(&hash) {
+			if fMemPool.haveMsg(hash) {
 				fmt.Println("processCommitChain: already in mempool. ", spew.Sdump(msgCommitChain))
 				return nil
 			}
@@ -277,7 +277,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 
 			// broadcast it to other federate servers only if it's new to me
 			hash, _ := msgCommitEntry.Sha()
-			if fMemPool.haveMsg(&hash) {
+			if fMemPool.haveMsg(hash) {
 				fmt.Println("processCommitEntry: already in mempool. ", spew.Sdump(msgCommitEntry))
 				return nil
 			}
@@ -297,7 +297,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		if ok && msgRevealEntry.IsValid() {
 			// broadcast it to other federate servers only if it's new to me
 			h, _ := msgRevealEntry.Sha()
-			if fMemPool.haveMsg(&h) {
+			if fMemPool.haveMsg(h) {
 				fmt.Println("processRevealEntry: already in mempool. ", spew.Sdump(msgRevealEntry))
 				return nil
 			}
@@ -442,11 +442,14 @@ func processLeaderEOM(msgEom *wire.MsgInt_EOM) error {
 		}
 	}
 	common.FactoidState.EndOfPeriod(int(msgEom.EOM_Type))
-	if msgEom.EOM_Type == wire.EndMinute10 {
-		// Process from Orphan pool before the end of process list
-		fmt.Println("processLeaderEOM: EndMinute10: before processFromOrphanPool")
-		processFromOrphanPool()
-	}
+
+	// orphans should be broadcast at the beginning of next 10 minutes,
+	// same as messages stuck in mempool and not being included in processlist.
+	//if msgEom.EOM_Type == wire.EndMinute10 {
+	// Process from Orphan pool before the end of process list
+	//fmt.Println("processLeaderEOM: EndMinute10: before processFromOrphanPool")
+	//processFromOrphanPool()
+	//}
 
 	ack, err := plMgr.AddToLeadersProcessList(msgEom, nil, msgEom.EOM_Type, dchain.NextBlock.Header.Timestamp, fchain.NextBlock.GetCoinbaseTimestamp())
 	if err != nil {
@@ -1012,7 +1015,7 @@ func processFactoidTX(msg *wire.MsgFactoidTX) error {
 
 	// broadcast it to other federate servers only if it's new to me
 	h, _ := msg.Sha()
-	if fMemPool.haveMsg(&h) {
+	if fMemPool.haveMsg(h) {
 		fmt.Println("processFactoidTX: already in mempool. ", spew.Sdump(msg))
 		return nil
 	}
