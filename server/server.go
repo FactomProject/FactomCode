@@ -393,11 +393,11 @@ func (s *server) handleDonePeerMsg(state *peerState, p *peer) {
 			break
 		}
 	}
+	srvrLog.Debugf("handleDonePeerMsg: need to remove %s\n", p)
 	for i, fedServer := range s.federateServers {
-		srvrLog.Debugf("handleDonePeerMsg: need to remove %s, federate server candidate: %s\n", p, spew.Sdump(fedServer))
 		if fedServer.Peer == p {
 			s.federateServers = append(s.federateServers[:i], s.federateServers[i+1:]...)
-			srvrLog.Debugf("Removed federate server: %s", p)
+			srvrLog.Debugf("handleDonePeerMsg: Removed: %s", p)
 			return
 		}
 	}

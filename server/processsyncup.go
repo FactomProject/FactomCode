@@ -5,7 +5,6 @@
 package server
 
 import (
-	"bytes"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -192,9 +191,12 @@ func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, d
 				return false
 			}
 		default:
-			if msg, ok := fMemPool.blockpool[dbEntry.KeyMR.String()]; !ok {
+			if _, ok := fMemPool.blockpool[dbEntry.KeyMR.String()]; !ok {
 				return false
-			} else {
+			}
+			// no need to care entry at this point
+			// todo: use a go routine to check entry independently
+			/*else {
 				eBlkMsg, _ := msg.(*wire.MsgEBlock)
 				// validate every entry in EBlock
 				for _, ebEntry := range eBlkMsg.EBlk.Body.EBEntries {
@@ -208,7 +210,7 @@ func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, d
 						}
 					}
 				}
-			}
+			}*/
 		}
 	}
 
