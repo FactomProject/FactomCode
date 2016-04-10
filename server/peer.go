@@ -170,11 +170,12 @@ type peer struct {
 	na         *wire.NetAddress
 	id         int32
 
-	nodeType    string //nodeMode
-	nodeID      string //*wire.ShaHash
-	pubKey      common.PublicKey
-	isLeader    bool
-	isCandidate bool // is a candidate who just joined and is in process of syncup
+	nodeType      string //nodeMode
+	nodeID        string //*wire.ShaHash
+	pubKey        common.PublicKey
+	isLeader      bool
+	isLeaderElect bool
+	isCandidate   bool // is a candidate who just joined and is in process of syncup
 
 	inbound            bool
 	persistent         bool
@@ -2462,7 +2463,7 @@ func (p *peer) handleNextLeaderRespMsg(msg *wire.MsgNextLeaderResp) {
 		p.server.myLeaderPolicy.Confirmed = true
 		p.server.isLeaderElected = false
 	}
-	// non-leader needs to do nothing here.
+	p.server.setLeaderElect(msg.NextLeaderID)
 }
 
 // MsgMissing is triggered by ack from leader. So this peer/server has to be leader

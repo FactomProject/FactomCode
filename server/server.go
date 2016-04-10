@@ -395,6 +395,8 @@ func (s *server) handleDonePeerMsg(state *peerState, p *peer) {
 			// persistent outbound connection.
 			if !p.inbound && p.persistent && atomic.LoadInt32(&s.shutdown) == 0 {
 				delete(list, e)
+				// todo: when this peer is in federateServers,
+				// no need to recreate a newOutboundPeer
 				e = newOutboundPeer(s, p.addr, true, p.retryCount+1)
 				list[e] = struct{}{}
 				break
@@ -413,6 +415,11 @@ func (s *server) handleDonePeerMsg(state *peerState, p *peer) {
 		if fedServer.Peer == p {
 			s.federateServers = append(s.federateServers[:i], s.federateServers[i+1:]...)
 			srvrLog.Debugf("handleDonePeerMsg: Removed: %s", p)
+
+			// if p is leaderElected and I am the leader, select a new leaderElected
+
+			// if p is leader, let's select a new leader
+
 			return
 		}
 	}
@@ -1641,6 +1648,27 @@ func (s *server) FederateServerCountMinusCandidate() int {
 		return len(fs)
 	}
 	return 0
+}
+
+func (s *server) setLeaderElect(elect string) {
+	for _, fs := range s.federateServers {
+		if fs.Peer == nil {
+			continue
+		}
+		if fs.Peer.isLeaderElect {
+			fs.Peer.isLeaderElect = false
+			break
+		}
+	}
+	for _, fs := range s.federateServers {
+		if fs.Peer == nil {
+			continue
+		}
+		if elect == fs.Peer.nodeID {
+			fs.Peer.isLeaderElect = true
+			return
+		}
+	}
 }
 
 func (s *server) nonCandidateServers() (fservers, candidates []*federateServer) {
