@@ -437,7 +437,7 @@ func newBlockManager(s *server) (*blockManager, error) {
 // handleDirInvMsg handles dir inv messages from all peers.
 // We examine the inventory advertised by the remote peer and act accordingly.
 func (b *blockManager) handleDirInvMsg(imsg *dirInvMsg) {
-	bmgrLog.Debug("handleDirInvMsg: ", spew.Sdump(imsg))
+	//bmgrLog.Debug("handleDirInvMsg: ", spew.Sdump(imsg))
 
 	// Attempt to find the final block in the inventory list.  There may
 	// not be one.

@@ -535,17 +535,16 @@ func processDirBlockSig() error {
 		}
 	}
 
-	// this is a candidate who bypasses building block
-	if myDirBlockSig == nil {
-		//panic("my sig is nil")
-	} else {
-		fmt.Println("leaderID=", leaderID, ", myNodeID=", myDirBlockSig.SourceNodeID)
+	fmt.Println("leaderID=", leaderID)
+	if myDirBlockSig != nil {
+		fmt.Println("myNodeID=", myDirBlockSig.SourceNodeID)
 	}
 
 	// this is a candidate who just bypassed building block and
 	// needs to download newly generated blocks up to firstBlockHeight
 	if firstBlockHeight == dchain.NextDBHeight-1 {
-		fmt.Printf("processDirBlockSig: this was a candidate just turned follower, leadPeer=%s, dbheight=%d\n", leadPeer, dchain.NextDBHeight-1)
+		fmt.Printf("processDirBlockSig: I am a candidate just turned follower, "+
+			"leadPeer=%s, dbheight=%d\n", leadPeer, dchain.NextDBHeight-1)
 		if leaderDirBlockSig != nil {
 			downloadNewDirBlock(leadPeer, leaderDirBlockSig.DirBlockHash, dchain.NextDBHeight-1)
 		} else {
@@ -555,7 +554,8 @@ func processDirBlockSig() error {
 	}
 
 	totalServerNum := localServer.FederateServerCountMinusCandidate()
-	fmt.Printf("processDirBlockSig: By EOM_1, there're %d dirblock signatures arrived out of %d federate servers.\n", len(dbsigs), totalServerNum)
+	fmt.Printf("processDirBlockSig: By EOM_1, there're %d dirblock signatures "+
+		"arrived out of %d federate servers.\n", len(dbsigs), totalServerNum)
 
 	var needDownload, needFromNonLeader bool
 	var winner *wire.MsgDirBlockSig
@@ -588,7 +588,8 @@ func processDirBlockSig() error {
 					winner = v[0]
 				}
 			}
-			fmt.Printf("A majority !  hasLeader=%v, hasMe=%v, needDownload=%v, needFromNonLeader=%v, winner=%s\n", hasLeader, hasMe, needDownload, needFromNonLeader, spew.Sdump(winner))
+			fmt.Printf("A majority !  hasLeader=%v, hasMe=%v, needDownload=%v, "+
+				"needFromNonLeader=%v, winner=%s\n", hasLeader, hasMe, needDownload, needFromNonLeader, spew.Sdump(winner))
 			break
 		} else if n == float32(0.5) {
 			if leaderDirBlockSig != nil {

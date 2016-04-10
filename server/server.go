@@ -287,10 +287,8 @@ func (s *server) handleUpdatePeerHeights(state *peerState, umsg updatePeerHeight
 // handleAddPeerMsg deals with adding new peers.  It is invoked from the
 // peerHandler goroutine.
 func (s *server) handleAddPeerMsg(state *peerState, p *peer) bool {
-	//fmt.Println("handleAddPeerMsg add(1)")
 	s.wg.Add(1)
 	defer func() {
-		//fmt.Println("wg.Done for handleAddPeerMsg")
 		s.wg.Done()
 	}()
 
@@ -298,12 +296,26 @@ func (s *server) handleAddPeerMsg(state *peerState, p *peer) bool {
 		return false
 	}
 
+	fmt.Println("handleAddPeerMsg: start peerstate: ", spew.Sdump(state))
+
 	// Ignore new peers if we're shutting down.
 	if atomic.LoadInt32(&s.shutdown) != 0 {
 		srvrLog.Infof("New peer %s ignored - server is shutting "+
 			"down", p)
 		p.Shutdown()
 		return false
+	}
+
+	// Ignore new peers if we've already had them.
+	for _, fed := range s.federateServers {
+		if fed.Peer == nil {
+			continue
+		}
+		if fed.Peer.addr == p.addr || fed.Peer.nodeID == p.nodeID {
+			fmt.Printf("handleAddPeerMsg: duplicated peer: peer=%s\n", fed.Peer)
+			p.Shutdown()
+			return false
+		}
 	}
 
 	// Disconnect banned peers.
@@ -361,12 +373,14 @@ func (s *server) handleAddPeerMsg(state *peerState, p *peer) bool {
 			srvrLog.Infof("outbound peer: %s, total.state.outboundPeers=%d", p, len(state.outboundPeers))
 		}
 	}
+	fmt.Println("handleAddPeerMsg: end peerstate: ", spew.Sdump(state))
 	return true
 }
 
 // handleDonePeerMsg deals with peers that have signalled they are done.  It is
 // invoked from the peerHandler goroutine.
 func (s *server) handleDonePeerMsg(state *peerState, p *peer) {
+	fmt.Println("handleDonePeerMsg: start peerstate: ", spew.Sdump(state))
 	var list map[*peer]struct{}
 	if p.persistent {
 		list = state.persistentPeers
@@ -393,6 +407,7 @@ func (s *server) handleDonePeerMsg(state *peerState, p *peer) {
 			break
 		}
 	}
+	fmt.Println("handleDonePeerMsg: end peerstate: ", spew.Sdump(state))
 	srvrLog.Debugf("handleDonePeerMsg: need to remove %s\n", p)
 	for i, fedServer := range s.federateServers {
 		if fedServer.Peer == p {
@@ -761,15 +776,15 @@ func (s *server) peerHandler() {
 
 	// Start up persistent peers.
 	permanentPeers := cfg.ConnectPeers
-	srvrLog.Infof("peerHandler(): permanentPeers: %s", spew.Sdump(permanentPeers))
+	srvrLog.Infof("peerHandler(): permanentPeers (ConnectPeers): %s", spew.Sdump(permanentPeers))
 	if len(permanentPeers) == 0 {
 		permanentPeers = cfg.AddPeers
 	}
-	srvrLog.Infof("peerHandler(): permanentPeers - AddPeers: ", spew.Sdump(permanentPeers))
 	for _, addr := range permanentPeers {
 		srvrLog.Infof("before handleAddPeerMsg: newOutboundPeer: %+v", addr)
 		s.handleAddPeerMsg(state, newOutboundPeer(s, addr, true, 0))
 	}
+	srvrLog.Infof("peerHandler(): permanentPeers (ConnectPeers + AddPeers): %s", spew.Sdump(permanentPeers))
 
 	// if nothing else happens, wake us up soon.
 	time.AfterFunc(10*time.Second, func() { s.wakeup <- struct{}{} }) //10*

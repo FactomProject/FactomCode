@@ -507,8 +507,7 @@ func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
 			// this prevents duplication.
 			if found {
 				p.logError("duplicated fed server / peer: msg.nodeID=%s; peer=%s\n", msg.NodeID, fed.Peer)
-				//p.Disconnect()
-				p.Shutdown() //???
+				p.Shutdown()
 				return
 			}
 			_, newestHeight, _ := db.FetchBlockHeightCache()

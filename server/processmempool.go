@@ -93,12 +93,15 @@ func (mp *ftmMemPool) addAck(ack *wire.MsgAck) *wire.MsgMissing {
 	// reset it at the very beginning
 	if ack.Index == 0 {
 		mp.ackpool = make([]*wire.MsgAck, 100, 200)
+		fmt.Println("reset ackpool")
 	} else if ack.Index == uint32(len(mp.ackpool)) {
 		mp.ackpool = mp.ackpool[0 : ack.Index+50]
+		fmt.Println("grow ackpool.len by 50")
 	} else if ack.Index == uint32(cap(mp.ackpool)) {
 		temp := make([]*wire.MsgAck, ack.Index*2, ack.Index*2)
 		copy(temp, mp.ackpool)
 		mp.ackpool = temp
+		fmt.Println("double ackpool capacity")
 	}
 
 	// check duplication first
@@ -214,6 +217,7 @@ func (mp *ftmMemPool) addMsg(msg wire.Message, hash *wire.ShaHash) error {
 	if len(mp.pool) > common.MAX_TX_POOL_SIZE {
 		return errors.New("Transaction mem pool exceeds the limit.")
 	}
+	// todo: should check if exists, then just pass and no need to add it.
 	mp.pool[*hash] = msg
 	return nil
 }
@@ -235,14 +239,11 @@ func (mp *ftmMemPool) addBlockMsg(msg wire.Message, hash string) error {
 	mp.Lock()
 	defer mp.Unlock()
 
+	// todo: should check if exists, then just pass and no need to add it.
 	if len(mp.blockpool) > common.MAX_BLK_POOL_SIZE {
 		return errors.New("Block mem pool exceeds the limit. Please restart.")
 	}
 	fmt.Println("ftmMemPool.addBlockMsg: msg.Command=", msg.Command())
-	//if msg != nil && msg.Command() == wire.CmdDirBlock {
-	//dirBlockMsg, _ := msg.(*wire.MsgDirBlock)
-	//fmt.Println("dir block:", dirBlockMsg.DBlk.Header.DBHeight)
-	//}
 	mp.blockpool[hash] = msg
 	return nil
 }
