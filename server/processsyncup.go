@@ -221,13 +221,14 @@ func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, d
 // Need to make a batch insert in db in milestone 2
 func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db database.Db) error {
 	procLog.Info("in storeBlocksFromMemPool. dir block height=", b.Header.DBHeight)
-	db.StartBatch()
+	//db.StartBatch()
 
 	for _, dbEntry := range b.DBEntries {
 		switch dbEntry.ChainID.String() {
 		case ecchain.ChainID.String():
 			ecBlkMsg := fMemPool.blockpool[dbEntry.KeyMR.String()].(*wire.MsgECBlock)
-			err := db.ProcessECBlockMultiBatch(ecBlkMsg.ECBlock)
+			//err := db.ProcessECBlockMultiBatch(ecBlkMsg.ECBlock)
+			err := db.ProcessECBlockBatch(ecBlkMsg.ECBlock)
 			if err != nil {
 				return err
 			}
@@ -240,7 +241,8 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 			exportECBlock(ecBlkMsg.ECBlock)
 		case achain.ChainID.String():
 			aBlkMsg := fMemPool.blockpool[dbEntry.KeyMR.String()].(*wire.MsgABlock)
-			err := db.ProcessABlockMultiBatch(aBlkMsg.ABlk)
+			//err := db.ProcessABlockMultiBatch(aBlkMsg.ABlk)
+			err := db.ProcessABlockBatch(aBlkMsg.ABlk)
 			if err != nil {
 				return err
 			}
@@ -251,7 +253,8 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 			exportABlock(aBlkMsg.ABlk)
 		case fchain.ChainID.String():
 			fBlkMsg := fMemPool.blockpool[dbEntry.KeyMR.String()].(*wire.MsgFBlock)
-			err := db.ProcessFBlockMultiBatch(fBlkMsg.SC)
+			//err := db.ProcessFBlockMultiBatch(fBlkMsg.SC)
+			err := db.ProcessFBlockBatch(fBlkMsg.SC)
 			if err != nil {
 				return err
 			}
@@ -273,14 +276,16 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 			// store entry in db first
 			for _, ebEntry := range eBlkMsg.EBlk.Body.EBEntries {
 				if msg, foundInMemPool := fMemPool.blockpool[ebEntry.String()]; foundInMemPool {
-					err := db.InsertEntryMultiBatch(msg.(*wire.MsgEntry).Entry)
+					//err := db.InsertEntryMultiBatch(msg.(*wire.MsgEntry).Entry)
+					err := db.InsertEntry(msg.(*wire.MsgEntry).Entry)
 					if err != nil {
 						return err
 					}
 				}
 			}
 			// Store Entry Block in db
-			err := db.ProcessEBlockMultiBatch(eBlkMsg.EBlk)
+			//err := db.ProcessEBlockMultiBatch(eBlkMsg.EBlk)
+			err := db.ProcessEBlockBatch(eBlkMsg.EBlk)
 			if err != nil {
 				return err
 			}
@@ -294,7 +299,8 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 					return errors.New("First entry not found for chain:" + eBlkMsg.EBlk.Header.ChainID.String())
 				}
 
-				err = db.InsertChainMultiBatch(chain)
+				//err = db.InsertChainMultiBatch(chain)
+				err = db.InsertChain(chain)
 				if err != nil {
 					return err
 				}
@@ -311,15 +317,16 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 	}
 
 	// Store the dir block
-	err := db.ProcessDBlockMultiBatch(b)
+	//err := db.ProcessDBlockMultiBatch(b)
+	err := db.ProcessDBlockBatch(b)
 	if err != nil {
 		return err
 	}
 
-	err = db.EndBatch()
-	if err != nil {
-		return err
-	}
+	//err = db.EndBatch()
+	//if err != nil {
+	//return err
+	//}
 
 	// Update dir block height cache in db
 	commonHash, _ := common.CreateHash(b)
