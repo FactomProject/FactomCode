@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/FactomProject/FactomCode/common"
+	"github.com/FactomProject/factoid/block"
 	//cp "github.com/FactomProject/FactomCode/controlpanel"
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/wire"
@@ -267,6 +268,13 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 			if fchain.NextBlockHeight <= fBlkMsg.SC.GetDBHeight() {
 				fchain.NextBlockHeight = fBlkMsg.SC.GetDBHeight() + 1
 			}
+
+			// in case of random fblock download, update fchain.NextBlock and factoid state
+			common.FactoidState.ProcessEndOfBlock2(fchain.NextBlockHeight)
+			fchain.NextBlock = common.FactoidState.GetCurrentBlock()
+			t := block.GetCoinbase(common.FactoidState.GetTimeMilli())
+			fchain.NextBlock.AddCoinbase(t)
+			common.FactoidState.UpdateTransaction(t)
 
 			// for debugging
 			exportFctBlock(fBlkMsg.SC)
