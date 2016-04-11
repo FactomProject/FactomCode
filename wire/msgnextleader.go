@@ -8,7 +8,7 @@ import (
 	"github.com/FactomProject/FactomCode/common"
 )
 
-// MsgNextLeader is the msg of the dir block sig after a new dir block is created
+// MsgNextLeader is the msg used to select the next leader
 type MsgNextLeader struct {
 	CurrLeaderID  string
 	NextLeaderID  string
@@ -21,6 +21,7 @@ func (msg *MsgNextLeader) Command() string {
 	return CmdNextLeader
 }
 
+// BtcDecode is part of the Message interface implementation.
 func (msg *MsgNextLeader) BtcDecode(r io.Reader, pver uint32) error {
 	buf, ok := r.(*bytes.Buffer)
 	if !ok {
@@ -48,6 +49,7 @@ func (msg *MsgNextLeader) BtcDecode(r io.Reader, pver uint32) error {
 	return nil
 }
 
+// BtcEncode is part of the Message interface implementation.
 func (msg *MsgNextLeader) BtcEncode(w io.Writer, pver uint32) error {
 	err := writeVarString(w, pver, msg.CurrLeaderID)
 	if err != nil {
@@ -65,10 +67,13 @@ func (msg *MsgNextLeader) BtcEncode(w io.Writer, pver uint32) error {
 	return nil
 }
 
+// MaxPayloadLength returns the maximum length the payload can be for the
+// receiver.  This is part of the Message interface implementation.
 func (msg *MsgNextLeader) MaxPayloadLength(pver uint32) uint32 {
 	return MaxAppMsgPayload
 }
 
+// NewNextLeaderMsg creates a new MsgNextLeader
 func NewNextLeaderMsg(currLeaderID string, nextLeaderID string,
 	height uint32, sig common.Signature) *MsgNextLeader {
 	return &MsgNextLeader{
@@ -79,7 +84,8 @@ func NewNextLeaderMsg(currLeaderID string, nextLeaderID string,
 	}
 }
 
+// String returns its string value
 func (msg *MsgNextLeader) String() string {
-	return fmt.Sprintf("Ack: CurrLeaderID=%s, NextLeaderID=%s, StartDBHeight=%d",
+	return fmt.Sprintf("MsgNextLeader: CurrLeaderID=%s, NextLeaderID=%s, StartDBHeight=%d",
 		msg.CurrLeaderID, msg.NextLeaderID, msg.StartDBHeight)
 }

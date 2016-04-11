@@ -63,6 +63,9 @@ const (
 	CmdNextLeaderResp = "nextleadresp"
 	CmdMissing        = "missingmsg"
 	CmdCandidate      = "candidate"
+
+	CmdCurrentLeader     = "currleader"
+	CmdCurrentLeaderResp = "currleadresp"
 )
 
 // MaxAppMsgPayload is the maximum bytes a factom app message can be in bytes.
@@ -183,6 +186,12 @@ func makeEmptyMessage(command string) (Message, error) {
 
 	case CmdCandidate:
 		msg = &MsgCandidate{}
+
+	case CmdCurrentLeader:
+		msg = &MsgCurrentLeader{}
+
+	case CmdCurrentLeaderResp:
+		msg = &MsgCurrentLeaderResp{}
 
 	default:
 		return nil, fmt.Errorf("unhandled command [%s]", command)

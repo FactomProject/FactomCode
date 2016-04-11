@@ -195,6 +195,7 @@ func (msg *MsgAck) Equals(ack *MsgAck) bool {
 		bytes.Equal(msg.Signature[:], ack.Signature[:])
 }
 
+// String returns its string value
 func (msg *MsgAck) String() string {
 	return fmt.Sprintf("Ack: height=%d, index=%d, type=%v, dblock.timestamp=%d, coinbase.timestamp=%d",
 		msg.Height, msg.Index, msg.Type, msg.DBlockTimestamp, msg.CoinbaseTimestamp)

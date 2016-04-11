@@ -417,9 +417,14 @@ func (s *server) handleDonePeerMsg(state *peerState, p *peer) {
 			srvrLog.Debugf("handleDonePeerMsg: Removed: %s", p)
 
 			// if p is leaderElected and I am the leader, select a new leaderElected
+			_, newestHeight, _ := db.FetchBlockHeightCache()
+			if s.IsLeader() && fedServer.Peer.isLeaderElect {
+				s.selectNextleader(uint32(newestHeight))
 
-			// if p is leader, let's select a new leader
-
+			} else if fedServer.Peer.isLeader {
+				// if p is leader, let's select a new leader
+				s.selectCurrentleader(uint32(newestHeight))
+			}
 			return
 		}
 	}
@@ -1786,7 +1791,6 @@ func (s *server) handleNextLeader(height uint32) {
 	}
 
 	// this is a current leader
-	var next *federateServer
 	fmt.Printf("handleNextLeader: isLeader=%t, height=%d\n", s.isLeader, height)
 
 	// when this leader is changed from single server mode to federate servers,
@@ -1797,39 +1801,8 @@ func (s *server) handleNextLeader(height uint32) {
 		return
 
 	} else if height == s.myLeaderPolicy.StartDBHeight+s.myLeaderPolicy.NotifyDBHeight-1 {
-		// determine who's the next qualified leader.
-		// exclude candidate servers and check if the only one left is myself
-		// then update my policy
-		nonCandidates, candidates := s.nonCandidateServers()
-		if len(nonCandidates) == 1 && nonCandidates[0].Peer == nil {
-			s.myLeaderPolicy.StartDBHeight = height + 3
-			fmt.Printf("handleNextLeader: no next leader choosen. non-candidates=%s, candidates=%s\n", spew.Sdump(nonCandidates), spew.Sdump(candidates))
-			return
-		}
-		// simple round robin for now
-		sort.Sort(ByLeaderLast(s.federateServers))
-		for _, fed := range s.federateServers {
-			if fed.Peer != nil {
-				next = fed
-				break
-			}
-		}
-		fmt.Printf("handleNextLeader: next leader choosen: %s\n", spew.Sdump(next))
-		if next == nil {
-			return
-		}
-		// starting DBHeight for next leader is, by default,
-		// current leader's starting height + its term
-		h := s.myLeaderPolicy.StartDBHeight + s.myLeaderPolicy.Term
-		fmt.Printf("handleNextLeader: before broadcast notoficiation: next leader StartDBHeight=%d\n", h)
+		s.selectNextleader(height)
 
-		sig := s.privKey.Sign([]byte(s.nodeID + next.Peer.nodeID))
-		msg := wire.NewNextLeaderMsg(s.nodeID, next.Peer.nodeID, h, sig)
-		fmt.Printf("handleNextLeader: broadcast NextLeaderMsg=%s\n", spew.Sdump(msg))
-
-		s.BroadcastMessage(msg)
-		s.isLeaderElected = true
-		s.myLeaderPolicy.Notified = true
 	} else if height == s.myLeaderPolicy.StartDBHeight+s.myLeaderPolicy.Term-1 {
 		//regime change for current leader
 		//need to check if the next leader elected is still alive ???
@@ -1840,6 +1813,105 @@ func (s *server) handleNextLeader(height uint32) {
 		// turn off BlockTimer
 	}
 	return
+}
+
+func (s *server) selectNextleader(height uint32) {
+	// determine who's the next qualified leader.
+	// exclude candidate servers and check if the only one left is myself
+	// then update my policy
+	var next *federateServer
+	nonCandidates, candidates := s.nonCandidateServers()
+	if len(nonCandidates) == 1 && nonCandidates[0].Peer == nil {
+		// I'm the leader
+		s.myLeaderPolicy.StartDBHeight = height + 3
+		fmt.Printf("selectNextleader: no next leader choosen, and update my own policy. non-candidates=%s, candidates=%s\n", spew.Sdump(nonCandidates), spew.Sdump(candidates))
+		return
+	}
+	// simple round robin for now
+	sort.Sort(ByLeaderLast(s.federateServers))
+	for _, fed := range s.federateServers {
+		if fed.Peer != nil {
+			next = fed
+			break
+		}
+	}
+	fmt.Printf("selectNextleader: next leader choosen: %s\n", spew.Sdump(next))
+	if next == nil {
+		return
+	}
+	// starting DBHeight for next leader is, by default,
+	// current leader's starting height + its term
+	h := s.myLeaderPolicy.StartDBHeight + s.myLeaderPolicy.Term
+	fmt.Printf("selectNextleader: before broadcast notoficiation: next leader StartDBHeight=%d\n", h)
+
+	sig := s.privKey.Sign([]byte(s.nodeID + next.Peer.nodeID))
+	msg := wire.NewNextLeaderMsg(s.nodeID, next.Peer.nodeID, h, sig)
+	fmt.Printf("selectNextleader: broadcast NextLeaderMsg=%s\n", spew.Sdump(msg))
+
+	s.BroadcastMessage(msg)
+	s.isLeaderElected = true
+	s.myLeaderPolicy.Notified = true
+}
+
+// when current leader goes down, choose an emergency leader
+func (s *server) selectCurrentleader(height uint32) {
+	var next *federateServer
+	nonCandidates, _ := s.nonCandidateServers()
+	// the leader is gone and everyone else is either follower or candidate
+	if s.IsLeader() || len(nonCandidates) == 1 && nonCandidates[0].Peer == nil {
+		// something is wrong here.
+		return
+	}
+	// leader is gond and i'm the only follower, then i become the leader now
+	if !s.isCandidate && len(nonCandidates) == 1 {
+		s.isLeader = true
+		fmt.Println("selectCurrentleader: I am the new current leader choosen.")
+
+		// starting DBHeight for current leader is, the current dbheight + 1
+		h := height + 1
+
+		sig := s.privKey.Sign([]byte(s.leaderPeer.nodeID + s.nodeID + s.nodeID + strconv.Itoa(int(h))))
+		msg := wire.NewCurrentLeaderMsg(s.leaderPeer.nodeID, s.nodeID, s.nodeID, h, sig)
+		fmt.Printf("selectCurrentleader: broadcast CurrentLeaderMsg=%s\n", spew.Sdump(msg))
+
+		s.BroadcastMessage(msg)
+		return
+	}
+	// find the leaderElect
+	for _, fed := range s.federateServers {
+		if fed.Peer == nil {
+			continue
+		}
+		if fed.Peer.isLeaderElect {
+			next = fed
+			break
+		}
+	}
+	// find prev leader
+	if next == nil && s.prevLeaderPeer != nil {
+		for _, fed := range s.federateServers {
+			if fed.Peer == nil {
+				continue
+			}
+			if fed.Peer == s.prevLeaderPeer {
+				next = fed
+				break
+			}
+		}
+	}
+	if next == nil {
+		return
+	}
+	fmt.Printf("selectCurrentleader: the new current leader choosen: %s\n", spew.Sdump(next))
+
+	// starting DBHeight for current leader is, the current dbheight + 1
+	h := height + 1
+
+	sig := s.privKey.Sign([]byte(s.leaderPeer.nodeID + next.Peer.nodeID + s.nodeID + strconv.Itoa(int(h))))
+	msg := wire.NewCurrentLeaderMsg(s.leaderPeer.nodeID, next.Peer.nodeID, s.nodeID, h, sig)
+	fmt.Printf("selectCurrentleader: broadcast CurrentLeaderMsg=%s\n", spew.Sdump(msg))
+
+	s.BroadcastMessage(msg)
 }
 
 // ByLeaderLast sorts federate server by its LeaderLast
