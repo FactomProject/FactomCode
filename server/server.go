@@ -1776,6 +1776,8 @@ func (s *server) handleNextLeader(height uint32) {
 			// regime change for leader-elected
 			s.isLeader = true
 			s.isLeaderElected = false
+			s.prevLeaderPeer = s.leaderPeer
+			s.leaderPeer = nil
 			fed := s.GetMyFederateServer()
 			fed.LeaderLast = height
 			// turn on BlockTimer in processor
@@ -1809,8 +1811,10 @@ func (s *server) handleNextLeader(height uint32) {
 		fmt.Println("handleNextLeader: ** height equal, regime change for CURRENT LEADER.")
 		s.isLeader = false
 		s.isLeaderElected = false
+		s.prevLeaderPeer = nil
+		s.leaderPeer = nil
 		s.myLeaderPolicy = nil
-		// turn off BlockTimer
+		// turn off BlockTimer processor
 	}
 	return
 }
@@ -1856,61 +1860,73 @@ func (s *server) selectNextleader(height uint32) {
 // when current leader goes down, choose an emergency leader
 func (s *server) selectCurrentleader(height uint32) {
 	var next *federateServer
-	nonCandidates, _ := s.nonCandidateServers()
+	nonCandidates, candidates := s.nonCandidateServers()
 	// the leader is gone and everyone else is either follower or candidate
 	if s.IsLeader() || len(nonCandidates) == 1 && nonCandidates[0].Peer == nil {
-		// something is wrong here.
+		// something is wrong here. panic ???
 		return
 	}
-	// leader is gond and i'm the only follower, then i become the leader now
-	if !s.isCandidate && len(nonCandidates) == 1 {
-		s.isLeader = true
-		fmt.Println("selectCurrentleader: I am the new current leader choosen.")
-
-		// starting DBHeight for current leader is, the current dbheight + 1
-		h := height + 1
-
-		sig := s.privKey.Sign([]byte(s.leaderPeer.nodeID + s.nodeID + s.nodeID + strconv.Itoa(int(h))))
-		msg := wire.NewCurrentLeaderMsg(s.leaderPeer.nodeID, s.nodeID, s.nodeID, h, sig)
-		fmt.Printf("selectCurrentleader: broadcast CurrentLeaderMsg=%s\n", spew.Sdump(msg))
-
-		s.BroadcastMessage(msg)
+	// if there's a leader plus one or more candidates, when leader crashes
+	// how to promote one of the candidates to be the current leader.
+	// in this case, should let the network collapse and no action needed
+	if len(nonCandidates) == 0 && len(candidates) > 0 {
 		return
 	}
-	// find the leaderElect
-	for _, fed := range s.federateServers {
-		if fed.Peer == nil {
-			continue
-		}
-		if fed.Peer.isLeaderElect {
-			next = fed
-			break
-		}
-	}
-	// find prev leader
-	if next == nil && s.prevLeaderPeer != nil {
+	// The leader is gone and i'm the leaderElect or the only follower,
+	// then i become the leader automatically
+	if s.isLeaderElected || !s.isCandidate && len(nonCandidates) == 1 {
+		fmt.Println("selectCurrentleader: I am the new current leader choosen " +
+			"as I'm the leaderElect or the only follower.")
+		s.sendCurrentLeaderMsg(s.leaderPeer.nodeID, s.nodeID, s.nodeID, height+1)
+		return
+	} else if !s.isLeaderElected {
+		// find the leaderElect
 		for _, fed := range s.federateServers {
 			if fed.Peer == nil {
 				continue
 			}
-			if fed.Peer == s.prevLeaderPeer {
+			if fed.Peer.isLeaderElect {
 				next = fed
 				break
 			}
+		}
+		if next != nil {
+			// leaderElect exists and I don't need to do anything
+			return
+		}
+		// check if i'm the prev leader when the leaderElect is also gone
+		if s.prevLeaderPeer == nil && !s.isCandidate {
+			fmt.Println("I'm the prev leader, and will be the current leader " +
+				"as both current leader and leaderElect are gone.")
+			s.sendCurrentLeaderMsg(s.leaderPeer.nodeID, s.nodeID, s.nodeID, height+1)
+			return
+		}
+	}
+
+	// find out the server with the longest LeaderLast
+	// todo: (??? not the same for each peer)
+	sort.Sort(ByLeaderLast(s.federateServers))
+	for _, fed := range s.federateServers {
+		if fed.Peer != nil {
+			next = fed
+			break
 		}
 	}
 	if next == nil {
 		return
 	}
 	fmt.Printf("selectCurrentleader: the new current leader choosen: %s\n", spew.Sdump(next))
+	s.sendCurrentLeaderMsg(s.leaderPeer.nodeID, next.Peer.nodeID, s.nodeID, height+1)
+}
 
-	// starting DBHeight for current leader is, the current dbheight + 1
-	h := height + 1
-
-	sig := s.privKey.Sign([]byte(s.leaderPeer.nodeID + next.Peer.nodeID + s.nodeID + strconv.Itoa(int(h))))
-	msg := wire.NewCurrentLeaderMsg(s.leaderPeer.nodeID, next.Peer.nodeID, s.nodeID, h, sig)
+func (s *server) sendCurrentLeaderMsg(deadLeader string, newLeader string, source string, h uint32) {
+	s.isLeader = true
+	s.prevLeaderPeer = nil
+	s.leaderPeer = nil
+	// restart leader in processor
+	sig := s.privKey.Sign([]byte(deadLeader + newLeader + source + strconv.Itoa(int(h))))
+	msg := wire.NewCurrentLeaderMsg(deadLeader, newLeader, source, h, sig)
 	fmt.Printf("selectCurrentleader: broadcast CurrentLeaderMsg=%s\n", spew.Sdump(msg))
-
 	s.BroadcastMessage(msg)
 }
 

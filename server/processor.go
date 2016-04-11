@@ -555,7 +555,7 @@ func processDirBlockSig() error {
 
 	totalServerNum := localServer.FederateServerCountMinusCandidate()
 	fmt.Printf("processDirBlockSig: By EOM_1, there're %d dirblock signatures "+
-		"arrived out of %d federate servers.\n", len(dbsigs), totalServerNum)
+		"arrived out of %d non-dandidate federate servers.\n", len(dbsigs), totalServerNum)
 
 	var needDownload, needFromNonLeader bool
 	var winner *wire.MsgDirBlockSig
@@ -572,7 +572,7 @@ func processDirBlockSig() error {
 			for _, d := range v {
 				if leaderID == d.SourceNodeID {
 					hasLeader = true
-				} else if myDirBlockSig.SourceNodeID == d.SourceNodeID {
+				} else if myDirBlockSig != nil && myDirBlockSig.SourceNodeID == d.SourceNodeID {
 					hasMe = true
 				}
 			}
@@ -1336,8 +1336,11 @@ func buildBlocks() error {
 	initProcessListMgr()
 
 	// for leader / follower regime change
-	fmt.Printf("buildBlocks: It's a leader=%t or leaderElected=%t, SingleServerMode=%t, dbheight=%d, dchain.NextDBHeight=%d\n",
-		localServer.IsLeader(), localServer.isLeaderElected, localServer.isSingleServerMode(), newDBlock.Header.DBHeight, dchain.NextDBHeight)
+	fmt.Printf("buildBlocks: It's a leader=%t or leaderElected=%t, SingleServerMode=%t, dchain.NextDBHeight=%d\n",
+		localServer.IsLeader(), localServer.isLeaderElected, localServer.isSingleServerMode(), dchain.NextDBHeight)
+	if newDBlock != nil {
+		fmt.Printf("dbheight=%d", newDBlock.Header.DBHeight)
+	}
 
 	if localServer.IsLeader() && !localServer.isSingleServerMode() {
 		if dchain.NextDBHeight-1 == localServer.myLeaderPolicy.StartDBHeight+localServer.myLeaderPolicy.Term-1 {
@@ -1959,4 +1962,19 @@ func IsDChainInSync() bool {
 		return true
 	}
 	return false
+}
+
+func restartBlockTimer() {
+	fmt.Println("@@@@ start BlockTimer for new current leader.")
+	timer := &BlockTimer{
+		nextDBlockHeight: dchain.NextDBHeight,
+		inMsgQueue:       inMsgQueue,
+	}
+	go timer.StartBlockTimer()
+
+	// reorganize process list
+
+	// what about missed EOM ?
+
+	// relay stale messages in orphan pool and mempool.
 }

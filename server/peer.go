@@ -1105,6 +1105,9 @@ out:
 		case *wire.MsgMissing:
 			p.handleMissingMsg(msg)
 
+		case *wire.MsgCurrentLeader:
+			p.handleCurrentLeaderMsg(msg)
+
 		default:
 			peerLog.Debugf("Received unhandled message of type %v: Fix Me",
 				rmsg.Command())
@@ -2425,7 +2428,7 @@ func (p *peer) handleNextLeaderMsg(msg *wire.MsgNextLeader) {
 	if !(p.server.leaderPeer != nil && p.server.leaderPeer.nodeID == msg.CurrLeaderID) {
 		fmt.Printf("handleNextLeaderMsg: leader verify FAILED: my leader is %s, but msg.leader is %s\n",
 			p.server.leaderPeer.nodeID, msg.CurrLeaderID)
-		//return ???
+		return
 	}
 	if p.server.nodeID == msg.NextLeaderID {
 		fmt.Println("handleNextLeaderMsg: I'm the next leader elected. startingHeight=", msg.StartDBHeight)
@@ -2501,5 +2504,58 @@ func (p *peer) handleCandidateMsg(msg *wire.MsgCandidate) {
 	if p.nodeID == msg.SourceNodeID { //&& uint32(latestHeight) == msg.DBHeight-1 {
 		p.isCandidate = false
 		fmt.Println("handleCandidateMsg: isCandidate turned to follower: ", msg)
+	}
+}
+
+func (p *peer) handleCurrentLeaderMsg(msg *wire.MsgCurrentLeader) {
+	fmt.Printf("handleCurrentLeaderMsg: %s\n", spew.Sdump(msg))
+	if !msg.Sig.Verify([]byte(msg.CurrLeaderGone + msg.NewLeaderCandidates + msg.SourceNodeID + strconv.Itoa(int(msg.StartDBHeight)))) {
+		fmt.Println("handleNextLeaderMsg: signature verify FAILED.")
+		return
+	}
+	if !(p.server.leaderPeer != nil && p.server.leaderPeer.nodeID == msg.CurrLeaderGone) {
+		fmt.Printf("handleCurrentLeaderMsg: leader verify FAILED: my leader is %s, but msg.leader is %s\n",
+			p.server.leaderPeer.nodeID, msg.CurrLeaderGone)
+		//return
+	}
+	_, newestHeight, _ := db.FetchBlockHeightCache()
+	if uint32(newestHeight) != msg.StartDBHeight {
+		fmt.Printf("handleNextLeaderMsg: my DBHeight=%d, msg.StartDBHeight=%d\n", newestHeight, msg.StartDBHeight)
+		//return
+	}
+
+	// verify the new leader to see if it follows the rule
+	// 1). if leaderElect exists, it's the new leader
+	// 2). else if prev leader exists, it's the new leader
+	// 3). else it's the longest leaderLast (??? not the same for each peer)
+	// 4). if it's the only follower left, it's the new leader
+	if p.server.isLeaderElected {
+		panic("i'm the leaderElect, but new current leader is " + msg.NewLeaderCandidates)
+	}
+	// find the leaderElect
+	var next *federateServer
+	for _, fed := range p.server.federateServers {
+		if fed.Peer == nil {
+			continue
+		}
+		if fed.Peer.isLeaderElect {
+			next = fed
+			break
+		}
+	}
+	if next != nil {
+		if next.Peer.nodeID != msg.NewLeaderCandidates {
+			panic("the leaderElect is " + next.Peer.nodeID + ", but new current leader is " + msg.NewLeaderCandidates)
+		} else {
+			fmt.Println("the leaderElect is the new leader: " + msg.NewLeaderCandidates)
+			return
+		}
+	} else if p.server.prevLeaderPeer != nil {
+		if p.server.prevLeaderPeer.nodeID != msg.NewLeaderCandidates {
+			panic("the prev peer is " + p.server.prevLeaderPeer.nodeID + ", but new current leader is " + msg.NewLeaderCandidates)
+		} else {
+			fmt.Println("the prev leader is the new leader: " + msg.NewLeaderCandidates)
+			return
+		}
 	}
 }

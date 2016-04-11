@@ -27,7 +27,6 @@ type ftmMemPool struct {
 	blockpool    map[string]wire.Message // to hold the blocks or entries downloaded from peers
 	ackpool      []*wire.MsgAck
 	dirBlockSigs []*wire.MsgDirBlockSig
-	//processListItems []*consensus.ProcessListItem
 	lastUpdated time.Time // last time pool was updated
 }
 
@@ -38,7 +37,6 @@ func (mp *ftmMemPool) initFtmMemPool() error {
 	mp.blockpool = make(map[string]wire.Message)
 	mp.ackpool = make([]*wire.MsgAck, 100, 200)
 	mp.dirBlockSigs = make([]*wire.MsgDirBlockSig, 0, 32)
-	//mp.processListItems = make([]*consensus.ProcessListItem, 100, 20000)
 	return nil
 }
 
