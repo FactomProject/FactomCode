@@ -5,9 +5,10 @@
 package process
 
 import (
-	"bytes"
+	//"bytes"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"github.com/FactomProject/FactomCode/common"
 	cp "github.com/FactomProject/FactomCode/controlpanel"
 	"github.com/FactomProject/FactomCode/database"
@@ -44,7 +45,7 @@ func processDirBlock(msg *wire.MsgDirBlock) error {
 	//Add it to mem pool before saving it in db
 	fMemPool.addBlockMsg(msg, strconv.Itoa(int(msg.DBlk.Header.DBHeight))) // store in mempool with the height as the key
 
-	procLog.Debug("SyncUp: MsgDirBlock DBHeight=", msg.DBlk.Header.DBHeight)
+	fmt.Println("SyncUp: MsgDirBlock DBHeight=", msg.DBlk.Header.DBHeight)
 	cp.CP.AddUpdate(
 		"DBSyncUp", // tag
 		"Status",   // Category
@@ -83,7 +84,7 @@ func processFBlock(msg *wire.MsgFBlock) error {
 	//Add it to mem pool before saving it in db
 	fMemPool.addBlockMsg(msg, string(key)) // stored in mem pool with the MR as the key
 
-	procLog.Debug("SyncUp: MsgFBlock DBHeight=", msg.SC.GetDBHeight())
+	fmt.Println("SyncUp: MsgFBlock DBHeight=", msg.SC.GetDBHeight())
 
 	return nil
 
@@ -105,7 +106,7 @@ func processABlock(msg *wire.MsgABlock) error {
 	}
 	fMemPool.addBlockMsg(msg, abHash.String()) // store in mem pool with ABHash as key
 
-	procLog.Debug("SyncUp: MsgABlock DBHeight=", msg.ABlk.Header.DBHeight)
+	fmt.Println("SyncUp: MsgABlock DBHeight=", msg.ABlk.Header.DBHeight)
 
 	return nil
 }
@@ -126,7 +127,7 @@ func procesECBlock(msg *wire.MsgECBlock) error {
 	}
 	fMemPool.addBlockMsg(msg, hash.String())
 
-	procLog.Debug("SyncUp: MsgCBlock EBHeight=", msg.ECBlock.Header.EBHeight)
+	fmt.Println("SyncUp: MsgCBlock EBHeight=", msg.ECBlock.Header.EBHeight)
 
 	return nil
 }
@@ -151,7 +152,7 @@ func processEBlock(msg *wire.MsgEBlock) error {
 	}
 	fMemPool.addBlockMsg(msg, keyMR.String()) // store it in mem pool with MR as the key
 
-	procLog.Debug("SyncUp: MsgEBlock EBHeight=", msg.EBlk.Header.EBHeight)
+	fmt.Println("SyncUp: MsgEBlock EBHeight=", msg.EBlk.Header.EBHeight)
 
 	return nil
 }
@@ -169,7 +170,7 @@ func processEntry(msg *wire.MsgEntry) error {
 	h := msg.Entry.Hash()
 	fMemPool.addBlockMsg(msg, h.String()) // store it in mem pool with hash as the key
 
-	procLog.Debug("SyncUp: MsgEntry hash=", msg.Entry.Hash())
+	fmt.Println("SyncUp: MsgEntry hash=", msg.Entry.Hash())
 
 	return nil
 }
@@ -201,7 +202,7 @@ func validateAndStoreBlocks(fMemPool *ftmMemPool, db database.Db, dchain *common
 				if err == nil {
 					deleteBlocksFromMemPool(dblk, fMemPool)
 				} else {
-					panic("error in deleteBlocksFromMemPool.")
+					panic("error in storeBlocksFromMemPool.")
 				}
 			} else {
 				time.Sleep(time.Duration(sleeptime * 1000000)) // Nanoseconds for duration
@@ -231,7 +232,7 @@ func validateAndStoreBlocks(fMemPool *ftmMemPool, db database.Db, dchain *common
 
 // Validate the new blocks in mem pool and store them in db
 func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db database.Db) bool {
-
+	fmt.Println("validateBlocksFromMemPool: dbheight=", b.Header.DBHeight)
 	// Validate the genesis block
 	if b.Header.DBHeight == 0 {
 		h, _ := common.CreateHash(b)
@@ -267,11 +268,13 @@ func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, d
 				return false
 			}
 		default:
-			if msg, ok := fMemPool.blockpool[dbEntry.KeyMR.String()]; !ok {
+			if _, ok := fMemPool.blockpool[dbEntry.KeyMR.String()]; !ok {
 				return false
-			} else {
+			}
+			/*else {
 				eBlkMsg, _ := msg.(*wire.MsgEBlock)
 				// validate every entry in EBlock
+
 				for _, ebEntry := range eBlkMsg.EBlk.Body.EBEntries {
 					if _, foundInMemPool := fMemPool.blockpool[ebEntry.String()]; !foundInMemPool {
 						if !bytes.Equal(ebEntry.Bytes()[:31], common.ZERO_HASH[:31]) {
@@ -283,7 +286,7 @@ func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, d
 						}
 					}
 				}
-			}
+			}*/
 		}
 	}
 
@@ -296,6 +299,7 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 	fMemPool.RLock()
 	defer fMemPool.RUnlock()
 
+	fmt.Println("storeBlocksFromMemPool: dbheight=", b.Header.DBHeight)
 	for _, dbEntry := range b.DBEntries {
 		switch dbEntry.ChainID.String() {
 		case ecchain.ChainID.String():
@@ -367,7 +371,7 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 		}
 	}
 
-	dbhash, dbHeight, _ := db.FetchBlockHeightCache()
+	//dbhash, dbHeight, _ := db.FetchBlockHeightCache()
 	//fmt.Printf("last block height is %d, to-be-saved block height is %d\n", dbHeight, b.Header.DBHeight)
 
 	// Store the dir block
@@ -384,7 +388,7 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 
 	// for debugging
 	exportDBlock(b)
-
+	/*
 	// this means, there's syncup breakage happened, and let's renew syncup.
 	if uint32(dbHeight) < b.Header.DBHeight-1 {
 		startHash, _ := wire.NewShaHash(dbhash.Bytes())
@@ -393,7 +397,7 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 			StartHash: startHash,
 			StopHash:  stopHash,
 		}
-	}
+	}*/
 
 	return nil
 }
@@ -401,6 +405,7 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 // Validate the new blocks in mem pool and store them in db
 func deleteBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool) error {
 
+	fmt.Println("deleteBlocksFromMemPool: dbheight=", b.Header.DBHeight)
 	for _, dbEntry := range b.DBEntries {
 		switch dbEntry.ChainID.String() {
 		case ecchain.ChainID.String():
