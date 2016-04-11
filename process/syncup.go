@@ -333,7 +333,7 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 			err = common.FactoidState.AddTransactionBlock(fBlkMsg.SC)
 			FactoshisPerCredit = fBlkMsg.SC.GetExchRate()
 			if err != nil {
-				fmt.Println("SC.GetExchRate(): ", err.Error())
+				fmt.Println("FactoidState.AddTransactionBlock: ", err.Error())
 				return err
 			}
 
