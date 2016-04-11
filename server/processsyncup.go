@@ -5,7 +5,7 @@
 package server
 
 import (
-	"encoding/hex"
+	//"encoding/hex"
 	"errors"
 	"fmt"
 	"strconv"
@@ -56,9 +56,9 @@ func processDirBlock(msg *wire.MsgDirBlock) error {
 // processFBlock validates admin block and save it to factom db.
 // similar to blockChain.BC_ProcessBlock
 func processFBlock(msg *wire.MsgFBlock) error {
-	key := hex.EncodeToString(msg.SC.GetHash().Bytes())
+	//key := hex.EncodeToString(msg.SC.GetHash().Bytes())
 	//Add it to mem pool before saving it in db
-	fMemPool.addBlockMsg(msg, string(key)) // stored in mem pool with the MR as the key
+	fMemPool.addBlockMsg(msg, msg.SC.GetHash().String()) //string(key)) // stored in mem pool with the MR as the key
 	//procLog.Debug("SyncUp: MsgFBlock DBHeight=", msg.SC.GetDBHeight())
 	return nil
 
@@ -140,7 +140,7 @@ func validateAndStoreBlocks(fMemPool *ftmMemPool, db database.Db, dchain *common
 				if err == nil {
 					deleteBlocksFromMemPool(dblk, fMemPool)
 				} else {
-					fmt.Println("error in deleteBlocksFromMemPool. ", err.Error())
+					fmt.Println("error in storeBlocksFromMemPool. ", err.Error())
 					//panic("error in deleteBlocksFromMemPool. " + err.Error())
 				}
 			} else {
@@ -263,6 +263,7 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 			err = common.FactoidState.AddTransactionBlock(fBlkMsg.SC)
 			FactoshisPerCredit = fBlkMsg.SC.GetExchRate()
 			if err != nil {
+				fmt.Println("err in FactoidState.AddTransactionBlock: ", spew.Sdump(fBlkMsg.SC))
 				return err
 			}
 			if fchain.NextBlockHeight <= fBlkMsg.SC.GetDBHeight() {
@@ -357,7 +358,7 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 
 // Validate the new blocks in mem pool and store them in db
 func deleteBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool) error {
-	procLog.Info("in deleteBlocksFromMemPool. dir block height=", b.Header.DBHeight)
+	fmt.Println("in deleteBlocksFromMemPool. dir block height=", b.Header.DBHeight)
 	for _, dbEntry := range b.DBEntries {
 		switch dbEntry.ChainID.String() {
 		case ecchain.ChainID.String():

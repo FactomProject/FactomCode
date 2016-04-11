@@ -788,7 +788,7 @@ func (s *server) peerHandler() {
 
 	// Start up persistent peers.
 	permanentPeers := cfg.ConnectPeers
-	srvrLog.Infof("peerHandler(): permanentPeers (ConnectPeers): %s", spew.Sdump(permanentPeers))
+	srvrLog.Infof("peerHandler: permanentPeers (ConnectPeers): %s", spew.Sdump(permanentPeers))
 	if len(permanentPeers) == 0 {
 		permanentPeers = cfg.AddPeers
 	}
@@ -796,7 +796,7 @@ func (s *server) peerHandler() {
 		srvrLog.Infof("before handleAddPeerMsg: newOutboundPeer: %+v", addr)
 		s.handleAddPeerMsg(state, newOutboundPeer(s, addr, true, 0))
 	}
-	srvrLog.Infof("peerHandler(): permanentPeers (ConnectPeers + AddPeers): %s", spew.Sdump(permanentPeers))
+	srvrLog.Infof("peerHandler: permanentPeers (ConnectPeers + AddPeers): %s", spew.Sdump(permanentPeers))
 
 	// if nothing else happens, wake us up soon.
 	time.AfterFunc(10*time.Second, func() { s.wakeup <- struct{}{} }) //10*
