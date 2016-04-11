@@ -201,8 +201,8 @@ func validateAndStoreBlocks(fMemPool *ftmMemPool, db database.Db, dchain *common
 				err := storeBlocksFromMemPool(dblk, fMemPool, db)
 				if err == nil {
 					deleteBlocksFromMemPool(dblk, fMemPool)
-				} else {
-					panic("error in storeBlocksFromMemPool.")
+				//} else {
+					//panic("error in storeBlocksFromMemPool: " + err.Error())
 				}
 			} else {
 				time.Sleep(time.Duration(sleeptime * 1000000)) // Nanoseconds for duration
@@ -306,6 +306,7 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 			ecBlkMsg := fMemPool.blockpool[dbEntry.KeyMR.String()].(*wire.MsgECBlock)
 			err := db.ProcessECBlockBatch(ecBlkMsg.ECBlock)
 			if err != nil {
+				fmt.Println("db.ProcessECBlockBatch: ", err.Error())
 				return err
 			}
 			// needs to be improved??
@@ -316,6 +317,7 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 			aBlkMsg := fMemPool.blockpool[dbEntry.KeyMR.String()].(*wire.MsgABlock)
 			err := db.ProcessABlockBatch(aBlkMsg.ABlk)
 			if err != nil {
+				fmt.Println("db.ProcessABlockBatch: ", err.Error())
 				return err
 			}
 			// for debugging
@@ -324,12 +326,14 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 			fBlkMsg := fMemPool.blockpool[dbEntry.KeyMR.String()].(*wire.MsgFBlock)
 			err := db.ProcessFBlockBatch(fBlkMsg.SC)
 			if err != nil {
+				fmt.Println("db.ProcessFBlockBatch: ", err.Error())
 				return err
 			}
 			// Initialize the Factoid State
 			err = common.FactoidState.AddTransactionBlock(fBlkMsg.SC)
 			FactoshisPerCredit = fBlkMsg.SC.GetExchRate()
 			if err != nil {
+				fmt.Println("SC.GetExchRate(): ", err.Error())
 				return err
 			}
 
@@ -343,6 +347,7 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 				if msg, foundInMemPool := fMemPool.blockpool[ebEntry.String()]; foundInMemPool {
 					err := db.InsertEntry(msg.(*wire.MsgEntry).Entry)
 					if err != nil {
+						fmt.Println("db.InsertEntry: ", err.Error())
 						return err
 					}
 				}
@@ -350,6 +355,7 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 			// Store Entry Block in db
 			err := db.ProcessEBlockBatch(eBlkMsg.EBlk)
 			if err != nil {
+				fmt.Println("db.ProcessEBlockBatch: ", err.Error())
 				return err
 			}
 
@@ -377,6 +383,7 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 	// Store the dir block
 	err := db.ProcessDBlockBatch(b)
 	if err != nil {
+		fmt.Println("db.ProcessDBlockBatch: ", err.Error())
 		return err
 	}
 
