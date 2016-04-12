@@ -27,7 +27,7 @@ func processDirBlock(msg *wire.MsgDirBlock) error {
 		return errors.New("Server received msg:" + msg.Command())
 	}
 
-	blk, _ := db.FetchDBlockByHeight(msg.DBlk.Header.DBHeight)
+	blk, err := db.FetchDBlockByHeight(msg.DBlk.Header.DBHeight)
 	if blk != nil {
 		procLog.Info("DBlock already exists for height:" + string(msg.DBlk.Header.DBHeight))
 		cp.CP.AddUpdate(
@@ -38,13 +38,18 @@ func processDirBlock(msg *wire.MsgDirBlock) error {
 			0) // Expire
 		return nil
 	}
+	if err != nil {
+		return err
+	}
 
 	msg.DBlk.IsSealed = true
 	dchain.AddDBlockToDChain(msg.DBlk)
 
 	//Add it to mem pool before saving it in db
-	fMemPool.addBlockMsg(msg, strconv.Itoa(int(msg.DBlk.Header.DBHeight))) // store in mempool with the height as the key
-
+	err = fMemPool.addBlockMsg(msg, strconv.Itoa(int(msg.DBlk.Header.DBHeight))) // store in mempool with the height as the key
+	if err != nil {
+		return err
+	}
 	fmt.Println("SyncUp: MsgDirBlock DBHeight=", msg.DBlk.Header.DBHeight)
 	cp.CP.AddUpdate(
 		"DBSyncUp", // tag
@@ -82,7 +87,10 @@ func processFBlock(msg *wire.MsgFBlock) error {
 
 	key := hex.EncodeToString(msg.SC.GetHash().Bytes())
 	//Add it to mem pool before saving it in db
-	fMemPool.addBlockMsg(msg, string(key)) // stored in mem pool with the MR as the key
+	err := fMemPool.addBlockMsg(msg, string(key)) // stored in mem pool with the MR as the key
+	if err != nil {
+		return err
+	}
 
 	fmt.Println("SyncUp: MsgFBlock DBHeight=", msg.SC.GetDBHeight())
 
@@ -104,7 +112,10 @@ func processABlock(msg *wire.MsgABlock) error {
 	if err != nil {
 		return err
 	}
-	fMemPool.addBlockMsg(msg, abHash.String()) // store in mem pool with ABHash as key
+	err = fMemPool.addBlockMsg(msg, abHash.String()) // store in mem pool with ABHash as key
+	if err != nil {
+		return err
+	}
 
 	fmt.Println("SyncUp: MsgABlock DBHeight=", msg.ABlk.Header.DBHeight)
 
@@ -125,7 +136,10 @@ func procesECBlock(msg *wire.MsgECBlock) error {
 	if err != nil {
 		return err
 	}
-	fMemPool.addBlockMsg(msg, hash.String())
+	err = fMemPool.addBlockMsg(msg, hash.String())
+	if err != nil {
+		return err
+	}
 
 	fmt.Println("SyncUp: MsgCBlock EBHeight=", msg.ECBlock.Header.EBHeight)
 
@@ -150,7 +164,10 @@ func processEBlock(msg *wire.MsgEBlock) error {
 	if err != nil {
 		return err
 	}
-	fMemPool.addBlockMsg(msg, keyMR.String()) // store it in mem pool with MR as the key
+	err = fMemPool.addBlockMsg(msg, keyMR.String()) // store it in mem pool with MR as the key
+	if err != nil {
+		return err
+	}
 
 	fmt.Println("SyncUp: MsgEBlock EBHeight=", msg.EBlk.Header.EBHeight)
 
@@ -168,7 +185,10 @@ func processEntry(msg *wire.MsgEntry) error {
 
 	// store the entry in mem pool
 	h := msg.Entry.Hash()
-	fMemPool.addBlockMsg(msg, h.String()) // store it in mem pool with hash as the key
+	err := fMemPool.addBlockMsg(msg, h.String()) // store it in mem pool with hash as the key
+	if err != nil {
+		return err
+	}
 
 	fmt.Println("SyncUp: MsgEntry hash=", msg.Entry.Hash())
 
@@ -201,8 +221,9 @@ func validateAndStoreBlocks(fMemPool *ftmMemPool, db database.Db, dchain *common
 				err := storeBlocksFromMemPool(dblk, fMemPool, db)
 				if err == nil {
 					deleteBlocksFromMemPool(dblk, fMemPool)
-				//} else {
+				} else {
 					//panic("error in storeBlocksFromMemPool: " + err.Error())
+					fmt.Println("error in storeBlocksFromMemPool: " + err.Error())
 				}
 			} else {
 				time.Sleep(time.Duration(sleeptime * 1000000)) // Nanoseconds for duration
@@ -333,6 +354,7 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 			err = common.FactoidState.AddTransactionBlock(fBlkMsg.SC)
 			FactoshisPerCredit = fBlkMsg.SC.GetExchRate()
 			if err != nil {
+				fmt.Println(spew.Sdump(fBlkMsg.SC))
 				fmt.Println("FactoidState.AddTransactionBlock: ", err.Error())
 				return err
 			}
