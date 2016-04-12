@@ -5,7 +5,7 @@
 package process
 
 import (
-	//"bytes"
+	"bytes"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -223,8 +223,8 @@ func validateAndStoreBlocks(fMemPool *ftmMemPool, db database.Db, dchain *common
 				if err == nil {
 					deleteBlocksFromMemPool(dblk, fMemPool)
 				} else {
-					//panic("error in storeBlocksFromMemPool: " + err.Error())
-					fmt.Println("error in storeBlocksFromMemPool: " + err.Error())
+					panic("error in storeBlocksFromMemPool: " + err.Error())
+					//fmt.Println("error in storeBlocksFromMemPool: " + err.Error())
 				}
 			} else {
 				time.Sleep(time.Duration(sleeptime * 1000000)) // Nanoseconds for duration
@@ -241,6 +241,7 @@ func validateAndStoreBlocks(fMemPool *ftmMemPool, db database.Db, dchain *common
 				// this means, there could be a syncup breakage happened, and let's renew syncup.
 				//startHash, _ := wire.NewShaHash(dbhash.Bytes())
 				if dbhash != nil {
+					fmt.Println("before sending re-sync: hash=", dbhash.String())
 					outMsgQueue <- &wire.MsgInt_ReSyncup{
 						StartHash: dbhash,
 					}
@@ -290,10 +291,9 @@ func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, d
 				return false
 			}
 		default:
-			if _, ok := fMemPool.blockpool[dbEntry.KeyMR.String()]; !ok {
+			if msg, ok := fMemPool.blockpool[dbEntry.KeyMR.String()]; !ok {
 				return false
-			}
-			/*else {
+			} else {
 				eBlkMsg, _ := msg.(*wire.MsgEBlock)
 				// validate every entry in EBlock
 
@@ -308,7 +308,7 @@ func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, d
 						}
 					}
 				}
-			}*/
+			}
 		}
 	}
 
@@ -328,7 +328,7 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 			ecBlkMsg := fMemPool.blockpool[dbEntry.KeyMR.String()].(*wire.MsgECBlock)
 			err := db.ProcessECBlockBatch(ecBlkMsg.ECBlock)
 			if err != nil {
-				fmt.Println("db.ProcessECBlockBatch: ", err.Error())
+				fmt.Println("error in db.ProcessECBlockBatch: ", err.Error())
 				return err
 			}
 			// needs to be improved??
@@ -339,7 +339,7 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 			aBlkMsg := fMemPool.blockpool[dbEntry.KeyMR.String()].(*wire.MsgABlock)
 			err := db.ProcessABlockBatch(aBlkMsg.ABlk)
 			if err != nil {
-				fmt.Println("db.ProcessABlockBatch: ", err.Error())
+				fmt.Println("error in db.ProcessABlockBatch: ", err.Error())
 				return err
 			}
 			// for debugging
@@ -348,7 +348,7 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 			fBlkMsg := fMemPool.blockpool[dbEntry.KeyMR.String()].(*wire.MsgFBlock)
 			err := db.ProcessFBlockBatch(fBlkMsg.SC)
 			if err != nil {
-				fmt.Println("db.ProcessFBlockBatch: ", err.Error())
+				fmt.Println("error in db.ProcessFBlockBatch: ", err.Error())
 				return err
 			}
 			// Initialize the Factoid State
@@ -356,7 +356,7 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 			FactoshisPerCredit = fBlkMsg.SC.GetExchRate()
 			if err != nil {
 				fmt.Println(spew.Sdump(fBlkMsg.SC))
-				fmt.Println("FactoidState.AddTransactionBlock: ", err.Error())
+				fmt.Println("error in FactoidState.AddTransactionBlock: ", err.Error())
 				return err
 			}
 
@@ -370,7 +370,7 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 				if msg, foundInMemPool := fMemPool.blockpool[ebEntry.String()]; foundInMemPool {
 					err := db.InsertEntry(msg.(*wire.MsgEntry).Entry)
 					if err != nil {
-						fmt.Println("db.InsertEntry: ", err.Error())
+						fmt.Println("error in db.InsertEntry: ", err.Error())
 						return err
 					}
 				}
@@ -378,7 +378,7 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 			// Store Entry Block in db
 			err := db.ProcessEBlockBatch(eBlkMsg.EBlk)
 			if err != nil {
-				fmt.Println("db.ProcessEBlockBatch: ", err.Error())
+				fmt.Println("error in db.ProcessEBlockBatch: ", err.Error())
 				return err
 			}
 
@@ -388,7 +388,7 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 				chain.ChainID = eBlkMsg.EBlk.Header.ChainID
 				chain.FirstEntry, _ = db.FetchEntryByHash(eBlkMsg.EBlk.Body.EBEntries[0])
 				if chain.FirstEntry == nil {
-					return errors.New("First entry not found for chain:" + eBlkMsg.EBlk.Header.ChainID.String())
+					return errors.New("error in First entry not found for chain:" + eBlkMsg.EBlk.Header.ChainID.String())
 				}
 
 				db.InsertChain(chain)
@@ -400,13 +400,13 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 		}
 	}
 
-	//dbhash, dbHeight, _ := db.FetchBlockHeightCache()
-	//fmt.Printf("last block height is %d, to-be-saved block height is %d\n", dbHeight, b.Header.DBHeight)
+	dbhash, dbHeight, _ := db.FetchBlockHeightCache()
+	fmt.Printf("last block height is %d, to-be-saved block height is %d\n", dbHeight, b.Header.DBHeight)
 
 	// Store the dir block
 	err := db.ProcessDBlockBatch(b)
 	if err != nil {
-		fmt.Println("db.ProcessDBlockBatch: ", err.Error())
+		fmt.Println("error in db.ProcessDBlockBatch: ", err.Error())
 		return err
 	}
 
@@ -418,16 +418,17 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 
 	// for debugging
 	exportDBlock(b)
-	/*
+
 	// this means, there's syncup breakage happened, and let's renew syncup.
 	if uint32(dbHeight) < b.Header.DBHeight-1 {
 		startHash, _ := wire.NewShaHash(dbhash.Bytes())
 		stopHash, _ := wire.NewShaHash(commonHash.Bytes())
+		fmt.Println("sending out re-sync: ")
 		outMsgQueue <- &wire.MsgInt_ReSyncup{
 			StartHash: startHash,
 			StopHash:  stopHash,
 		}
-	}*/
+	}
 
 	return nil
 }
@@ -481,7 +482,7 @@ func validateDBSignature(aBlock *common.AdminBlock, dchain *common.DChain) bool 
 				// validatet the signature
 				bHeader, _ := dblk.Header.MarshalBinary()
 				if !serverPubKey.Verify(bHeader, (*[64]byte)(dbSig.PrevDBSig)) {
-					fmt.Printf("No valid signature found in Admin Block = %s\n", spew.Sdump(aBlock))
+					fmt.Printf("error in No valid signature found in Admin Block = %s\n", spew.Sdump(aBlock))
 					return false
 				}
 			}
