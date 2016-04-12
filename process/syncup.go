@@ -29,7 +29,7 @@ func processDirBlock(msg *wire.MsgDirBlock) error {
 
 	blk, err := db.FetchDBlockByHeight(msg.DBlk.Header.DBHeight)
 	if blk != nil {
-		procLog.Info("DBlock already exists for height:" + string(msg.DBlk.Header.DBHeight))
+		fmt.Println("DBlock already exists for height:" + string(msg.DBlk.Header.DBHeight))
 		cp.CP.AddUpdate(
 			"DBOverlap",                                                          // tag
 			"warning",                                                            // Category
@@ -39,7 +39,8 @@ func processDirBlock(msg *wire.MsgDirBlock) error {
 		return nil
 	}
 	if err != nil {
-		return err
+		fmt.Println("error in processDirBlock: ", err.Error())
+		//return err
 	}
 
 	msg.DBlk.IsSealed = true
@@ -48,7 +49,7 @@ func processDirBlock(msg *wire.MsgDirBlock) error {
 	//Add it to mem pool before saving it in db
 	err = fMemPool.addBlockMsg(msg, strconv.Itoa(int(msg.DBlk.Header.DBHeight))) // store in mempool with the height as the key
 	if err != nil {
-		return err
+		fmt.Println("error in addBlockMsg - dirblock: ", err.Error())
 	}
 	fmt.Println("SyncUp: MsgDirBlock DBHeight=", msg.DBlk.Header.DBHeight)
 	cp.CP.AddUpdate(
@@ -480,7 +481,7 @@ func validateDBSignature(aBlock *common.AdminBlock, dchain *common.DChain) bool 
 				// validatet the signature
 				bHeader, _ := dblk.Header.MarshalBinary()
 				if !serverPubKey.Verify(bHeader, (*[64]byte)(dbSig.PrevDBSig)) {
-					procLog.Infof("No valid signature found in Admin Block = %s\n", spew.Sdump(aBlock))
+					fmt.Printf("No valid signature found in Admin Block = %s\n", spew.Sdump(aBlock))
 					return false
 				}
 			}

@@ -217,7 +217,8 @@ func Start_Processor(
 				if ok {
 
 					if err := serveMsgRequest(msg); err != nil {
-						procLog.Error(err)
+						fmt.Println("error in serveMsgRequest: ", err.Error())
+						//procLog.Error(err)
 					}
 				}
 			case ctlMsg, ok := <-inCtlMsgQueue:
