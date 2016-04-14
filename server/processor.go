@@ -57,13 +57,14 @@ var (
 	newEBlocks []*common.EBlock
 
 	//TODO: To be moved to ftmMemPool??
-	chainIDMap     map[string]*common.EChain // ChainIDMap with chainID string([32]byte) as key
 	commitChainMap = make(map[string]*common.CommitChain, 0)
 	commitEntryMap = make(map[string]*common.CommitEntry, 0)
-	eCreditMap     map[string]int32 // eCreditMap with public key string([32]byte) as key, credit balance as value
 
+	chainIDMap       map[string]*common.EChain // ChainIDMap with chainID string([32]byte) as key
 	chainIDMapBackup map[string]*common.EChain //previous block bakcup - ChainIDMap with chainID string([32]byte) as key
-	eCreditMapBackup map[string]int32          // backup from previous block - eCreditMap with public key string([32]byte) as key, credit balance as value
+
+	eCreditMap       map[string]int32 // eCreditMap with public key string([32]byte) as key, credit balance as value
+	eCreditMapBackup map[string]int32 // backup from previous block - eCreditMap with public key string([32]byte) as key, credit balance as value
 
 	fMemPool *ftmMemPool
 	plMgr    *consensus.ProcessListMgr
@@ -427,6 +428,13 @@ func processLeaderEOM(msgEom *wire.MsgInt_EOM) error {
 	fmt.Println("processLeaderEOM: federate servers #: ", localServer.FederateServerCount(),
 		", Non-candidate federate servers #: ", localServer.FederateServerCountMinusCandidate(),
 		", singleServerMode=", singleServerMode)
+
+	// check missing EOMs, in case of leader crash and a new leader emerges
+	//items := plMgr.MyProcessList.GetPLItems()
+	//for i := 0; i < plMgr.MyProcessList.GetNextIndex(); i++ {
+	//item := items[i]
+	//if item.Ack.IsEomAck()
+	//}
 
 	// to simplify this, for leader & followers, use the next wire.EndMinute1
 	// to trigger signature comparison of last round.
@@ -1333,6 +1341,8 @@ func buildBlocks() error {
 
 	// should keep this process list for a while ????
 	// re-initialize the process lit manager
+	backupKeyMapData()
+	fMemPool.cleanUpMemPool()
 	initProcessListMgr()
 
 	// for leader / follower regime change
@@ -1344,9 +1354,15 @@ func buildBlocks() error {
 
 	if localServer.IsLeader() && !localServer.isSingleServerMode() {
 		if dchain.NextDBHeight-1 == localServer.myLeaderPolicy.StartDBHeight+localServer.myLeaderPolicy.Term-1 {
-			fmt.Println("buildBlocks: Leader turn OFF BlockTimer. newDBlock.dbheight=", newDBlock.Header.DBHeight, ", dchain.NextDBHeight=", dchain.NextDBHeight)
+			fmt.Println("buildBlocks: Leader turn OFF BlockTimer. dchain.NextDBHeight=", dchain.NextDBHeight)
+			if newDBlock != nil {
+				fmt.Println("newDBlock.dbheight=", newDBlock.Header.DBHeight)
+			}
 		} else {
-			fmt.Println("buildBlocks: Leader RESTARTs BlockTimer. newDBlock.dbheight=", newDBlock.Header.DBHeight, ", dchain.NextDBHeight=", dchain.NextDBHeight)
+			fmt.Println("buildBlocks: Leader RESTARTs BlockTimer. dchain.NextDBHeight=", dchain.NextDBHeight)
+			if newDBlock != nil {
+				fmt.Println("newDBlock.dbheight=", newDBlock.Header.DBHeight)
+			}
 		}
 	}
 	if localServer.isLeaderElected && !localServer.isSingleServerMode() {
@@ -1964,6 +1980,17 @@ func IsDChainInSync() bool {
 	return false
 }
 
+func backupKeyMapData() {
+	// backup chainIDMap once a block is created, as a checkpoint.
+	for k, v := range chainIDMap {
+		chainIDMapBackup[k] = v
+	}
+	// backup eCreditMap
+	for k, v := range eCreditMap {
+		eCreditMapBackup[k] = v
+	}
+}
+
 func restartBlockTimer() {
 	fmt.Println("@@@@ start BlockTimer for new current leader.")
 	timer := &BlockTimer{
@@ -1972,9 +1999,38 @@ func restartBlockTimer() {
 	}
 	go timer.StartBlockTimer()
 
-	// reorganize process list
+	// rebuild leader's process list
+	var msg wire.FtmInternalMsg
+	var hash *wire.ShaHash
+	for i := 0; i < len(fMemPool.ackpool); i++ {
+		if fMemPool.ackpool[i] == nil {
+			continue
+		}
+		if fMemPool.ackpool[i].Affirmation != nil {
+			msg = fMemPool.pool[*fMemPool.ackpool[i].Affirmation]
+			hash = fMemPool.ackpool[i].Affirmation
+		}
+		if msg == nil {
+			if !fMemPool.ackpool[i].IsEomAck() {
+				continue
+			} else {
+				msg = &wire.MsgInt_EOM{
+					EOM_Type:         fMemPool.ackpool[i].Type,
+					NextDBlockHeight: fMemPool.ackpool[i].Height,
+				}
+				hash = nil
+			}
+		}
+		outMsgQueue <- msg
 
-	// what about missed EOM ?
+		ack, _ := plMgr.AddToLeadersProcessList(msg, hash, fMemPool.ackpool[i].Type, dchain.NextBlock.Header.Timestamp, fchain.NextBlock.GetCoinbaseTimestamp())
+		outMsgQueue <- ack
+		if fMemPool.ackpool[i].Type == wire.EndMinute10 {
+			break
+		}
+	}
+
+	// for missed EOMs, processLeaderEOM should take care them
 
 	// relay stale messages in orphan pool and mempool.
 }

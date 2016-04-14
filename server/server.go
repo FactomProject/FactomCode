@@ -296,7 +296,7 @@ func (s *server) handleAddPeerMsg(state *peerState, p *peer) bool {
 		return false
 	}
 
-	fmt.Println("handleAddPeerMsg: start peerstate: ", spew.Sdump(state))
+	fmt.Printf("handleAddPeerMsg: start; peer=%s\n, %s\n", p, spew.Sdump(state))
 
 	// Ignore new peers if we're shutting down.
 	if atomic.LoadInt32(&s.shutdown) != 0 {
@@ -414,7 +414,7 @@ func (s *server) handleDonePeerMsg(state *peerState, p *peer) {
 	for i, fedServer := range s.federateServers {
 		if fedServer.Peer == p {
 			s.federateServers = append(s.federateServers[:i], s.federateServers[i+1:]...)
-			srvrLog.Debugf("handleDonePeerMsg: Removed: %s", p)
+			//srvrLog.Debugf("handleDonePeerMsg: Removed: %s", p)
 
 			// if p is leaderElected and I am the leader, select a new leaderElected
 			_, newestHeight, _ := db.FetchBlockHeightCache()

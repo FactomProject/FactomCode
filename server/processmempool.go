@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/FactomProject/FactomCode/common"
-	//"github.com/FactomProject/FactomCode/consensus"
 	"github.com/FactomProject/FactomCode/wire"
 	"github.com/FactomProject/factoid/block"
 )

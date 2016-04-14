@@ -45,9 +45,14 @@ func (pl *ProcessList) AddToProcessList(pli *ProcessListItem) error {
 	return nil
 }
 
-// GetPLItems Get Process lit items
+// GetPLItems Get Process list items
 func (pl *ProcessList) GetPLItems() []*ProcessListItem {
 	return pl.plItems
+}
+
+// GetNextIndex Get Process list nextIndex
+func (pl *ProcessList) GetNextIndex() int {
+	return pl.nextIndex
 }
 
 // GetMissingMsg Gets Process lit item based on missing msg, and returns either
