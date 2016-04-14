@@ -174,11 +174,11 @@ func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, d
 	for _, dbEntry := range b.DBEntries {
 		switch dbEntry.ChainID.String() {
 		case ecchain.ChainID.String():
-			if _, ok := fMemPool.blockpool[dbEntry.KeyMR.String()]; !ok {
+			if _, ok := fMemPool.FetchAndFoundFromBlockpool(dbEntry.KeyMR.String()); !ok {
 				return false
 			}
 		case achain.ChainID.String():
-			if msg, ok := fMemPool.blockpool[dbEntry.KeyMR.String()]; !ok {
+			if msg, ok := fMemPool.FetchAndFoundFromBlockpool(dbEntry.KeyMR.String()); !ok {
 				return false
 			} else {
 				// validate signature of the previous dir block
@@ -188,11 +188,11 @@ func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, d
 				}
 			}
 		case fchain.ChainID.String():
-			if _, ok := fMemPool.blockpool[dbEntry.KeyMR.String()]; !ok {
+			if _, ok := fMemPool.FetchAndFoundFromBlockpool(dbEntry.KeyMR.String()); !ok {
 				return false
 			}
 		default:
-			if _, ok := fMemPool.blockpool[dbEntry.KeyMR.String()]; !ok {
+			if _, ok := fMemPool.FetchAndFoundFromBlockpool(dbEntry.KeyMR.String()); !ok {
 				return false
 			}
 			// no need to care entry at this point
@@ -201,7 +201,7 @@ func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, d
 				eBlkMsg, _ := msg.(*wire.MsgEBlock)
 				// validate every entry in EBlock
 				for _, ebEntry := range eBlkMsg.EBlk.Body.EBEntries {
-					if _, foundInMemPool := fMemPool.blockpool[ebEntry.String()]; !foundInMemPool {
+					if _, foundInMemPool := fMemPool.FetchAndFoundFromBlockpool(ebEntry.String()); !foundInMemPool {
 						if !bytes.Equal(ebEntry.Bytes()[:31], common.ZERO_HASH[:31]) {
 							// continue if the entry arleady exists in db
 							entry, _ := db.FetchEntryByHash(ebEntry)
@@ -227,7 +227,7 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 	for _, dbEntry := range b.DBEntries {
 		switch dbEntry.ChainID.String() {
 		case ecchain.ChainID.String():
-			ecBlkMsg := fMemPool.blockpool[dbEntry.KeyMR.String()].(*wire.MsgECBlock)
+			ecBlkMsg := fMemPool.FetchFromBlockpool(dbEntry.KeyMR.String()).(*wire.MsgECBlock)
 			//err := db.ProcessECBlockMultiBatch(ecBlkMsg.ECBlock)
 			err := db.ProcessECBlockBatch(ecBlkMsg.ECBlock)
 			if err != nil {
@@ -241,7 +241,7 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 			// for debugging
 			exportECBlock(ecBlkMsg.ECBlock)
 		case achain.ChainID.String():
-			aBlkMsg := fMemPool.blockpool[dbEntry.KeyMR.String()].(*wire.MsgABlock)
+			aBlkMsg := fMemPool.FetchFromBlockpool(dbEntry.KeyMR.String()).(*wire.MsgABlock)
 			//err := db.ProcessABlockMultiBatch(aBlkMsg.ABlk)
 			err := db.ProcessABlockBatch(aBlkMsg.ABlk)
 			if err != nil {
@@ -253,7 +253,7 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 			// for debugging
 			exportABlock(aBlkMsg.ABlk)
 		case fchain.ChainID.String():
-			fBlkMsg := fMemPool.blockpool[dbEntry.KeyMR.String()].(*wire.MsgFBlock)
+			fBlkMsg := fMemPool.FetchFromBlockpool(dbEntry.KeyMR.String()).(*wire.MsgFBlock)
 			//err := db.ProcessFBlockMultiBatch(fBlkMsg.SC)
 			err := db.ProcessFBlockBatch(fBlkMsg.SC)
 			if err != nil {
@@ -281,10 +281,10 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 			exportFctBlock(fBlkMsg.SC)
 		default:
 			// handle Entry Block
-			eBlkMsg, _ := fMemPool.blockpool[dbEntry.KeyMR.String()].(*wire.MsgEBlock)
+			eBlkMsg, _ := fMemPool.FetchFromBlockpool(dbEntry.KeyMR.String()).(*wire.MsgEBlock)
 			// store entry in db first
 			for _, ebEntry := range eBlkMsg.EBlk.Body.EBEntries {
-				if msg, foundInMemPool := fMemPool.blockpool[ebEntry.String()]; foundInMemPool {
+				if msg, foundInMemPool := fMemPool.FetchAndFoundFromBlockpool(ebEntry.String()); foundInMemPool {
 					//err := db.InsertEntryMultiBatch(msg.(*wire.MsgEntry).Entry)
 					err := db.InsertEntry(msg.(*wire.MsgEntry).Entry)
 					if err != nil {
@@ -368,7 +368,7 @@ func deleteBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool) err
 		case fchain.ChainID.String():
 			fMemPool.deleteBlockMsg(dbEntry.KeyMR.String())
 		default:
-			eBlkMsg, _ := fMemPool.blockpool[dbEntry.KeyMR.String()].(*wire.MsgEBlock)
+			eBlkMsg, _ := fMemPool.FetchFromBlockpool(dbEntry.KeyMR.String()).(*wire.MsgEBlock)
 			for _, ebEntry := range eBlkMsg.EBlk.Body.EBEntries {
 				fMemPool.deleteBlockMsg(ebEntry.String())
 			}

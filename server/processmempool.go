@@ -26,7 +26,7 @@ type ftmMemPool struct {
 	blockpool    map[string]wire.Message // to hold the blocks or entries downloaded from peers
 	ackpool      []*wire.MsgAck
 	dirBlockSigs []*wire.MsgDirBlockSig
-	lastUpdated time.Time // last time pool was updated
+	lastUpdated  time.Time // last time pool was updated
 }
 
 // Add a factom message to the orphan pool
@@ -37,6 +37,21 @@ func (mp *ftmMemPool) initFtmMemPool() error {
 	mp.ackpool = make([]*wire.MsgAck, 100, 200)
 	mp.dirBlockSigs = make([]*wire.MsgDirBlockSig, 0, 32)
 	return nil
+}
+
+func (mp *ftmMemPool) FetchFromBlockpool(str string) wire.Message {
+	mp.RLock()
+	defer mp.RUnlock()
+
+	return mp.blockpool[str]
+}
+
+func (mp *ftmMemPool) FetchAndFoundFromBlockpool(str string) (wire.Message, bool) {
+	mp.RLock()
+	defer mp.RUnlock()
+
+	msg, found := mp.blockpool[str]
+	return msg, found
 }
 
 func (mp *ftmMemPool) addDirBlockSig(dbsig *wire.MsgDirBlockSig) {
