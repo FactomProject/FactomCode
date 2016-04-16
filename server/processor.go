@@ -56,9 +56,11 @@ var (
 	newECBlock *common.ECBlock
 	newEBlocks []*common.EBlock
 
-	//TODO: To be moved to ftmMemPool??
 	commitChainMap = make(map[string]*common.CommitChain, 0)
+	commitChainMapBackup map[string]*common.CommitChain
+	
 	commitEntryMap = make(map[string]*common.CommitEntry, 0)
+	commitEntryMapBackup map[string]*common.CommitEntry
 
 	chainIDMap       map[string]*common.EChain // ChainIDMap with chainID string([32]byte) as key
 	chainIDMapBackup map[string]*common.EChain //previous block bakcup - ChainIDMap with chainID string([32]byte) as key
@@ -79,6 +81,7 @@ var (
 	firstBlockHeight                   uint32 // the DBHeight of the first block being built by follower after sync up
 	doneSetFollowersCointbaseTimeStamp bool
 	doneSentCandidateMsg               bool
+	leaderCrashed 										 bool
 
 	zeroHash                = common.NewHash()
 	directoryBlockInSeconds int
@@ -335,6 +338,16 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		// followers EOM will be driven by Ack of this EOM.
 		fmt.Printf("in case.CmdInt_EOM: localServer.IsLeader=%v\n", localServer.IsLeader())
 		msgEom, _ := msg.(*wire.MsgInt_EOM)
+		if leaderCrashed {
+			miss := checkMissingLeaderEOMs(msgEom)
+			if len(miss) > 0 {
+				for _, m := range miss {
+					fmt.Println("process missing eom: ", m.EOM_Type)
+					return processLeaderEOM(m)
+				}
+			}
+			leaderCrashed = false
+		}
 		return processLeaderEOM(msgEom)
 
 	case wire.CmdFactoidTX:
@@ -428,13 +441,6 @@ func processLeaderEOM(msgEom *wire.MsgInt_EOM) error {
 	fmt.Println("processLeaderEOM: federate servers #: ", localServer.FederateServerCount(),
 		", Non-candidate federate servers #: ", localServer.FederateServerCountMinusCandidate(),
 		", singleServerMode=", singleServerMode)
-
-	// check missing EOMs, in case of leader crash and a new leader emerges
-	//items := plMgr.MyProcessList.GetPLItems()
-	//for i := 0; i < plMgr.MyProcessList.GetNextIndex(); i++ {
-	//item := items[i]
-	//if item.Ack.IsEomAck()
-	//}
 
 	// to simplify this, for leader & followers, use the next wire.EndMinute1
 	// to trigger signature comparison of last round.
@@ -1340,11 +1346,11 @@ func buildBlocks() error {
 	}
 
 	// should keep this process list for a while ????
-	// re-initialize the process lit manager
 	backupKeyMapData()
-	fMemPool.cleanUpMemPool()
+	// remove msg of current process list from mempool
+	fMemPool.cleanUpMemPool()	
 	initProcessListMgr()
-
+	
 	// for leader / follower regime change
 	fmt.Printf("buildBlocks: It's a leader=%t or leaderElected=%t, SingleServerMode=%t, dchain.NextDBHeight=%d\n",
 		localServer.IsLeader(), localServer.isLeaderElected, localServer.isSingleServerMode(), dchain.NextDBHeight)
@@ -1390,6 +1396,9 @@ func buildBlocks() error {
 		fmt.Println("buildBlocks: send it to channel: localServer.latestDBHeight <- ", newDBlock.Header.DBHeight)
 		localServer.latestDBHeight <- newDBlock.Header.DBHeight
 	}
+
+	// relay stale messages left in mempool and orphan pool.
+	fMemPool.relayStaleMessages()
 	return nil
 }
 
@@ -1981,6 +1990,11 @@ func IsDChainInSync() bool {
 }
 
 func backupKeyMapData() {
+	chainIDMapBackup = make(map[string]*common.EChain)
+	eCreditMapBackup = make(map[string]int32)
+	commitChainMapBackup = make(map[string]*common.CommitChain, 0)
+	commitEntryMapBackup = make(map[string]*common.CommitEntry, 0)
+
 	// backup chainIDMap once a block is created, as a checkpoint.
 	for k, v := range chainIDMap {
 		chainIDMapBackup[k] = v
@@ -1989,15 +2003,29 @@ func backupKeyMapData() {
 	for k, v := range eCreditMap {
 		eCreditMapBackup[k] = v
 	}
+	for k, v := range commitChainMap {
+		commitChainMapBackup[k] = v
+	}
+	for k, v := range commitEntryMap {
+		commitEntryMapBackup[k] = v
+	}
 }
 
-func restartBlockTimer() {
+func resetLeader() {
+	// start clock
 	fmt.Println("@@@@ start BlockTimer for new current leader.")
 	timer := &BlockTimer{
 		nextDBlockHeight: dchain.NextDBHeight,
 		inMsgQueue:       inMsgQueue,
 	}
 	go timer.StartBlockTimer()
+	
+	// reset eCreditMap & chainIDMap & processList
+	eCreditMap = eCreditMapBackup
+	chainIDMap = chainIDMapBackup
+	commitChainMap = commitChainMapBackup
+	commitEntryMap = commitEntryMapBackup
+	initProcessListMgr()
 
 	// rebuild leader's process list
 	var msg wire.FtmInternalMsg
@@ -2006,10 +2034,8 @@ func restartBlockTimer() {
 		if fMemPool.ackpool[i] == nil {
 			continue
 		}
-		if fMemPool.ackpool[i].Affirmation != nil {
-			msg = fMemPool.pool[*fMemPool.ackpool[i].Affirmation]
-			hash = fMemPool.ackpool[i].Affirmation
-		}
+		hash = fMemPool.ackpool[i].Affirmation	// never nil
+		msg = fMemPool.pool[*hash]
 		if msg == nil {
 			if !fMemPool.ackpool[i].IsEomAck() {
 				continue
@@ -2018,19 +2044,52 @@ func restartBlockTimer() {
 					EOM_Type:         fMemPool.ackpool[i].Type,
 					NextDBlockHeight: fMemPool.ackpool[i].Height,
 				}
-				hash = nil
+				hash = new(wire.ShaHash)
 			}
 		}
 		outMsgQueue <- msg
 
 		ack, _ := plMgr.AddToLeadersProcessList(msg, hash, fMemPool.ackpool[i].Type, dchain.NextBlock.Header.Timestamp, fchain.NextBlock.GetCoinbaseTimestamp())
 		outMsgQueue <- ack
+		
 		if fMemPool.ackpool[i].Type == wire.EndMinute10 {
+			// should not get to this point
 			break
 		}
 	}
 
 	// for missed EOMs, processLeaderEOM should take care them
 
-	// relay stale messages in orphan pool and mempool.
+	// relay stale messages in orphan pool and mempool in next round.
+}
+
+// check missing EOMs, in case of leader crash and a new leader emerges
+func checkMissingLeaderEOMs(msgEom *wire.MsgInt_EOM) []*wire.MsgInt_EOM {
+	var eom []byte
+	var em []*wire.MsgInt_EOM
+	for i := 1; i < int(msgEom.EOM_Type); i++ {
+		eom = append(eom, byte(i))
+	}
+	for _, item := range plMgr.MyProcessList.GetPLItems() {
+		if !item.Ack.IsEomAck() {
+			continue
+		}
+		for j := 0; j < len(eom); j++ {
+			if eom[j] == item.Ack.Type {
+				fmt.Println("found missing EOM: ", eom[j])
+				eom = append(eom[:j], eom[j+1:]...)
+				break
+			}
+		}
+	}
+	if len(eom) > 0 {
+		fmt.Println("missing leader EOMs: ", eom)
+		for _, typ := range eom {
+			m := &wire.MsgInt_EOM {
+				EOM_Type: typ,
+			}
+			em = append(em, m)
+		}
+	}
+	return em
 }

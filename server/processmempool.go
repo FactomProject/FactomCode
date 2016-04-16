@@ -15,6 +15,7 @@ import (
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/wire"
 	"github.com/FactomProject/factoid/block"
+	"github.com/davecgh/go-spew/spew"
 )
 
 // ftmMemPool is used as a source of factom transactions
@@ -361,5 +362,22 @@ func (mp *ftmMemPool) cleanUpMemPool() {
 			fmt.Println("cleanUpMemPool: ", item.MsgHash.String())
 			delete(mp.pool, *item.MsgHash)
 		}
+	}
+}
+
+// relay stale messages left in mempool and orphan pool.
+func (mp *ftmMemPool) relayStaleMessages() {
+	mp.Lock()
+	defer mp.Unlock()
+
+	for hash, msg := range mp.pool {
+		fmt.Println("relayStaleMessages: from mp.pool: ", spew.Sdump(msg))
+		outMsgQueue <- msg
+		delete(mp.pool, hash)
+	}
+	for hash, msg := range mp.orphans {
+		fmt.Println("relayStaleMessages: from mp.orphans: ", spew.Sdump(msg))
+		outMsgQueue <- msg
+		delete(mp.orphans, hash)
 	}
 }

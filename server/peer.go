@@ -12,6 +12,7 @@ import (
 	prand "math/rand"
 	"net"
 	"os"
+	"sort"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -511,11 +512,11 @@ func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
 				p.Shutdown()
 				return
 			}
-			_, newestHeight, _ := db.FetchBlockHeightCache()
-			h := uint32(newestHeight)
+			//_, newestHeight, _ := db.FetchBlockHeightCache()
+			//h := uint32(newestHeight)
 			fedServer := &federateServer{
 				Peer:        p,
-				FirstJoined: h,
+				FirstJoined: uint32(msg.LastBlock), 	//h,
 			}
 			p.server.federateServers = append(p.server.federateServers, fedServer)
 			peerLog.Debugf("Signature verified successfully total=%d after adding a new federate server: %s",
@@ -2509,32 +2510,47 @@ func (p *peer) handleCandidateMsg(msg *wire.MsgCandidate) {
 
 func (p *peer) handleCurrentLeaderMsg(msg *wire.MsgCurrentLeader) {
 	fmt.Printf("handleCurrentLeaderMsg: %s\n", spew.Sdump(msg))
+	if p.isLeader {
+		panic("I'm the current leader, no need to select a new current leader")
+	}
 	if !msg.Sig.Verify([]byte(msg.CurrLeaderGone + msg.NewLeaderCandidates + msg.SourceNodeID + strconv.Itoa(int(msg.StartDBHeight)))) {
 		fmt.Println("handleNextLeaderMsg: signature verify FAILED.")
-		return
+		//return
+		panic("")
 	}
 	if !(p.server.leaderPeer != nil && p.server.leaderPeer.nodeID == msg.CurrLeaderGone) {
 		fmt.Printf("handleCurrentLeaderMsg: leader verify FAILED: my leader is %s, but msg.leader is %s\n",
 			p.server.leaderPeer.nodeID, msg.CurrLeaderGone)
 		//return
+		panic("")
 	}
 	_, newestHeight, _ := db.FetchBlockHeightCache()
 	if uint32(newestHeight) != msg.StartDBHeight {
 		fmt.Printf("handleNextLeaderMsg: my DBHeight=%d, msg.StartDBHeight=%d\n", newestHeight, msg.StartDBHeight)
 		//return
+		panic("")
 	}
 
 	// verify the new leader to see if it follows the rule
+	// 0). if it's the only follower left, it's the new leader
 	// 1). if leaderElect exists, it's the new leader
 	// 2). else if prev leader exists, it's the new leader
-	// 3). else it's the longest leaderLast (??? not the same for each peer)
-	// 4). if it's the only follower left, it's the new leader
+	// 3). else it's the peer with the longest FirstJoined
 	if p.server.isLeaderElected {
-		panic("i'm the leaderElect, but new current leader is " + msg.NewLeaderCandidates)
+		panic("handleNextLeaderMsg: i'm the leaderElect, but new current leader is " + msg.NewLeaderCandidates)
 	}
-	// find the leaderElect
 	var next *federateServer
-	for _, fed := range p.server.federateServers {
+	nonCandidates, _ := p.server.nonCandidateServers()
+	
+	// check if it's the only follower left
+	if p.server.isCandidate && len(nonCandidates) == 1 && nonCandidates[0].Peer.nodeID != msg.NewLeaderCandidates {
+		fmt.Println("handleNextLeaderMsg: It's the only follower left. ", msg.NewLeaderCandidates)
+		p.resetFollower(nonCandidates[0])
+		return
+	}
+			
+	// find the leaderElect, excluding candidates
+	for _, fed := range nonCandidates {
 		if fed.Peer == nil {
 			continue
 		}
@@ -2545,17 +2561,53 @@ func (p *peer) handleCurrentLeaderMsg(msg *wire.MsgCurrentLeader) {
 	}
 	if next != nil {
 		if next.Peer.nodeID != msg.NewLeaderCandidates {
-			panic("the leaderElect is " + next.Peer.nodeID + ", but new current leader is " + msg.NewLeaderCandidates)
+			panic("handleNextLeaderMsg: the leaderElect is " + next.Peer.nodeID + 
+				", but new current leader is " + msg.NewLeaderCandidates)
 		} else {
-			fmt.Println("the leaderElect is the new leader: " + msg.NewLeaderCandidates)
+			fmt.Println("handleNextLeaderMsg: the leaderElect is the new leader: " + msg.NewLeaderCandidates)
+			p.resetFollower(next)
 			return
 		}
-	} else if p.server.prevLeaderPeer != nil {
+	} 
+	
+	// find the prev leader
+	if p.server.prevLeaderPeer != nil {
 		if p.server.prevLeaderPeer.nodeID != msg.NewLeaderCandidates {
-			panic("the prev peer is " + p.server.prevLeaderPeer.nodeID + ", but new current leader is " + msg.NewLeaderCandidates)
+			panic("handleNextLeaderMsg: the prev peer is " + p.server.prevLeaderPeer.nodeID + 
+				", but new current leader is " + msg.NewLeaderCandidates)
 		} else {
-			fmt.Println("the prev leader is the new leader: " + msg.NewLeaderCandidates)
-			return
+			fmt.Println("handleNextLeaderMsg: the prev leader is the new leader: " + msg.NewLeaderCandidates)
+			for _, fs := range nonCandidates {
+				if fs.Peer == p.server.prevLeaderPeer {
+					p.resetFollower(fs)
+					return
+				}
+			}
 		}
+	} 
+	// find out the server with the longest tenure or FirstJoined
+	sort.Sort(ByFirstJoined(nonCandidates))
+	if nonCandidates[0].Peer.nodeID == msg.NewLeaderCandidates {
+		fmt.Printf("handleNextLeaderMsg: it's the server with the longest FirstJoined: %s\n", spew.Sdump(nonCandidates[0]))
+		p.resetFollower(nonCandidates[0])
+		return
 	}
+	panic("no such candidate for current new leader.")
+}
+
+func (p *peer) resetFollower(fs *federateServer) {
+	p.server.isLeader = false	
+	p.server.prevLeaderPeer = nil	// it's gone
+	p.server.leaderPeer = fs.Peer
+	p.server.isLeaderElected = false
+	p.isLeader = false
+	p.isLeaderElect = false
+	fs.Peer.isLeader = true
+
+	// reset eCreditMap & chainIDMap & processList
+	eCreditMap = eCreditMapBackup
+	chainIDMap = chainIDMapBackup
+	commitChainMap = commitChainMapBackup
+	commitEntryMap = commitEntryMapBackup
+	initProcessListMgr()
 }
