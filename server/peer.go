@@ -2497,14 +2497,14 @@ func (p *peer) handleMissingMsg(msg *wire.MsgMissing) {
 
 func (p *peer) handleCandidateMsg(msg *wire.MsgCandidate) {
 	fmt.Printf("handleCandidateMsg: %s\n", msg)
-	if !msg.Sig.Verify([]byte(string(dchain.NextDBHeight) + msg.SourceNodeID)) {
+	if !msg.Sig.Verify([]byte(string(msg.DBHeight) + msg.SourceNodeID)) {
 		fmt.Println("handleCandidateMsg: signature verify FAILED.")
 		return
 	}
 	//_, latestHeight, _ := db.FetchBlockHeightCache()
 	if p.nodeID == msg.SourceNodeID { //&& uint32(latestHeight) == msg.DBHeight-1 {
 		p.isCandidate = false
-		fmt.Println("handleCandidateMsg: isCandidate turned to follower: ", msg)
+		fmt.Println("handleCandidateMsg: candidate turned to follower: ", msg)
 	}
 }
 
@@ -2514,7 +2514,7 @@ func (p *peer) handleCurrentLeaderMsg(msg *wire.MsgCurrentLeader) {
 		panic("I'm the current leader, no need to select a new current leader")
 	}
 	if !msg.Sig.Verify([]byte(msg.CurrLeaderGone + msg.NewLeaderCandidates + msg.SourceNodeID + strconv.Itoa(int(msg.StartDBHeight)))) {
-		panic("handleNextLeaderMsg: signature verify FAILED.")
+		panic("handleCurrentLeaderMsg: signature verify FAILED.")
 		//return
 	}
 	if !(p.server.leaderPeer != nil && p.server.leaderPeer.nodeID == msg.CurrLeaderGone) {
@@ -2540,14 +2540,14 @@ func (p *peer) handleCurrentLeaderMsg(msg *wire.MsgCurrentLeader) {
 	// 2). else if prev leader exists, it's the new leader
 	// 3). else it's the peer with the longest FirstJoined
 	if p.server.isLeaderElected {
-		panic("handleNextLeaderMsg: i'm the leaderElect, but new current leader is " + msg.NewLeaderCandidates)
+		panic("handleCurrentLeaderMsg: i'm the leaderElect, but new current leader is " + msg.NewLeaderCandidates)
 	}
 	var next *federateServer
 	nonCandidates, _ := p.server.nonCandidateServers()
 	
 	// check if it's the only follower left
 	if p.server.isCandidate && len(nonCandidates) == 1 && nonCandidates[0].Peer.nodeID != msg.NewLeaderCandidates {
-		fmt.Println("handleNextLeaderMsg: It's the only follower left. ", msg.NewLeaderCandidates)
+		fmt.Println("handleCurrentLeaderMsg: It's the only follower left. ", msg.NewLeaderCandidates)
 		p.resetFollower(nonCandidates[0])
 		return
 	}
@@ -2564,10 +2564,10 @@ func (p *peer) handleCurrentLeaderMsg(msg *wire.MsgCurrentLeader) {
 	}
 	if next != nil {
 		if next.Peer.nodeID != msg.NewLeaderCandidates {
-			panic("handleNextLeaderMsg: the leaderElect is " + next.Peer.nodeID + 
+			panic("handleCurrentLeaderMsg: the leaderElect is " + next.Peer.nodeID + 
 				", but new current leader is " + msg.NewLeaderCandidates)
 		} else {
-			fmt.Println("handleNextLeaderMsg: the leaderElect is the new leader: " + msg.NewLeaderCandidates)
+			fmt.Println("handleCurrentLeaderMsg: the leaderElect is the new leader: " + msg.NewLeaderCandidates)
 			p.resetFollower(next)
 			return
 		}
@@ -2576,10 +2576,10 @@ func (p *peer) handleCurrentLeaderMsg(msg *wire.MsgCurrentLeader) {
 	// find the prev leader
 	if p.server.prevLeaderPeer != nil {
 		if p.server.prevLeaderPeer.nodeID != msg.NewLeaderCandidates {
-			panic("handleNextLeaderMsg: the prev peer is " + p.server.prevLeaderPeer.nodeID + 
+			panic("handleCurrentLeaderMsg: the prev peer is " + p.server.prevLeaderPeer.nodeID + 
 				", but new current leader is " + msg.NewLeaderCandidates)
 		} else {
-			fmt.Println("handleNextLeaderMsg: the prev leader is the new leader: " + msg.NewLeaderCandidates)
+			fmt.Println("handleCurrentLeaderMsg: the prev leader is the new leader: " + msg.NewLeaderCandidates)
 			for _, fs := range nonCandidates {
 				if fs.Peer == p.server.prevLeaderPeer {
 					p.resetFollower(fs)
@@ -2591,7 +2591,7 @@ func (p *peer) handleCurrentLeaderMsg(msg *wire.MsgCurrentLeader) {
 	// find out the server with the longest tenure or FirstJoined
 	sort.Sort(ByFirstJoined(nonCandidates))
 	if nonCandidates[0].Peer.nodeID == msg.NewLeaderCandidates {
-		fmt.Printf("handleNextLeaderMsg: it's the server with the longest FirstJoined: %s\n", spew.Sdump(nonCandidates[0]))
+		fmt.Printf("handleCurrentLeaderMsg: it's the server with the longest FirstJoined: %s\n", spew.Sdump(nonCandidates[0]))
 		p.resetFollower(nonCandidates[0])
 		return
 	}

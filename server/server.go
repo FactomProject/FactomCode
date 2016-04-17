@@ -1859,13 +1859,15 @@ func (s *server) selectNextLeader(height uint32) {
 	s.myLeaderPolicy.Notified = true
 }
 
-// when current leader goes down, choose an emergency leader
+// when current leader goes down, choose an emergency leader. 
+// Here height is the latest dirblock height in db
 func (s *server) selectCurrentleader(height uint32) {
 	if s.IsLeader() {
 		return
 	}
 	var next *federateServer
 	nonCandidates, candidates := s.nonCandidateServers()
+	fmt.Println("selectCurrentleader: nonCandidates=", spew.Sdump(nonCandidates))
 	// if there's a leader plus one or more candidates, when leader crashes,
 	// no candidate should be promoted to the current leader, 
 	// as its block chain is not up to date yet.
@@ -1875,10 +1877,10 @@ func (s *server) selectCurrentleader(height uint32) {
 	}
 	// The leader is gone and i'm the leaderElect or the only follower,
 	// then i become the leader automatically
-	if s.isLeaderElected || 
-		!s.isCandidate && len(nonCandidates) == 1 && nonCandidates[0].Peer == nil {
-		fmt.Println("selectCurrentleader: I am the new current leader choosen " +
-			"as I'm the leaderElect or the only follower.")
+	onlyFollower := !s.isCandidate && len(nonCandidates) == 1 && nonCandidates[0].Peer == nil
+	if s.isLeaderElected || onlyFollower {
+		fmt.Printf("selectCurrentleader: I am the new current leader chosen " +
+			"as I'm the leaderElect=%v or the-only-follower=%v\n", s.isLeaderElected, onlyFollower)
 		s.sendCurrentLeaderMsg(s.leaderPeer.nodeID, s.nodeID, s.nodeID, height+1)
 		return
 	} else if !s.isLeaderElected {
@@ -1911,7 +1913,7 @@ func (s *server) selectCurrentleader(height uint32) {
 	sort.Sort(ByFirstJoined(nonCandidates))
 	if nonCandidates[0].Peer == nil {
 		fmt.Printf("selectCurrentleader: I'm the server with the longest FirstJoined: %s\n", spew.Sdump(nonCandidates[0]))
-		s.sendCurrentLeaderMsg(s.leaderPeer.nodeID, next.Peer.nodeID, s.nodeID, height+1)
+		s.sendCurrentLeaderMsg(s.leaderPeer.nodeID, s.nodeID, s.nodeID, height+1)
 	}
 }
 
@@ -1919,6 +1921,15 @@ func (s *server) sendCurrentLeaderMsg(deadLeader string, newLeader string, sourc
 	s.isLeader = true
 	s.prevLeaderPeer = nil	// it's gone
 	s.leaderPeer = nil
+
+	// set leader policy
+	policy := &leaderPolicy{
+		StartDBHeight:  h,
+		NotifyDBHeight: defaultNotifyDBHeight,
+		Term:           defaultLeaderTerm,
+	}
+	s.myLeaderPolicy = policy
+	
 	// restart leader in processor
 	sig := s.privKey.Sign([]byte(deadLeader + newLeader + source + strconv.Itoa(int(h))))
 	msg := wire.NewCurrentLeaderMsg(deadLeader, newLeader, source, h, sig)
