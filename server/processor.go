@@ -315,11 +315,6 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		} else {
 			return errors.New("Error in processing msg:" + spew.Sdump(msg))
 		}
-		/*
-	case wire.CmdAck:
-		ack, _ := msg.(*wire.MsgAck)
-		_, err := processAckMsg(ack)
-		return err*/
 
 	case wire.CmdDirBlockSig:
 		//only when server is building blocks. relax it for now ???
@@ -351,80 +346,11 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		return processLeaderEOM(msgEom)
 
 	case wire.CmdFactoidTX:
-		// First check that the message is good, and is valid.  If not,
-		// continue processing commands.
 		msgFactoidTX, ok := msg.(*wire.MsgFactoidTX)
 		if !ok || !msgFactoidTX.IsValid() {
 			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
 		}
 		return processFactoidTX(msgFactoidTX)
-		/*
-	case wire.CmdDirBlock:
-		dirBlock, ok := msg.(*wire.MsgDirBlock)
-		if ok {
-			fmt.Printf("wire.CmdDirBlock: blockSyncing=%t, height=%d\n", blockSyncing, dirBlock.DBlk.Header.DBHeight)
-			err := processDirBlock(dirBlock)
-			if err != nil {
-				return err
-			}
-		} else {
-			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
-		}
-
-	case wire.CmdFBlock:
-		fblock, ok := msg.(*wire.MsgFBlock)
-		if ok {
-			err := processFBlock(fblock)
-			if err != nil {
-				return err
-			}
-		} else {
-			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
-		}
-
-	case wire.CmdABlock:
-		ablock, ok := msg.(*wire.MsgABlock)
-		if ok {
-			err := processABlock(ablock)
-			if err != nil {
-				return err
-			}
-		} else {
-			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
-		}
-
-	case wire.CmdECBlock:
-		cblock, ok := msg.(*wire.MsgECBlock)
-		if ok {
-			err := procesECBlock(cblock)
-			if err != nil {
-				return err
-			}
-		} else {
-			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
-		}
-
-	case wire.CmdEBlock:
-		eblock, ok := msg.(*wire.MsgEBlock)
-		if ok {
-			err := processEBlock(eblock)
-			if err != nil {
-				return err
-			}
-		} else {
-			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
-		}
-
-	case wire.CmdEntry:
-		entry, ok := msg.(*wire.MsgEntry)
-		if ok {
-			err := processEntry(entry)
-			if err != nil {
-				return err
-			}
-		} else {
-			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
-		}*/
 
 	default:
 		return errors.New("Message type unsupported:" + fmt.Sprintf("%+v", msg))
@@ -851,9 +777,6 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 			outMsgQueue <- ack
 			//???
 			delete(commitEntryMap, e.Hash().String())
-
-			//} else if localServer.IsFollower() {
-			//fMemPool.addMsg(msg, h)
 		}
 		return nil
 
@@ -913,9 +836,6 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 			outMsgQueue <- ack
 			//???
 			delete(commitChainMap, e.Hash().String())
-
-			//} else if localServer.IsFollower() {
-			//fMemPool.addMsg(msg, h)
 		}
 		return nil
 	}
@@ -1072,8 +992,6 @@ func processFactoidTX(msg *wire.MsgFactoidTX) error {
 		}
 		fmt.Printf("AckFactoidTx: %s\n", spew.Sdump(ack))
 		outMsgQueue <- ack
-		//} else if localServer.IsFollower() {
-		//fMemPool.addMsg(msg, &h)
 	}
 	return nil
 }
@@ -1260,7 +1178,7 @@ func buildGenesisBlocks() error {
 			"\nGenesis block hash found:    " + dbBlock.DBHash.String() + "\n")
 	}
 
-	fMemPool.cleanUpMemPool()
+	//fMemPool.cleanUpMemPool()
 	initProcessListMgr()
 
 	// saveBlocks will be done at the next EOM_1

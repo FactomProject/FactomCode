@@ -1855,7 +1855,6 @@ func (s *server) selectNextLeader(height uint32) {
 	fmt.Printf("selectNextLeader: broadcast NextLeaderMsg=%s\n", spew.Sdump(msg))
 
 	s.BroadcastMessage(msg)
-	//s.isLeaderElected = true
 	s.myLeaderPolicy.Notified = true
 }
 
