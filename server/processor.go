@@ -158,7 +158,7 @@ func InitProcessor(ldb database.Db) {
 
 // StartProcessor is started from factomd
 func StartProcessor(wg *sync.WaitGroup, quit chan struct{}) {
-	fmt.Println("StartProcessor: blockSyncing=", blockSyncing)
+	//fmt.Println("StartProcessor: blockSyncing=", blockSyncing)
 
 	wg.Add(1)
 	defer func() {
@@ -182,7 +182,7 @@ func StartProcessor(wg *sync.WaitGroup, quit chan struct{}) {
 	} else {
 		// process the blocks and entries downloaded from peers
 		// this is needed for clients and followers when sync up
-		fmt.Println("StartProcessor: validateAndStoreBlocks")
+		//fmt.Println("StartProcessor: validateAndStoreBlocks")
 		go validateAndStoreBlocks(fMemPool, db, dchain)
 	}
 
@@ -232,7 +232,7 @@ func StartProcessor(wg *sync.WaitGroup, quit chan struct{}) {
 
 			default:
 				//panic(fmt.Sprintf("bad outMsgQueue message received: %v", msg))
-				fmt.Printf("bad outMsgQueue message received: %v", msg)
+				fmt.Printf("bad outMsgQueue message received: %v\n", msg)
 			}
 		case <-quit:
 			return
@@ -315,11 +315,11 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		} else {
 			return errors.New("Error in processing msg:" + spew.Sdump(msg))
 		}
-
+		/*
 	case wire.CmdAck:
 		ack, _ := msg.(*wire.MsgAck)
 		_, err := processAckMsg(ack)
-		return err
+		return err*/
 
 	case wire.CmdDirBlockSig:
 		//only when server is building blocks. relax it for now ???
@@ -358,7 +358,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
 		}
 		return processFactoidTX(msgFactoidTX)
-
+		/*
 	case wire.CmdDirBlock:
 		dirBlock, ok := msg.(*wire.MsgDirBlock)
 		if ok {
@@ -424,7 +424,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 			}
 		} else {
 			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
-		}
+		}*/
 
 	default:
 		return errors.New("Message type unsupported:" + fmt.Sprintf("%+v", msg))
@@ -457,15 +457,8 @@ func processLeaderEOM(msgEom *wire.MsgInt_EOM) error {
 	}
 	common.FactoidState.EndOfPeriod(int(msgEom.EOM_Type))
 
-	// orphans should be broadcast at the beginning of next 10 minutes,
-	// same as messages stuck in mempool and not being included in processlist.
-	//if msgEom.EOM_Type == wire.EndMinute10 {
-	// Process from Orphan pool before the end of process list
-	//fmt.Println("processLeaderEOM: EndMinute10: before processFromOrphanPool")
-	//processFromOrphanPool()
-	//}
-
-	ack, err := plMgr.AddToLeadersProcessList(msgEom, nil, msgEom.EOM_Type, dchain.NextBlock.Header.Timestamp, fchain.NextBlock.GetCoinbaseTimestamp())
+	ack, err := plMgr.AddToLeadersProcessList(msgEom, nil, msgEom.EOM_Type, 
+		dchain.NextBlock.Header.Timestamp, fchain.NextBlock.GetCoinbaseTimestamp())
 	if err != nil {
 		return err
 	}
@@ -500,6 +493,12 @@ func processDirBlockSig() error {
 	if nodeMode != common.SERVER_NODE {
 		return nil
 	}
+	_, latestHeight, _ := db.FetchBlockHeightCache()
+	if uint32(latestHeight) == dchain.NextDBHeight-1 {
+		fmt.Printf("processDirBlockSig: block already saved: db.latestDBHeight=%d, dchain.NextDBHeight=%d\n", 
+			latestHeight, dchain.NextDBHeight)
+		return nil
+	} 
 	dbsigs := fMemPool.getDirBlockSigPool()
 	if len(dbsigs) == 0 {
 		fmt.Println("no dir block sig in mempool.")
@@ -586,7 +585,8 @@ func processDirBlockSig() error {
 			for _, d := range v {
 				if leaderID == d.SourceNodeID {
 					hasLeader = true
-				} else if myDirBlockSig != nil && myDirBlockSig.SourceNodeID == d.SourceNodeID {
+				} 
+				if myDirBlockSig != nil && myDirBlockSig.SourceNodeID == d.SourceNodeID {
 					hasMe = true
 				}
 			}
@@ -651,7 +651,7 @@ func processDirBlockSig() error {
 }
 
 func downloadNewDirBlock(p *peer, hash common.Hash, height uint32) {
-	fmt.Println("downloadNewDirBlock")
+	fmt.Println("downloadNewDirBlock: ", height)
 	sha, _ := wire.NewShaHash(hash.Bytes())
 	if hash == *zeroHash {
 		//todo: implement get dir block by height
@@ -705,6 +705,7 @@ func processAckMsg(ack *wire.MsgAck) ([]*wire.MsgMissing, error) {
 		fmt.Println("** reset blockSyncing=false, bypass building this block: firstBlockHeight=", firstBlockHeight)
 	}
 	if !doneSetFollowersCointbaseTimeStamp && ack.CoinbaseTimestamp > 0 {
+	//if ack.CoinbaseTimestamp > 0 {
 		fchain.NextBlock.SetCoinbaseTimestamp(ack.CoinbaseTimestamp)
 		doneSetFollowersCointbaseTimeStamp = true
 		fmt.Printf("reset follower's CoinbaseTimestamp: %d\n", ack.CoinbaseTimestamp)
@@ -742,8 +743,10 @@ func processAckMsg(ack *wire.MsgAck) ([]*wire.MsgMissing, error) {
 		// need to bypass the first block of newly-joined follower, if
 		// this is 11th minute: ack.NextDBlockHeight-1 == firstBlockHeight
 		// or is 1st minute: fMemPool.lenDirBlockSig() == 0
-		fmt.Println("before go processDirBlockSig: firstBlockHeight=", firstBlockHeight, ", DirBlockSig.len=", fMemPool.lenDirBlockSig(), ", isCandidate=", localServer.isCandidate, ", ack=", spew.Sdump(ack))
-		if fMemPool.lenDirBlockSig() > 0 && ack.Height > firstBlockHeight && !localServer.isCandidate {
+		fmt.Println("before go processDirBlockSig: firstBlockHeight=", firstBlockHeight, 
+			", DirBlockSig.len=", fMemPool.lenDirBlockSig(), ", isCandidate=", localServer.isCandidate, 
+			", ack=", spew.Sdump(ack))
+		if fMemPool.lenDirBlockSig() > 0 && ack.Height > firstBlockHeight {	//&& !localServer.isCandidate { // the block is not saved yet
 			go processDirBlockSig()
 		}
 	}
@@ -1241,7 +1244,7 @@ func buildGenesisBlocks() error {
 	//fchain.NextBlock = block.GetGenesisFBlock(0, FactoshisPerCredit, 10, 200000000000)
 	fchain.NextBlock = block.GetGenesisFBlock()
 	FBlock := newFactoidBlock(fchain)
-	procLog.Debugf("buildGenesisBlocks: fBlock.height=%ds\n", FBlock.GetDBHeight())
+	procLog.Debugf("buildGenesisBlocks: fBlock.height=%d\n", FBlock.GetDBHeight())
 	dchain.AddFBlockToDBEntry(FBlock)
 	exportFctChain(fchain)
 
@@ -1762,6 +1765,15 @@ func newDirectoryBlock(chain *common.DChain) *common.DirectoryBlock {
 // save all blocks and anchor dir block if it's the leader
 func saveBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
 	ecblock *common.ECBlock, fblock block.IFBlock, eblocks []*common.EBlock) error {
+	/*
+	// in case of leader crashed and a new leader elected, excluding genesis block
+	_, latestHeight, _ := db.FetchBlockHeightCache()
+	if latestHeight > 0 && uint32(latestHeight) == dchain.NextDBHeight-1 {
+		fmt.Printf("saveBlocks: block already saved: db.latestDBHeight=%d, dchain.NextDBHeight=%d\n", 
+			latestHeight, dchain.NextDBHeight)
+		return nil
+	} */
+	
 	// in case of any block building failure, download them immediately
 	hash := zeroHash
 	if dblock != nil {
@@ -1803,11 +1815,13 @@ func saveBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
 	commonHash := common.Sha(binary)
 	db.UpdateBlockHeightCache(dblock.Header.DBHeight, commonHash)
 	db.UpdateNextBlockHeightCache(dchain.NextDBHeight)
-	exportDBlock(dblock)
+	//exportDBlock(dblock)
+	
 	fmt.Println("saveBlocks: done=", dblock.Header.DBHeight)
 	placeAnchor(dblock)
 	fMemPool.resetDirBlockSigPool()
-	exportBlocks(newDBlock, newABlock, newECBlock, newFBlock, newEBlocks)
+	exportBlocks(newDBlock, newABlock, newECBlock, newFBlock, newEBlocks)	
+	newDBlock, newABlock, newECBlock, newFBlock, newEBlocks = nil, nil, nil, nil, nil
 	return nil
 }
 
@@ -2012,14 +2026,6 @@ func backupKeyMapData() {
 }
 
 func resetLeader() {
-	// start clock
-	fmt.Println("@@@@ start BlockTimer for new current leader.")
-	timer := &BlockTimer{
-		nextDBlockHeight: dchain.NextDBHeight,
-		inMsgQueue:       inMsgQueue,
-	}
-	go timer.StartBlockTimer()
-	
 	// reset eCreditMap & chainIDMap & processList
 	eCreditMap = eCreditMapBackup
 	chainIDMap = chainIDMapBackup
@@ -2047,19 +2053,30 @@ func resetLeader() {
 				hash = new(wire.ShaHash)
 			}
 		}
+		fmt.Println("resetLeader: broadcast msg ", spew.Sdump(msg))
 		outMsgQueue <- msg
 
-		ack, _ := plMgr.AddToLeadersProcessList(msg, hash, fMemPool.ackpool[i].Type, dchain.NextBlock.Header.Timestamp, fchain.NextBlock.GetCoinbaseTimestamp())
+		ack, _ := plMgr.AddToLeadersProcessList(msg, hash, fMemPool.ackpool[i].Type, 
+			dchain.NextBlock.Header.Timestamp, fchain.NextBlock.GetCoinbaseTimestamp())
+		fmt.Println("resetLeader: broadcast ack ", ack)
 		outMsgQueue <- ack
 		
 		if fMemPool.ackpool[i].Type == wire.EndMinute10 {
+			fmt.Println("resetLeader: stopped at EOM10")
 			// should not get to this point
 			break
 		}
 	}
 
-	// for missed EOMs, processLeaderEOM should take care them
+	// start clock
+	fmt.Println("resetLeader: @@@@ start BlockTimer for new current leader.")
+	timer := &BlockTimer{
+		nextDBlockHeight: dchain.NextDBHeight,
+		inMsgQueue:       inMsgQueue,
+	}
+	go timer.StartBlockTimer()	
 
+	// for missed EOMs, processLeaderEOM should take care them
 	// relay stale messages in orphan pool and mempool in next round.
 }
 

@@ -2378,7 +2378,7 @@ func (p *peer) isFederateServer() bool {
 		}
 		if fed.Peer.nodeID == p.nodeID && fed.Peer.id == p.id {
 			found = true
-			fmt.Printf("It's a federate server: %s\n", fed.Peer)
+			//fmt.Printf("It's a federate server: %s\n", fed.Peer)
 			break
 		}
 	}
@@ -2510,26 +2510,29 @@ func (p *peer) handleCandidateMsg(msg *wire.MsgCandidate) {
 
 func (p *peer) handleCurrentLeaderMsg(msg *wire.MsgCurrentLeader) {
 	fmt.Printf("handleCurrentLeaderMsg: %s\n", spew.Sdump(msg))
-	if p.isLeader {
+	if p.server.isLeader {
 		panic("I'm the current leader, no need to select a new current leader")
 	}
 	if !msg.Sig.Verify([]byte(msg.CurrLeaderGone + msg.NewLeaderCandidates + msg.SourceNodeID + strconv.Itoa(int(msg.StartDBHeight)))) {
-		fmt.Println("handleNextLeaderMsg: signature verify FAILED.")
+		panic("handleNextLeaderMsg: signature verify FAILED.")
 		//return
-		panic("")
 	}
 	if !(p.server.leaderPeer != nil && p.server.leaderPeer.nodeID == msg.CurrLeaderGone) {
-		fmt.Printf("handleCurrentLeaderMsg: leader verify FAILED: my leader is %s, but msg.leader is %s\n",
+		s := fmt.Sprintf("handleCurrentLeaderMsg: leader verify FAILED: my leader is %s, but msg.leader is %s\n",
 			p.server.leaderPeer.nodeID, msg.CurrLeaderGone)
 		//return
-		panic("")
+		panic(s)
 	}
+	/*
+	// this could happen when a new block is downloaded but not saved to db yet
+	// when a candidate is just turned to a follower
 	_, newestHeight, _ := db.FetchBlockHeightCache()
-	if uint32(newestHeight) != msg.StartDBHeight {
-		fmt.Printf("handleNextLeaderMsg: my DBHeight=%d, msg.StartDBHeight=%d\n", newestHeight, msg.StartDBHeight)
+	if uint32(newestHeight) != msg.StartDBHeight-1 {
+		s := fmt.Sprintf("handleNextLeaderMsg: my DBHeight=%d, msg.StartDBHeight=%d\n", 
+			newestHeight, msg.StartDBHeight)
 		//return
-		panic("")
-	}
+		panic(s)
+	}*/
 
 	// verify the new leader to see if it follows the rule
 	// 0). if it's the only follower left, it's the new leader

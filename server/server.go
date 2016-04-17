@@ -296,7 +296,7 @@ func (s *server) handleAddPeerMsg(state *peerState, p *peer) bool {
 		return false
 	}
 
-	fmt.Printf("handleAddPeerMsg: start; peer=%s\n, %s\n", p, spew.Sdump(state))
+	//fmt.Printf("handleAddPeerMsg: start; peer=%s\n, %s\n", p, spew.Sdump(state))
 
 	// Ignore new peers if we're shutting down.
 	if atomic.LoadInt32(&s.shutdown) != 0 {
@@ -373,14 +373,14 @@ func (s *server) handleAddPeerMsg(state *peerState, p *peer) bool {
 			srvrLog.Infof("outbound peer: %s, total.state.outboundPeers=%d", p, len(state.outboundPeers))
 		}
 	}
-	fmt.Println("handleAddPeerMsg: end peerstate: ", spew.Sdump(state))
+	//fmt.Println("handleAddPeerMsg: end peerstate: ", spew.Sdump(state))
 	return true
 }
 
 // handleDonePeerMsg deals with peers that have signalled they are done.  It is
 // invoked from the peerHandler goroutine.
 func (s *server) handleDonePeerMsg(state *peerState, p *peer) {
-	fmt.Println("handleDonePeerMsg: start peerstate: ", spew.Sdump(state))
+	//fmt.Println("handleDonePeerMsg: start peerstate: ", spew.Sdump(state))
 	var list map[*peer]struct{}
 	if p.persistent {
 		list = state.persistentPeers
@@ -409,7 +409,7 @@ func (s *server) handleDonePeerMsg(state *peerState, p *peer) {
 			break
 		}
 	}
-	fmt.Println("handleDonePeerMsg: end peerstate: ", spew.Sdump(state))
+	//fmt.Println("handleDonePeerMsg: end peerstate: ", spew.Sdump(state))
 	fmt.Printf("handleDonePeerMsg: need to remove %s\n", p)
 	for i, fedServer := range s.federateServers {
 		if fedServer.Peer == p {
@@ -1549,9 +1549,6 @@ func newServer(listenAddrs []string, chainParams *Params) (*server, error) {
 	}
 
 	if s.isLeader {
-		//for genesis block, it's saved in 11th minute. so wait for a while.
-		//time.Sleep(7 * time.Second)
-		//go s.NewLeader(h) // must use go routine here to avoid blocking.
 		policy := &leaderPolicy{
 			StartDBHeight:  h + 3, // give it a bit more time to adjust
 			NotifyDBHeight: defaultNotifyDBHeight,
@@ -1626,18 +1623,11 @@ func (s *server) GetNodeID() string {
 }
 
 func (s *server) initServerKeys() {
-	//if s.nodeType == common.SERVER_NODE {
 	serverPrivKey, err := common.NewPrivateKeyFromHex(factomConfig.App.ServerPrivKey)
 	if err != nil {
 		panic("Cannot parse Server Private Key from configuration file: " + err.Error())
 	}
 	s.privKey = serverPrivKey
-	//s.pubKey = serverPrivKey.Pub
-	//} else {
-	// This pubkey should always come from serverPrivKey or ProtocolVersion
-	// communicate through MsgVersion ???
-	//p.pubKey = common.PubKeyFromString(common.SERVER_PUB_KEY)
-	//}
 }
 
 func (s *server) FederateServerCount() int {
@@ -1772,8 +1762,8 @@ func (s *server) handleNextLeader(height uint32) {
 		return
 	}
 
-	fmt.Println("nextLeaderHandler(): peerState=", spew.Sdump(s.PeerInfo()))
-	fmt.Println("nextLeaderHandler(): federateServers=", spew.Sdump(s.federateServers))
+	//fmt.Println("nextLeaderHandler(): peerState=", spew.Sdump(s.PeerInfo()))
+	//fmt.Println("nextLeaderHandler(): federateServers=", spew.Sdump(s.federateServers))
 
 	if s.isLeaderElected {
 		fmt.Printf("handleNextLeader: isLeaderElected=%t\n", s.isLeaderElected)
@@ -1820,7 +1810,7 @@ func (s *server) handleNextLeader(height uint32) {
 		fmt.Println("handleNextLeader: ** height equal, regime change for CURRENT LEADER.")
 		s.isLeader = false
 		s.isLeaderElected = false
-		s.prevLeaderPeer = nil
+		s.prevLeaderPeer = &peer{nodeID: s.nodeID,}
 		s.leaderPeer = nil
 		s.myLeaderPolicy = nil
 		// turn off BlockTimer in processor
@@ -1907,7 +1897,8 @@ func (s *server) selectCurrentleader(height uint32) {
 			return
 		}
 		// check if i'm the prev leader when the leaderElect is also gone
-		if s.prevLeaderPeer == nil && !s.isCandidate {
+		if s.prevLeaderPeer != nil && !s.isCandidate && 
+			s.prevLeaderPeer.nodeID == s.nodeID {
 			fmt.Println("selectCurrentleader: I'm the prev leader, and will be the current leader " +
 				"as both current leader and leaderElect are gone.")
 			s.sendCurrentLeaderMsg(s.leaderPeer.nodeID, s.nodeID, s.nodeID, height+1)

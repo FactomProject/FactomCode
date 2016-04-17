@@ -276,6 +276,7 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 			t := block.GetCoinbase(common.FactoidState.GetTimeMilli())
 			fchain.NextBlock.AddCoinbase(t)
 			common.FactoidState.UpdateTransaction(t)
+			doneSetFollowersCointbaseTimeStamp = false
 
 			// for debugging
 			exportFctBlock(fBlkMsg.SC)
