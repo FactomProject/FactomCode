@@ -675,7 +675,7 @@ func processAckMsg(ack *wire.MsgAck) ([]*wire.MsgMissing, error) {
 		fmt.Println("before go processDirBlockSig: firstBlockHeight=", firstBlockHeight, 
 			", DirBlockSig.len=", fMemPool.lenDirBlockSig(), ", isCandidate=", localServer.isCandidate, 
 			", ack=", spew.Sdump(ack))
-		if fMemPool.lenDirBlockSig() > 0 && ack.Height > firstBlockHeight {	//&& !localServer.isCandidate { // the block is not saved yet
+		if fMemPool.lenDirBlockSig() > 0 && ack.Height > firstBlockHeight && !localServer.isCandidate { // the block is not saved yet
 			go processDirBlockSig()
 		}
 	}

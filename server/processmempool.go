@@ -279,7 +279,7 @@ func (mp *ftmMemPool) getDirBlock(height uint32) *common.DirectoryBlock {
 
 	h := strconv.Itoa(int(height))
 	msg := mp.blockpool[h]
-	//fmt.Println("ftmMemPool.getDirBlock: height=", h, ", msg=", msg)
+	fmt.Println("ftmMemPool.getDirBlock: height=", h)
 	if msg != nil && msg.Command() == wire.CmdDirBlock {
 		dirBlockMsg, _ := msg.(*wire.MsgDirBlock)
 		return dirBlockMsg.DBlk
