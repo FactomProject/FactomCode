@@ -485,8 +485,10 @@ func processDirBlockSig() error {
 		fmt.Printf("processDirBlockSig: I am a candidate just turned follower, "+
 			"leadPeer=%s, dbheight=%d\n", leadPeer, dchain.NextDBHeight-1)
 		if leaderDirBlockSig != nil {
+			fmt.Println("download it from leaderPeer with known hash. ", leadPeer)
 			downloadNewDirBlock(leadPeer, leaderDirBlockSig.DirBlockHash, dchain.NextDBHeight-1)
 		} else {
+			fmt.Println("download it from leaderPeer with unknown hash. ", leadPeer)
 			downloadNewDirBlock(leadPeer, *zeroHash, dchain.NextDBHeight-1)
 		}
 		return nil
@@ -533,7 +535,7 @@ func processDirBlockSig() error {
 			break
 		} else if n == float32(0.5) {
 			if leaderDirBlockSig != nil {
-				if leaderDirBlockSig.Equals(myDirBlockSig) {
+				if myDirBlockSig != nil && leaderDirBlockSig.Equals(myDirBlockSig) {
 					winner = myDirBlockSig
 					needDownload = false
 					fmt.Printf("A tie with leader & me. needDownload=%v, winner=%s\n", needDownload, spew.Sdump(winner))
@@ -577,18 +579,19 @@ func processDirBlockSig() error {
 }
 
 func downloadNewDirBlock(p *peer, hash common.Hash, height uint32) {
-	fmt.Println("downloadNewDirBlock: ", height)
+	fmt.Printf("downloadNewDirBlock: height=%d, peer=%s\n", height, p)
 	sha, _ := wire.NewShaHash(hash.Bytes())
 	if hash == *zeroHash {
 		//todo: implement get dir block by height
-		//panic("Not implemented: get dir block by height")
+		panic("downloadNewDirBlock: Not implemented: get dir block by height")
 		//for now, this is caused by leader's dirblcoksig not arriveing on time
 		//let's save block
-		go saveBlocks(newDBlock, newABlock, newECBlock, newFBlock, newEBlocks)
+		//go saveBlocks(newDBlock, newABlock, newECBlock, newFBlock, newEBlocks)
 	}
 	iv := wire.NewInvVect(wire.InvTypeFactomDirBlock, sha)
 	gdmsg := wire.NewMsgGetDirData()
 	gdmsg.AddInvVect(iv)
+	// what happens when p as leaderPeer just crashed?
 	p.QueueMessage(gdmsg, nil)
 }
 

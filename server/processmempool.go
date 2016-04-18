@@ -256,7 +256,7 @@ func (mp *ftmMemPool) addBlockMsg(msg wire.Message, hash string) error {
 	if len(mp.blockpool) > common.MAX_BLK_POOL_SIZE {
 		return errors.New("Block mem pool exceeds the limit. Please restart.")
 	}
-	fmt.Println("ftmMemPool.addBlockMsg: msg.Command=", msg.Command())
+	//fmt.Println("ftmMemPool.addBlockMsg: msg.Command=", msg.Command())
 	mp.blockpool[hash] = msg
 	return nil
 }
@@ -279,7 +279,7 @@ func (mp *ftmMemPool) getDirBlock(height uint32) *common.DirectoryBlock {
 
 	h := strconv.Itoa(int(height))
 	msg := mp.blockpool[h]
-	fmt.Println("ftmMemPool.getDirBlock: height=", h, ", msg=", msg)
+	//fmt.Println("ftmMemPool.getDirBlock: height=", h, ", msg=", msg)
 	if msg != nil && msg.Command() == wire.CmdDirBlock {
 		dirBlockMsg, _ := msg.(*wire.MsgDirBlock)
 		return dirBlockMsg.DBlk
