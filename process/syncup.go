@@ -48,7 +48,7 @@ func processDirBlock(msg *wire.MsgDirBlock) error {
 
 	//Add it to mem pool before saving it in db
 	msg.DBlk.BuildKeyMerkleRoot()
-	fMemPool.removeMissingMsg(wire.InvTypeFactomDirBlock, msg.DBlk.KeyMR)
+	fMemPool.removeMissingMsg(msg.DBlk.KeyMR)
 	
 	err := fMemPool.addBlockMsg(msg, strconv.Itoa(int(msg.DBlk.Header.DBHeight))) // store in mempool with the height as the key
 	if err != nil {
@@ -99,7 +99,7 @@ func processFBlock(msg *wire.MsgFBlock) error {
 	
 	h := common.NewHash()
 	h.SetBytes(msg.SC.GetHash().Bytes())
-	fMemPool.removeMissingMsg(wire.InvTypeFactomFBlock, h)
+	fMemPool.removeMissingMsg(h)
 
 	fmt.Println("SyncUp: MsgFBlock DBHeight=", msg.SC.GetDBHeight())
 
@@ -126,7 +126,7 @@ func processABlock(msg *wire.MsgABlock) error {
 		return err
 	}
 	
-	fMemPool.removeMissingMsg(wire.InvTypeFactomFBlock, abHash)
+	fMemPool.removeMissingMsg(abHash)
 
 
 	fmt.Println("SyncUp: MsgABlock DBHeight=", msg.ABlk.Header.DBHeight)
@@ -152,7 +152,7 @@ func procesECBlock(msg *wire.MsgECBlock) error {
 	if err != nil {
 		return err
 	}
-	fMemPool.removeMissingMsg(wire.InvTypeFactomEntryCreditBlock, hash)
+	fMemPool.removeMissingMsg(hash)
 
 	fmt.Println("SyncUp: MsgCBlock EBHeight=", msg.ECBlock.Header.EBHeight)
 
@@ -181,7 +181,7 @@ func processEBlock(msg *wire.MsgEBlock) error {
 	if err != nil {
 		return err
 	}
-	fMemPool.removeMissingMsg(wire.InvTypeFactomEntryBlock, keyMR)
+	fMemPool.removeMissingMsg(keyMR)
 
 	fmt.Println("SyncUp: MsgEBlock EBHeight=", msg.EBlk.Header.EBHeight)
 
@@ -203,7 +203,7 @@ func processEntry(msg *wire.MsgEntry) error {
 	if err != nil {
 		return err
 	}
-	fMemPool.removeMissingMsg(wire.InvTypeFactomEntryBlock, h)
+	fMemPool.removeMissingMsg(h)
 
 	fmt.Println("SyncUp: MsgEntry hash=", msg.Entry.Hash())
 
@@ -513,7 +513,8 @@ func validateDBSignature(aBlock *common.AdminBlock, dchain *common.DChain) bool 
 
 func requestMissingMsg(typ wire.InvType, hash *common.Hash, height uint32) {
 	msg := fMemPool.addMissingMsg(typ, hash, height)
-	if msg.TimesMissed > 10 {
+	if msg.TimesMissed > 10 && !msg.Requested {
+		msg.Requested = true
 		outMsgQueue <- msg.Msg
 	}
 }

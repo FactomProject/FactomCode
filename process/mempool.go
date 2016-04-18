@@ -64,7 +64,7 @@ func (mp *ftmMemPool) addMissingMsg(typ wire.InvType, hash *common.Hash, height 
 	return req
 }
 
-func (mp *ftmMemPool) removeMissingMsg(typ wire.InvType, hash *common.Hash) {
+func (mp *ftmMemPool) removeMissingMsg(hash *common.Hash) {
 	mp.Lock()
 	defer mp.Unlock()
 
