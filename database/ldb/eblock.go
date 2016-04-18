@@ -140,30 +140,28 @@ func (db *LevelDb) FetchEBlockByHash(eBlockHash *common.Hash) (*common.EBlock, e
 
 // FetchEBlockByHeight gets an entry block by height from the database.
 // Need to rewrite since only the cross ref is stored in db ??
-/*func (db *LevelDb) FetchEBlockByHeight(chainID *common.Hash, eBlockHeight uint32) (*common.EBlock, error) {
-	db.dbLock.Lock()
-	defer db.dbLock.Unlock()
-
+func (db *LevelDb) FetchEBlockByHeight(chainID *common.Hash, eBlockHeight uint32) (*common.EBlock, error) {
 	var key []byte = []byte{byte(TBL_EB_CHAIN_NUM)}
-	key = append(key, chainID.Bytes...)
+	key = append(key, chainID.Bytes()...)
 	bytes := make([]byte, 4)
 	binary.BigEndian.PutUint32(bytes, eBlockHeight)
 	key = append(key, bytes...)
+	db.dbLock.Lock()
 	data, err := db.lDb.Get(key, db.ro)
+	db.dbLock.Unlock()
 	if err != nil {
 		return nil, err
 	}
 
 	eBlock := common.NewEBlock()
 	if data != nil {
-		_, err:=eBlock.UnmarshalBinaryData(data)
-		if err!=nil {
+		_, err := eBlock.UnmarshalBinaryData(data)
+		if err != nil {
 			return nil, err
 		}
 	}
 	return eBlock, nil
 }
-*/
 
 // FetchEBHashByMR gets an entry by hash from the database.
 func (db *LevelDb) FetchEBHashByMR(eBMR *common.Hash) (*common.Hash, error) {

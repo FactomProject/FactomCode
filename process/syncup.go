@@ -27,7 +27,7 @@ func processDirBlock(msg *wire.MsgDirBlock) error {
 		return errors.New("Server received msg:" + msg.Command())
 	}
 
-	blk, err := db.FetchDBlockByHeight(msg.DBlk.Header.DBHeight)
+	blk, _ := db.FetchDBlockByHeight(msg.DBlk.Header.DBHeight)
 	if blk != nil {
 		fmt.Println("DBlock already exists for height:" + string(msg.DBlk.Header.DBHeight))
 		cp.CP.AddUpdate(
@@ -38,20 +38,24 @@ func processDirBlock(msg *wire.MsgDirBlock) error {
 			0) // Expire
 		return nil
 	}
-	if err != nil {
-		fmt.Println("error in processDirBlock: ", err.Error())
+	// if err != nil {
+		// fmt.Println("error in processDirBlock: ", err.Error())
 		//return err
-	}
+	// }
 
 	msg.DBlk.IsSealed = true
 	dchain.AddDBlockToDChain(msg.DBlk)
 
 	//Add it to mem pool before saving it in db
-	err = fMemPool.addBlockMsg(msg, strconv.Itoa(int(msg.DBlk.Header.DBHeight))) // store in mempool with the height as the key
+	msg.DBlk.BuildKeyMerkleRoot()
+	fMemPool.removeMissingMsg(wire.InvTypeFactomDirBlock, msg.DBlk.KeyMR)
+	
+	err := fMemPool.addBlockMsg(msg, strconv.Itoa(int(msg.DBlk.Header.DBHeight))) // store in mempool with the height as the key
 	if err != nil {
 		fmt.Println("error in addBlockMsg - dirblock: ", err.Error())
 	}
 	fmt.Println("SyncUp: MsgDirBlock DBHeight=", msg.DBlk.Header.DBHeight)
+	
 	cp.CP.AddUpdate(
 		"DBSyncUp", // tag
 		"Status",   // Category
@@ -92,6 +96,10 @@ func processFBlock(msg *wire.MsgFBlock) error {
 	if err != nil {
 		return err
 	}
+	
+	h := common.NewHash()
+	h.SetBytes(msg.SC.GetHash().Bytes())
+	fMemPool.removeMissingMsg(wire.InvTypeFactomFBlock, h)
 
 	fmt.Println("SyncUp: MsgFBlock DBHeight=", msg.SC.GetDBHeight())
 
@@ -117,6 +125,9 @@ func processABlock(msg *wire.MsgABlock) error {
 	if err != nil {
 		return err
 	}
+	
+	fMemPool.removeMissingMsg(wire.InvTypeFactomFBlock, abHash)
+
 
 	fmt.Println("SyncUp: MsgABlock DBHeight=", msg.ABlk.Header.DBHeight)
 
@@ -141,6 +152,7 @@ func procesECBlock(msg *wire.MsgECBlock) error {
 	if err != nil {
 		return err
 	}
+	fMemPool.removeMissingMsg(wire.InvTypeFactomEntryCreditBlock, hash)
 
 	fmt.Println("SyncUp: MsgCBlock EBHeight=", msg.ECBlock.Header.EBHeight)
 
@@ -169,6 +181,7 @@ func processEBlock(msg *wire.MsgEBlock) error {
 	if err != nil {
 		return err
 	}
+	fMemPool.removeMissingMsg(wire.InvTypeFactomEntryBlock, keyMR)
 
 	fmt.Println("SyncUp: MsgEBlock EBHeight=", msg.EBlk.Header.EBHeight)
 
@@ -190,6 +203,7 @@ func processEntry(msg *wire.MsgEntry) error {
 	if err != nil {
 		return err
 	}
+	fMemPool.removeMissingMsg(wire.InvTypeFactomEntryBlock, h)
 
 	fmt.Println("SyncUp: MsgEntry hash=", msg.Entry.Hash())
 
@@ -274,10 +288,12 @@ func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, d
 		switch dbEntry.ChainID.String() {
 		case ecchain.ChainID.String():
 			if _, ok := fMemPool.blockpool[dbEntry.KeyMR.String()]; !ok {
+				requestMissingMsg(wire.InvTypeFactomEntryCreditBlock, dbEntry.KeyMR, b.Header.DBHeight)
 				return false
 			}
 		case achain.ChainID.String():
 			if msg, ok := fMemPool.blockpool[dbEntry.KeyMR.String()]; !ok {
+				requestMissingMsg(wire.InvTypeFactomAdminBlock, dbEntry.KeyMR, b.Header.DBHeight)
 				return false
 			} else {
 				// validate signature of the previous dir block
@@ -288,10 +304,12 @@ func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, d
 			}
 		case fchain.ChainID.String():
 			if _, ok := fMemPool.blockpool[dbEntry.KeyMR.String()]; !ok {
+				requestMissingMsg(wire.InvTypeFactomFBlock, dbEntry.KeyMR, b.Header.DBHeight)
 				return false
 			}
 		default:
 			if msg, ok := fMemPool.blockpool[dbEntry.KeyMR.String()]; !ok {
+				requestMissingMsg(wire.InvTypeFactomEntryBlock, dbEntry.KeyMR, b.Header.DBHeight)
 				return false
 			} else {
 				eBlkMsg, _ := msg.(*wire.MsgEBlock)
@@ -303,6 +321,7 @@ func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, d
 							// continue if the entry arleady exists in db
 							entry, _ := db.FetchEntryByHash(ebEntry)
 							if entry == nil {
+								requestMissingMsg(wire.InvTypeFactomEntry, ebEntry, b.Header.DBHeight)
 								return false
 							}
 						}
@@ -490,4 +509,11 @@ func validateDBSignature(aBlock *common.AdminBlock, dchain *common.DChain) bool 
 	}
 
 	return true
+}
+
+func requestMissingMsg(typ wire.InvType, hash *common.Hash, height uint32) {
+	msg := fMemPool.addMissingMsg(typ, hash, height)
+	if msg.TimesMissed > 10 {
+		outMsgQueue <- msg.Msg
+	}
 }

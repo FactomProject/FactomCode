@@ -206,3 +206,13 @@ func DoubleSha(data []byte) []byte {
 	h2 := sha256.Sum256(h1[:])
 	return h2[:]
 }
+
+func NewHashFromByte(bytes [32]byte) Hash {
+	h := Hash{}
+	copy(h.bytes[:], bytes[:])
+	return h
+}
+
+func (e *Hash) ByteArray() [32]byte {
+	return e.bytes
+}
