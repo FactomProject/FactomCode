@@ -1860,6 +1860,11 @@ func (s *server) selectNextLeader(height uint32) {
 
 // when current leader goes down, choose an emergency leader. 
 // Here height is the latest dirblock height in db
+// Here's the way the new leader chosen
+// 0). if it's the only follower left, it's the new leader
+// 1). if leaderElect exists, it's the new leader
+// 2). else if prev leader exists, it's the new leader
+// 3). else it's the peer with the longest FirstJoined
 func (s *server) selectCurrentleader(height uint32) {
 	if s.IsLeader() {
 		return
@@ -1960,5 +1965,11 @@ func (s ByFirstJoined) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
 }
 func (s ByFirstJoined) Less(i, j int) bool {
-	return s[i].FirstJoined < s[j].FirstJoined
+	if s[i].FirstJoined < s[j].FirstJoined {
+		return true
+	} else if s[i].FirstJoined > s[j].FirstJoined {
+		return false 
+	} else {
+		return s[i].LeaderLast < s[j].LeaderLast
+	}
 }
