@@ -5,6 +5,7 @@
 package server
 
 import (
+	"bytes"
 	"container/list"
 	"encoding/hex"
 	"fmt"
@@ -1901,7 +1902,7 @@ func (p *peer) handleDirInvMsg(msg *wire.MsgDirInv) {
 	p.server.blockManager.QueueDirInv(msg, p)
 }
 
-// handleGetDirDataMsg is invoked when a peer receives a getdata bitcoin message and
+// handleGetDirDataMsg is invoked when a peer receives a getdirdata message and
 // is used to deliver block and transaction information.
 func (p *peer) handleGetDirDataMsg(msg *wire.MsgGetDirData) {
 	numAdded := 0
@@ -2058,13 +2059,22 @@ func (p *peer) pushDirBlockMsg(sha *wire.ShaHash, doneChan, waitChan chan struct
 	blk, err := db.FetchDBlockByHash(commonhash)
 
 	if err != nil {
-		peerLog.Tracef("Unable to fetch requested dir block sha %v: %v",
-			sha, err)
+		// check newly generated dir block in procesor, 
+		// in case of download from other fed servers (candidates)
+		bin, _ := newDBlock.MarshalBinary()
+		if bytes.Compare(commonhash.Bytes(), bin) == 0 {
+			fmt.Println("found dirBlock as the newly generated dir block: ", 
+				spew.Sdump(newDBlock.Header))
+			blk = newDBlock
+		} else {
+			peerLog.Tracef("Unable to fetch requested dir block sha %v: %v", 
+				sha, err)
 
-		if doneChan != nil {
-			doneChan <- struct{}{}
+			if doneChan != nil {
+				doneChan <- struct{}{}
+			}
+			return err
 		}
-		return err
 	}
 
 	// Once we have fetched data wait for any previous operation to finish.

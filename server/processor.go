@@ -557,6 +557,7 @@ func processDirBlockSig() error {
 	if needDownload {
 		fmt.Println("needDownload is true")
 		if !needFromNonLeader {
+			fmt.Println("downloadNewDirBlock: from leader")
 			downloadNewDirBlock(leadPeer, leaderDirBlockSig.DirBlockHash, dchain.NextDBHeight-1)
 		} else {
 			if winner != nil {
@@ -567,8 +568,10 @@ func processDirBlockSig() error {
 						break
 					}
 				}
+			  fmt.Println("downloadNewDirBlock: from non-leader")
 				downloadNewDirBlock(peer, winner.DirBlockHash, dchain.NextDBHeight-1)
 			} else {
+			  fmt.Println("downloadNewDirBlock: from leader, for unknow hash")
 				downloadNewDirBlock(leadPeer, *zeroHash, dchain.NextDBHeight-1)
 			}
 		}
@@ -579,7 +582,7 @@ func processDirBlockSig() error {
 }
 
 func downloadNewDirBlock(p *peer, hash common.Hash, height uint32) {
-	fmt.Printf("downloadNewDirBlock: height=%d, peer=%s\n", height, p)
+	fmt.Printf("downloadNewDirBlock: height=%d, hash=%s, peer=%s\n", height, hash, p)
 	sha, _ := wire.NewShaHash(hash.Bytes())
 	if hash == *zeroHash {
 		//todo: implement get dir block by height
@@ -1263,6 +1266,8 @@ func buildBlocks() error {
 		if dBlock == nil {
 			errStr = errStr + "fBlock is nil; "
 		} else {
+			// todo: relay new blocks to all candidates if i'm the leader
+			// and to my clients
 			bytes, _ := dBlock.MarshalBinary()
 			//fmt.Printf("buildBlocks: dirBlock=%s\n", spew.Sdump(dBlock))
 			fmt.Printf("buildBlocks: dirBlock=%s\n", hex.EncodeToString(bytes))
@@ -1720,10 +1725,10 @@ func saveBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
 		return nil
 	}
 
-	db.ProcessFBlockBatch(fblock)
-	db.ProcessABlockBatch(ablock)
-	db.ProcessECBlockBatch(ecblock)
 	db.ProcessDBlockBatch(dblock)
+	db.ProcessFBlockBatch(fblock)
+	db.ProcessECBlockBatch(ecblock)
+	db.ProcessABlockBatch(ablock)
 	db.InsertDirBlockInfo(common.NewDirBlockInfoFromDBlock(dblock))
 	for _, eblock := range eblocks {
 		if eblock == nil {
