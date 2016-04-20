@@ -479,6 +479,10 @@ func processDirBlockSig() error {
 		fmt.Println("myNodeID=", myDirBlockSig.SourceNodeID)
 	}
 
+	/*
+	// This is not very good, because it tries to download block before consensus.
+	// it's replaced by relayToCandidates()
+	//
 	// this is a candidate who just bypassed building block and
 	// needs to download newly generated blocks up to firstBlockHeight
 	if firstBlockHeight == dchain.NextDBHeight-1 {
@@ -492,7 +496,7 @@ func processDirBlockSig() error {
 			downloadNewDirBlock(leadPeer, *zeroHash, dchain.NextDBHeight-1)
 		}
 		return nil
-	}
+	} */
 
 	totalServerNum := localServer.FederateServerCountMinusCandidate()
 	fmt.Printf("processDirBlockSig: By EOM_1, there're %d dirblock signatures "+
