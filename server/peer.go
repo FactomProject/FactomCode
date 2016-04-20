@@ -2527,13 +2527,15 @@ func (p *peer) handleCurrentLeaderMsg(msg *wire.MsgCurrentLeader) {
 		panic("handleCurrentLeaderMsg: signature verify FAILED.")
 		//return
 	}
+	/*
+	// the timing between resetting and verifying the currentLeader could be tricky.
+	// it's uncertain which one is done first. So omit this step 
 	if !(p.server.leaderPeer != nil && p.server.leaderPeer.nodeID == msg.CurrLeaderGone) {
 		s := fmt.Sprintf("handleCurrentLeaderMsg: leader verify FAILED: my leader is %s, but msg.leader is %s\n",
 			p.server.leaderPeer.nodeID, msg.CurrLeaderGone)
 		//return
 		panic(s)
 	}
-	/*
 	// this could happen when a new block is downloaded but not saved to db yet
 	// when a candidate is just turned to a follower
 	_, newestHeight, _ := db.FetchBlockHeightCache()

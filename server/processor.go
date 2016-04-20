@@ -500,7 +500,7 @@ func processDirBlockSig() error {
 
 	totalServerNum := localServer.FederateServerCountMinusCandidate()
 	fmt.Printf("processDirBlockSig: By EOM_1, there're %d dirblock signatures "+
-		"arrived out of %d non-dandidate federate servers.\n", len(dbsigs), totalServerNum)
+		"arrived out of %d non-candidate federate servers.\n", len(dbsigs), totalServerNum)
 
 	var needDownload, needFromNonLeader bool
 	var winner *wire.MsgDirBlockSig
@@ -591,15 +591,13 @@ func downloadNewDirBlock(p *peer, hash common.Hash, height uint32) {
 	if hash == *zeroHash {
 		//todo: implement get dir block by height
 		panic("downloadNewDirBlock: Not implemented: get dir block by height")
-		//for now, this is caused by leader's dirblcoksig not arriveing on time
-		//let's save block
-		//go saveBlocks(newDBlock, newABlock, newECBlock, newFBlock, newEBlocks)
+	} else {
+		iv := wire.NewInvVect(wire.InvTypeFactomDirBlock, sha)
+		gdmsg := wire.NewMsgGetDirData()
+		gdmsg.AddInvVect(iv)
+		// what happens when p as leaderPeer just crashed?
+		p.QueueMessage(gdmsg, nil)
 	}
-	iv := wire.NewInvVect(wire.InvTypeFactomDirBlock, sha)
-	gdmsg := wire.NewMsgGetDirData()
-	gdmsg.AddInvVect(iv)
-	// what happens when p as leaderPeer just crashed?
-	p.QueueMessage(gdmsg, nil)
 }
 
 // processAckPeerMsg validates the ack and adds it to processlist
@@ -1708,28 +1706,22 @@ func saveBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
 		return nil
 	} */
 	
-	// in case of any block building failure, download them immediately
-	hash := zeroHash
-	if dblock != nil {
-		binaryDblock, err := dblock.MarshalBinary()
-		if err != nil {
-			return err
-		}
-		hash = common.Sha(binaryDblock)
-	}
-	h := common.Hash{}
-	h.SetBytes(hash.GetBytes())
+	// in case of any block building failure, dblock will be nil. 
+	// so download them immediately
 	if dblock == nil || ablock == nil || ecblock == nil || fblock == nil {
 		peer := localServer.leaderPeer
 		if peer == nil {
-			for _, fs := range localServer.federateServers {
-				if fs.Peer != nil {
-					peer = fs.Peer
-					break
+			peer = localServer.SyncPeer()
+			if peer == nil {
+				for _, fs := range localServer.federateServers {
+					if fs.Peer != nil {
+						peer = fs.Peer
+						break
+					}
 				}
 			}
 		}
-		downloadNewDirBlock(peer, h, dchain.NextDBHeight)
+		downloadNewDirBlock(peer, *zeroHash, dchain.NextDBHeight-1)
 		return nil
 	}
 
@@ -1854,21 +1846,22 @@ func saveBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
 func exportBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
 	ecblock *common.ECBlock, fblock block.IFBlock, eblocks []*common.EBlock) {
 	exportFctBlock(fblock)
-	fmt.Println("Save Factoid Block: block " + strconv.FormatUint(uint64(fblock.GetDBHeight()), 10))
+	fmt.Println("export Factoid Block: block " + strconv.FormatUint(uint64(fblock.GetDBHeight()), 10))
 	exportABlock(ablock)
-	fmt.Println("Save Admin Block: block " + strconv.FormatUint(uint64(ablock.Header.DBHeight), 10))
+	fmt.Println("export Admin Block: block " + strconv.FormatUint(uint64(ablock.Header.DBHeight), 10))
 	exportECBlock(ecblock)
-	fmt.Println("Save EntryCreditBlock: block " + strconv.FormatUint(uint64(ecblock.Header.EBHeight), 10))
+	fmt.Println("export EntryCreditBlock: block " + strconv.FormatUint(uint64(ecblock.Header.EBHeight), 10))
 	exportDBlock(dblock)
-	fmt.Println("Save DirectoryBlock: block " + strconv.FormatUint(uint64(dblock.Header.DBHeight), 10))
+	fmt.Println("export DirectoryBlock: block " + strconv.FormatUint(uint64(dblock.Header.DBHeight), 10))
 	for _, eblock := range eblocks {
 		exportEBlock(eblock)
-		fmt.Println("Save EntryBlock: block " + strconv.FormatUint(uint64(eblock.Header.EBSequence), 10))
+		fmt.Println("export EntryBlock: block " + strconv.FormatUint(uint64(eblock.Header.EBSequence), 10))
 	}
 }
 
 func relayToCandidates() {
 	_, candidates := localServer.nonCandidateServers()
+	fmt.Println("relayToCandidates: len(candidates)=", len(candidates))
 	for _, candidate := range candidates {
 		fmt.Println("relayToCandidates: ", candidate)
 		relayNewBlocks(candidate.Peer) 
