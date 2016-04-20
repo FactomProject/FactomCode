@@ -637,7 +637,6 @@ func processAckMsg(ack *wire.MsgAck) ([]*wire.MsgMissing, error) {
 		fmt.Println("** reset blockSyncing=false, bypass building this block: firstBlockHeight=", firstBlockHeight)
 	}
 	if !doneSetFollowersCointbaseTimeStamp && ack.CoinbaseTimestamp > 0 {
-	//if ack.CoinbaseTimestamp > 0 {
 		fchain.NextBlock.SetCoinbaseTimestamp(ack.CoinbaseTimestamp)
 		doneSetFollowersCointbaseTimeStamp = true
 		fmt.Printf("reset follower's CoinbaseTimestamp: %d\n", ack.CoinbaseTimestamp)
@@ -1741,12 +1740,15 @@ func saveBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
 	commonHash := common.Sha(binary)
 	db.UpdateBlockHeightCache(dblock.Header.DBHeight, commonHash)
 	db.UpdateNextBlockHeightCache(dchain.NextDBHeight)
-	//exportDBlock(dblock)
-	
 	fmt.Println("saveBlocks: done=", dblock.Header.DBHeight)
+	
 	placeAnchor(dblock)
-	fMemPool.resetDirBlockSigPool()
+
+	relayToCandidates()
+
 	exportBlocks(newDBlock, newABlock, newECBlock, newFBlock, newEBlocks)	
+
+	fMemPool.resetDirBlockSigPool()
 	newDBlock, newABlock, newECBlock, newFBlock, newEBlocks = nil, nil, nil, nil, nil
 	return nil
 }
@@ -1853,6 +1855,57 @@ func exportBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
 	for _, eblock := range eblocks {
 		exportEBlock(eblock)
 		fmt.Println("Save EntryBlock: block " + strconv.FormatUint(uint64(eblock.Header.EBSequence), 10))
+	}
+}
+
+func relayToCandidates() {
+	_, candidates := localServer.nonCandidateServers()
+	for _, candidate := range candidates {
+		fmt.Println("relayToCandidates: ", candidate)
+		relayNewBlocks(candidate.Peer) 
+	}
+}
+
+func relayToClients() {
+}
+
+func relayNewBlocks(p *peer) {
+	msgd := wire.NewMsgDirBlock()
+	msgd.DBlk = newDBlock
+	p.QueueMessage(msgd, nil) 
+
+	msgf := wire.NewMsgFBlock()
+	msgf.SC = newFBlock
+	p.QueueMessage(msgf, nil) 
+	
+	msga := wire.NewMsgABlock()
+	msga.ABlk = newABlock
+	p.QueueMessage(msga, nil) 
+
+	msgc := wire.NewMsgECBlock()
+	msgc.ECBlock = newECBlock
+	p.QueueMessage(msgc, nil) 
+
+	for _, eblock := range newEBlocks {
+		if eblock == nil {
+			continue
+		}
+		msge := wire.NewMsgEBlock()
+		msge.EBlk = eblock
+		p.QueueMessage(msge, nil) 
+
+		for _, ebEntry := range eblock.Body.EBEntries {
+			//Skip the minute markers
+			if ebEntry.IsMinuteMarker() {
+				continue
+			}
+			entry, err := db.FetchEntryByHash(ebEntry)
+			if entry != nil && err == nil {
+				msgr := wire.NewMsgEntry()
+				msgr.Entry = entry
+				p.QueueMessage(msgr, nil) 
+			}
+		}
 	}
 }
 
