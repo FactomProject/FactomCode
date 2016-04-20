@@ -650,30 +650,29 @@ func processAckMsg(ack *wire.MsgAck) ([]*wire.MsgMissing, error) {
 	// reset factoid state after the firstBlockHeight
 	// this is when a candidate is officially turned into a follower
 	// and it starts to generate blocks.
-	if firstBlockHeight == dchain.NextDBHeight-1 {
+	if firstBlockHeight == dchain.NextDBHeight-1 && !doneSentCandidateMsg {
 		// when sync up, FactoidState.CurrentBlock is using the last block being synced-up
 		// as it's needed for balance update.
 		// when done sync up, reset its current block, for EndOfPeriod
 		common.FactoidState.SetCurrentBlock(fchain.NextBlock)
-		if !doneSentCandidateMsg {
-			sig := localServer.privKey.Sign([]byte(string(dchain.NextDBHeight) + localServer.nodeID))
-			m := wire.NewMsgCandidate(dchain.NextDBHeight, localServer.nodeID, sig)
-			outMsgQueue <- m
-			doneSentCandidateMsg = true
-			fmt.Println("sending MsgCandidate: ", spew.Sdump(m))
-		}
+		//if !doneSentCandidateMsg {
+		sig := localServer.privKey.Sign([]byte(string(dchain.NextDBHeight) + localServer.nodeID))
+		m := wire.NewMsgCandidate(dchain.NextDBHeight, localServer.nodeID, sig)
+		outMsgQueue <- m
+		doneSentCandidateMsg = true
+		fmt.Println("sending MsgCandidate: ", spew.Sdump(m))
+		//}
 		// update this federate server
-		fs := localServer.GetMyFederateServer()
-		fs.FirstAsFollower = firstBlockHeight
+		localServer.GetMyFederateServer().FirstAsFollower = firstBlockHeight
 	}
 
 	// to simplify this, for leader & followers, use the next wire.EndMinute1
 	// to trigger signature comparison of last round.
 	// todo: when to start? can NOT do this for the first EOM_1 ???
 	if ack.Type == wire.EndMinute2 {
-		// need to bypass the first block of newly-joined follower, if
-		// this is 11th minute: ack.NextDBlockHeight-1 == firstBlockHeight
-		// or is 1st minute: fMemPool.lenDirBlockSig() == 0
+		// need to bypass the first block of newly-joined follower, 
+		// either this is 11th minute: ack.NextDBlockHeight-1 == firstBlockHeight
+		// or is 1st minute: 
 		fmt.Println("before go processDirBlockSig: firstBlockHeight=", firstBlockHeight, 
 			", DirBlockSig.len=", fMemPool.lenDirBlockSig(), ", isCandidate=", localServer.isCandidate, 
 			", ack=", spew.Sdump(ack))
@@ -1282,28 +1281,34 @@ func buildBlocks() error {
 	// for leader / follower regime change
 	fmt.Printf("buildBlocks: It's a leader=%t or leaderElected=%t, SingleServerMode=%t, dchain.NextDBHeight=%d\n",
 		localServer.IsLeader(), localServer.isLeaderElected, localServer.isSingleServerMode(), dchain.NextDBHeight)
-	if newDBlock != nil {
+	if newDBlock != nil && newDBlock.Header != nil {
 		fmt.Printf("dbheight=%d", newDBlock.Header.DBHeight)
 	}
 
 	if localServer.IsLeader() && !localServer.isSingleServerMode() {
 		if dchain.NextDBHeight-1 == localServer.myLeaderPolicy.StartDBHeight+localServer.myLeaderPolicy.Term-1 {
 			fmt.Println("buildBlocks: Leader turn OFF BlockTimer. dchain.NextDBHeight=", dchain.NextDBHeight)
-			if newDBlock != nil {
+			if newDBlock != nil && newDBlock.Header != nil {
 				fmt.Println("newDBlock.dbheight=", newDBlock.Header.DBHeight)
 			}
 		} else {
 			fmt.Println("buildBlocks: Leader RESTARTs BlockTimer. dchain.NextDBHeight=", dchain.NextDBHeight)
-			if newDBlock != nil {
+			if newDBlock != nil && newDBlock.Header != nil {
 				fmt.Println("newDBlock.dbheight=", newDBlock.Header.DBHeight)
 			}
 		}
 	}
 	if localServer.isLeaderElected && !localServer.isSingleServerMode() {
 		if dchain.NextDBHeight-1 == localServer.myLeaderPolicy.StartDBHeight-1 {
-			fmt.Println("buildBlocks: Leader-Elected turn ON BlockTimer. newDBlock.dbheight=", newDBlock.Header.DBHeight, ", dchain.NextDBHeight=", dchain.NextDBHeight)
+			fmt.Println("buildBlocks: Leader-Elected turn ON BlockTimer. dchain.NextDBHeight=", dchain.NextDBHeight)
+			if newDBlock != nil && newDBlock.Header != nil {
+				fmt.Println("newDBlock.dbheight=", newDBlock.Header.DBHeight)
+			}
 		} else {
-			fmt.Println("buildBlocks: Leader-Elected KEEPs OFF BlockTimer. newDBlock.dbheight=", newDBlock.Header.DBHeight, ", dchain.NextDBHeight=", dchain.NextDBHeight)
+			fmt.Println("buildBlocks: Leader-Elected KEEPs OFF BlockTimer. dchain.NextDBHeight=", dchain.NextDBHeight)
+			if newDBlock != nil && newDBlock.Header != nil {
+				fmt.Println("newDBlock.dbheight=", newDBlock.Header.DBHeight)
+			}
 		}
 	}
 
@@ -1870,6 +1875,7 @@ func relayToClients() {
 }
 
 func relayNewBlocks(p *peer) {
+	fmt.Println("relayNewBlocks: ", p)
 	msgd := wire.NewMsgDirBlock()
 	msgd.DBlk = newDBlock
 	p.QueueMessage(msgd, nil) 
