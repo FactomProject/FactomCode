@@ -152,6 +152,7 @@ type server struct {
 	latestDBHeight             chan uint32
 	federateServers            []*federateServer //*list.List
 	myLeaderPolicy             *leaderPolicy
+	clientPeers								 []*peer
 }
 
 type leaderPolicy struct {
@@ -411,22 +412,31 @@ func (s *server) handleDonePeerMsg(state *peerState, p *peer) {
 	}
 	//fmt.Println("handleDonePeerMsg: end peerstate: ", spew.Sdump(state))
 	fmt.Printf("handleDonePeerMsg: need to remove %s\n", p)
-	for i, fedServer := range s.federateServers {
-		if fedServer.Peer == p {
-			s.federateServers = append(s.federateServers[:i], s.federateServers[i+1:]...)
-			fmt.Printf("handleDonePeerMsg: Removed: %s\n", p)
+	if common.SERVER_NODE == p.nodeType {
+		for i, fedServer := range s.federateServers {
+			if fedServer.Peer == p {
+				s.federateServers = append(s.federateServers[:i], s.federateServers[i+1:]...)
+				fmt.Printf("handleDonePeerMsg: server Removed: %s\n", p)
 
-			// if p is leaderElected and I am the leader, select a new leaderElected
-			_, newestHeight, _ := db.FetchBlockHeightCache()
-			if s.IsLeader() && fedServer.Peer.isLeaderElect {
-				s.selectNextLeader(uint32(newestHeight))
+				// if p is leaderElected and I am the leader, select a new leaderElected
+				_, newestHeight, _ := db.FetchBlockHeightCache()
+				if s.IsLeader() && fedServer.Peer.isLeaderElect {
+					s.selectNextLeader(uint32(newestHeight))
 
-			} else if fedServer.Peer.isLeader {
-				// if p is leader, let's select a new leader
-				s.selectCurrentleader(uint32(newestHeight))
-				leaderCrashed = true
+				} else if fedServer.Peer.isLeader {
+					// if p is leader, let's select a new leader
+					s.selectCurrentleader(uint32(newestHeight))
+					leaderCrashed = true
+				}
+				return
 			}
-			return
+		}
+	} else {
+		for i, client := range s.clientPeers {
+			if client == p {
+				s.clientPeers = append(s.clientPeers[:i], s.clientPeers[i+1:]...)
+				fmt.Printf("handleDonePeerMsg: client Removed: %s\n", p)
+			}
 		}
 	}
 	// If we get here it means that either we didn't know about the peer

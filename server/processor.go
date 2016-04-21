@@ -1747,6 +1747,7 @@ func saveBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
 	placeAnchor(dblock)
 
 	relayToCandidates()
+	relayToClients()
 
 	exportBlocks(newDBlock, newABlock, newECBlock, newFBlock, newEBlocks)	
 
@@ -1870,6 +1871,11 @@ func relayToCandidates() {
 }
 
 func relayToClients() {
+	fmt.Println("relayToClients: len=", len(localServer.clientPeers))
+	for _, client := range localServer.clientPeers {
+		fmt.Println("relayToClients: client=", client)
+		relayNewBlocks(client)
+	}
 }
 
 func relayNewBlocks(p *peer) {

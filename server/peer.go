@@ -493,38 +493,42 @@ func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
 	peerLog.Info("NodeType: ", msg.NodeType, ", NodeID: ", msg.NodeID)
 	// only verify id/sig for federate servers
 	if common.SERVER_NODE == msg.NodeType {
-		if msg.NodeSig.Pub.Verify([]byte(msg.NodeID), msg.NodeSig.Sig) {
-			var found = false
-			var fed *federateServer
-			for _, fed = range p.server.federateServers {
-				if fed.Peer == nil {
-					continue
-				}
-				if fed.Peer.nodeID == msg.NodeID {
-					found = true
-					fmt.Printf("duplicated fed server / peer: msg.nodeID=%s; peer=%s\n", msg.NodeID, fed.Peer)
-					break
-				}
-			}
-			// Usually when a server has both listen and connect, it has 2 peers (inboud + outbound)
-			// this prevents duplication.
-			if found {
-				p.logError("duplicated fed server / peer: msg.nodeID=%s; peer=%s\n", msg.NodeID, fed.Peer)
-				p.Shutdown()
-				return
-			}
-			//_, newestHeight, _ := db.FetchBlockHeightCache()
-			//h := uint32(newestHeight)
-			fedServer := &federateServer{
-				Peer:        p,
-				FirstJoined: uint32(msg.LastBlock), 	//h,
-			}
-			p.server.federateServers = append(p.server.federateServers, fedServer)
-			peerLog.Debugf("Signature verified successfully total=%d after adding a new federate server: %s",
-				p.server.FederateServerCount(), p)
-		} else {
-			panic("peer id/sig are not valid: " + p.String())
+		if !msg.NodeSig.Verify([]byte(msg.NodeID)) {
+			fmt.Println("Error in verifying peer signature: ", p)
+			p.PushRejectMsg(msg.Command(), wire.RejectInvalidSig, "invalid signature", nil, true)
+			p.Disconnect()
+			return
 		}
+		var found = false
+		var fed *federateServer
+		for _, fed = range p.server.federateServers {
+			if fed.Peer == nil {
+				continue
+			}
+			if fed.Peer.nodeID == msg.NodeID {
+				found = true
+				fmt.Printf("duplicated fed server / peer: msg.nodeID=%s; peer=%s\n", msg.NodeID, fed.Peer)
+				break
+			}
+		}
+		// Usually when a server has both listen and connect, it has 2 peers (inboud + outbound)
+		// this prevents duplication.
+		if found {
+			p.logError("duplicated fed server / peer: msg.nodeID=%s; peer=%s\n", msg.NodeID, fed.Peer)
+			p.Shutdown()
+			return
+		}
+		//_, newestHeight, _ := db.FetchBlockHeightCache()
+		//h := uint32(newestHeight)
+		fedServer := &federateServer{
+			Peer:        p,
+			FirstJoined: uint32(msg.LastBlock), 	//h,
+		}
+		p.server.federateServers = append(p.server.federateServers, fedServer)
+		peerLog.Debugf("Signature verified successfully total=%d after adding a new federate server: %s",
+			p.server.FederateServerCount(), p)
+	} else {
+		p.server.clientPeers = append(p.server.clientPeers, p)
 	}
 
 	p.isCandidate = msg.IsCandidate
