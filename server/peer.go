@@ -1110,6 +1110,9 @@ out:
 		case *wire.MsgCurrentLeader:
 			p.handleCurrentLeaderMsg(msg)
 
+		case *wire.MsgGetFactomData:
+			p.handleGetFactomDataMsg(msg)
+			
 		default:
 			peerLog.Debugf("Received unhandled message of type %v: Fix Me",
 				rmsg.Command())
@@ -1637,7 +1640,9 @@ func (p *peer) handleDirBlockMsg(msg *wire.MsgDirBlock, buf []byte) {
 	iv := wire.NewInvVect(wire.InvTypeFactomDirBlock, hash)
 	p.AddKnownInventory(iv)
 
-	p.pushGetNonDirDataMsg(msg.DBlk)
+	if msg.NonDirBlockNeeded {
+		p.pushGetNonDirDataMsg(msg.DBlk)
+	}
 
 	delete(p.requestedBlocks, *hash)
 	delete(p.server.blockManager.requestedBlocks, *hash)
@@ -1714,7 +1719,9 @@ func (p *peer) handleEBlockMsg(msg *wire.MsgEBlock, buf []byte) {
 	hash, _ := wire.NewShaHash(commonHash.Bytes())
 	iv := wire.NewInvVect(wire.InvTypeFactomEntryBlock, hash)
 	p.AddKnownInventory(iv)
-	p.pushGetEntryDataMsg(msg.EBlk)
+	if msg.EntryNeeded {
+		p.pushGetEntryDataMsg(msg.EBlk)
+	}
 	//inMsgQueue <- msg
 }
 
@@ -2048,6 +2055,213 @@ func (p *peer) handleGetDirBlocksMsg(msg *wire.MsgGetDirBlocks) {
 			p.continueHash = &continueHash
 		}
 		p.QueueMessage(invMsg, nil)
+	}
+}
+
+// handleGetFactomDataMsg is invoked when a peer request factom data based on height.
+// requested data can be: ablock, dblock, fblock, ecblok, eblock, and entries.
+// since entries have no height, so all entries in one eblock of that height will be delivered.
+func (p *peer) handleGetFactomDataMsg(msg *wire.MsgGetFactomData) {
+	numAdded := 0
+	notFound := wire.NewMsgNotFound()
+	doneChan := make(chan struct{}, 1)
+
+	for i, iv := range msg.InvList {
+		var c chan struct{}
+		// If this will be the last message we send.
+		if i == len(msg.InvList)-1 && len(notFound.InvList) == 0 {
+			c = doneChan
+		} else if (i+1)%3 == 0 {
+			// Buffered so as to not make the send goroutine block.
+			c = make(chan struct{}, 1)
+		}
+		var err error
+		switch iv.Type {
+		case wire.InvTypeFactomGetDirData:	// same as MsgGetDirData
+			if iv.Hash == *zeroHash && iv.Height == -1 {
+				err = fmt.Errorf("No dir data found for height %d or hash %s\n", iv.Height, iv.Hash)
+			} else if iv.Hash != *zeroHash {
+				err = p.pushDirBlockMsg(wire.FactomHashToShaHash(&iv.Hash), c, nil)
+			} else if iv.Height > -1 {
+				hash, err0 := db.FetchDBHashByHeight(uint32(iv.Height))
+				if err0 != nil {
+					fmt.Println("FetchDBHashByHeight err: ", err0.Error())
+					err = err0
+				} else {
+					err = p.pushDirBlockMsg(wire.FactomHashToShaHash(hash), c, nil)
+				}
+			}
+
+		case wire.InvTypeFactomDirBlock:	// get dir block only
+			if iv.Hash == *zeroHash && iv.Height == -1 {
+				err = fmt.Errorf("No dir block found for height %d or hash %s\n", iv.Height, iv.Hash)
+			} else if iv.Hash != *zeroHash {
+				msg := wire.NewMsgDirBlock()
+				blk, err0 := db.FetchDBlockByMR(&iv.Hash)
+				if err0 != nil {
+					fmt.Println("FetchDBlockByMR err: ", err0.Error())
+					err = err0
+				} else {
+					msg.DBlk = blk
+					msg.NonDirBlockNeeded = false
+					p.QueueMessage(msg, c) 			
+				}
+			} else if iv.Height > -1 {
+				msg := wire.NewMsgDirBlock()
+				blk, err0 := db.FetchDBlockByHeight(uint32(iv.Height))
+				if err0 != nil {
+					fmt.Println("FetchDBlockByHeight err: ", err0.Error())
+					err = err0
+				} else {
+					msg.DBlk = blk
+					msg.NonDirBlockNeeded = false
+					p.QueueMessage(msg, c)
+				}
+			}
+
+		case wire.InvTypeFactomAdminBlock:
+			if iv.Hash == *zeroHash && iv.Height == -1 {
+				err = fmt.Errorf("No admin block found for height %d or hash %s\n", iv.Height, iv.Hash)
+			} else if iv.Hash != *zeroHash {
+				msg := wire.NewMsgABlock()
+				blk, err0 := db.FetchABlockByHash(&iv.Hash)
+				if err0 != nil {
+					fmt.Println("FetchABlockByHash err: ", err0.Error())
+					err = err0
+				} else {
+					msg.ABlk = blk
+					p.QueueMessage(msg, c) 			
+					//err = p.pushABlockMsg(&iv.Hash, c, waitChan)
+				}
+			} else if iv.Height > -1 {
+				msg := wire.NewMsgABlock()
+				blk, err0 := db.FetchABlockByHeight(uint32(iv.Height))
+				if err0 != nil {
+					fmt.Println("FetchABlockByHeight err: ", err0.Error())
+					err = err0
+				} else {
+					msg.ABlk = blk
+					p.QueueMessage(msg, c)
+				}
+			}
+			
+		case wire.InvTypeFactomEntryCreditBlock:
+			if iv.Hash == *zeroHash && iv.Height == -1 {
+				err = fmt.Errorf("No entryCredit block found for height %d or hash %s\n", iv.Height, iv.Hash)
+			} else if iv.Hash != *zeroHash {
+				msg := wire.NewMsgECBlock()
+				blk, err0 := db.FetchECBlockByHash(&iv.Hash)
+				if err0 != nil {
+					fmt.Println("FetchECBlockByHash err: ", err0.Error())
+					err = err0
+				} else {
+					msg.ECBlock = blk
+					p.QueueMessage(msg, c) 			
+					//err = p.pushECBlockMsg(&iv.Hash, c, waitChan)
+				}
+			} else if iv.Height > -1 {
+				msg := wire.NewMsgECBlock()
+				blk, err0 := db.FetchECBlockByHeight(uint32(iv.Height))
+				if err0 != nil {
+					fmt.Println("FetchECBlockByHeight err: ", err0.Error())
+					err = err0
+				} else {
+					msg.ECBlock = blk
+					p.QueueMessage(msg, c)
+				}
+			}
+			
+		case wire.InvTypeFactomFBlock:
+			if iv.Hash == *zeroHash && iv.Height == -1 {
+				err = fmt.Errorf("No factoid block found for height %d or hash %s\n", iv.Height, iv.Hash)
+			} else if iv.Hash != *zeroHash {
+				msg := wire.NewMsgFBlock()
+				blk, err0 := db.FetchFBlockByHash(&iv.Hash)
+				if err0 != nil {
+					fmt.Println("FetchFBlockByHash err: ", err0.Error())
+					err = err0
+				} else {
+					msg.SC = blk
+					p.QueueMessage(msg, c) 			
+					//err = p.pushFBlockMsg(&iv.Hash, c, waitChan)
+				}
+			} else if iv.Height > -1 {
+				msg := wire.NewMsgFBlock()
+				blk, err0 := db.FetchFBlockByHeight(uint32(iv.Height))
+				if err0 != nil {
+					fmt.Println("FetchFBlockByHeight err: ", err0.Error())
+					err = err0
+				} else {
+					msg.SC = blk
+					p.QueueMessage(msg, c)
+				}
+			}
+			
+		case wire.InvTypeFactomEntryBlock:
+			if iv.Hash == *zeroHash && iv.Height == -1 {
+				err = fmt.Errorf("No entry block found for height %d or hash %s\n", iv.Height, iv.Hash)
+			} else if iv.Hash != *zeroHash && iv.Height == -1 {
+				msg := wire.NewMsgEBlock()
+				blk, err0 := db.FetchEBlockByMR(&iv.Hash)
+				if err0 != nil {
+					fmt.Println("FetchEBlockByMR err: ", err0.Error())
+					err = err0
+				} else {
+					msg.EBlk = blk
+					msg.EntryNeeded = false
+					p.QueueMessage(msg, c) 			
+					//err = p.pushEBlockMsg(&iv.Hash, c, waitChan)
+				}
+			} else if iv.Hash != *zeroHash && iv.Height > -1 {
+				msg := wire.NewMsgEBlock()
+				blk, err0 := db.FetchEBlockByHeight(&iv.Hash, uint32(iv.Height))
+				if err0 != nil {
+					fmt.Println("FetchEBlockByHeight err: ", err0.Error())
+					err = err0
+				} else {
+					msg.EBlk = blk
+					msg.EntryNeeded = false
+					p.QueueMessage(msg, c)
+				}
+			}
+			
+		case wire.InvTypeFactomEntry:
+			if iv.Hash == *zeroHash {
+				err = fmt.Errorf("No entry block found for hash %s\n", iv.Hash)
+			} else {
+				msg := wire.NewMsgEntry()
+				entry, err0 := db.FetchEntryByHash(&iv.Hash)
+				if err0 != nil {
+					fmt.Println("FetchEntryByHash err: ", err0.Error())
+					err = err0
+				} else {
+					msg.Entry = entry
+					p.QueueMessage(msg, c) 			
+				}
+			}
+
+		default:
+			peerLog.Warnf("Unknown type in inventory request %d",
+				iv.Type)
+			continue
+		}
+		if err != nil {
+			fmt.Println("handleGetFactomDataMsg: err=", err.Error())
+			ivv := wire.NewInvVect(iv.Type, wire.FactomHashToShaHash(&iv.Hash))
+			notFound.AddInvVect(ivv)
+
+			if i == len(msg.InvList)-1 && c != nil {
+				<-c
+			}
+		}
+		numAdded++
+		// waitChan = c
+	}
+	if len(notFound.InvList) != 0 {
+		p.QueueMessage(notFound, doneChan)
+	}
+	if numAdded > 0 {
+		<-doneChan
 	}
 }
 

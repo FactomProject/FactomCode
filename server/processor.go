@@ -479,9 +479,7 @@ func processDirBlockSig() error {
 		fmt.Println("myNodeID=", myDirBlockSig.SourceNodeID)
 	}
 
-	/*
-	// This is not very good, because it tries to download block before consensus.
-	// it's replaced by relayToCandidates()
+	// Todo: This is not very good, because leader is not always the winner
 	//
 	// this is a candidate who just bypassed building block and
 	// needs to download newly generated blocks up to firstBlockHeight
@@ -496,7 +494,7 @@ func processDirBlockSig() error {
 			downloadNewDirBlock(leadPeer, *zeroHash, dchain.NextDBHeight-1)
 		}
 		return nil
-	} */
+	} 
 
 	totalServerNum := localServer.FederateServerCountMinusCandidate()
 	fmt.Printf("processDirBlockSig: By EOM_1, there're %d dirblock signatures "+
@@ -587,11 +585,14 @@ func processDirBlockSig() error {
 
 func downloadNewDirBlock(p *peer, hash common.Hash, height uint32) {
 	fmt.Printf("downloadNewDirBlock: height=%d, hash=%s, peer=%s\n", height, hash, p)
-	sha, _ := wire.NewShaHash(hash.Bytes())
 	if hash == *zeroHash {
-		//todo: implement get dir block by height
-		panic("downloadNewDirBlock: Not implemented: get dir block by height")
+		iv := wire.NewInvVectHeight(wire.InvTypeFactomGetDirData, hash, int64(height))
+		gdmsg := wire.NewMsgGetFactomData()
+		gdmsg.AddInvVectHeight(iv)
+		// what happens when p as leaderPeer just crashed?
+		p.QueueMessage(gdmsg, nil)
 	} else {
+		sha, _ := wire.NewShaHash(hash.Bytes())
 		iv := wire.NewInvVect(wire.InvTypeFactomDirBlock, sha)
 		gdmsg := wire.NewMsgGetDirData()
 		gdmsg.AddInvVect(iv)

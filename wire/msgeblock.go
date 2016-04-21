@@ -14,6 +14,7 @@ import (
 // EBlock message.  It is used by client to download the EBlock.
 type MsgEBlock struct {
 	EBlk *common.EBlock
+	EntryNeeded bool
 }
 
 // BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
@@ -26,6 +27,11 @@ func (msg *MsgEBlock) BtcEncode(w io.Writer, pver uint32) error {
 	}
 
 	err = writeVarBytes(w, pver, bytes)
+	if err != nil {
+		return err
+	}
+	
+	err = writeElement(w, msg.EntryNeeded)
 	if err != nil {
 		return err
 	}
@@ -48,6 +54,11 @@ func (msg *MsgEBlock) BtcDecode(r io.Reader, pver uint32) error {
 		return err
 	}
 
+	err = readElement(r, &msg.EntryNeeded)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -66,5 +77,7 @@ func (msg *MsgEBlock) MaxPayloadLength(pver uint32) uint32 {
 // NewMsgEBlock returns a new bitcoin inv message that conforms to the Message
 // interface.  See MsgInv for details.
 func NewMsgEBlock() *MsgEBlock {
-	return &MsgEBlock{}
+	return &MsgEBlock{
+		EntryNeeded: true,
+	}
 }

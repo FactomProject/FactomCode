@@ -14,9 +14,10 @@ import (
 // DBlock message.  It is used by client to reveal the entry.
 type MsgDirBlock struct {
 	DBlk *common.DirectoryBlock
+	NonDirBlockNeeded bool
 }
 
-// BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
+// BtcEncode encodes the receiver to w using the factom protocol encoding.
 // This is part of the Message interface implementation.
 func (msg *MsgDirBlock) BtcEncode(w io.Writer, pver uint32) error {
 
@@ -29,14 +30,18 @@ func (msg *MsgDirBlock) BtcEncode(w io.Writer, pver uint32) error {
 	if err != nil {
 		return err
 	}
+	
+	err = writeElement(w, msg.NonDirBlockNeeded)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
 
-// BtcDecode decodes r using the bitcoin protocol encoding into the receiver.
+// BtcDecode decodes r using the factom protocol encoding into the receiver.
 // This is part of the Message interface implementation.
 func (msg *MsgDirBlock) BtcDecode(r io.Reader, pver uint32) error {
-	//Entry
 	bytes, err := readVarBytes(r, pver, uint32(MaxBlockMsgPayload), CmdRevealEntry)
 	if err != nil {
 		return err
@@ -44,6 +49,11 @@ func (msg *MsgDirBlock) BtcDecode(r io.Reader, pver uint32) error {
 
 	msg.DBlk = new(common.DirectoryBlock)
 	err = msg.DBlk.UnmarshalBinary(bytes)
+	if err != nil {
+		return err
+	}
+
+	err = readElement(r, &msg.NonDirBlockNeeded)
 	if err != nil {
 		return err
 	}
@@ -63,8 +73,10 @@ func (msg *MsgDirBlock) MaxPayloadLength(pver uint32) uint32 {
 	return MaxBlockMsgPayload
 }
 
-// NewMsgDirBlock returns a new bitcoin inv message that conforms to the Message
-// interface.  See MsgInv for details.
+// NewMsgDirBlock returns a new factom inv message that conforms to the Message
+// interface.  See MsgDirInv for details.
 func NewMsgDirBlock() *MsgDirBlock {
-	return &MsgDirBlock{}
+	return &MsgDirBlock{
+		NonDirBlockNeeded: true,
+	}
 }

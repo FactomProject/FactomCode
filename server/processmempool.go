@@ -27,7 +27,14 @@ type ftmMemPool struct {
 	blockpool    map[string]wire.Message // to hold the blocks or entries downloaded from peers
 	ackpool      []*wire.MsgAck
 	dirBlockSigs []*wire.MsgDirBlockSig
+	requested		map[common.Hash]*reqMsg
 	lastUpdated  time.Time // last time pool was updated
+}
+
+type reqMsg struct {
+	Msg *wire.MsgGetFactomData
+	TimesMissed uint32
+	Requested bool
 }
 
 // Add a factom message to the orphan pool
@@ -37,7 +44,43 @@ func (mp *ftmMemPool) initFtmMemPool() error {
 	mp.blockpool = make(map[string]wire.Message)
 	mp.ackpool = make([]*wire.MsgAck, 100, 200)
 	mp.dirBlockSigs = make([]*wire.MsgDirBlockSig, 0, 32)
+	mp.requested = make(map[common.Hash]*reqMsg)
+	
 	return nil
+}
+
+func (mp *ftmMemPool) addMissingMsg(typ wire.InvType, hash *common.Hash, height uint32) *reqMsg {
+	mp.Lock()
+	defer mp.Unlock()
+
+	h := common.NewHashFromByte(hash.ByteArray())
+	if m, ok := mp.requested[h]; ok {
+		m.TimesMissed++
+		return m
+	}
+	inv := &wire.InvVectHeight {
+		Type: typ,
+		Hash: h,
+		Height: int64(height),
+	}
+	fd := wire.NewMsgGetFactomData()
+	fd.AddInvVectHeight(inv)
+	req := &reqMsg {
+		Msg: fd,
+		TimesMissed: 1,
+	}
+	mp.requested[h] = req
+	return req
+}
+
+func (mp *ftmMemPool) removeMissingMsg(hash *common.Hash) {
+	mp.Lock()
+	defer mp.Unlock()
+
+	h := common.NewHashFromByte(hash.ByteArray())
+	if _, ok := mp.requested[h]; ok {
+		delete(mp.requested, h)
+	}
 }
 
 func (mp *ftmMemPool) FetchFromBlockpool(str string) wire.Message {

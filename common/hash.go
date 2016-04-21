@@ -212,3 +212,7 @@ func DoubleSha(data []byte) []byte {
 	h2 := sha256.Sum256(h1[:])
 	return h2[:]
 }
+
+func (e *Hash) ByteArray() [32]byte {
+	return e.bytes
+}

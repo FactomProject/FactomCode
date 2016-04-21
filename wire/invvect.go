@@ -37,6 +37,7 @@ const (
 	InvTypeFactomFBlock           InvType = 20
 	InvTypeFactomBlockSet         InvType = 21 // meaning dblock and those included blocks
 
+	InvTypeFactomGetDirData InvType = 30	// GetDirData by height in MsgGetFactomData 
 	InvTypeFactomControl InvType = 50 // Factom control messages
 	InvTypeFactomRaw     InvType = 99 // Factom raw
 )
