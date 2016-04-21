@@ -2078,6 +2078,7 @@ func (p *peer) handleGetFactomDataMsg(msg *wire.MsgGetFactomData) {
 		var err error
 		switch iv.Type {
 		case wire.InvTypeFactomGetDirData:	// same as MsgGetDirData
+			fmt.Printf("handleGetFactomDataMsg: GetDirData: height %d or hash %s\n", iv.Height, iv.Hash)
 			if iv.Hash == *zeroHash && iv.Height == -1 {
 				err = fmt.Errorf("No dir data found for height %d or hash %s\n", iv.Height, iv.Hash)
 			} else if iv.Hash != *zeroHash {
@@ -2092,7 +2093,8 @@ func (p *peer) handleGetFactomDataMsg(msg *wire.MsgGetFactomData) {
 				}
 			}
 
-		case wire.InvTypeFactomDirBlock:	// get dir block only
+		case wire.InvTypeFactomDirBlock:	// get one dir block only, no other blocks after that
+			fmt.Printf("handleGetFactomDataMsg: DirBlock: height %d or hash %s\n", iv.Height, iv.Hash)
 			if iv.Hash == *zeroHash && iv.Height == -1 {
 				err = fmt.Errorf("No dir block found for height %d or hash %s\n", iv.Height, iv.Hash)
 			} else if iv.Hash != *zeroHash {
@@ -2120,19 +2122,11 @@ func (p *peer) handleGetFactomDataMsg(msg *wire.MsgGetFactomData) {
 			}
 
 		case wire.InvTypeFactomAdminBlock:
+			fmt.Printf("handleGetFactomDataMsg: AdminBlock: height %d or hash %s\n", iv.Height, iv.Hash)
 			if iv.Hash == *zeroHash && iv.Height == -1 {
 				err = fmt.Errorf("No admin block found for height %d or hash %s\n", iv.Height, iv.Hash)
 			} else if iv.Hash != *zeroHash {
-				msg := wire.NewMsgABlock()
-				blk, err0 := db.FetchABlockByHash(&iv.Hash)
-				if err0 != nil {
-					fmt.Println("FetchABlockByHash err: ", err0.Error())
-					err = err0
-				} else {
-					msg.ABlk = blk
-					p.QueueMessage(msg, c) 			
-					//err = p.pushABlockMsg(&iv.Hash, c, waitChan)
-				}
+				err = p.pushABlockMsg(&iv.Hash, c, nil)
 			} else if iv.Height > -1 {
 				msg := wire.NewMsgABlock()
 				blk, err0 := db.FetchABlockByHeight(uint32(iv.Height))
@@ -2146,19 +2140,11 @@ func (p *peer) handleGetFactomDataMsg(msg *wire.MsgGetFactomData) {
 			}
 			
 		case wire.InvTypeFactomEntryCreditBlock:
+			fmt.Printf("handleGetFactomDataMsg: ECBlock: height %d or hash %s\n", iv.Height, iv.Hash)
 			if iv.Hash == *zeroHash && iv.Height == -1 {
 				err = fmt.Errorf("No entryCredit block found for height %d or hash %s\n", iv.Height, iv.Hash)
 			} else if iv.Hash != *zeroHash {
-				msg := wire.NewMsgECBlock()
-				blk, err0 := db.FetchECBlockByHash(&iv.Hash)
-				if err0 != nil {
-					fmt.Println("FetchECBlockByHash err: ", err0.Error())
-					err = err0
-				} else {
-					msg.ECBlock = blk
-					p.QueueMessage(msg, c) 			
-					//err = p.pushECBlockMsg(&iv.Hash, c, waitChan)
-				}
+				err = p.pushECBlockMsg(&iv.Hash, c, nil)
 			} else if iv.Height > -1 {
 				msg := wire.NewMsgECBlock()
 				blk, err0 := db.FetchECBlockByHeight(uint32(iv.Height))
@@ -2172,19 +2158,11 @@ func (p *peer) handleGetFactomDataMsg(msg *wire.MsgGetFactomData) {
 			}
 			
 		case wire.InvTypeFactomFBlock:
+			fmt.Printf("handleGetFactomDataMsg: FactoidBlock: height %d or hash %s\n", iv.Height, iv.Hash)
 			if iv.Hash == *zeroHash && iv.Height == -1 {
 				err = fmt.Errorf("No factoid block found for height %d or hash %s\n", iv.Height, iv.Hash)
 			} else if iv.Hash != *zeroHash {
-				msg := wire.NewMsgFBlock()
-				blk, err0 := db.FetchFBlockByHash(&iv.Hash)
-				if err0 != nil {
-					fmt.Println("FetchFBlockByHash err: ", err0.Error())
-					err = err0
-				} else {
-					msg.SC = blk
-					p.QueueMessage(msg, c) 			
-					//err = p.pushFBlockMsg(&iv.Hash, c, waitChan)
-				}
+				err = p.pushFBlockMsg(&iv.Hash, c, nil)
 			} else if iv.Height > -1 {
 				msg := wire.NewMsgFBlock()
 				blk, err0 := db.FetchFBlockByHeight(uint32(iv.Height))
@@ -2197,7 +2175,8 @@ func (p *peer) handleGetFactomDataMsg(msg *wire.MsgGetFactomData) {
 				}
 			}
 			
-		case wire.InvTypeFactomEntryBlock:
+		case wire.InvTypeFactomEntryBlock:	// get only one entry block, no entry after that
+			fmt.Printf("handleGetFactomDataMsg: EntryBlock: height %d or hash %s\n", iv.Height, iv.Hash)
 			if iv.Hash == *zeroHash && iv.Height == -1 {
 				err = fmt.Errorf("No entry block found for height %d or hash %s\n", iv.Height, iv.Hash)
 			} else if iv.Hash != *zeroHash && iv.Height == -1 {
@@ -2209,8 +2188,7 @@ func (p *peer) handleGetFactomDataMsg(msg *wire.MsgGetFactomData) {
 				} else {
 					msg.EBlk = blk
 					msg.EntryNeeded = false
-					p.QueueMessage(msg, c) 			
-					//err = p.pushEBlockMsg(&iv.Hash, c, waitChan)
+					p.QueueMessage(msg, c)
 				}
 			} else if iv.Hash != *zeroHash && iv.Height > -1 {
 				msg := wire.NewMsgEBlock()
@@ -2226,6 +2204,7 @@ func (p *peer) handleGetFactomDataMsg(msg *wire.MsgGetFactomData) {
 			}
 			
 		case wire.InvTypeFactomEntry:
+			fmt.Printf("handleGetFactomDataMsg: Entry: height %d or hash %s\n", iv.Height, iv.Hash)
 			if iv.Hash == *zeroHash {
 				err = fmt.Errorf("No entry block found for hash %s\n", iv.Hash)
 			} else {
