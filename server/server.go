@@ -1549,27 +1549,31 @@ func newServer(listenAddrs []string, chainParams *Params) (*server, error) {
 	}
 	h := uint32(newestHeight)
 	srvrLog.Info("newestHeight=", h)
+	
 	if common.SERVER_NODE == s.nodeType {
 		fedServer := &federateServer{}
+		s.federateServers = append(s.federateServers, fedServer)
 		if s.isLeader {
 			fedServer.LeaderLast = h + 1
 			fedServer.FirstJoined = h
+			policy := &leaderPolicy{
+				StartDBHeight:  h + 3, // give it a bit more time to adjust
+				NotifyDBHeight: defaultNotifyDBHeight,
+				Term:           defaultLeaderTerm,
+			}
+			s.myLeaderPolicy = policy
+			fmt.Println("\n//////////////////////")
+			fmt.Println("///                ///")
+			fmt.Println("///   New Leader   ///")
+			fmt.Println("///                ///")
+			fmt.Println("//////////////////////")
+			fmt.Println()
+		} else {
+			blockSyncing = true
+			s.isCandidate = true
 		}
-		s.federateServers = append(s.federateServers, fedServer)
+		fmt.Println("newServer: blockSyncing=", blockSyncing)
 	}
-
-	if s.isLeader {
-		policy := &leaderPolicy{
-			StartDBHeight:  h + 3, // give it a bit more time to adjust
-			NotifyDBHeight: defaultNotifyDBHeight,
-			Term:           defaultLeaderTerm,
-		}
-		s.myLeaderPolicy = policy
-	} else {
-		blockSyncing = true
-		s.isCandidate = true
-	}
-	fmt.Println("newServer: blockSyncing=", blockSyncing)
 
 	return &s, nil
 }
@@ -1845,13 +1849,14 @@ func (s *server) selectNextLeader(height uint32) {
 	}
 	// simple round robin for now
 	sort.Sort(ByLeaderLast(nonCandidates))
+	fmt.Println("selectNextLeader: nonCandidates=", spew.Sdump(nonCandidates))
 	for _, fed := range nonCandidates {
 		if fed.Peer != nil {
 			next = fed
 			break
 		}
 	}
-	fmt.Printf("selectNextLeader: next leader choosen: %s\n", spew.Sdump(next))
+	fmt.Printf("selectNextLeader: next leader chosen: %s\n", spew.Sdump(next))
 	if next == nil {
 		return
 	}

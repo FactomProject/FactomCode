@@ -2772,6 +2772,8 @@ func (p *peer) handleCurrentLeaderMsg(msg *wire.MsgCurrentLeader) {
 		}
 	}
 	if next != nil {
+		// the timing of udpate leader status could be different
+		// let stop checking to avoid inconsistancy
 		if next.Peer.nodeID != msg.NewLeaderCandidates {
 			panic("handleCurrentLeaderMsg: the leaderElect is " + next.Peer.nodeID + 
 				", but new current leader is " + msg.NewLeaderCandidates)
