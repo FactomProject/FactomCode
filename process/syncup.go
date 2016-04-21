@@ -21,7 +21,6 @@ import (
 // processDirBlock validates dir block and save it to factom db.
 // similar to blockChain.BC_ProcessBlock
 func processDirBlock(msg *wire.MsgDirBlock) error {
-
 	// Error condiftion for Milestone 1
 	if nodeMode == common.SERVER_NODE {
 		return errors.New("Server received msg:" + msg.Command())
@@ -84,7 +83,6 @@ func processDirBlock(msg *wire.MsgDirBlock) error {
 // processFBlock validates admin block and save it to factom db.
 // similar to blockChain.BC_ProcessBlock
 func processFBlock(msg *wire.MsgFBlock) error {
-
 	// Error condiftion for Milestone 1
 	if nodeMode == common.SERVER_NODE {
 		return errors.New("Server received msg:" + msg.Command())
@@ -110,7 +108,6 @@ func processFBlock(msg *wire.MsgFBlock) error {
 // processABlock validates admin block and save it to factom db.
 // similar to blockChain.BC_ProcessBlock
 func processABlock(msg *wire.MsgABlock) error {
-
 	// Error condiftion for Milestone 1
 	if nodeMode == common.SERVER_NODE {
 		return errors.New("Server received msg:" + msg.Command())
@@ -136,7 +133,6 @@ func processABlock(msg *wire.MsgABlock) error {
 // procesFBlock validates entry credit block and save it to factom db.
 // similar to blockChain.BC_ProcessBlock
 func procesECBlock(msg *wire.MsgECBlock) error {
-
 	// Error condiftion for Milestone 1
 	if nodeMode == common.SERVER_NODE {
 		return errors.New("Server received msg:" + msg.Command())
@@ -161,7 +157,6 @@ func procesECBlock(msg *wire.MsgECBlock) error {
 // processEBlock validates entry block and save it to factom db.
 // similar to blockChain.BC_ProcessBlock
 func processEBlock(msg *wire.MsgEBlock) error {
-
 	// Error condiftion for Milestone 1
 	if nodeMode == common.SERVER_NODE {
 		return errors.New("Server received msg:" + msg.Command())
@@ -190,7 +185,6 @@ func processEBlock(msg *wire.MsgEBlock) error {
 // processEntry validates entry and save it to factom db.
 // similar to blockChain.BC_ProcessBlock
 func processEntry(msg *wire.MsgEntry) error {
-
 	// Error condiftion for Milestone 1
 	if nodeMode == common.SERVER_NODE {
 		return errors.New("Server received msg:" + msg.Command())
@@ -447,7 +441,6 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 
 // Validate the new blocks in mem pool and store them in db
 func deleteBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool) error {
-
 	fmt.Println("deleteBlocksFromMemPool: dbheight=", b.Header.DBHeight)
 	for _, dbEntry := range b.DBEntries {
 		switch dbEntry.ChainID.String() {
@@ -458,9 +451,7 @@ func deleteBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool) err
 		case fchain.ChainID.String():
 			fMemPool.deleteBlockMsg(dbEntry.KeyMR.String())
 		default:
-			fMemPool.RLock()
-			eBlkMsg, _ := fMemPool.blockpool[dbEntry.KeyMR.String()].(*wire.MsgEBlock)
-			fMemPool.RUnlock()
+			eBlkMsg, _ := fMemPool.GetFromBlockPool(dbEntry.KeyMR.String()).(*wire.MsgEBlock)
 			for _, ebEntry := range eBlkMsg.EBlk.Body.EBEntries {
 				fMemPool.deleteBlockMsg(ebEntry.String())
 			}
@@ -473,7 +464,6 @@ func deleteBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool) err
 }
 
 func validateDBSignature(aBlock *common.AdminBlock, dchain *common.DChain) bool {
-
 	dbSigEntry := aBlock.GetDBSignature()
 	if dbSigEntry == nil {
 		if aBlock.Header.DBHeight == 0 {

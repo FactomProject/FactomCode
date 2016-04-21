@@ -115,6 +115,31 @@ func (mp *ftmMemPool) addOrphanMsg(msg wire.Message, hash *wire.ShaHash) error {
 	return nil
 }
 
+func (mp *ftmMemPool) listOrphanMsgKeys() []wire.ShaHash {
+	mp.RLock()
+	defer mp.RUnlock()
+
+	list := make([]wire.ShaHash, len(mp.orphans), 0)
+	for k, _ := range mp.orphans {
+		list = append(list, k)
+	}
+	return list
+}
+
+func (mp *ftmMemPool) getOrphanMsg(key wire.ShaHash) wire.Message {
+	mp.RLock()
+	defer mp.RUnlock()
+
+	return mp.orphans[key]
+}
+
+func (mp *ftmMemPool) deleteOrphanMsg(key wire.ShaHash) {
+	mp.Lock()
+	defer mp.Unlock()
+
+	delete(mp.orphans, key)
+}
+
 // Add a factom block message to the  Mem pool
 func (mp *ftmMemPool) addBlockMsg(msg wire.Message, hash string) error {
 	mp.Lock()

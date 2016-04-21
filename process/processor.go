@@ -771,7 +771,9 @@ func processBuyEntryCredit(msg *wire.MsgFactoidTX) error {
 
 // Process Orphan pool before the end of 10 min
 func processFromOrphanPool() error {
-	for k, msg := range fMemPool.orphans {
+	keys := fMemPool.listOrphanMsgKeys()
+	for _, k := range keys {
+		msg := fMemPool.getOrphanMsg(k)
 		switch msg.Command() {
 		case wire.CmdCommitChain:
 			msgCommitChain, _ := msg.(*wire.MsgCommitChain)
@@ -780,7 +782,7 @@ func processFromOrphanPool() error {
 				procLog.Info("Error in processing orphan msgCommitChain:" + err.Error())
 				continue
 			}
-			delete(fMemPool.orphans, k)
+			fMemPool.deleteOrphanMsg(k)
 
 		case wire.CmdCommitEntry:
 			msgCommitEntry, _ := msg.(*wire.MsgCommitEntry)
@@ -789,7 +791,7 @@ func processFromOrphanPool() error {
 				procLog.Info("Error in processing orphan msgCommitEntry:" + err.Error())
 				continue
 			}
-			delete(fMemPool.orphans, k)
+			fMemPool.deleteOrphanMsg(k)
 
 		case wire.CmdRevealEntry:
 			msgRevealEntry, _ := msg.(*wire.MsgRevealEntry)
@@ -798,7 +800,7 @@ func processFromOrphanPool() error {
 				procLog.Info("Error in processing orphan msgRevealEntry:" + err.Error())
 				continue
 			}
-			delete(fMemPool.orphans, k)
+			fMemPool.deleteOrphanMsg(k)
 		}
 	}
 	return nil
