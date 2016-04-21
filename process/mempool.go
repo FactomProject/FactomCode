@@ -19,14 +19,14 @@ type ftmMemPool struct {
 	pool        map[wire.ShaHash]wire.Message
 	orphans     map[wire.ShaHash]wire.Message
 	blockpool   map[string]wire.Message // to hold the blocks or entries downloaded from peers
-	requested		map[common.Hash]*reqMsg
-	lastUpdated time.Time               // last time pool was updated
+	requested   map[common.Hash]*reqMsg
+	lastUpdated time.Time // last time pool was updated
 }
 
 type reqMsg struct {
-	Msg *wire.MsgGetFactomData
+	Msg         *wire.MsgGetFactomData
 	TimesMissed uint32
-	Requested bool
+	Requested   bool
 }
 
 // Add a factom message to the orphan pool
@@ -40,6 +40,19 @@ func (mp *ftmMemPool) init_ftmMemPool() error {
 	return nil
 }
 
+func (mp *ftmMemPool) GetFromBlockPoolWithBool(id string) (wire.Message, bool) {
+	mp.Lock()
+	defer mp.Unlock()
+	w, ok := mp.blockpool[id]
+	return w, ok
+}
+
+func (mp *ftmMemPool) GetFromBlockPool(id string) wire.Message {
+	mp.Lock()
+	defer mp.Unlock()
+	return mp.blockpool[id]
+}
+
 func (mp *ftmMemPool) addMissingMsg(typ wire.InvType, hash *common.Hash, height uint32) *reqMsg {
 	mp.Lock()
 	defer mp.Unlock()
@@ -49,15 +62,15 @@ func (mp *ftmMemPool) addMissingMsg(typ wire.InvType, hash *common.Hash, height 
 		m.TimesMissed++
 		return m
 	}
-	inv := &wire.InvVectHeight {
-		Type: typ,
-		Hash: h,
+	inv := &wire.InvVectHeight{
+		Type:   typ,
+		Hash:   h,
 		Height: height,
 	}
 	fd := wire.NewMsgGetFactomData()
 	fd.AddInvVectHeight(inv)
-	req := &reqMsg {
-		Msg: fd,
+	req := &reqMsg{
+		Msg:         fd,
 		TimesMissed: 1,
 	}
 	mp.requested[h] = req
@@ -73,7 +86,6 @@ func (mp *ftmMemPool) removeMissingMsg(hash *common.Hash) {
 		delete(mp.requested, h)
 	}
 }
-
 
 // Add a factom message to the  Mem pool
 func (mp *ftmMemPool) addMsg(msg wire.Message, hash *wire.ShaHash) error {

@@ -39,8 +39,8 @@ func processDirBlock(msg *wire.MsgDirBlock) error {
 		return nil
 	}
 	// if err != nil {
-		// fmt.Println("error in processDirBlock: ", err.Error())
-		//return err
+	// fmt.Println("error in processDirBlock: ", err.Error())
+	//return err
 	// }
 
 	msg.DBlk.IsSealed = true
@@ -49,13 +49,13 @@ func processDirBlock(msg *wire.MsgDirBlock) error {
 	//Add it to mem pool before saving it in db
 	msg.DBlk.BuildKeyMerkleRoot()
 	fMemPool.removeMissingMsg(msg.DBlk.KeyMR)
-	
+
 	err := fMemPool.addBlockMsg(msg, strconv.Itoa(int(msg.DBlk.Header.DBHeight))) // store in mempool with the height as the key
 	if err != nil {
 		fmt.Println("error in addBlockMsg - dirblock: ", err.Error())
 	}
 	fmt.Println("SyncUp: MsgDirBlock DBHeight=", msg.DBlk.Header.DBHeight)
-	
+
 	cp.CP.AddUpdate(
 		"DBSyncUp", // tag
 		"Status",   // Category
@@ -96,7 +96,7 @@ func processFBlock(msg *wire.MsgFBlock) error {
 	if err != nil {
 		return err
 	}
-	
+
 	h := common.NewHash()
 	h.SetBytes(msg.SC.GetHash().Bytes())
 	fMemPool.removeMissingMsg(h)
@@ -125,9 +125,8 @@ func processABlock(msg *wire.MsgABlock) error {
 	if err != nil {
 		return err
 	}
-	
-	fMemPool.removeMissingMsg(abHash)
 
+	fMemPool.removeMissingMsg(abHash)
 
 	fmt.Println("SyncUp: MsgABlock DBHeight=", msg.ABlk.Header.DBHeight)
 
@@ -281,18 +280,15 @@ func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, d
 		}
 	}
 
-	fMemPool.RLock()
-	defer fMemPool.RUnlock()
-
 	for _, dbEntry := range b.DBEntries {
 		switch dbEntry.ChainID.String() {
 		case ecchain.ChainID.String():
-			if _, ok := fMemPool.blockpool[dbEntry.KeyMR.String()]; !ok {
+			if _, ok := fMemPool.GetFromBlockPoolWithBool(dbEntry.KeyMR.String()); !ok {
 				requestMissingMsg(wire.InvTypeFactomEntryCreditBlock, dbEntry.KeyMR, b.Header.DBHeight)
 				return false
 			}
 		case achain.ChainID.String():
-			if msg, ok := fMemPool.blockpool[dbEntry.KeyMR.String()]; !ok {
+			if msg, ok := fMemPool.GetFromBlockPoolWithBool(dbEntry.KeyMR.String()); !ok {
 				requestMissingMsg(wire.InvTypeFactomAdminBlock, dbEntry.KeyMR, b.Header.DBHeight)
 				return false
 			} else {
@@ -303,12 +299,12 @@ func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, d
 				}
 			}
 		case fchain.ChainID.String():
-			if _, ok := fMemPool.blockpool[dbEntry.KeyMR.String()]; !ok {
+			if _, ok := fMemPool.GetFromBlockPoolWithBool(dbEntry.KeyMR.String()); !ok {
 				requestMissingMsg(wire.InvTypeFactomFBlock, dbEntry.KeyMR, b.Header.DBHeight)
 				return false
 			}
 		default:
-			if msg, ok := fMemPool.blockpool[dbEntry.KeyMR.String()]; !ok {
+			if msg, ok := fMemPool.GetFromBlockPoolWithBool(dbEntry.KeyMR.String()); !ok {
 				requestMissingMsg(wire.InvTypeFactomEntryBlock, dbEntry.KeyMR, b.Header.DBHeight)
 				return false
 			} else {
@@ -316,7 +312,7 @@ func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, d
 				// validate every entry in EBlock
 
 				for _, ebEntry := range eBlkMsg.EBlk.Body.EBEntries {
-					if _, foundInMemPool := fMemPool.blockpool[ebEntry.String()]; !foundInMemPool {
+					if _, foundInMemPool := fMemPool.GetFromBlockPoolWithBool(ebEntry.String()); !foundInMemPool {
 						if !bytes.Equal(ebEntry.Bytes()[:31], common.ZERO_HASH[:31]) {
 							// continue if the entry arleady exists in db
 							entry, _ := db.FetchEntryByHash(ebEntry)
@@ -337,14 +333,11 @@ func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, d
 // Validate the new blocks in mem pool and store them in db
 // Need to make a batch insert in db in milestone 2
 func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db database.Db) error {
-	fMemPool.RLock()
-	defer fMemPool.RUnlock()
-
 	fmt.Println("storeBlocksFromMemPool: dbheight=", b.Header.DBHeight)
 	for _, dbEntry := range b.DBEntries {
 		switch dbEntry.ChainID.String() {
 		case ecchain.ChainID.String():
-			ecBlkMsg := fMemPool.blockpool[dbEntry.KeyMR.String()].(*wire.MsgECBlock)
+			ecBlkMsg := fMemPool.GetFromBlockPool(dbEntry.KeyMR.String()).(*wire.MsgECBlock)
 			err := db.ProcessECBlockBatch(ecBlkMsg.ECBlock)
 			if err != nil {
 				fmt.Println("error in db.ProcessECBlockBatch: ", err.Error())
@@ -355,7 +348,7 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 			// for debugging
 			exportECBlock(ecBlkMsg.ECBlock)
 		case achain.ChainID.String():
-			aBlkMsg := fMemPool.blockpool[dbEntry.KeyMR.String()].(*wire.MsgABlock)
+			aBlkMsg := fMemPool.GetFromBlockPool(dbEntry.KeyMR.String()).(*wire.MsgABlock)
 			err := db.ProcessABlockBatch(aBlkMsg.ABlk)
 			if err != nil {
 				fmt.Println("error in db.ProcessABlockBatch: ", err.Error())
@@ -364,7 +357,7 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 			// for debugging
 			exportABlock(aBlkMsg.ABlk)
 		case fchain.ChainID.String():
-			fBlkMsg := fMemPool.blockpool[dbEntry.KeyMR.String()].(*wire.MsgFBlock)
+			fBlkMsg := fMemPool.GetFromBlockPool(dbEntry.KeyMR.String()).(*wire.MsgFBlock)
 			err := db.ProcessFBlockBatch(fBlkMsg.SC)
 			if err != nil {
 				fmt.Println("error in db.ProcessFBlockBatch: ", err.Error())
@@ -383,10 +376,10 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 			exportFctBlock(fBlkMsg.SC)
 		default:
 			// handle Entry Block
-			eBlkMsg, _ := fMemPool.blockpool[dbEntry.KeyMR.String()].(*wire.MsgEBlock)
+			eBlkMsg, _ := fMemPool.GetFromBlockPool(dbEntry.KeyMR.String()).(*wire.MsgEBlock)
 			// store entry in db first
 			for _, ebEntry := range eBlkMsg.EBlk.Body.EBEntries {
-				if msg, foundInMemPool := fMemPool.blockpool[ebEntry.String()]; foundInMemPool {
+				if msg, foundInMemPool := fMemPool.GetFromBlockPoolWithBool(ebEntry.String()); foundInMemPool {
 					err := db.InsertEntry(msg.(*wire.MsgEntry).Entry)
 					if err != nil {
 						fmt.Println("error in db.InsertEntry: ", err.Error())
