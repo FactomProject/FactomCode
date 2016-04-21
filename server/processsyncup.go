@@ -160,6 +160,7 @@ func validateAndStoreBlocks(fMemPool *ftmMemPool, db database.Db, dchain *common
 				time.Sleep(time.Duration(sleeptime * 1000000)) // Nanoseconds for duration
 			}
 		} else {
+			requestMissingMsg(wire.InvTypeFactomDirBlock, zeroHash, uint32(myDBHeight+1))
 			time.Sleep(time.Duration(sleeptime * 1000000)) // Nanoseconds for duration
 
 			//TODO: send an internal msg to sync up with peers
@@ -432,7 +433,7 @@ func validateDBSignature(aBlock *common.AdminBlock, dchain *common.DChain) bool 
 
 func requestMissingMsg(typ wire.InvType, hash *common.Hash, height uint32) {
 	msg := fMemPool.addMissingMsg(typ, hash, height)
-	if msg.TimesMissed > 10 && !msg.Requested {
+	if msg.TimesMissed > 50 && !msg.Requested {
 		msg.Requested = true
 		outMsgQueue <- msg.Msg
 	}

@@ -1883,7 +1883,7 @@ func relayNewBlocks(p *peer) {
 	msgd := wire.NewMsgDirBlock()
 	msgd.DBlk = newDBlock
 	p.QueueMessage(msgd, nil) 
-
+	/*
 	msgf := wire.NewMsgFBlock()
 	msgf.SC = newFBlock
 	p.QueueMessage(msgf, nil) 
@@ -1916,7 +1916,7 @@ func relayNewBlocks(p *peer) {
 				p.QueueMessage(msgr, nil) 
 			}
 		}
-	}
+	}*/
 }
 
 // signDirBlockForAdminBlock signs the directory block for next admin block
