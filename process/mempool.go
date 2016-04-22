@@ -41,15 +41,15 @@ func (mp *ftmMemPool) init_ftmMemPool() error {
 }
 
 func (mp *ftmMemPool) GetFromBlockPoolWithBool(id string) (wire.Message, bool) {
-	mp.Lock()
-	defer mp.Unlock()
+	mp.RLock()
+	defer mp.RUnlock()
 	w, ok := mp.blockpool[id]
 	return w, ok
 }
 
 func (mp *ftmMemPool) GetFromBlockPool(id string) wire.Message {
-	mp.Lock()
-	defer mp.Unlock()
+	mp.RLock()
+	defer mp.RUnlock()
 	return mp.blockpool[id]
 }
 
