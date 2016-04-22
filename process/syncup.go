@@ -496,7 +496,7 @@ func validateDBSignature(aBlock *common.AdminBlock, dchain *common.DChain) bool 
 
 func requestMissingMsg(typ wire.InvType, hash *common.Hash, height uint32) {
 	msg := fMemPool.addMissingMsg(typ, hash, height)
-	if msg.TimesMissed > 10 && !msg.Requested {
+	if msg.TimesMissed > 50 && !msg.Requested {
 		msg.Requested = true
 		outMsgQueue <- msg.Msg
 	}
