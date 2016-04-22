@@ -255,8 +255,10 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 
 			// broadcast it to other federate servers only if it's new to me
 			hash, _ := msgCommitChain.Sha()
+			fmt.Printf("CmdCommitChain: msgCommitChain=%s, hash=%s\n", spew.Sdump(msgCommitChain), hash.String())
 			if fMemPool.haveMsg(hash) {
-				fmt.Println("processCommitChain: already in mempool. ", spew.Sdump(msgCommitChain))
+				fmt.Printf("CmdCommitChain: already in mempool. msgCommitChain=%s, hash=%s\n", 
+					spew.Sdump(msgCommitChain), hash.String())
 				return nil
 			}
 			fMemPool.addMsg(msgCommitChain, &hash)
@@ -281,8 +283,10 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 
 			// broadcast it to other federate servers only if it's new to me
 			hash, _ := msgCommitEntry.Sha()
+			fmt.Printf("CmdCommitEntry: msgCommitEntry=%s, hash=%s\n", spew.Sdump(msgCommitEntry), hash.String())
 			if fMemPool.haveMsg(hash) {
-				fmt.Println("processCommitEntry: already in mempool. ", spew.Sdump(msgCommitEntry))
+				fmt.Printf("CmdCommitEntry: already in mempool. msgCommitEntry=%s, hash=%s\n", 
+					spew.Sdump(msgCommitEntry), hash.String())
 				return nil
 			}
 			fMemPool.addMsg(msgCommitEntry, &hash)
@@ -301,8 +305,10 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		if ok && msgRevealEntry.IsValid() {
 			// broadcast it to other federate servers only if it's new to me
 			h, _ := msgRevealEntry.Sha()
+			fmt.Printf("CmdRevealEntry: msgRevealEntry=%s, hash=%s\n", spew.Sdump(msgRevealEntry), h.String())
 			if fMemPool.haveMsg(h) {
-				fmt.Println("processRevealEntry: already in mempool. ", spew.Sdump(msgRevealEntry))
+				fmt.Printf("CmdRevealEntry: already in mempool. msgRevealEntry=%s, hash=%s\n", 
+					spew.Sdump(msgRevealEntry), h.String())
 				return nil
 			}
 			fMemPool.addMsg(msgRevealEntry, &h)
@@ -754,6 +760,7 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 	}
 
 	if c, ok := commitEntryMap[e.Hash().String()]; ok {
+		fmt.Println("processRevealEntry: commitEntryMap=", spew.Sdump(commitEntryMap))
 		if chainIDMap[e.ChainID.String()] == nil {
 			fMemPool.addOrphanMsg(msg, h)
 			return fmt.Errorf("This chain is not supported: %s",
@@ -788,9 +795,10 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 		return nil
 
 	} else if c, ok := commitChainMap[e.Hash().String()]; ok { //Reveal chain ---------------------------
+		fmt.Println("processRevealEntry: commitChainMap=", spew.Sdump(commitChainMap))
 		if chainIDMap[e.ChainID.String()] != nil {
 			fMemPool.addOrphanMsg(msg, h)
-			return fmt.Errorf("This chain is not supported: %s",
+			return fmt.Errorf("This chain already exists: %s",
 				msg.Entry.ChainID.String())
 		}
 
@@ -1070,6 +1078,12 @@ func buildCommitChain(msg *wire.MsgCommitChain) {
 
 func buildRevealEntry(msg *wire.MsgRevealEntry) {
 	chain := chainIDMap[msg.Entry.ChainID.String()]
+	if chain == nil {
+		panic("buildRevealEntry: chain is nil for chainID=" + msg.Entry.ChainID.String())
+	}
+	if chain.NextBlock == nil {
+		chain.NextBlock = common.NewEBlock()
+	}
 
 	// store the new entry in db
 	db.InsertEntry(msg.Entry)

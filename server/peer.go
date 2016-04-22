@@ -518,11 +518,13 @@ func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
 			p.Shutdown()
 			return
 		}
-		//_, newestHeight, _ := db.FetchBlockHeightCache()
-		//h := uint32(newestHeight)
+		var h uint32
+		if msg.LastBlock >= 0 {	// -1 for new peer
+			h = uint32(msg.LastBlock)
+		}
 		fedServer := &federateServer{
 			Peer:        p,
-			FirstJoined: uint32(msg.LastBlock), 	//h,
+			FirstJoined: h, 	//todo: it's right only for new peer, not for existing peer
 		}
 		p.server.federateServers = append(p.server.federateServers, fedServer)
 		peerLog.Debugf("Signature verified successfully total=%d after adding a new federate server: %s",
@@ -2639,7 +2641,7 @@ func (p *peer) handleNextLeaderMsg(msg *wire.MsgNextLeader) {
 		return
 	}
 	if p.server.nodeID == msg.NextLeaderID {
-		fmt.Println("handleNextLeaderMsg: I'm the next leader elected. startingHeight=", msg.StartDBHeight)
+		fmt.Println("handleNextLeaderMsg: I'm the next leader elected. startHeight=", msg.StartDBHeight)
 		policy := &leaderPolicy{
 			NextLeader:     p,
 			StartDBHeight:  msg.StartDBHeight,
@@ -2669,7 +2671,7 @@ func (p *peer) handleNextLeaderRespMsg(msg *wire.MsgNextLeaderResp) {
 		fmt.Println("signature verify FAILED.")
 		return
 	}
-	fmt.Printf("handleNextLeaderRespMsg: next leader CONFIRMED: %s. startingHeight=%d\n", msg.NextLeaderID, msg.StartDBHeight)
+	fmt.Printf("handleNextLeaderRespMsg: next leader CONFIRMED: %s. startHeight=%d\n", msg.NextLeaderID, msg.StartDBHeight)
 	if p.server.isLeader && p.server.nodeID == msg.CurrLeaderID {
 		p.server.myLeaderPolicy.Confirmed = true
 		p.server.isLeaderElected = false

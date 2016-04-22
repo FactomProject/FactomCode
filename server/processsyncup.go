@@ -335,9 +335,10 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 			echain := chainIDMap[eBlkMsg.EBlk.Header.ChainID.String()]
 			if echain.NextBlockHeight <= eBlkMsg.EBlk.Header.EBSequence {
 				echain.NextBlockHeight = eBlkMsg.EBlk.Header.EBSequence + 1
+			}			
+			if echain.NextBlock == nil {
+				echain.NextBlock = common.NewEBlock()
 			}
-
-			// for debugging
 			exportEBlock(eBlkMsg.EBlk)
 		}
 	}
