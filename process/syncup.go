@@ -500,7 +500,7 @@ func requestMissingMsg(typ wire.InvType, hash *common.Hash, height uint32) {
 	msg := fMemPool.addMissingMsg(typ, hash, height)
 	fmt.Printf("requestMissingMsg %v, %v, %v\n", hash.String(), height, msg.TimesMissed)
 
-	if msg.TimesMissed > 50 {
+	if msg.TimesMissed > 150 {
 		msg.TimesMissed = 0
 		outMsgQueue <- msg.Msg
 	}
