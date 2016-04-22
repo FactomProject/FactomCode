@@ -274,17 +274,19 @@ func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, d
 		}
 	}
 
+	valid := true
+
 	for _, dbEntry := range b.DBEntries {
 		switch dbEntry.ChainID.String() {
 		case ecchain.ChainID.String():
 			if _, ok := fMemPool.GetFromBlockPoolWithBool(dbEntry.KeyMR.String()); !ok {
 				requestMissingMsg(wire.InvTypeFactomEntryCreditBlock, dbEntry.KeyMR, b.Header.DBHeight)
-				return false
+				valid = false
 			}
 		case achain.ChainID.String():
 			if msg, ok := fMemPool.GetFromBlockPoolWithBool(dbEntry.KeyMR.String()); !ok {
 				requestMissingMsg(wire.InvTypeFactomAdminBlock, dbEntry.KeyMR, b.Header.DBHeight)
-				return false
+				valid = false
 			} else {
 				// validate signature of the previous dir block
 				aBlkMsg, _ := msg.(*wire.MsgABlock)
@@ -295,12 +297,12 @@ func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, d
 		case fchain.ChainID.String():
 			if _, ok := fMemPool.GetFromBlockPoolWithBool(dbEntry.KeyMR.String()); !ok {
 				requestMissingMsg(wire.InvTypeFactomFBlock, dbEntry.KeyMR, b.Header.DBHeight)
-				return false
+				valid = false
 			}
 		default:
 			if msg, ok := fMemPool.GetFromBlockPoolWithBool(dbEntry.KeyMR.String()); !ok {
 				requestMissingMsg(wire.InvTypeFactomEntryBlock, dbEntry.KeyMR, b.Header.DBHeight)
-				return false
+				valid = false
 			} else {
 				eBlkMsg, _ := msg.(*wire.MsgEBlock)
 				// validate every entry in EBlock
@@ -312,7 +314,7 @@ func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, d
 							entry, _ := db.FetchEntryByHash(ebEntry)
 							if entry == nil {
 								requestMissingMsg(wire.InvTypeFactomEntry, ebEntry, b.Header.DBHeight)
-								return false
+								valid = false
 							}
 						}
 					}
@@ -321,7 +323,7 @@ func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, d
 		}
 	}
 
-	return true
+	return valid
 }
 
 // Validate the new blocks in mem pool and store them in db

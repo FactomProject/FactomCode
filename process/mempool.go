@@ -57,6 +57,11 @@ func (mp *ftmMemPool) addMissingMsg(typ wire.InvType, hash *common.Hash, height 
 	mp.Lock()
 	defer mp.Unlock()
 
+	//clean the map every now and then when it gets too big
+	if len(mp.requested) > common.MAX_ORPHAN_SIZE {
+		mp.requested = make(map[common.Hash]*reqMsg)
+	}
+
 	h := common.NewHashFromByte(hash.ByteArray())
 	if m, ok := mp.requested[h]; ok {
 		m.TimesMissed++
