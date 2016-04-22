@@ -70,6 +70,9 @@ type MsgVersion struct {
 
 	// NodeSig is the signature of its ID and can be verified by other peers
 	NodeSig common.Signature
+	
+	// StartTime is the time server starts
+	StartTime int64
 }
 
 // HasService returns whether the specified service is supported by the peer
@@ -198,6 +201,13 @@ func (msg *MsgVersion) BtcDecode(r io.Reader, pver uint32) error {
 			return err
 		}
 	}
+	
+	if buf.Len() > 0 {
+		err = readElement(buf, &msg.StartTime)
+		if err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
@@ -267,6 +277,11 @@ func (msg *MsgVersion) BtcEncode(w io.Writer, pver uint32) error {
 	}
 
 	err = writeElement(w, msg.NodeSig)
+	if err != nil {
+		return err
+	}
+
+	err = writeElement(w, msg.StartTime)
 	if err != nil {
 		return err
 	}

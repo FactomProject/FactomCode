@@ -153,6 +153,7 @@ type server struct {
 	federateServers            []*federateServer //*list.List
 	myLeaderPolicy             *leaderPolicy
 	clientPeers								 []*peer
+	startTime									 int64
 }
 
 type leaderPolicy struct {
@@ -166,6 +167,7 @@ type leaderPolicy struct {
 
 type federateServer struct {
 	Peer            *peer
+	StartTime				int64	 //server start time 
 	FirstJoined     uint32 //DBHeight when this peer joins the network as a candidate federate server
 	FirstAsFollower uint32 //DBHeight when this peer becomes a follower the first time.
 	LastSuccessVote uint32 //DBHeight of first successful vote of dir block signature
@@ -1537,6 +1539,7 @@ func newServer(listenAddrs []string, chainParams *Params) (*server, error) {
 	}
 	s.blockManager = bm
 
+	s.startTime = time.Now().Unix()
 	s.nodeID = factomConfig.App.NodeID
 	s.nodeType = factomConfig.App.NodeMode
 	s.isLeader = factomConfig.App.InitLeader
@@ -1551,7 +1554,9 @@ func newServer(listenAddrs []string, chainParams *Params) (*server, error) {
 	srvrLog.Info("newestHeight=", h)
 	
 	if common.SERVER_NODE == s.nodeType {
-		fedServer := &federateServer{}
+		fedServer := &federateServer{
+			StartTime: s.startTime, 
+		}
 		s.federateServers = append(s.federateServers, fedServer)
 		if s.isLeader {
 			fedServer.LeaderLast = h + 1
@@ -1777,7 +1782,7 @@ func (s *server) handleNextLeader(height uint32) {
 	}
 
 	//fmt.Println("nextLeaderHandler(): peerState=", spew.Sdump(s.PeerInfo()))
-	//fmt.Println("nextLeaderHandler(): federateServers=", spew.Sdump(s.federateServers))
+	fmt.Println("nextLeaderHandler(): federateServers=", spew.Sdump(s.federateServers))
 
 	if s.isLeaderElected {
 		fmt.Printf("handleNextLeader: isLeaderElected=%t\n", s.isLeaderElected)
@@ -1827,6 +1832,8 @@ func (s *server) handleNextLeader(height uint32) {
 		s.prevLeaderPeer = &peer{nodeID: s.nodeID,}
 		s.leaderPeer = nil
 		s.myLeaderPolicy = nil
+		fs := s.GetMyFederateServer()
+		fs.LeaderLast = height - 1
 		// turn off BlockTimer in processor
 	}
 	return
@@ -1980,11 +1987,13 @@ func (s ByFirstJoined) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
 }
 func (s ByFirstJoined) Less(i, j int) bool {
-	if s[i].FirstJoined < s[j].FirstJoined {
-		return true
-	} else if s[i].FirstJoined > s[j].FirstJoined {
-		return false 
-	} else {
+	// if s[i].FirstJoined != s[j].FirstJoined {
+		// return s[i].FirstJoined < s[j].FirstJoined
+	// } else 
+	if s[i].FirstAsFollower != s[j].FirstAsFollower {
+		return s[i].FirstAsFollower < s[j].FirstAsFollower
+	} else if s[i].LeaderLast != s[j].LeaderLast {
 		return s[i].LeaderLast < s[j].LeaderLast
-	}
+	} 
+	return s[i].StartTime < s[j].StartTime
 }

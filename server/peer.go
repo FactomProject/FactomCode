@@ -178,6 +178,7 @@ type peer struct {
 	isLeader      bool
 	isLeaderElect bool
 	isCandidate   bool // is a candidate who just joined and is in process of syncup
+	startTime			int64
 
 	inbound            bool
 	persistent         bool
@@ -354,6 +355,7 @@ func (p *peer) pushVersionMsg() error {
 	// Advertise our max supported protocol version.
 	msg.ProtocolVersion = maxProtocolVersion
 
+	msg.StartTime = p.server.startTime
 	msg.IsCandidate = p.server.isCandidate
 	msg.NodeType = p.server.nodeType
 	msg.NodeID = p.server.nodeID
@@ -519,12 +521,16 @@ func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
 			return
 		}
 		var h uint32
-		if msg.LastBlock >= 0 {	// -1 for new peer
-			h = uint32(msg.LastBlock)
+		if !msg.IsCandidate {	// -1 for msg.LastBlock of incoming peer
+			h = uint32(msg.LastBlock) + 1
+		} else if !p.server.isCandidate {
+			_, newestHeight, _ := db.FetchBlockHeightCache()	
+			h = uint32(newestHeight + 1)
 		}
 		fedServer := &federateServer{
 			Peer:        p,
-			FirstJoined: h, 	//todo: it's right only for new peer, not for existing peer
+			FirstJoined: h, 	//todo: it's not right when both peers are candidates
+			StartTime:	 msg.StartTime,
 		}
 		p.server.federateServers = append(p.server.federateServers, fedServer)
 		peerLog.Debugf("Signature verified successfully total=%d after adding a new federate server: %s",
@@ -533,6 +539,7 @@ func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
 		p.server.clientPeers = append(p.server.clientPeers, p)
 	}
 
+	p.startTime = msg.StartTime
 	p.isCandidate = msg.IsCandidate
 	p.nodeType = msg.NodeType
 	p.nodeID = msg.NodeID
@@ -2530,10 +2537,6 @@ func (p *peer) handleFactoidMsg(msg *wire.MsgFactoidTX, buf []byte) {
 	inMsgQueue <- msg
 }
 
-//
-// factom.go
-//
-
 // Handle factom app imcoming msg
 func (p *peer) handleCommitChainMsg(msg *wire.MsgCommitChain) {
 	// Add the msg to inbound msg queue
@@ -2571,9 +2574,13 @@ func (p *peer) handleAckMsg(msg *wire.MsgAck) {
 
 	// this peer has to be in the federate server list before reset it.
 	if p != p.server.GetLeaderPeer() && p.isFederateServer() {
-		peerLog.Debugf("handleAckMsg: RESET Leader Peer to %s", p)
-		p.isLeader = true
+		fmt.Println("handleAckMsg: RESET Leader Peer to ", p)
+		fs := p.server.GetFederateServer(p.server.GetLeaderPeer())
+		if fs != nil {
+			fs.LeaderLast = msg.Height
+		}
 		p.server.SetPrevLeaderPeer(p.server.GetLeaderPeer())
+		p.isLeader = true
 		p.server.SetLeaderPeer(p)
 		p.server.latestLeaderSwitchDBHeight = msg.Height
 	}
@@ -2713,6 +2720,10 @@ func (p *peer) handleCandidateMsg(msg *wire.MsgCandidate) {
 	//_, latestHeight, _ := db.FetchBlockHeightCache()
 	if p.nodeID == msg.SourceNodeID { //&& uint32(latestHeight) == msg.DBHeight-1 {
 		p.isCandidate = false
+		fs := p.server.GetFederateServer(p)
+		if fs != nil {
+			fs.FirstAsFollower = msg.DBHeight
+		}
 		fmt.Println("handleCandidateMsg: candidate turned to follower: ", msg)
 	}
 }

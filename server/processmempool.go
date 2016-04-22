@@ -50,14 +50,15 @@ func (mp *ftmMemPool) initFtmMemPool() error {
 }
 
 func (mp *ftmMemPool) addMissingMsg(typ wire.InvType, hash *common.Hash, height uint32) *reqMsg {
-	mp.Lock()
-	defer mp.Unlock()
-
 	h := common.NewHashFromByte(hash.ByteArray())
+	mp.RLock()
 	if m, ok := mp.requested[h]; ok {
 		m.TimesMissed++
+		mp.RUnlock()
 		return m
 	}
+	mp.RUnlock()
+	
 	inv := &wire.InvVectHeight {
 		Type: typ,
 		Hash: h,
@@ -65,11 +66,14 @@ func (mp *ftmMemPool) addMissingMsg(typ wire.InvType, hash *common.Hash, height 
 	}
 	fd := wire.NewMsgGetFactomData()
 	fd.AddInvVectHeight(inv)
+	
 	req := &reqMsg {
 		Msg: fd,
 		TimesMissed: 1,
 	}
+	mp.Lock()
 	mp.requested[h] = req
+	mp.Unlock()
 	return req
 }
 
