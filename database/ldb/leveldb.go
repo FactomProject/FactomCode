@@ -92,6 +92,7 @@ type LevelDb struct {
 	lbatch *leveldb.Batch
 
 	nextDirBlockHeight int64
+	syncupDirBlockHeight int64	
 
 	lastDirBlkShaCached bool
 	lastDirBlkSha       *wire.ShaHash

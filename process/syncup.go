@@ -44,6 +44,9 @@ func processDirBlock(msg *wire.MsgDirBlock) error {
 
 	msg.DBlk.IsSealed = true
 	dchain.AddDBlockToDChain(msg.DBlk)
+	
+	//update the cache
+	db.UpdateSyncupBlockHeightCache(msg.DBlk.Header.DBHeight)
 
 	//Add it to mem pool before saving it in db
 	msg.DBlk.BuildKeyMerkleRoot()
@@ -500,7 +503,7 @@ func requestMissingMsg(typ wire.InvType, hash *common.Hash, height uint32) {
 	msg := fMemPool.addMissingMsg(typ, hash, height)
 	fmt.Printf("requestMissingMsg %v, %v, %v\n", hash.String(), height, msg.TimesMissed)
 
-	if msg.TimesMissed > 150 {
+	if msg.TimesMissed > 50 {
 		msg.TimesMissed = 0
 		outMsgQueue <- msg.Msg
 	}
