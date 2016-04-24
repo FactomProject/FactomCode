@@ -71,6 +71,7 @@ func (mp *ftmMemPool) addMissingMsg(typ wire.InvType, hash *common.Hash, height 
 		Msg: fd,
 		TimesMissed: 1,
 	}
+	fmt.Println("request pool: addMissingMsg: ", spew.Sdump(req))
 	mp.Lock()
 	mp.requested[h] = req
 	mp.Unlock()
@@ -83,6 +84,7 @@ func (mp *ftmMemPool) removeMissingMsg(hash *common.Hash) {
 
 	h := common.NewHashFromByte(hash.ByteArray())
 	if _, ok := mp.requested[h]; ok {
+		fmt.Println("request pool: removeMissingMsg: ", hash.String())
 		delete(mp.requested, h)
 	}
 }
@@ -319,6 +321,15 @@ func (mp *ftmMemPool) deleteBlockMsg(hash string) error {
 	return nil
 }
 
+func (mp *ftmMemPool) haveDirBlock() bool {
+	for _, v := range mp.blockpool {
+		if v.Command() == wire.CmdDirBlock {
+			return true
+		}
+	}
+	return false
+}
+
 //getDirBlock return a dir block by height
 func (mp *ftmMemPool) getDirBlock(height uint32) *common.DirectoryBlock {
 	mp.RLock()
@@ -405,6 +416,9 @@ func (mp *ftmMemPool) cleanUpMemPool() {
 
 	plItems := plMgr.MyProcessList.GetPLItems()
 	for _, item := range plItems {
+		if item == nil {
+			continue
+		}
 		if item.MsgHash != nil {
 			fmt.Println("cleanUpMemPool: ", item.MsgHash.String())
 			delete(mp.pool, *item.MsgHash)

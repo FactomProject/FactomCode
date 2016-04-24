@@ -22,6 +22,26 @@ const MaxUserAgentLen = 2000
 // DefaultUserAgent for wire in the stack
 const DefaultUserAgent = "/btcwire:0.2.0/"
 
+// NodeState is one of states like candidate, follower, leaderElect, leader and leaderPrev
+type NodeState byte
+
+const (
+	// NodeCandidate is candidate
+	NodeCandidate	NodeState = 0		
+	
+	// NodeFollower is follwer other than leaderElect and leaderPrev
+	NodeFollower	NodeState	= 1		
+	
+	// NodeLeaderElect is leaderElect
+	NodeLeaderElect NodeState = 2	
+	
+	// NodeLeader is the leader
+	NodeLeader	NodeState = 4		
+	
+	// NodeLeaderPrev is the prev leader
+	NodeLeaderPrev NodeState = 8	
+)
+
 // MsgVersion implements the Message interface and represents a bitcoin version
 // message.  It is used for a peer to advertise itself as soon as an outbound
 // connection is made.  The remote peer then uses this information along with
@@ -59,8 +79,8 @@ type MsgVersion struct {
 	// Don't announce transactions to peer.
 	DisableRelayTx bool
 
-	// true means this server is new to the network
-	IsCandidate bool
+	// NodeState of this server: NodeCandidate, NodeFollower, NodeLeaderElect, NodeLeader, NodeLeaderPrev
+	NodeState NodeState
 
 	// NodeType is one of SERVER, FULL, LIGHT
 	NodeType string
@@ -71,7 +91,7 @@ type MsgVersion struct {
 	// NodeSig is the signature of its ID and can be verified by other peers
 	NodeSig common.Signature
 	
-	// StartTime is the time server starts
+	// StartTime is the time when server starts
 	StartTime int64
 }
 
@@ -173,7 +193,7 @@ func (msg *MsgVersion) BtcDecode(r io.Reader, pver uint32) error {
 		}*/
 
 	if buf.Len() > 0 {
-		err = readElement(buf, &msg.IsCandidate)
+		err = readElement(buf, &msg.NodeState)
 		if err != nil {
 			return err
 		}
@@ -261,7 +281,7 @@ func (msg *MsgVersion) BtcEncode(w io.Writer, pver uint32) error {
 	//}
 	//}
 
-	err = writeElement(w, msg.IsCandidate)
+	err = writeElement(w, msg.NodeState)
 	if err != nil {
 		return err
 	}
