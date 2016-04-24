@@ -354,7 +354,14 @@ func fileNotExists(name string) bool {
 // This function is NOT safe for concurrent access.
 func HaveBlockInDB(hash *common.Hash) (bool, error) {
 	//util.Trace(spew.Sdump(hash))
-
+	blk, err := db.FetchDBlockByHash(hash) 
+	if blk != nil {
+		fmt.Println("HaveBlockInDB. true. ", hash.BTCString())
+		return true, nil
+	}
+	return false, err
+	
+	/*
 	if hash == nil || dchain.Blocks == nil || len(dchain.Blocks) == 0 {
 		return false, nil
 	}
@@ -372,5 +379,5 @@ func HaveBlockInDB(hash *common.Hash) (bool, error) {
 		}
 	}
 
-	return false, nil
+	return false, nil */
 }
