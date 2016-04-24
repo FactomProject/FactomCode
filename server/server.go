@@ -2010,7 +2010,6 @@ func (s *server) selectCurrentleader(height uint32) {
 }
 
 func (s *server) sendCurrentLeaderMsg(deadLeader string, newLeader string, source string, h uint32) {
-	//s.SetLeaderPeer(s.GetMyFederateServer().Peer)
 	s.SetLeaderPeerByID(s.nodeID)
 
 	// set leader policy
@@ -2047,7 +2046,7 @@ func (s ByLeaderLast) Less(i, j int) bool {
 	return s[i].LeaderLast < s[j].LeaderLast
 }
 
-// ByStartTime sorts federate server by its FirstJoined
+// ByStartTime sorts federate server by its StartTime
 type ByStartTime []*federateServer
 
 func (s ByStartTime) Len() int {
