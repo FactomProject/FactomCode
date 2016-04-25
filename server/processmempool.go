@@ -133,6 +133,9 @@ func (mp *ftmMemPool) resetDirBlockSigPool(height uint32) {
 	a := mp.dirBlockSigs
 	i := 0
 	for i < len(a) {
+		if a[i] == nil {
+			return
+		}
 		if a[i].DBHeight <= height {
 			a, a[len(a)-1] = append(a[:i], a[i+1:]...), nil
 		} else {
