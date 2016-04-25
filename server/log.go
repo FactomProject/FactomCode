@@ -243,6 +243,8 @@ func invSummary(invList []*wire.InvVect) string {
 			return fmt.Sprintf("factom control %s", iv.Hash)
 		case wire.InvTypeFactomRaw:
 			return fmt.Sprintf("factom raw %s", iv.Hash)
+		case wire.InvTypeFactomGetDirData:
+			return fmt.Sprintf("factom getDirData (by height) %s", iv.Hash)
 		}
 
 		return fmt.Sprintf("unknown (%d) %s", uint32(iv.Type), iv.Hash)

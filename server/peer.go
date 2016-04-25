@@ -2102,7 +2102,7 @@ func (p *peer) handleGetFactomDataMsg(msg *wire.MsgGetFactomData) {
 				err = fmt.Errorf("No dir block found for height %d or hash %s\n", iv.Height, iv.Hash.String())
 			} else if iv.Hash != *zeroHash {
 				msg := wire.NewMsgDirBlock()
-				blk, err0 := db.FetchDBlockByMR(&iv.Hash)
+				blk, err0 := db.FetchDBlockByHash(&iv.Hash)		// FetchDBlockByMR
 				if err0 != nil {
 					fmt.Println("FetchDBlockByMR err: ", err0.Error())
 					err = err0
@@ -2258,7 +2258,8 @@ func (p *peer) pushDirBlockMsg(sha *wire.ShaHash, doneChan, waitChan chan struct
 		// check newly generated dir block in processor, 
 		// in case of download from other fed servers (candidates)
 		bin, _ := newDBlock.MarshalBinary()
-		if bytes.Compare(commonhash.Bytes(), bin) == 0 {
+		hash := common.Sha(bin)
+		if bytes.Compare(commonhash.Bytes(), hash.Bytes()) == 0 {
 			fmt.Println("found dirBlock as the newly generated dir block: ", 
 				spew.Sdump(newDBlock.Header))
 			blk = newDBlock

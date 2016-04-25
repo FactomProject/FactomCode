@@ -591,7 +591,7 @@ func processDirBlockSig() error {
 
 func downloadNewDirBlock(p *peer, hash common.Hash, height uint32) {
 	fmt.Printf("downloadNewDirBlock: height=%d, hash=%s, peer=%s\n", height, hash.String(), p)
-	if hash == *zeroHash {
+	if zeroHash.IsSameAs(&hash) {
 		iv := wire.NewInvVectHeight(wire.InvTypeFactomGetDirData, hash, int64(height))
 		gdmsg := wire.NewMsgGetFactomData()
 		gdmsg.AddInvVectHeight(iv)
