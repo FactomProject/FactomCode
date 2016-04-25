@@ -201,7 +201,7 @@ func validateAndStoreBlocks(fMemPool *ftmMemPool, db database.Db, dchain *common
 				if err == nil {
 					deleteBlocksFromMemPool(dblk, fMemPool)
 				} else {
-					panic("error in deleteBlocksFromMemPool.")
+					panic("error in storeBlocksFromMemPool. " + err.Error())
 				}
 			} else {
 				time.Sleep(time.Duration(sleeptime * 1000000)) // Nanoseconds for duration
