@@ -1973,10 +1973,11 @@ func (s *server) selectCurrentleader(height uint32) {
 		return
 	}
 	// The leader is gone and i'm the leaderElect or the only follower,
+	// (the only follower case will be handled by the longest tenured case )
 	// then i become the leader automatically
 	onlyFollower := !s.IsCandidate() && len(nonCandidates) == 1 && 
 		nonCandidates[0].Peer.nodeID == s.nodeID
-	if s.IsLeaderElect() || onlyFollower {
+	if s.IsLeaderElect() {	// || onlyFollower {
 		fmt.Printf("selectCurrentleader: I am the new current leader chosen " +
 			"as I'm the leaderElect=%v or the-only-follower=%v\n", s.IsLeaderElect(), onlyFollower)
 		var prevID string

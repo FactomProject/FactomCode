@@ -1199,7 +1199,6 @@ func buildGenesisBlocks() error {
 			"\nGenesis block hash found:    " + dbBlock.DBHash.String() + "\n")
 	}
 
-	//fMemPool.cleanUpMemPool()
 	initProcessListMgr()
 
 	// saveBlocks will be done at the next EOM_1

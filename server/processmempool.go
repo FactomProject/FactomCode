@@ -417,7 +417,13 @@ func (mp *ftmMemPool) getEBlock(height uint32) *common.EBlock {
 	return nil
 }
 
-// after blocks being built, remove messages included in the process list
+// For client: after blocks being synced up, remove messages of that height or timestamp
+// messages include MsgCommitChain, MsgCommitEntry, MsgRevealEntry, and MsgFactoidTX
+func (mp *ftmMemPool) cleanUpMemPoolClient(height uint32) {
+	// Todo: how to do this? Entry has no timestamp at all.
+}
+	
+// For Servers: after blocks being built, remove messages included in the process list
 func (mp *ftmMemPool) cleanUpMemPool() {
 	mp.Lock()
 	defer mp.Unlock()

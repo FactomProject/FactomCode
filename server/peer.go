@@ -1038,7 +1038,9 @@ out:
 			// Nothing to do currently.  Logging of the rejected
 			// message is handled already in readMessage.
 
-			// Factom additions
+
+			// Factom transactional messages processed only by servers
+			// but they will be relayed through OutMsgQueue by clients
 		case *wire.MsgCommitChain:
 			p.handleCommitChainMsg(msg)
 			//p.FactomRelay(msg)
@@ -1055,17 +1057,30 @@ out:
 			p.handleFactoidMsg(msg, buf)
 			//p.FactomRelay(msg)
 
+
+			// Factom Control messages processed only by servers
+			// no relay or reach by clients
 		case *wire.MsgAck:
 			p.handleAckMsg(msg)
-			//p.FactomRelay(msg)
 
 		case *wire.MsgDirBlockSig:
 			p.handleDirBlockSigMsg(msg)
-			//p.FactomRelay(msg)
 
 		case *wire.MsgCandidate:
 			p.handleCandidateMsg(msg)
-			//p.FactomRelay(msg)
+
+		case *wire.MsgNextLeader:
+			p.handleNextLeaderMsg(msg)
+
+		case *wire.MsgNextLeaderResp:
+			p.handleNextLeaderRespMsg(msg)
+
+		case *wire.MsgMissing:
+			p.handleMissingMsg(msg)
+
+		case *wire.MsgCurrentLeader:
+			p.handleCurrentLeaderMsg(msg)
+
 
 			// Factom blocks downloading
 		case *wire.MsgGetDirBlocks:
@@ -1101,18 +1116,7 @@ out:
 		case *wire.MsgEntry:
 			p.handleEntryMsg(msg, buf)
 
-		case *wire.MsgNextLeader:
-			p.handleNextLeaderMsg(msg)
-
-		case *wire.MsgNextLeaderResp:
-			p.handleNextLeaderRespMsg(msg)
-
-		case *wire.MsgMissing:
-			p.handleMissingMsg(msg)
-
-		case *wire.MsgCurrentLeader:
-			p.handleCurrentLeaderMsg(msg)
-
+			// download individual block by hash/height
 		case *wire.MsgGetFactomData:
 			p.handleGetFactomDataMsg(msg)
 			
@@ -2513,6 +2517,11 @@ func (p *peer) pushEntryMsg(commonhash *common.Hash, doneChan, waitChan chan str
 
 // handleFactoidMsg
 func (p *peer) handleFactoidMsg(msg *wire.MsgFactoidTX, buf []byte) {
+	// the factoid balance should be update during syncup
+	if ClientOnly {
+		return
+	}
+
 	binary, _ := msg.Transaction.MarshalBinary()
 	commonHash := common.Sha(binary)
 	hash, _ := wire.NewShaHash(commonHash.Bytes())
@@ -2525,7 +2534,6 @@ func (p *peer) handleFactoidMsg(msg *wire.MsgFactoidTX, buf []byte) {
 
 // Handle factom app imcoming msg
 func (p *peer) handleCommitChainMsg(msg *wire.MsgCommitChain) {
-	// Add the msg to inbound msg queue
 	if !ClientOnly {
 		inMsgQueue <- msg
 	}
@@ -2533,7 +2541,6 @@ func (p *peer) handleCommitChainMsg(msg *wire.MsgCommitChain) {
 
 // Handle factom app imcoming msg
 func (p *peer) handleCommitEntryMsg(msg *wire.MsgCommitEntry) {
-	// Add the msg to inbound msg queue
 	if !ClientOnly {
 		inMsgQueue <- msg
 	}
@@ -2541,7 +2548,6 @@ func (p *peer) handleCommitEntryMsg(msg *wire.MsgCommitEntry) {
 
 // Handle factom app imcoming msg
 func (p *peer) handleRevealEntryMsg(msg *wire.MsgRevealEntry) {
-	// Add the msg to inbound msg queue
 	if !ClientOnly {
 		inMsgQueue <- msg
 	}
@@ -2549,9 +2555,7 @@ func (p *peer) handleRevealEntryMsg(msg *wire.MsgRevealEntry) {
 
 // Handle factom app imcoming msg
 func (p *peer) handleAckMsg(msg *wire.MsgAck) {
-	// Add the msg to inbound msg queue
 	if !ClientOnly {
-		//inMsgQueue <- msg
 		p.server.blockManager.QueueAck(msg, p)
 	}
 
@@ -2617,6 +2621,9 @@ func (p *peer) GetNodeID() string {
 }
 
 func (p *peer) handleNextLeaderMsg(msg *wire.MsgNextLeader) {
+	if ClientOnly {
+		return
+	}
 	fmt.Printf("handleNextLeaderMsg: %s\n", spew.Sdump(msg))
 	if !msg.Sig.Verify([]byte(msg.CurrLeaderID+msg.NextLeaderID)) {
 		fmt.Println("handleNextLeaderMsg: signature verify FAILED.")
@@ -2652,6 +2659,9 @@ func (p *peer) handleNextLeaderMsg(msg *wire.MsgNextLeader) {
 }
 
 func (p *peer) handleNextLeaderRespMsg(msg *wire.MsgNextLeaderResp) {
+	if ClientOnly {
+		return
+	}
 	fmt.Printf("handleNextLeaderRespMsg: %s\n", spew.Sdump(msg))
 	if !msg.Sig.Verify([]byte(msg.CurrLeaderID+msg.NextLeaderID)) {
 		fmt.Println("handleNextLeaderRespMsg: signature verify FAILED.")
@@ -2667,6 +2677,9 @@ func (p *peer) handleNextLeaderRespMsg(msg *wire.MsgNextLeaderResp) {
 
 // MsgMissing is triggered by ack from leader. So this peer/server has to be leader
 func (p *peer) handleMissingMsg(msg *wire.MsgMissing) {
+	if ClientOnly {
+		return
+	}
 	fmt.Printf("handleMissingMsg: %s\n", spew.Sdump(msg))
 	if !p.server.IsLeader() {
 		fmt.Println("handleMissingMsg: MsgMissing has to be handled by the leader")
@@ -2695,6 +2708,9 @@ func (p *peer) handleMissingMsg(msg *wire.MsgMissing) {
 }
 
 func (p *peer) handleCandidateMsg(msg *wire.MsgCandidate) {
+	if ClientOnly {
+		return
+	}
 	fmt.Printf("handleCandidateMsg: %s\n", msg)
 	if !msg.Sig.Verify([]byte(string(msg.DBHeight) + msg.SourceNodeID)) {
 		fmt.Println("handleCandidateMsg: signature verify FAILED.")
@@ -2711,6 +2727,9 @@ func (p *peer) handleCandidateMsg(msg *wire.MsgCandidate) {
 }
 
 func (p *peer) handleCurrentLeaderMsg(msg *wire.MsgCurrentLeader) {
+	if ClientOnly {
+		return
+	}
 	fmt.Printf("handleCurrentLeaderMsg: %s\n", spew.Sdump(msg))
 	if p.server.IsLeader() {
 		panic("handleCurrentLeaderMsg: I'm the current leader, no need to select a new current leader")
@@ -2759,12 +2778,14 @@ func (p *peer) handleCurrentLeaderMsg(msg *wire.MsgCurrentLeader) {
 	// var next *federateServer
 	nonCandidates, _ := p.server.nonCandidateServers()
 	
+	/*
+	// this case will be handled by the longest tenured case 
 	// check if it's the only follower left
 	if !p.IsCandidate() && len(nonCandidates) == 1 && nonCandidates[0].Peer.nodeID == msg.NewLeaderCandidates {
 		fmt.Println("handleCurrentLeaderMsg: It's the only follower left. ", msg.NewLeaderCandidates)
 		p.resetFollowerState(nonCandidates[0].Peer, msg)
 		return
-	}
+	}*/
 			
 	// find the leaderElect, excluding candidates
 	next := p.server.GetLeaderElect()		
@@ -2794,7 +2815,7 @@ func (p *peer) handleCurrentLeaderMsg(msg *wire.MsgCurrentLeader) {
 			return
 		}
 	} 
-	// find out the server with the longest tenure or FirstJoined
+	// find out the server with the longest tenure
 	sort.Sort(ByStartTime(nonCandidates))
 	if nonCandidates[0].Peer.nodeID == msg.NewLeaderCandidates {
 		fmt.Printf("handleCurrentLeaderMsg: longest FirstJoined: %s, p=%s\n", spew.Sdump(nonCandidates[0]), p)

@@ -134,10 +134,6 @@ func validateAndStoreBlocks(fMemPool *ftmMemPool, db database.Db, dchain *common
 
 	procLog.Info("in validateAndStoreBlocks")
 	for true {
-		// if !fMemPool.haveDirBlock() {
-			// continue
-		// }
-		
 		dblk = nil
 		_, myDBHeight, _ = db.FetchBlockHeightCache()
 
@@ -151,7 +147,7 @@ func validateAndStoreBlocks(fMemPool *ftmMemPool, db database.Db, dchain *common
 		if len(dchain.Blocks) > int(myDBHeight+1) {
 			dblk = dchain.Blocks[myDBHeight+1]
 		}
-		if dblk != nil && fMemPool.haveDirBlock() {
+		if dblk != nil && fMemPool.getDirBlock(uint32(myDBHeight+1)) != nil {
 			if validateBlocksFromMemPool(dblk, fMemPool, db) {
 				err := storeBlocksFromMemPool(dblk, fMemPool, db)
 				if err == nil {
@@ -374,6 +370,11 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 
 	// for debugging
 	exportDBlock(b)
+	
+	// clean up mempool for client,
+	if ClientOnly {
+		fMemPool.cleanUpMemPoolClient(b.Header.DBHeight)
+	}
 
 	return nil
 }
