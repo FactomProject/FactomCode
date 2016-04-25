@@ -1618,7 +1618,8 @@ func (s *server) SetLeaderPeer(p *peer) {
 	peer := s.GetLeaderPeer()
 	if peer != nil {
 		fmt.Println("SetLeaderPeer: SetLeaderPrev first ", peer)
-		peer.nodeState = wire.NodeLeaderPrev
+		s.SetPrevLeaderPeer(peer)
+		//peer.nodeState = wire.NodeLeaderPrev
 	}
 	fmt.Println("SetLeaderPeer: ", p)
 	p.nodeState = wire.NodeLeader
@@ -1628,7 +1629,8 @@ func (s *server) SetLeaderPeerByID(pid string) {
 	peer := s.GetLeaderPeer()
 	if peer != nil {
 		fmt.Println("SetLeaderPeerByID: SetLeaderPrev first ", peer)
-		peer.nodeState = wire.NodeLeaderPrev
+		s.SetPrevLeaderPeer(peer)
+		//peer.nodeState = wire.NodeLeaderPrev
 	}
 	peer = s.GetPeerByID(pid)
 	if peer != nil {
@@ -1861,7 +1863,6 @@ func (s *server) handleNextLeader(height uint32) {
 				leaderID = leader.nodeID
 				s.GetFederateServerByID(leaderID).LeaderLast = height
 			}
-			//s.SetLeaderPeerByID(s.nodeID)
 			s.sendCurrentLeaderMsg(leaderID, s.nodeID, s.nodeID, height + 1)
 			// turn on BlockTimer in processor
 			fmt.Println("handleNextLeader: ** height equal, regime change for leader-elected.")
@@ -1901,7 +1902,6 @@ func (s *server) handleNextLeader(height uint32) {
 		s.GetMyFederateServer().LeaderLast = height
 		// turn off BlockTimer in processor
 	}
-	//return
 }
 
 func (s *server) selectNextLeader(height uint32) {
@@ -2000,7 +2000,6 @@ func (s *server) selectCurrentleader(height uint32) {
 				fmt.Println("selectCurrentleader: I'm the prev leader, and will be the current leader " +
 					"as both current leader and leaderElect are gone.")
 				s.sendCurrentLeaderMsg(prev.nodeID, s.nodeID, s.nodeID, height+1)
-				//return
 			}
 			// do nothing if there's a prev leader other than myslef
 			return
