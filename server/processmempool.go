@@ -125,12 +125,20 @@ func (mp *ftmMemPool) getDirBlockSigPool() []*wire.MsgDirBlockSig {
 	return mp.dirBlockSigs
 }
 
-func (mp *ftmMemPool) resetDirBlockSigPool() {
+func (mp *ftmMemPool) resetDirBlockSigPool(height uint32) {
 	mp.Lock()
 	defer mp.Unlock()
 
-	fmt.Println("resetDirBlockSigPool")
-	mp.dirBlockSigs = make([]*wire.MsgDirBlockSig, 0, 32)
+	fmt.Println("resetDirBlockSigPool, height=", height)
+	a := mp.dirBlockSigs
+	i := 0
+	for i < len(a) {
+		if a[i].DBHeight <= height {
+			a, a[len(a)-1] = append(a[:i], a[i+1:]...), nil
+		} else {
+			i++
+		}
+	}
 }
 
 func (mp *ftmMemPool) resetAckPool() {

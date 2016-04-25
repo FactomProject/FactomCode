@@ -1765,7 +1765,7 @@ func saveBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
 
 	exportBlocks(newDBlock, newABlock, newECBlock, newFBlock, newEBlocks)	
 
-	fMemPool.resetDirBlockSigPool()
+	fMemPool.resetDirBlockSigPool(dblock.Header.DBHeight)
 	newDBlock, newABlock, newECBlock, newFBlock, newEBlocks = nil, nil, nil, nil, nil
 	return nil
 }
@@ -1852,7 +1852,7 @@ func saveBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
 	fmt.Println("saveBlocks: done=", dblock.Header.DBHeight)
 
 	placeAnchor(dblock)
-	fMemPool.resetDirBlockSigPool()
+	fMemPool.resetDirBlockSigPool(dblock.Header.DBHeight)
 
 	// export blocks here for less database lock time
 	exportBlocks(newDBlock, newABlock, newECBlock, newFBlock, newEBlocks)
