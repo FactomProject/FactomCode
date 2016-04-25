@@ -1695,12 +1695,24 @@ func (s *server) GetLeaderPeer() *peer {
 }
 
 func (s *server) SetPrevLeaderPeer(p *peer) {
+	peer := s.GetPeer(wire.NodeLeaderPrev)
+	if peer != nil {
+		fmt.Println("SetPrevLeaderPeer: reset others to Follower first ", peer)
+		peer.nodeState = wire.NodeFollower
+	}
+	fmt.Println("SetPrevLeaderPeer: ", p)
 	p.nodeState = wire.NodeLeaderPrev
 }
 
 func (s *server) SetPrevLeaderByID(pid string) {
-	p := s.GetPeerByID(pid)
+	p := s.GetPeer(wire.NodeLeaderPrev)
 	if p != nil {
+		fmt.Println("SetPrevLeaderByID: reset others to Follower first: ", p)
+		p.nodeState = wire.NodeFollower
+	}
+	p = s.GetPeerByID(pid)
+	if p != nil {
+		fmt.Println("SetPrevLeaderByID: ", pid)
 		p.nodeState = wire.NodeLeaderPrev
 		return
 	}

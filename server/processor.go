@@ -344,7 +344,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 			if len(miss) > 0 {
 				for _, m := range miss {
 					fmt.Println("process missing eom: ", m.EOM_Type)
-					return processLeaderEOM(m)
+					processLeaderEOM(m)
 				}
 			}
 			leaderCrashed = false
