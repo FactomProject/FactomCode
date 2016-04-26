@@ -1161,7 +1161,9 @@ func buildBlocks() error {
 
 	if plMgr != nil {
 		err := buildFromProcessList(plMgr.MyProcessList)
-		fmt.Println("buildBlocks: ", err.Error())
+		if err != nil {
+			fmt.Println("buildBlocks: ", err.Error())
+		}
 	}
 
 	var errStr string
