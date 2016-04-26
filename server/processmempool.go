@@ -130,20 +130,13 @@ func (mp *ftmMemPool) resetDirBlockSigPool(height uint32) {
 	defer mp.Unlock()
 
 	fmt.Println("resetDirBlockSigPool, height=", height)
-	mp.dirBlockSigs = make([]*wire.MsgDirBlockSig, 0, 32)
-	/*
-	a := mp.dirBlockSigs
-	i := 0
-	for i < len(a) {
-		if a[i] == nil {
-			return
-		}
-		if a[i].DBHeight <= height {
-			a, a[len(a)-1] = append(a[:i], a[i+1:]...), nil
-		} else {
-			i++
-		}
-	}*/
+	temp := make([]*wire.MsgDirBlockSig, 0, 32)
+	for _, sig := range mp.dirBlockSigs {
+		if sig != nil && sig.DBHeight > height {
+			temp = append(temp, sig)
+		} 
+	}
+	mp.dirBlockSigs = temp
 }
 
 func (mp *ftmMemPool) resetAckPool() {
@@ -169,14 +162,14 @@ func (mp *ftmMemPool) addAck(ack *wire.MsgAck) *wire.MsgMissing {
 	if ack.Index == 0 {
 		mp.ackpool = make([]*wire.MsgAck, 100, 200)
 		fmt.Println("reset ackpool")
-	} else if ack.Index == uint32(len(mp.ackpool)) {
-		mp.ackpool = mp.ackpool[0 : ack.Index+50]
-		fmt.Println("grow ackpool.len by 50")
 	} else if ack.Index == uint32(cap(mp.ackpool)) {
 		temp := make([]*wire.MsgAck, ack.Index*2, ack.Index*2)
 		copy(temp, mp.ackpool)
 		mp.ackpool = temp
 		fmt.Println("double ackpool capacity")
+	} else if ack.Index == uint32(len(mp.ackpool)) {
+		mp.ackpool = mp.ackpool[0 : ack.Index+50]
+		fmt.Println("grow ackpool.len by 50")
 	}
 
 	// check duplication first
