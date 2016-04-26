@@ -1036,15 +1036,15 @@ func buildRevealChain(msg *wire.MsgRevealEntry) error {
 	if chain == nil {
 		return fmt.Errorf("buildRevealChain: chain is nil for chainID=" + msg.Entry.ChainID.String())
 	}
-	if chain.NextBlock == nil {
-		chain.NextBlock = common.NewEBlock()
-	}
+	// if chain.NextBlock == nil {
+		// chain.NextBlock = common.NewEBlock()
+	// }
 
 	// Store the new chain in db
 	db.InsertChain(chain)
 
 	// Chain initialization. let initEChains and storeBlocksFromMemPool take care of it
-	// initEChainFromDB(chain)
+	initEChainFromDB(chain)
 
 	// store the new entry in db
 	db.InsertEntry(chain.FirstEntry)
@@ -1240,7 +1240,7 @@ func buildBlocks() error {
 	initProcessListMgr()
 	
 	// for leader / follower regime change
-	fmt.Printf("buildBlocks: It's a leader=%t or leaderElected=%t, SingleServerMode=%t, dchain.NextDBHeight=%d",
+	fmt.Printf("buildBlocks: It's a leader=%t or leaderElected=%t, SingleServerMode=%t, dchain.NextDBHeight=%d\n",
 		localServer.IsLeader(), localServer.IsLeaderElect(), localServer.isSingleServerMode(), dchain.NextDBHeight)
 	if newDBlock != nil && newDBlock.Header != nil {
 		fmt.Printf(", dbheight=%d\n", newDBlock.Header.DBHeight)
