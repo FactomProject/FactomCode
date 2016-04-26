@@ -353,24 +353,9 @@ func fileNotExists(name string) bool {
 //
 // This function is NOT safe for concurrent access.
 func HaveBlockInDB(hash *common.Hash) (bool, error) {
-	//util.Trace(spew.Sdump(hash))
-
-	if hash == nil || dchain.Blocks == nil || len(dchain.Blocks) == 0 {
-		return false, nil
+	blk, _ := db.FetchDBlockByHash(hash) 
+	if blk != nil {
+		return true, nil
 	}
-
-	// double check the block ids
-	for i := 0; i < len(dchain.Blocks); i = i + 1 {
-		if dchain.Blocks[i] == nil {
-			continue
-		}
-		if dchain.Blocks[i].DBHash == nil {
-			dchain.Blocks[i].DBHash, _ = common.CreateHash(dchain.Blocks[i])
-		}
-		if dchain.Blocks[i].DBHash.IsSameAs(hash) {
-			return true, nil
-		}
-	}
-
 	return false, nil
 }
