@@ -431,12 +431,12 @@ func processDirBlockSig() error {
 			latestHeight, dchain.NextDBHeight)
 		return nil
 	} 
-	dbsigs := fMemPool.getDirBlockSigPool()
-	if len(dbsigs) == 0 {
+	// dbsigs := fMemPool.getDirBlockSigPool()
+	if fMemPool.lenDirBlockSig() == 0 {
 		fmt.Println("no dir block sig in mempool.")
 		return nil
 	}
-	fmt.Println("processDirBlockSig: DirBlockSigPool: ", spew.Sdump(dbsigs))
+	// fmt.Println("processDirBlockSig: DirBlockSigPool: ", spew.Sdump(dbsigs))
 
 	leadPeer := localServer.GetLeaderPeer()		//.leaderPeer
 	if localServer.latestLeaderSwitchDBHeight == dchain.NextDBHeight {
@@ -446,7 +446,10 @@ func processDirBlockSig() error {
 	if leadPeer != nil {
 		leaderID = leadPeer.nodeID
 	}
+	
+	dgsMap, leaderDirBlockSig, myDirBlockSig := fMemPool.getDirBlockSigMap(leaderID)
 
+	/*
 	var leaderDirBlockSig *wire.MsgDirBlockSig
 	var myDirBlockSig *wire.MsgDirBlockSig
 	dgsMap := make(map[string][]*wire.MsgDirBlockSig)
@@ -478,7 +481,7 @@ func processDirBlockSig() error {
 			val = append(val, v)
 			dgsMap[key] = val
 		}
-	}
+	}*/
 
 	fmt.Println("leaderID=", leaderID)
 	if myDirBlockSig != nil {
@@ -504,7 +507,7 @@ func processDirBlockSig() error {
 
 	totalServerNum := localServer.NonCandidateServerCount()
 	fmt.Printf("processDirBlockSig: By EOM_1, there're %d dirblock signatures "+
-		"arrived out of %d non-candidate federate servers.\n", len(dbsigs), totalServerNum)
+		"arrived out of %d non-candidate federate servers.\n", fMemPool.lenDirBlockSig(), totalServerNum)
 
 	var needDownload, needFromNonLeader bool
 	var winner *wire.MsgDirBlockSig

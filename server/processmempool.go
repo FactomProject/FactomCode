@@ -112,17 +112,47 @@ func (mp *ftmMemPool) addDirBlockSig(dbsig *wire.MsgDirBlockSig) {
 }
 
 func (mp *ftmMemPool) lenDirBlockSig() int {
-	mp.RLock()
-	defer mp.RUnlock()
-
 	return len(mp.dirBlockSigs)
 }
 
-func (mp *ftmMemPool) getDirBlockSigPool() []*wire.MsgDirBlockSig {
+func (mp *ftmMemPool) getDirBlockSigMap(leaderID string) (dgsMap map[string][]*wire.MsgDirBlockSig, 
+	leaderDirBlockSig *wire.MsgDirBlockSig, myDirBlockSig *wire.MsgDirBlockSig) {
+		
+	fmt.Println("getDirBlockSigMap: DirBlockSigPool: ", spew.Sdump(mp.dirBlockSigs))
+	dgsMap = make(map[string][]*wire.MsgDirBlockSig)
+
 	mp.RLock()
 	defer mp.RUnlock()
 
-	return mp.dirBlockSigs
+	for _, v := range mp.dirBlockSigs {
+		if !v.Sig.Verify(v.DirBlockHash.GetBytes()) {
+			fmt.Println("getDirBlockSigMap: could not verify sig: ", spew.Sdump(v))
+			continue
+		}
+		if v.DBHeight != dchain.NextDBHeight-1 {
+			// need to remove this one
+			continue
+		}
+		if v.SourceNodeID == leaderID {
+			leaderDirBlockSig = v
+			fmt.Println("getDirBlockSigMap: got leader sig: ", leaderID)
+		}
+		if v.SourceNodeID == localServer.nodeID {
+			myDirBlockSig = v
+			fmt.Println("getDirBlockSigMap: got my sig: ", localServer.nodeID)
+		}
+		key := v.DirBlockHash.String()
+		val := dgsMap[key]
+		if val == nil {
+			val = make([]*wire.MsgDirBlockSig, 0, 32)
+			val = append(val, v)
+			dgsMap[key] = val
+		} else {
+			val = append(val, v)
+			dgsMap[key] = val
+		}
+	}
+	return dgsMap, leaderDirBlockSig, myDirBlockSig
 }
 
 func (mp *ftmMemPool) resetDirBlockSigPool(height uint32) {
@@ -204,7 +234,7 @@ func (mp *ftmMemPool) getMissingMsgAck(ack *wire.MsgAck) []*wire.MsgMissing {
 	}
 
 	mp.RLock()
-	mp.RUnlock()
+	defer mp.RUnlock()
 
 	for i := int(ack.Index - 1); i >= 0; i-- {
 		if mp.ackpool[uint32(i)] == nil {
@@ -328,6 +358,9 @@ func (mp *ftmMemPool) deleteBlockMsg(hash string) error {
 }
 
 func (mp *ftmMemPool) haveDirBlock() bool {
+	mp.RLock()
+	defer mp.RUnlock()
+
 	for _, v := range mp.blockpool {
 		if v.Command() == wire.CmdDirBlock {
 			return true
