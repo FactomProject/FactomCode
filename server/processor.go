@@ -431,12 +431,10 @@ func processDirBlockSig() error {
 			latestHeight, dchain.NextDBHeight)
 		return nil
 	} 
-	// dbsigs := fMemPool.getDirBlockSigPool()
 	if fMemPool.lenDirBlockSig() == 0 {
 		fmt.Println("no dir block sig in mempool.")
 		return nil
 	}
-	// fmt.Println("processDirBlockSig: DirBlockSigPool: ", spew.Sdump(dbsigs))
 
 	leadPeer := localServer.GetLeaderPeer()		//.leaderPeer
 	if localServer.latestLeaderSwitchDBHeight == dchain.NextDBHeight {
@@ -448,40 +446,6 @@ func processDirBlockSig() error {
 	}
 	
 	dgsMap, leaderDirBlockSig, myDirBlockSig := fMemPool.getDirBlockSigMap(leaderID)
-
-	/*
-	var leaderDirBlockSig *wire.MsgDirBlockSig
-	var myDirBlockSig *wire.MsgDirBlockSig
-	dgsMap := make(map[string][]*wire.MsgDirBlockSig)
-	for _, v := range dbsigs {
-		if !v.Sig.Verify(v.DirBlockHash.GetBytes()) {
-			fmt.Println("processDirBlockSig: could not verify sig: ", spew.Sdump(v))
-			continue
-		}
-		if v.DBHeight != dchain.NextDBHeight-1 {
-			// need to remove this one
-			//fmt.Println("filter out later-coming last block's sig: ", spew.Sdump(v))
-			continue
-		}
-		if v.SourceNodeID == leaderID {
-			leaderDirBlockSig = v
-			fmt.Println("got leader sig: ", leaderID)
-		}
-		if v.SourceNodeID == localServer.nodeID {
-			myDirBlockSig = v
-			fmt.Println("got my sig: ", localServer.nodeID)
-		}
-		key := v.DirBlockHash.String()
-		val := dgsMap[key]
-		if val == nil {
-			val = make([]*wire.MsgDirBlockSig, 0, 32)
-			val = append(val, v)
-			dgsMap[key] = val
-		} else {
-			val = append(val, v)
-			dgsMap[key] = val
-		}
-	}*/
 
 	fmt.Println("leaderID=", leaderID)
 	if myDirBlockSig != nil {
