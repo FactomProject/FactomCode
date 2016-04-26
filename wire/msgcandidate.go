@@ -10,7 +10,7 @@ import (
 
 // MsgCandidate shows the dbheight when a candidate is turned into a follower officically
 type MsgCandidate struct {
-	DBHeight     uint32
+	DBHeight     uint32		// DBHeight that this node turns from Candidate to Follower
 	Sig          common.Signature
 	SourceNodeID string
 }

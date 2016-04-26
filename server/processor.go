@@ -591,7 +591,8 @@ func processDirBlockSig() error {
 
 func downloadNewDirBlock(p *peer, hash common.Hash, height uint32) {
 	fmt.Printf("downloadNewDirBlock: height=%d, hash=%s, peer=%s\n", height, hash.String(), p)
-	if zeroHash.IsSameAs(&hash) {
+	//if zeroHash.IsSameAs(&hash) {
+	if bytes.Compare(zeroHash.Bytes(), hash.Bytes()) == 0 {
 		iv := wire.NewInvVectHeight(wire.InvTypeFactomGetDirData, hash, int64(height))
 		gdmsg := wire.NewMsgGetFactomData()
 		gdmsg.AddInvVectHeight(iv)
@@ -634,6 +635,7 @@ func processAckMsg(ack *wire.MsgAck) ([]*wire.MsgMissing, error) {
 	_, latestHeight, _ := db.FetchBlockHeightCache()
 	fmt.Printf("processAckMsg: Ack.Height=%d, Ack.Index=%d, dchain.NextDBHeight=%d, db.latestDBHeight=%d, blockSyncing=%v\n",
 		ack.Height, ack.Index, dchain.NextDBHeight, latestHeight, blockSyncing)
+	
 	//dchain.NextDBHeight is the dir block height for the network
 	//update it with ack height from the leader if necessary
 	if dchain.NextDBHeight < ack.Height {
@@ -656,6 +658,7 @@ func processAckMsg(ack *wire.MsgAck) ([]*wire.MsgMissing, error) {
 	} else if myPeer.IsCandidate() {		// in case myPeer is already leaderElect or even leader
 		myPeer.nodeState = wire.NodeFollower
 	}
+	
 	// reset factoid state after the firstBlockHeight
 	// this is when a candidate is officially turned into a follower
 	// and it starts to generate blocks.
@@ -664,13 +667,11 @@ func processAckMsg(ack *wire.MsgAck) ([]*wire.MsgMissing, error) {
 		// as it's needed for balance update.
 		// when done sync up, reset its current block, for EndOfPeriod
 		common.FactoidState.SetCurrentBlock(fchain.NextBlock)
-		//if !doneSentCandidateMsg {
 		sig := localServer.privKey.Sign([]byte(string(dchain.NextDBHeight) + localServer.nodeID))
-		m := wire.NewMsgCandidate(dchain.NextDBHeight, localServer.nodeID, sig)
+		m := wire.NewMsgCandidate(firstBlockHeight, localServer.nodeID, sig)
 		outMsgQueue <- m
 		doneSentCandidateMsg = true
 		fmt.Println("processAckMsg: sending MsgCandidate: ", spew.Sdump(m))
-		//}
 		// update this federate server
 		localServer.GetMyFederateServer().FirstAsFollower = firstBlockHeight
 	}
@@ -1011,41 +1012,6 @@ func processFactoidTX(msg *wire.MsgFactoidTX) error {
 	return nil
 }
 
-// Process Orphan pool before the end of 10 min
-func processFromOrphanPool() error {
-	for k, msg := range fMemPool.orphans {
-		switch msg.Command() {
-		case wire.CmdCommitChain:
-			msgCommitChain, _ := msg.(*wire.MsgCommitChain)
-			err := processCommitChain(msgCommitChain)
-			if err != nil {
-				fmt.Println("Error in processing orphan msgCommitChain:" + err.Error())
-				continue
-			}
-			delete(fMemPool.orphans, k)
-
-		case wire.CmdCommitEntry:
-			msgCommitEntry, _ := msg.(*wire.MsgCommitEntry)
-			err := processCommitEntry(msgCommitEntry)
-			if err != nil {
-				fmt.Println("Error in processing orphan msgCommitEntry:" + err.Error())
-				continue
-			}
-			delete(fMemPool.orphans, k)
-
-		case wire.CmdRevealEntry:
-			msgRevealEntry, _ := msg.(*wire.MsgRevealEntry)
-			err := processRevealEntry(msgRevealEntry)
-			if err != nil {
-				fmt.Println("Error in processing orphan msgRevealEntry:" + err.Error())
-				continue
-			}
-			delete(fMemPool.orphans, k)
-		}
-	}
-	return nil
-}
-
 func buildIncreaseBalance(msg *wire.MsgFactoidTX) {
 	t := msg.Transaction
 	for i, ecout := range t.GetECOutputs() {
@@ -1076,10 +1042,10 @@ func buildCommitChain(msg *wire.MsgCommitChain) {
 	ecchain.NextBlock.AddEntry(msg.CommitChain)
 }
 
-func buildRevealEntry(msg *wire.MsgRevealEntry) {
+func buildRevealEntry(msg *wire.MsgRevealEntry) error {
 	chain := chainIDMap[msg.Entry.ChainID.String()]
 	if chain == nil {
-		panic("buildRevealEntry: chain is nil for chainID=" + msg.Entry.ChainID.String())
+		return fmt.Errorf("buildRevealEntry: chain is nil for chainID=" + msg.Entry.ChainID.String())
 	}
 	if chain.NextBlock == nil {
 		chain.NextBlock = common.NewEBlock()
@@ -1092,19 +1058,26 @@ func buildRevealEntry(msg *wire.MsgRevealEntry) {
 
 	if err != nil {
 		//panic("Error while adding Entity to Block:" + err.Error())
-		fmt.Println("Error while adding Entity to Block:" + err.Error())
+		fmt.Println("buildRevealEntry: Error while adding Entity to Block:" + err.Error())
+		return err
 	}
-
+	return nil
 }
 
-func buildRevealChain(msg *wire.MsgRevealEntry) {
+func buildRevealChain(msg *wire.MsgRevealEntry) error {
 	chain := chainIDMap[msg.Entry.ChainID.String()]
+	if chain == nil {
+		return fmt.Errorf("buildRevealChain: chain is nil for chainID=" + msg.Entry.ChainID.String())
+	}
+	if chain.NextBlock == nil {
+		chain.NextBlock = common.NewEBlock()
+	}
 
 	// Store the new chain in db
 	db.InsertChain(chain)
 
-	// Chain initialization
-	initEChainFromDB(chain)
+	// Chain initialization. let initEChains and storeBlocksFromMemPool take care of it
+	// initEChainFromDB(chain)
 
 	// store the new entry in db
 	db.InsertEntry(chain.FirstEntry)
@@ -1112,8 +1085,10 @@ func buildRevealChain(msg *wire.MsgRevealEntry) {
 	err := chain.NextBlock.AddEBEntry(chain.FirstEntry)
 
 	if err != nil {
-		fmt.Printf(`Error while adding the First Entry to Block: %s`, err.Error())
+		fmt.Printf(`buildRevealChain: Error while adding the First Entry to EBlock: %s`, err.Error())
+		return err
 	}
+	return nil
 }
 
 // Loop through the Process List items and get the touched chains
@@ -1218,7 +1193,8 @@ func buildBlocks() error {
 	dchain.AddDBEntry(&common.DBEntry{}) // factoid
 
 	if plMgr != nil {
-		buildFromProcessList(plMgr.MyProcessList)
+		err := buildFromProcessList(plMgr.MyProcessList)
+		fmt.Println("buildBlocks: ", err.Error())
 	}
 
 	var errStr string
@@ -1365,9 +1341,15 @@ func buildFromProcessList(pl *consensus.ProcessList) error {
 		} else if pli.Ack.Type == wire.AckCommitEntry {
 			buildCommitEntry(pli.Msg.(*wire.MsgCommitEntry))
 		} else if pli.Ack.Type == wire.AckRevealChain {
-			buildRevealChain(pli.Msg.(*wire.MsgRevealEntry))
+			err := buildRevealChain(pli.Msg.(*wire.MsgRevealEntry))
+			if err != nil {
+				return err
+			}
 		} else if pli.Ack.Type == wire.AckRevealEntry {
-			buildRevealEntry(pli.Msg.(*wire.MsgRevealEntry))
+			err := buildRevealEntry(pli.Msg.(*wire.MsgRevealEntry))
+			if err != nil {
+				return err
+			}
 		} else if wire.EndMinute1 <= pli.Ack.Type && pli.Ack.Type <= wire.EndMinute10 {
 			buildEndOfMinute(pl, pli)
 		}
