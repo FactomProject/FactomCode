@@ -634,7 +634,7 @@ func processAckMsg(ack *wire.MsgAck) ([]*wire.MsgMissing, error) {
 		// as it's needed for balance update.
 		// when done sync up, reset its current block, for EndOfPeriod
 		common.FactoidState.SetCurrentBlock(fchain.NextBlock)
-		sig := localServer.privKey.Sign([]byte(string(dchain.NextDBHeight) + localServer.nodeID))
+		sig := localServer.privKey.Sign([]byte(string(firstBlockHeight) + localServer.nodeID))
 		m := wire.NewMsgCandidate(firstBlockHeight, localServer.nodeID, sig)
 		outMsgQueue <- m
 		doneSentCandidateMsg = true
