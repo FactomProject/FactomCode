@@ -685,9 +685,13 @@ func (b *blockManager) startSyncFactom(peers *list.List) {
 // isSyncCandidateFactom returns whether or not the peer is a candidate to consider
 // syncing from.
 func (b *blockManager) isSyncCandidateFactom(p *peer) bool {
-	// Typically a peer is not a candidate for sync if it's not a Factom SERVER node,
-	if common.SERVER_NODE == factomConfig.App.NodeMode {
-		return true
+	// If i'm a server, and peer is a NodeCandidate (including client), 
+	// then, this peer is not a sync candidate.
+	// Todo: We should have a "NodeClient" as a NodeState, 
+	// so that client is able to download blocks from other clients
+	if common.SERVER_NODE == factomConfig.App.NodeMode && p.IsCandidate() {
+		fmt.Println("peer is not a sync candidate: ", p)
+		return false
 	}
 	return true
 }

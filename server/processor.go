@@ -179,12 +179,11 @@ func StartProcessor(wg *sync.WaitGroup, quit chan struct{}) {
 			inMsgQueue:       inMsgQueue,
 		}
 		go timer.StartBlockTimer()
-	} //else {
+	} 
 	// process the blocks and entries downloaded from peers
 	// this is needed for clients and followers and leader when sync up
 	//fmt.Println("StartProcessor: validateAndStoreBlocks")
 	go validateAndStoreBlocks(fMemPool, db, dchain)
-	//}
 
 	// Process msg from the incoming queue one by one
 	for {
