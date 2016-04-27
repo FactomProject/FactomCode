@@ -19,6 +19,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/FactomProject/factoid"
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/server/addrmgr"
@@ -1848,13 +1849,25 @@ func (p *peer) handleGetNonDirDataMsg(msg *wire.MsgGetNonDirData) {
 		blk, err := db.FetchDBlockByHash(iv.Hash.ToFactomHash())
 
 		if err != nil {
-			peerLog.Tracef("Unable to fetch requested EC block sha %v: %v",
-				iv.Hash, err)
-
-			if doneChan != nil {
-				doneChan <- struct{}{}
+			// check newly generated dir block in processor, 
+			var hash *common.Hash
+			if newDBlock != nil {
+				bin, _ := newDBlock.MarshalBinary()
+				hash = common.Sha(bin)
 			}
-			return
+			if hash != nil && bytes.Compare(iv.Hash.ToFactomHash().Bytes(), hash.Bytes()) == 0 {
+				fmt.Println("found dirBlock as the newly generated dir block: ", 
+					spew.Sdump(newDBlock.Header))
+				blk = newDBlock
+			} else {
+				peerLog.Tracef("Unable to fetch requested dir block sha %v: %v",
+					iv.Hash, err)
+
+				if doneChan != nil {
+					doneChan <- struct{}{}
+				}
+				return 
+			}
 		}
 
 		for _, dbEntry := range blk.DBEntries {
@@ -2256,10 +2269,12 @@ func (p *peer) pushDirBlockMsg(sha *wire.ShaHash, doneChan, waitChan chan struct
 
 	if err != nil {
 		// check newly generated dir block in processor, 
-		// in case of download from other fed servers (candidates)
-		bin, _ := newDBlock.MarshalBinary()
-		hash := common.Sha(bin)
-		if bytes.Compare(commonhash.Bytes(), hash.Bytes()) == 0 {
+		var hash *common.Hash
+		if newDBlock != nil {
+			bin, _ := newDBlock.MarshalBinary()
+			hash = common.Sha(bin)
+		}
+		if hash != nil && bytes.Compare(commonhash.Bytes(), hash.Bytes()) == 0 {
 			fmt.Println("found dirBlock as the newly generated dir block: ", 
 				spew.Sdump(newDBlock.Header))
 			blk = newDBlock
@@ -2397,13 +2412,24 @@ func (p *peer) pushFBlockMsg(commonhash *common.Hash, doneChan, waitChan chan st
 	blk, err := db.FetchFBlockByHash(commonhash)
 
 	if err != nil || blk == nil {
-		peerLog.Tracef("Unable to fetch requested SC block sha %v: %v",
-			commonhash, err)
-
-		if doneChan != nil {
-			doneChan <- struct{}{}
+		// check newly generated factoid block in processor, 
+		var hash factoid.IHash
+		if newFBlock != nil {
+			hash = newFBlock.GetHash()
 		}
-		return err
+		if hash != nil && bytes.Compare(commonhash.Bytes(), hash.Bytes()) == 0 {
+			fmt.Println("found it as the newly generated factoid Block: ", 
+				spew.Sdump(newFBlock))
+			blk = newFBlock
+		} else {
+			peerLog.Tracef("Unable to fetch requested factoid block sha %v: %v",
+				commonhash, err)
+
+			if doneChan != nil {
+				doneChan <- struct{}{}
+			}
+			return err
+		}
 	}
 
 	// Once we have fetched data wait for any previous operation to finish.
@@ -2423,12 +2449,23 @@ func (p *peer) pushABlockMsg(commonhash *common.Hash, doneChan, waitChan chan st
 	blk, err := db.FetchABlockByHash(commonhash)
 
 	if err != nil || blk == nil {
-		peerLog.Tracef("Unable to fetch requested Admin block sha %v: %v",
-			commonhash, err)
-		if doneChan != nil {
-			doneChan <- struct{}{}
+		// check newly generated admin block in processor, 
+		var hash *common.Hash
+		if newABlock != nil {
+			hash, _ = newABlock.PartialHash()
 		}
-		return err
+		if hash != nil && bytes.Compare(commonhash.Bytes(), hash.Bytes()) == 0 {
+			fmt.Println("found it as the newly generated admin Block: ", 
+				spew.Sdump(newABlock))
+			blk = newABlock
+		} else {
+			peerLog.Tracef("Unable to fetch requested Admin block sha %v: %v",
+				commonhash, err)
+			if doneChan != nil {
+				doneChan <- struct{}{}
+			}
+			return err
+		}
 	}
 
 	// Once we have fetched data wait for any previous operation to finish.
@@ -2448,13 +2485,24 @@ func (p *peer) pushABlockMsg(commonhash *common.Hash, doneChan, waitChan chan st
 func (p *peer) pushECBlockMsg(commonhash *common.Hash, doneChan, waitChan chan struct{}) error {
 	blk, err := db.FetchECBlockByHash(commonhash)
 	if err != nil || blk == nil {
-		peerLog.Tracef("Unable to fetch requested Entry Credit block sha %v: %v",
-			commonhash, err)
-
-		if doneChan != nil {
-			doneChan <- struct{}{}
+		// check newly generated Entry Credit block in processor, 
+		var hash *common.Hash
+		if newECBlock != nil {
+			hash, _ = newECBlock.HeaderHash()
 		}
-		return err
+		if hash != nil && bytes.Compare(commonhash.Bytes(), hash.Bytes()) == 0 {
+			fmt.Println("found it as the newly generated Entry Credit Block: ", 
+				spew.Sdump(newECBlock))
+			blk = newECBlock
+		} else {
+			peerLog.Tracef("Unable to fetch requested Entry Credit block sha %v: %v",
+				commonhash, err)
+
+			if doneChan != nil {
+				doneChan <- struct{}{}
+			}
+			return err
+		}
 	}
 
 	// Once we have fetched data wait for any previous operation to finish.
@@ -2473,12 +2521,29 @@ func (p *peer) pushECBlockMsg(commonhash *common.Hash, doneChan, waitChan chan s
 func (p *peer) pushEBlockMsg(commonhash *common.Hash, doneChan, waitChan chan struct{}) error {
 	blk, err := db.FetchEBlockByMR(commonhash)
 	if err != nil {
-		if doneChan != nil || blk == nil {
+		// check newly generated Entry block in processor, 
+		for _, eblock := range newEBlocks {
+			if eblock == nil {
+				continue
+			}
+			hash, _ := eblock.Hash()
+			if hash != nil && bytes.Compare(commonhash.Bytes(), hash.Bytes()) == 0 {
+				fmt.Println("found it as the newly generated Entry Block: ", 
+					spew.Sdump(eblock))
+				blk = eblock
+				err = nil
+				break
+			}
+		}
+		if err != nil || blk == nil {
 			peerLog.Tracef("Unable to fetch requested Entry block sha %v: %v",
 				commonhash, err)
-			doneChan <- struct{}{}
+				
+			if doneChan != nil {
+				doneChan <- struct{}{}
+			}
+			return err
 		}
-		return err
 	}
 
 	// Once we have fetched data wait for any previous operation to finish.
