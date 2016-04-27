@@ -25,9 +25,9 @@ type ftmMemPool struct {
 	pool         map[wire.ShaHash]wire.Message
 	orphans      map[wire.ShaHash]wire.Message
 	blockpool    map[string]wire.Message // to hold the blocks or entries downloaded from peers
-	ackpool      []*wire.MsgAck
+	ackpool      [2][]*wire.MsgAck	// dual ackpool to prevent ack overwritten 
 	dirBlockSigs []*wire.MsgDirBlockSig
-	requested		map[common.Hash]*reqMsg
+	requested		 map[common.Hash]*reqMsg
 	lastUpdated  time.Time // last time pool was updated
 }
 
@@ -42,7 +42,8 @@ func (mp *ftmMemPool) initFtmMemPool() error {
 	mp.pool = make(map[wire.ShaHash]wire.Message)
 	mp.orphans = make(map[wire.ShaHash]wire.Message)
 	mp.blockpool = make(map[string]wire.Message)
-	mp.ackpool = make([]*wire.MsgAck, 100, 200)
+	mp.ackpool[0] = make([]*wire.MsgAck, 100, 200)
+	mp.ackpool[1] = make([]*wire.MsgAck, 100, 200)
 	mp.dirBlockSigs = make([]*wire.MsgDirBlockSig, 0, 32)
 	mp.requested = make(map[common.Hash]*reqMsg)
 	
@@ -169,12 +170,13 @@ func (mp *ftmMemPool) resetDirBlockSigPool(height uint32) {
 	mp.dirBlockSigs = temp
 }
 
-func (mp *ftmMemPool) resetAckPool() {
+func (mp *ftmMemPool) resetAckPool(h uint32) {
 	mp.Lock()
 	defer mp.Unlock()
 
 	fmt.Println("resetAckPool")
-	mp.ackpool = make([]*wire.MsgAck, 100, 200)
+	d := h % 2
+	mp.ackpool[d] = make([]*wire.MsgAck, 100, 200)
 }
 
 // addAck add the ack to ackpool and find it's acknowledged msg.
@@ -184,33 +186,34 @@ func (mp *ftmMemPool) addAck(ack *wire.MsgAck) *wire.MsgMissing {
 	if ack == nil {
 		return nil
 	}
+	d := ack.Height % 2
 
 	mp.Lock()
 	defer mp.Unlock()
 
 	// reset it at the very beginning
 	if ack.Index == 0 {
-		mp.ackpool = make([]*wire.MsgAck, 100, 200)
+		mp.ackpool[d] = make([]*wire.MsgAck, 100, 200)
 		fmt.Println("reset ackpool")
-	} else if ack.Index == uint32(cap(mp.ackpool)) {
+	} else if ack.Index == uint32(cap(mp.ackpool[d])) {
 		temp := make([]*wire.MsgAck, ack.Index*2, ack.Index*2)
-		copy(temp, mp.ackpool)
-		mp.ackpool = temp
+		copy(temp, mp.ackpool[d])
+		mp.ackpool[d] = temp
 		fmt.Println("double ackpool capacity")
-	} else if ack.Index == uint32(len(mp.ackpool)) {
-		mp.ackpool = mp.ackpool[0 : ack.Index+50]
+	} else if ack.Index == uint32(len(mp.ackpool[d])) {
+		mp.ackpool[d] = mp.ackpool[d][0 : ack.Index+50]
 		fmt.Println("grow ackpool.len by 50")
 	}
 
 	// check duplication first
-	a := mp.ackpool[ack.Index]
+	a := mp.ackpool[d][ack.Index]
 	if a != nil && ack.Equals(a) {
 		fmt.Println("duplicated ack: ignore it")
 		return nil
 	}
 
 	fmt.Printf("ftmMemPool.addAck: %s\n", ack)
-	mp.ackpool[ack.Index] = ack
+	mp.ackpool[d][ack.Index] = ack
 	if ack.Type == wire.AckRevealEntry || ack.Type == wire.AckRevealChain ||
 		ack.Type == wire.AckCommitChain || ack.Type == wire.AckCommitEntry ||
 		ack.Type == wire.AckFactoidTx {
@@ -229,21 +232,22 @@ func (mp *ftmMemPool) addAck(ack *wire.MsgAck) *wire.MsgMissing {
 // this ack is always an EOM type, and check missing acks for this minute only.
 func (mp *ftmMemPool) getMissingMsgAck(ack *wire.MsgAck) []*wire.MsgMissing {
 	var missingAcks []*wire.MsgMissing
-	if ack.Index == 0 {
+	if ack == nil || ack.Index == 0 {
 		return missingAcks
 	}
+	d := ack.Height % 2
 
 	mp.RLock()
 	defer mp.RUnlock()
 
 	for i := int(ack.Index - 1); i >= 0; i-- {
-		if mp.ackpool[uint32(i)] == nil {
+		if mp.ackpool[d][uint32(i)] == nil {
 			// missing an ACK here.
 			m := wire.NewMsgMissing(ack.Height, uint32(i), wire.Unknown, true, zeroBtcHash, localServer.nodeID)
 			m.Sig = localServer.privKey.Sign(m.GetBinaryForSignature())
 			missingAcks = append(missingAcks, m)
 			fmt.Printf("ftmMemPool.getMissingMsgAck: Missing an Ack at index=%d\n", i)
-		} else if mp.ackpool[uint32(i)].IsEomAck() {
+		} else if mp.ackpool[d][uint32(i)].IsEomAck() {
 			// this ack is an EOM and here we found its previous EOM
 			break
 		}
@@ -252,40 +256,84 @@ func (mp *ftmMemPool) getMissingMsgAck(ack *wire.MsgAck) []*wire.MsgMissing {
 }
 
 func (mp *ftmMemPool) assembleFollowerProcessList(ack *wire.MsgAck) error {
+	if ack == nil {
+		return nil
+	}
+	d := ack.Height % 2
+
 	mp.RLock()
 	defer mp.RUnlock()
 
 	// simply validation
-	if ack.Type != wire.EndMinute10 || mp.ackpool[ack.Index] != ack {
+	if ack.Type != wire.EndMinute10 || mp.ackpool[d][ack.Index] != ack {
 		return fmt.Errorf("the last ack has to be EndMinute10")
 	}
 	var msg wire.Message
 	var hash *wire.ShaHash
-	for i := 0; i < len(mp.ackpool); i++ {
-		if mp.ackpool[i] == nil {
+	for i := 0; i < len(mp.ackpool[d]); i++ {
+		if mp.ackpool[d][i] == nil {
 			// missing an ACK here
 			// todo: it might be too late to request for this ack ???
 			fmt.Printf("ERROR: assembleFollowerProcessList: Missing an Ack in ackpool at index=%d\n", i)
 			continue
 		}
-		if mp.ackpool[i].Affirmation != nil {
-			msg = mp.pool[*mp.ackpool[i].Affirmation]
+		if mp.ackpool[d][i].Affirmation != nil {
+			msg = mp.pool[*mp.ackpool[d][i].Affirmation]
 		}
-		if msg == nil && !mp.ackpool[i].IsEomAck() {
+		if msg == nil && !mp.ackpool[d][i].IsEomAck() {
 			fmt.Printf("ERROR: assembleFollowerProcessList: Missing a MSG in pool at index=%d\n", i)
 			continue
 		}
 		if msg == nil {
 			hash = nil
 		} else {
-			hash = mp.ackpool[i].Affirmation
+			hash = mp.ackpool[d][i].Affirmation
 		}
-		plMgr.AddToFollowersProcessList(msg, mp.ackpool[i], hash)
-		if mp.ackpool[i].Type == wire.EndMinute10 {
+		plMgr.AddToFollowersProcessList(msg, mp.ackpool[d][i], hash)
+		if mp.ackpool[d][i].Type == wire.EndMinute10 {
 			break
 		}
 	}
 	return nil
+}
+
+// rebuild leader's process list
+func (mp *ftmMemPool) rebuildLeaderProcessList(height uint32) {
+	var msg wire.FtmInternalMsg
+	var hash *wire.ShaHash
+	d := height % 2
+	
+	for i := 0; i < len(mp.ackpool[d]); i++ {
+		if mp.ackpool[d][i] == nil {
+			continue
+		}
+		hash = mp.ackpool[d][i].Affirmation	// never nil
+		msg = fMemPool.pool[*hash]
+		if msg == nil {
+			if !mp.ackpool[d][i].IsEomAck() {
+				continue
+			} else {
+				msg = &wire.MsgInt_EOM{
+					EOM_Type:         mp.ackpool[d][i].Type,
+					NextDBlockHeight: mp.ackpool[d][i].Height,
+				}
+				hash = new(wire.ShaHash)
+			}
+		}
+		fmt.Println("rebuildLeaderProcessList: broadcast msg ", spew.Sdump(msg))
+		outMsgQueue <- msg
+
+		ack, _ := plMgr.AddToLeadersProcessList(msg, hash, mp.ackpool[d][i].Type, 
+			dchain.NextBlock.Header.Timestamp, fchain.NextBlock.GetCoinbaseTimestamp())
+		fmt.Println("rebuildLeaderProcessList: broadcast ack ", ack)
+		outMsgQueue <- ack
+		
+		if mp.ackpool[d][i].Type == wire.EndMinute10 {
+			fmt.Println("rebuildLeaderProcessList: stopped at EOM10")
+			// should not get to this point
+			break
+		}
+	}
 }
 
 func (mp *ftmMemPool) haveMsg(hash wire.ShaHash) bool {

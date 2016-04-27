@@ -1976,7 +1976,7 @@ func backupKeyMapData() {
 	}
 }
 
-func resetLeaderState() {
+func resetLeaderState(height uint32) {
 	// reset eCreditMap & chainIDMap & processList
 	fmt.Println("resetLeaderState: ")
 	eCreditMap = eCreditMapBackup
@@ -1986,44 +1986,12 @@ func resetLeaderState() {
 	initProcessListMgr()
 
 	// rebuild leader's process list
-	var msg wire.FtmInternalMsg
-	var hash *wire.ShaHash
-	for i := 0; i < len(fMemPool.ackpool); i++ {
-		if fMemPool.ackpool[i] == nil {
-			continue
-		}
-		hash = fMemPool.ackpool[i].Affirmation	// never nil
-		msg = fMemPool.pool[*hash]
-		if msg == nil {
-			if !fMemPool.ackpool[i].IsEomAck() {
-				continue
-			} else {
-				msg = &wire.MsgInt_EOM{
-					EOM_Type:         fMemPool.ackpool[i].Type,
-					NextDBlockHeight: fMemPool.ackpool[i].Height,
-				}
-				hash = new(wire.ShaHash)
-			}
-		}
-		fmt.Println("resetLeaderState: broadcast msg ", spew.Sdump(msg))
-		outMsgQueue <- msg
-
-		ack, _ := plMgr.AddToLeadersProcessList(msg, hash, fMemPool.ackpool[i].Type, 
-			dchain.NextBlock.Header.Timestamp, fchain.NextBlock.GetCoinbaseTimestamp())
-		fmt.Println("resetLeaderState: broadcast ack ", ack)
-		outMsgQueue <- ack
-		
-		if fMemPool.ackpool[i].Type == wire.EndMinute10 {
-			fmt.Println("resetLeaderState: stopped at EOM10")
-			// should not get to this point
-			break
-		}
-	}
+	fMemPool.rebuildLeaderProcessList(height)
 
 	// start clock
 	fmt.Println("resetLeaderState: @@@@ start BlockTimer for new current leader.")
 	timer := &BlockTimer{
-		nextDBlockHeight: dchain.NextDBHeight,
+		nextDBlockHeight: height,		//dchain.NextDBHeight,
 		inMsgQueue:       inMsgQueue,
 	}
 	go timer.StartBlockTimer()	
@@ -2045,14 +2013,14 @@ func checkMissingLeaderEOMs(msgEom *wire.MsgInt_EOM) []*wire.MsgInt_EOM {
 		}
 		for j := 0; j < len(eom); j++ {
 			if eom[j] == item.Ack.Type {
-				fmt.Println("found missing EOM: ", eom[j])
+				fmt.Println("checkMissingLeaderEOMs: found missing EOM: ", eom[j])
 				eom = append(eom[:j], eom[j+1:]...)
 				break
 			}
 		}
 	}
 	if len(eom) > 0 {
-		fmt.Println("missing leader EOMs: ", eom)
+		fmt.Println("checkMissingLeaderEOMs: missing leader EOMs: ", eom)
 		for _, typ := range eom {
 			m := &wire.MsgInt_EOM {
 				EOM_Type: typ,

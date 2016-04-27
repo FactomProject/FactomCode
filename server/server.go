@@ -2041,7 +2041,7 @@ func (s *server) sendCurrentLeaderMsg(deadLeader string, newLeader string, sourc
 	s.BroadcastMessage(msg)
 	
 	if leaderCrashed {
-		resetLeaderState()	// in processor
+		resetLeaderState(h)	// in processor
 	}
 }
 
