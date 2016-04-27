@@ -356,10 +356,15 @@ func (p *peer) pushVersionMsg() error {
 	msg.ProtocolVersion = maxProtocolVersion
 
 	msg.StartTime = p.server.startTime
-	msg.NodeState = p.server.GetMyFederateServer().Peer.nodeState
 	msg.NodeType = p.server.nodeType
 	msg.NodeID = p.server.nodeID
 	msg.NodeSig = p.server.privKey.Sign([]byte(p.server.nodeID))
+	
+	if !ClientOnly {
+		msg.NodeState = p.server.GetMyFederateServer().Peer.nodeState		
+	} else {
+		msg.NodeState = wire.NodeCandidate
+	}
 
 	p.QueueMessage(msg, nil)
 	return nil
