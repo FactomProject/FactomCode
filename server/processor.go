@@ -250,7 +250,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 			h := msgCommitChain.CommitChain.GetSigHash().Bytes()
 			t := msgCommitChain.CommitChain.GetMilliTime() / 1000
 			if !IsTSValid(h, t) {
-				return fmt.Errorf("Timestamp invalid on Commit Chain")
+				// return fmt.Errorf("Timestamp invalid on Commit Chain")
 			}
 
 			// broadcast it to other federate servers only if it's new to me
@@ -278,7 +278,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 			h := msgCommitEntry.CommitEntry.GetSigHash().Bytes()
 			t := msgCommitEntry.CommitEntry.GetMilliTime() / 1000
 			if !IsTSValid(h, t) {
-				return fmt.Errorf("Timestamp invalid on Commit Entry")
+				// return fmt.Errorf("Timestamp invalid on Commit Entry")
 			}
 
 			// broadcast it to other federate servers only if it's new to me
@@ -931,7 +931,7 @@ func processFactoidTX(msg *wire.MsgFactoidTX) error {
 	t := int64(msg.Transaction.GetMilliTimestamp() / 1000)
 
 	if !IsTSValid(hash, t) {
-		return fmt.Errorf("Timestamp invalid on Factoid Transaction")
+		// return fmt.Errorf("Timestamp invalid on Factoid Transaction")
 	}
 
 	// broadcast it to other federate servers only if it's new to me
