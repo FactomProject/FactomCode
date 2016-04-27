@@ -136,6 +136,9 @@ func validateAndStoreBlocks(fMemPool *ftmMemPool, db database.Db, dchain *common
 	for true {
 		dblk = nil
 		_, myDBHeight, _ = db.FetchBlockHeightCache()
+		
+		// remove blocks with myDBHeight from mempool if they exists
+		deleteBlocksFromMemPoolByHeight(uint32(myDBHeight))
 
 		adj := (len(dchain.Blocks) - int(myDBHeight))
 		if adj <= 0 {
@@ -401,6 +404,14 @@ func deleteBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool) err
 	fMemPool.deleteBlockMsg(strconv.Itoa(int(b.Header.DBHeight)))
 
 	return nil
+}
+
+func deleteBlocksFromMemPoolByHeight(h uint32) {
+	dblock := fMemPool.getDirBlock(h)
+	if dblock != nil {
+		fmt.Println("in deleteBlocksFromMemPoolByHeight. dir block height=", h)
+		deleteBlocksFromMemPool(dblock, fMemPool)
+	}
 }
 
 func validateDBSignature(aBlock *common.AdminBlock, dchain *common.DChain) bool {

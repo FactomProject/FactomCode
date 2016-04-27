@@ -322,6 +322,13 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 			return errors.New("Error in processing msg:" + spew.Sdump(msg))
 		}
 
+	case wire.CmdFactoidTX:
+		msgFactoidTX, ok := msg.(*wire.MsgFactoidTX)
+		if !ok || !msgFactoidTX.IsValid() {
+			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
+		}
+		return processFactoidTX(msgFactoidTX)
+
 	case wire.CmdDirBlockSig:
 		//only when server is building blocks. relax it for now ???
 		// for client, do nothing; for leader, always add it
@@ -350,13 +357,6 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 			leaderCrashed = false
 		}
 		return processLeaderEOM(msgEom)
-
-	case wire.CmdFactoidTX:
-		msgFactoidTX, ok := msg.(*wire.MsgFactoidTX)
-		if !ok || !msgFactoidTX.IsValid() {
-			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
-		}
-		return processFactoidTX(msgFactoidTX)
 
 	default:
 		return errors.New("Message type unsupported:" + fmt.Sprintf("%+v", msg))
