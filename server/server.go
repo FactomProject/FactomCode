@@ -1726,27 +1726,42 @@ func (s *server) GetPrevLeaderPeer() *peer {
 }
 
 func (s *server) IsCandidate() bool {
+	if ClientOnly {
+		return true
+	}
 	p := s.GetMyFederateServer().Peer
 	return p.nodeState == wire.NodeCandidate
 }
 
 func (s *server) IsFollower() bool {
+	if ClientOnly {
+		return false
+	}
 	p := s.GetMyFederateServer().Peer
 	return p.nodeState == wire.NodeFollower || p.nodeState == wire.NodeLeaderElect || 
 		p.nodeState == wire.NodeLeaderPrev
 }
 
 func (s *server) IsLeaderElect() bool {
+	if ClientOnly {
+		return false
+	}
 	p := s.GetMyFederateServer().Peer
 	return p.nodeState == wire.NodeLeaderElect
 }
 
 func (s *server) IsLeader() bool {
+	if ClientOnly {
+		return false
+	}
 	p := s.GetMyFederateServer().Peer
 	return p.nodeState == wire.NodeLeader
 }
 
 func (s *server) IsPrevLeader() bool {
+	if ClientOnly {
+		return false
+	}
 	p := s.GetMyFederateServer().Peer
 	return p.nodeState == wire.NodeLeaderPrev
 }
