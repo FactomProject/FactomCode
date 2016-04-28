@@ -821,7 +821,7 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 		}
 		return nil
 	}
-	return fmt.Errorf("No commit for entry")
+	return fmt.Errorf("No reveal for entry. " + spew.Sdump(msg))
 }
 
 // processCommitEntry validates the MsgCommitEntry and adds it to processlist
@@ -1104,9 +1104,9 @@ func buildGenesisBlocks() error {
 	dchain.NextBlock.Header.Timestamp = uint32(t.Unix() / 60)
 
 	// Allocate the first two dbentries for ECBlock and Factoid block
-	dchain.AddDBEntry(&common.DBEntry{}) // AdminBlock
-	dchain.AddDBEntry(&common.DBEntry{}) // ECBlock
-	dchain.AddDBEntry(&common.DBEntry{}) // Factoid block
+	// dchain.AddDBEntry(&common.DBEntry{}) // AdminBlock
+	// dchain.AddDBEntry(&common.DBEntry{}) // ECBlock
+	// dchain.AddDBEntry(&common.DBEntry{}) // Factoid block
 
 	// Entry Credit Chain
 	cBlock := newEntryCreditBlock(ecchain)
@@ -1154,9 +1154,9 @@ func buildBlocks() error {
 		dchain.NextDBHeight, achain.NextBlockHeight, fchain.NextBlockHeight, ecchain.NextBlockHeight)
 
 	// Allocate the first three dbentries for Admin block, ECBlock and Factoid block
-	dchain.AddDBEntry(&common.DBEntry{}) // AdminBlock
-	dchain.AddDBEntry(&common.DBEntry{}) // ECBlock
-	dchain.AddDBEntry(&common.DBEntry{}) // factoid
+	// dchain.AddDBEntry(&common.DBEntry{}) // AdminBlock
+	// dchain.AddDBEntry(&common.DBEntry{}) // ECBlock
+	// dchain.AddDBEntry(&common.DBEntry{}) // factoid
 
 	if plMgr != nil {
 		err := buildFromProcessList(plMgr.MyProcessList)
@@ -1222,7 +1222,7 @@ func buildBlocks() error {
 	if aBlock != nil && ecBlock != nil && fBlock != nil {
 		dBlock := newDirectoryBlock(dchain) //sign dir block and broadcast it
 		if dBlock == nil {
-			errStr = errStr + "fBlock is nil; "
+			errStr = errStr + "dir Block is nil; "
 		} else {
 			// todo: relay new blocks to all candidates if i'm the leader
 			// and to my clients
@@ -1632,13 +1632,17 @@ func newDirectoryBlock(chain *common.DChain) *common.DirectoryBlock {
 	}
 
 	// Create the block add a new block for new coming entries
+	var err error
 	chain.BlockMutex.Lock()
 	block.Header.BlockCount = uint32(len(block.DBEntries))
-	// Calculate Merkle Root for FBlock and store it in header
 	if block.Header.BodyMR == nil {
-		block.Header.BodyMR, _ = block.BuildBodyMR()
-		//  Factoid1 block not in the right place...
+		block.Header.BodyMR, err = block.BuildBodyMR()
 	}
+	if err != nil {
+		fmt.Println("newDirectoryBlock: err in block.BuildBodyMR(), ", err.Error())
+		return nil
+	}
+	
 	block.IsSealed = true
 	chain.AddDBlockToDChain(block)
 	chain.NextDBHeight++

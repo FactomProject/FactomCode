@@ -256,6 +256,10 @@ func NewDirBlockInfoFromDBlock(b *DirectoryBlock) *DirBlockInfo {
 func (e *DBEntry) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
 
+	if e.ChainID == nil {
+		err = fmt.Errorf("DBEntry ChainID is nil")
+		return 
+	}
 	data, err = e.ChainID.MarshalBinary()
 	if err != nil {
 		return

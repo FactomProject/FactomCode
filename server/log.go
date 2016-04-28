@@ -314,37 +314,11 @@ func messageSummary(msg wire.Message) string {
 	case *wire.MsgAlert:
 		// No summary.
 
-	//case *wire.MsgMemPool:
-	// No summary.
-	/*
-		case *wire.MsgTx:
-			hash, _ := msg.TxSha()
-			return fmt.Sprintf("hash %s, %d inputs, %d outputs, lock %s",
-				hash, len(msg.TxIn), len(msg.TxOut),
-				formatLockTime(msg.LockTime))
-
-		case *wire.MsgBlock:
-			hash, _ := msg.BlockSha()
-			return fmt.Sprintf("hash %s, %d tx ", hash, len(msg.Transactions))
-	*/
 	case *wire.MsgInv:
 		return invSummary(msg.InvList)
 
 	case *wire.MsgNotFound:
 		return invSummary(msg.InvList)
-		/*
-			case *wire.MsgGetData:
-				return invSummary(msg.InvList)
-
-			case *wire.MsgGetBlocks:
-				return locatorSummary(msg.BlockLocatorHashes, &msg.HashStop)
-
-			case *wire.MsgGetHeaders:
-				return locatorSummary(msg.BlockLocatorHashes, &msg.HashStop)
-
-					case *wire.MsgHeaders:
-						return fmt.Sprintf("num %d", len(msg.Headers))
-		*/
 
 	case *wire.MsgReject:
 		// Ensure the variable length strings don't contain any

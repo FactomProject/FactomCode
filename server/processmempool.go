@@ -342,7 +342,7 @@ func (mp *ftmMemPool) haveMsg(hash wire.ShaHash) bool {
 
 	m := mp.pool[hash]
 	if m != nil {
-		fmt.Println("hasMsg: hash=", hex.EncodeToString(hash.Bytes()))
+		fmt.Println("haveMsg: hash=", hex.EncodeToString(hash.Bytes()))
 		return true
 	}
 	return false
