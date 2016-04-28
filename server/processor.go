@@ -35,17 +35,6 @@ import (
 )
 
 var _ = (*block.FBlock)(nil)
-var _ = util.Trace
-
-type blockSet struct {
-	newDBlock  *common.DirectoryBlock
-	newABlock  *common.AdminBlock
-	newFBlock  block.IFBlock
-	newECBlock *common.ECBlock
-	newEBlocks []*common.EBlock
-}
-
-var blockSets [2]blockSet
 
 var (
 	localServer  *server
@@ -1359,8 +1348,8 @@ func newEntryBlock(chain *common.EChain) *common.EBlock {
 		return nil
 	}
 
-	fmt.Printf("newEntryBlock: block.Header.EBHeight =%d, EBSequenc=%d, dchain.NextDBHeight=%d, block=%s\n ",
-		block.Header.EBHeight, block.Header.EBSequence, dchain.NextDBHeight, spew.Sdump(block))
+	fmt.Printf("newEntryBlock: block.Header.EBHeight =%d, EBSequenc=%d, dchain.NextDBHeight=%d, isDownloaded=%t, block=%s\n ",
+		block.Header.EBHeight, block.Header.EBSequence, dchain.NextDBHeight, fMemPool.isDownloaded(block.Header.EBSequence - 1), spew.Sdump(block))
 
 	// check if this is the first block after block sync up, or 
 	// the prev block is downloaded from peers, not self-generated,
@@ -1370,7 +1359,6 @@ func newEntryBlock(chain *common.EChain) *common.EBlock {
 		block.Header.EBSequence = chain.NextBlockHeight
 		block.Header.ChainID = chain.ChainID
 		prev, err := db.FetchEBlockByHeight(chain.ChainID, chain.NextBlockHeight-1)
-		fmt.Println("newEntryBlock: prev=", spew.Sdump(prev))
 		if err != nil {
 			fmt.Println("newEntryBlock: error in db.FetchEBlockByHeight", err.Error())
 			return nil
@@ -1384,6 +1372,7 @@ func newEntryBlock(chain *common.EChain) *common.EBlock {
 			fmt.Println("newEntryBlock from mempool: prev == nil")
 			return nil
 		}
+		fmt.Println("newEntryBlock: prev=", spew.Sdump(prev))
 		block.Header.PrevLedgerKeyMR, err = prev.Hash()
 		if err != nil {
 			fmt.Println("newEntryBlock: ", err.Error())
@@ -1422,7 +1411,8 @@ func newEntryBlock(chain *common.EChain) *common.EBlock {
 func newEntryCreditBlock(chain *common.ECChain) *common.ECBlock {
 	// acquire the last block
 	block := chain.NextBlock
-	fmt.Printf("newEntryCreditBlock: block.Header.EBHeight =%d, chain.NextBlockHeight=%d\n ", block.Header.EBHeight, chain.NextBlockHeight)
+	fmt.Printf("newEntryCreditBlock: block.Header.EBHeight =%d, chain.NextBlockHeight=%d, isDownloaded=%t\n ", 
+		block.Header.EBHeight, chain.NextBlockHeight, fMemPool.isDownloaded(block.Header.EBHeight - 1))
 	// do not intend to recreate the existing ec chain here
 	// just simply make it work for echeight > 23263
 	if block.Header.EBHeight > 23263 && block.Header.EBHeight >= chain.NextBlockHeight-8 {
@@ -1485,7 +1475,8 @@ func newEntryCreditBlock(chain *common.ECChain) *common.ECBlock {
 func newAdminBlock(chain *common.AdminChain) *common.AdminBlock {
 	// acquire the last block
 	block := chain.NextBlock
-	fmt.Printf("newAdminBlock: block.Header.DBHeight=%d, chain.NextBlockHeight=%d\n ", block.Header.DBHeight, chain.NextBlockHeight)
+	fmt.Printf("newAdminBlock: block.Header.DBHeight=%d, chain.NextBlockHeight=%d, isDownloaded=%t\n ", 
+		block.Header.DBHeight, chain.NextBlockHeight, fMemPool.isDownloaded(block.Header.DBHeight - 1))
 	
 	// check if this is the first block after block sync up, or 
 	// the prev block is downloaded from peers, not self-generated,
@@ -1585,7 +1576,9 @@ func newFactoidBlock(chain *common.FctChain) block.IFBlock {
 	// acquire the last block
 	currentBlock := chain.NextBlock
 	height := currentBlock.GetDBHeight()
-	fmt.Println("newFactoidBlock: block.Header.EBHeight = ", height, ", chain.NextBlockHeight=", chain.NextBlockHeight)
+	
+	fmt.Printf("newFactoidBlock: block.Header.EBHeight=%d, chain.NextBlockHeight=%d, isDownloaded=%t\n", 
+		height, chain.NextBlockHeight, fMemPool.isDownloaded(height - 1))
 	
 	// check if this is the first block after block sync up, or 
 	// the prev block is downloaded from peers, not self-generated,
@@ -1634,6 +1627,9 @@ func newFactoidBlock(chain *common.FctChain) block.IFBlock {
 func newDirectoryBlock(chain *common.DChain) *common.DirectoryBlock {
 	// acquire the last block
 	block := chain.NextBlock
+
+	fmt.Printf("newDirectoryBlock: block.Header.DBHeight=%d, chain.NextBlockHeight=%d, isDownloaded=%t\n ", 
+		block.Header.DBHeight, chain.NextDBHeight, fMemPool.isDownloaded(block.Header.DBHeight - 1))
 	
 	// check if this is the first block after block sync up, or 
 	// the prev block is downloaded from peers, not self-generated,
@@ -1654,7 +1650,7 @@ func newDirectoryBlock(chain *common.DChain) *common.DirectoryBlock {
 			fmt.Println("newDirectoryBlock from mempool: prev == nil")
 			return nil
 		}
-		//fmt.Println("newDirectoryBlock: prev=", spew.Sdump(prev))
+		fmt.Println("newDirectoryBlock: prev=", spew.Sdump(prev))
 		block.Header.PrevLedgerKeyMR, err = common.CreateHash(prev)
 		if err != nil {
 			fmt.Println("newDirectoryBlock: error in creating LedgerKeyMR", err.Error())
@@ -1662,8 +1658,6 @@ func newDirectoryBlock(chain *common.DChain) *common.DirectoryBlock {
 		prev.BuildKeyMerkleRoot()
 		block.Header.PrevKeyMR = prev.KeyMR
 	}
-	fmt.Printf("newDirectoryBlock: chain.NextBlock.Height=%d, chain.NextDBHeight=%d\n",
-		chain.NextBlock.Header.DBHeight, chain.NextDBHeight)
 
 	if devNet {
 		block.Header.NetworkID = common.NETWORK_ID_TEST
