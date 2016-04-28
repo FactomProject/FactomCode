@@ -1125,9 +1125,9 @@ func buildGenesisBlocks() error {
 	dchain.NextBlock.Header.Timestamp = uint32(t.Unix() / 60)
 
 	// Allocate the first two dbentries for ECBlock and Factoid block
-	// dchain.AddDBEntry(&common.DBEntry{}) // AdminBlock
-	// dchain.AddDBEntry(&common.DBEntry{}) // ECBlock
-	// dchain.AddDBEntry(&common.DBEntry{}) // Factoid block
+	dchain.AddDBEntry(&common.DBEntry{}) // AdminBlock
+	dchain.AddDBEntry(&common.DBEntry{}) // ECBlock
+	dchain.AddDBEntry(&common.DBEntry{}) // Factoid block
 
 	// Entry Credit Chain
 	cBlock := newEntryCreditBlock(ecchain)
@@ -1175,9 +1175,9 @@ func buildBlocks() error {
 		dchain.NextDBHeight, achain.NextBlockHeight, fchain.NextBlockHeight, ecchain.NextBlockHeight)
 
 	// Allocate the first three dbentries for Admin block, ECBlock and Factoid block
-	// dchain.AddDBEntry(&common.DBEntry{}) // AdminBlock
-	// dchain.AddDBEntry(&common.DBEntry{}) // ECBlock
-	// dchain.AddDBEntry(&common.DBEntry{}) // factoid
+	dchain.AddDBEntry(&common.DBEntry{}) // AdminBlock
+	dchain.AddDBEntry(&common.DBEntry{}) // ECBlock
+	dchain.AddDBEntry(&common.DBEntry{}) // factoid
 
 	if plMgr != nil {
 		err := buildFromProcessList(plMgr.MyProcessList)
