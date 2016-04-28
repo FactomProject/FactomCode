@@ -415,6 +415,8 @@ func (p *peer) updateAddresses(msg *wire.MsgVersion) {
 // and is used to negotiate the protocol version details as well as kick start
 // the communications.
 func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
+	fmt.Println("handleVersionMsg: ", spew.Sdump(msg))
+	
 	// Detect self connections.
 	if msg.Nonce == p.server.nonce {
 		peerLog.Debugf("Disconnecting peer connected to self %s", p)
@@ -1180,9 +1182,9 @@ func (p *peer) queueHandler() {
 	// To avoid duplication below.
 	queuePacket := func(msg outMsg, list *list.List, waiting bool) bool {
 		if !waiting {
-			peerLog.Tracef("%s: sending to outHandler", p)
+			// peerLog.Tracef("%s: sending to outHandler", p)
 			p.sendQueue <- msg
-			peerLog.Tracef("%s: sent to outHandler", p)
+			// peerLog.Tracef("%s: sent to outHandler", p)
 		} else {
 			list.PushBack(msg)
 		}
@@ -1198,7 +1200,7 @@ out:
 		// This channel is notified when a message has been sent across
 		// the network socket.
 		case <-p.sendDoneQueue:
-			peerLog.Tracef("%s: acked by outhandler", p)
+			// peerLog.Tracef("%s: acked by outhandler", p)
 
 			// No longer waiting if there are no more messages
 			// in the pending messages queue.
@@ -1211,9 +1213,9 @@ out:
 			// Notify the outHandler about the next item to
 			// asynchronously send.
 			val := pendingMsgs.Remove(next)
-			peerLog.Tracef("%s: sending to outHandler", p)
+			// peerLog.Tracef("%s: sending to outHandler", p)
 			p.sendQueue <- val.(outMsg)
-			peerLog.Tracef("%s: sent to outHandler", p)
+			// peerLog.Tracef("%s: sent to outHandler", p)
 
 		case iv := <-p.outputInvChan:
 			// No handshake?  They'll find out soon enough.
@@ -1317,7 +1319,7 @@ out:
 			// the inv is of no interest explicitly solicited invs
 			// should elicit a reply but we don't track them
 			// specially.
-			peerLog.Tracef("%s: received from queuehandler", p)
+			// peerLog.Tracef("%s: received from queuehandler", p)
 			reset := true
 			switch m := msg.msg.(type) {
 			case *wire.MsgVersion:
@@ -2054,6 +2056,7 @@ func (p *peer) handleGetDirBlocksMsg(msg *wire.MsgGetDirBlocks) {
 		if len(hashList) == 0 {
 			break
 		}
+		peerLog.Infof("len(hashList)=%d", len(hashList))
 
 		// Add dir block inventory to the message.
 		for _, hash := range hashList {
@@ -2063,6 +2066,7 @@ func (p *peer) handleGetDirBlocksMsg(msg *wire.MsgGetDirBlocks) {
 		}
 		start += int64(len(hashList))
 	}
+	peerLog.Infof("len(invList)=%d", len(invMsg.InvList))
 
 	// Send the inventory message if there is anything to send.
 	if len(invMsg.InvList) > 0 {

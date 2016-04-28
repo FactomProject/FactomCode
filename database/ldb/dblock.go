@@ -175,6 +175,7 @@ func (db *LevelDb) FetchHeightRange(startHeight, endHeight int64) (rshalist []wi
 	} else {
 		endidx = endHeight
 	}
+	fmt.Printf("FetchHeightRange: start=%d, endidx=%d\n", startHeight, endidx)
 
 	shalist := make([]wire.ShaHash, 0, endidx-startHeight)
 	for height := startHeight; height < endidx; height++ {
@@ -182,6 +183,8 @@ func (db *LevelDb) FetchHeightRange(startHeight, endHeight int64) (rshalist []wi
 
 		dbhash, lerr := db.FetchDBHashByHeight(uint32(height))
 		if lerr != nil || dbhash == nil {
+			fmt.Printf("FetchHeightRange: err in height=%d, %s\n", height, lerr.Error())
+			err = lerr
 			break
 		}
 
@@ -192,7 +195,7 @@ func (db *LevelDb) FetchHeightRange(startHeight, endHeight int64) (rshalist []wi
 	if err != nil {
 		return
 	}
-	//log.Tracef("FetchIdxRange idx %v %v returned %v shas err %v", startHeight, endHeight, len(shalist), err)
+	fmt.Printf("FetchIdxRange idx %v %v returned %v shas err %v\n", startHeight, endHeight, len(shalist), err)
 
 	return shalist, nil
 }

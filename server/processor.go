@@ -1514,19 +1514,16 @@ func newAdminBlock(chain *common.AdminChain) *common.AdminBlock {
 	if chain.NextBlockHeight != dchain.NextDBHeight {
 		fmt.Printf("Admin Block height does not match Directory Block height: ablock height=%d, dblock height=%d\n",
 			chain.NextBlockHeight, dchain.NextDBHeight)
-		//panic("Admin Block height does not match Directory Block height:" + string(dchain.NextDBHeight))
 	}
 
 	block.Header.MessageCount = uint32(len(block.ABEntries))
 	block.Header.BodySize = uint32(block.MarshalledSize() - block.Header.MarshalledSize())
 	_, err := block.PartialHash()
 	if err != nil {
-		//panic(err)
 		fmt.Println("newAdminBlock: error in creating block PartialHash.")
 	}
 	_, err = block.LedgerKeyMR()
 	if err != nil {
-		//panic(err)
 		fmt.Println("newAdminBlock: error in creating block LedgerKeyMR.")
 	}
 	fmt.Println("newAdminBlock: block.Header.EBHeight = ", block.Header.DBHeight)
@@ -1536,7 +1533,6 @@ func newAdminBlock(chain *common.AdminChain) *common.AdminBlock {
 	chain.NextBlockHeight++
 	chain.NextBlock, err = common.CreateAdminBlock(chain, block, 10)
 	if err != nil {
-		//panic(err)
 		fmt.Println("newAdminBlock: error in creating CreateAdminBlock.")
 	}
 	chain.BlockMutex.Unlock()
