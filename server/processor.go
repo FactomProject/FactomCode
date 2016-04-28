@@ -35,8 +35,17 @@ import (
 )
 
 var _ = (*block.FBlock)(nil)
-
 var _ = util.Trace
+
+type blockSet struct {
+	newDBlock  *common.DirectoryBlock
+	newABlock  *common.AdminBlock
+	newFBlock  block.IFBlock
+	newECBlock *common.ECBlock
+	newEBlocks []*common.EBlock
+}
+
+var blockSets [2]blockSet
 
 var (
 	localServer  *server
@@ -324,8 +333,19 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 	case wire.CmdFactoidTX:
 		msgFactoidTX, ok := msg.(*wire.MsgFactoidTX)
 		if !ok || !msgFactoidTX.IsValid() {
-			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
+			return errors.New("CmdFactoidTX: Error in processing msg:" + fmt.Sprintf("%+v", msg))
 		}
+		
+		h, _ := msgFactoidTX.Sha()
+		fmt.Printf("CmdFactoidTX: msgFactoidTX=%s, hash=%s\n", spew.Sdump(msgFactoidTX), h.String())
+		if fMemPool.haveMsg(h) {
+			fmt.Printf("CmdFactoidTX: already in mempool. msgFactoidTX=%s, hash=%s\n", 
+				spew.Sdump(msgFactoidTX), h.String())
+			return nil
+		}
+		fMemPool.addMsg(msgFactoidTX, &h)
+		outMsgQueue <- msgFactoidTX
+		
 		return processFactoidTX(msgFactoidTX)
 
 	case wire.CmdDirBlockSig:
@@ -933,15 +953,15 @@ func processFactoidTX(msg *wire.MsgFactoidTX) error {
 	if !IsTSValid(hash, t) {
 		// return fmt.Errorf("Timestamp invalid on Factoid Transaction")
 	}
-
+	
 	// broadcast it to other federate servers only if it's new to me
 	h, _ := msg.Sha()
-	if fMemPool.haveMsg(h) {
+	/*if fMemPool.haveMsg(h) {
 		fmt.Println("processFactoidTX: already in mempool. ", spew.Sdump(msg))
 		return nil
 	}
 	outMsgQueue <- msg
-	fMemPool.addMsg(msg, &h)
+	fMemPool.addMsg(msg, &h)*/
 
 	tx := msg.Transaction
 	txnum := 0

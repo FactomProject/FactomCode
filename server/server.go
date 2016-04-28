@@ -1974,7 +1974,7 @@ func (s *server) selectNextLeader(height uint32) {
 // 2). else if prev leader exists, it's the new leader
 // 3). else it's the peer with the longest FirstJoined
 func (s *server) selectCurrentleader(height uint32) {
-	if s.IsLeader() {
+	if s.IsLeader() || ClientOnly {
 		return
 	}
 	//var next *federateServer

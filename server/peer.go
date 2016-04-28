@@ -2589,6 +2589,7 @@ func (p *peer) pushEntryMsg(commonhash *common.Hash, doneChan, waitChan chan str
 // handleFactoidMsg
 func (p *peer) handleFactoidMsg(msg *wire.MsgFactoidTX, buf []byte) {
 	// the factoid balance should be update during syncup
+	fmt.Println("handleFactoidMsg: ", spew.Sdump(msg))
 	if ClientOnly {
 		return
 	}
