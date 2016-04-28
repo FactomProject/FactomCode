@@ -138,7 +138,7 @@ func validateAndStoreBlocks(fMemPool *ftmMemPool, db database.Db, dchain *common
 		_, myDBHeight, _ = db.FetchBlockHeightCache()
 		
 		// remove blocks with myDBHeight from mempool if they exists
-		deleteBlocksFromMemPoolByHeight(uint32(myDBHeight))
+		// deleteBlocksFromMemPoolByHeight(uint32(myDBHeight))
 
 		adj := (len(dchain.Blocks) - int(myDBHeight))
 		if adj <= 0 {

@@ -28,6 +28,7 @@ type ftmMemPool struct {
 	ackpool      [2][]*wire.MsgAck	// dual ackpool to prevent ack overwritten 
 	dirBlockSigs []*wire.MsgDirBlockSig
 	requested		 map[common.Hash]*reqMsg
+	downloaded	 map[uint32]bool	// if a set of blocks of certain height (key) is downloaded, other than self generated.
 	lastUpdated  time.Time // last time pool was updated
 }
 
@@ -46,8 +47,34 @@ func (mp *ftmMemPool) initFtmMemPool() error {
 	mp.ackpool[1] = make([]*wire.MsgAck, 100, 200)
 	mp.dirBlockSigs = make([]*wire.MsgDirBlockSig, 0, 32)
 	mp.requested = make(map[common.Hash]*reqMsg)
+	mp.downloaded = make(map[uint32]bool)
 	
 	return nil
+}
+
+func (mp *ftmMemPool) addDownloaded(height uint32) {
+	mp.Lock()
+	defer mp.Unlock()
+
+	mp.downloaded[height] = true	
+}
+
+func (mp *ftmMemPool) isDownloaded(height uint32) bool {
+	mp.RLock()
+	defer mp.RUnlock()
+
+	return mp.downloaded[height]
+}
+
+func (mp *ftmMemPool) removeDownloaded(height uint32) {
+	mp.Lock()
+	defer mp.Unlock()
+
+	for k := range mp.downloaded {
+		if k <= height {
+			delete(mp.downloaded, k)
+		}
+	}
 }
 
 func (mp *ftmMemPool) addMissingMsg(typ wire.InvType, hash *common.Hash, height uint32) *reqMsg {
@@ -503,6 +530,7 @@ func (mp *ftmMemPool) cleanUpMemPoolClient(height uint32) {
 }
 	
 // For Servers: after blocks being built, remove messages included in the process list
+// Todo: is it too early to remove those messages?
 func (mp *ftmMemPool) cleanUpMemPool() {
 	mp.Lock()
 	defer mp.Unlock()

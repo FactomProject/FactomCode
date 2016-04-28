@@ -557,6 +557,7 @@ func processDirBlockSig() error {
 
 func downloadNewDirBlock(p *peer, hash common.Hash, height uint32) {
 	fmt.Printf("downloadNewDirBlock: height=%d, hash=%s, peer=%s\n", height, hash.String(), p)
+	fMemPool.addDownloaded(height)
 	//if zeroHash.IsSameAs(&hash) {
 	if bytes.Compare(zeroHash.Bytes(), hash.Bytes()) == 0 {
 		iv := wire.NewInvVectHeight(wire.InvTypeFactomGetDirData, hash, int64(height))
@@ -1341,8 +1342,11 @@ func newEntryBlock(chain *common.EChain) *common.EBlock {
 	fmt.Printf("newEntryBlock: block.Header.EBHeight =%d, EBSequenc=%d, dchain.NextDBHeight=%d, block=%s\n ",
 		block.Header.EBHeight, block.Header.EBSequence, dchain.NextDBHeight, spew.Sdump(block))
 
-	if block.Header.EBSequence != chain.NextBlockHeight {
-		// this is the first block after block sync up
+	// check if this is the first block after block sync up, or 
+	// the prev block is downloaded from peers, not self-generated,
+	// as it was a minority during consensus building of last round
+	if block.Header.EBSequence != chain.NextBlockHeight || fMemPool.isDownloaded(block.Header.EBSequence - 1) {
+		// if block.Header.EBSequence != chain.NextBlockHeight {
 		block.Header.EBSequence = chain.NextBlockHeight
 		block.Header.ChainID = chain.ChainID
 		prev, err := db.FetchEBlockByHeight(chain.ChainID, chain.NextBlockHeight-1)
@@ -1405,8 +1409,11 @@ func newEntryCreditBlock(chain *common.ECChain) *common.ECBlock {
 		chain.NextBlockHeight = chain.NextBlockHeight - 8
 		fmt.Printf("after adjust chain.NextBlockHeight - 8: block.Header.EBHeight =%d, chain.NextBlockHeight=%d\n ", block.Header.EBHeight, chain.NextBlockHeight)
 	}
-	if block.Header.EBHeight != chain.NextBlockHeight {
-		// this is the first block after block sync up
+
+	// check if this is the first block after block sync up, or 
+	// the prev block is downloaded from peers, not self-generated,
+	// as it was a minority during consensus building of last round
+	if block.Header.EBHeight != chain.NextBlockHeight || fMemPool.isDownloaded(block.Header.EBHeight - 1) {
 		block.Header.EBHeight = chain.NextBlockHeight
 		prev, err := db.FetchECBlockByHeight(chain.NextBlockHeight - 1)
 		if err != nil {
@@ -1431,7 +1438,7 @@ func newEntryCreditBlock(chain *common.ECChain) *common.ECBlock {
 			fmt.Println("newEntryCreditBlock: ", err.Error())
 		}
 	}
-
+	
 	if chain.NextBlockHeight != dchain.NextDBHeight {
 		fmt.Println("Entry Credit Block height does not match Directory Block height: ", dchain.NextDBHeight)
 	}
@@ -1459,8 +1466,12 @@ func newAdminBlock(chain *common.AdminChain) *common.AdminBlock {
 	// acquire the last block
 	block := chain.NextBlock
 	fmt.Printf("newAdminBlock: block.Header.DBHeight=%d, chain.NextBlockHeight=%d\n ", block.Header.DBHeight, chain.NextBlockHeight)
-	if block.Header.DBHeight != chain.NextBlockHeight {
-		// this is the first block after block sync up
+	
+	// check if this is the first block after block sync up, or 
+	// the prev block is downloaded from peers, not self-generated,
+	// as it was a minority during consensus building of last round
+	if block.Header.DBHeight != chain.NextBlockHeight || fMemPool.isDownloaded(block.Header.DBHeight - 1) {
+	//if block.Header.DBHeight != chain.NextBlockHeight {
 		block.Header.DBHeight = chain.NextBlockHeight
 		prev, err := db.FetchABlockByHeight(chain.NextBlockHeight - 1)
 		if err != nil {
@@ -1553,9 +1564,14 @@ func newFactoidBlock(chain *common.FctChain) block.IFBlock {
 
 	// acquire the last block
 	currentBlock := chain.NextBlock
-	fmt.Println("newFactoidBlock: block.Header.EBHeight = ", currentBlock.GetDBHeight(), ", chain.NextBlockHeight=", chain.NextBlockHeight)
-	if currentBlock.GetDBHeight() != chain.NextBlockHeight {
-		// this is the first block after block sync up
+	height := currentBlock.GetDBHeight()
+	fmt.Println("newFactoidBlock: block.Header.EBHeight = ", height, ", chain.NextBlockHeight=", chain.NextBlockHeight)
+	
+	// check if this is the first block after block sync up, or 
+	// the prev block is downloaded from peers, not self-generated,
+	// as it was a minority during consensus building of last round
+	if height != chain.NextBlockHeight || fMemPool.isDownloaded(height - 1) {
+		// if height != chain.NextBlockHeight {
 		currentBlock.SetDBHeight(chain.NextBlockHeight)
 		prev, err := db.FetchFBlockByHeight(chain.NextBlockHeight - 1)
 		//fmt.Println("newFactoidBlock: prev=", spew.Sdump(prev))
@@ -1581,7 +1597,7 @@ func newFactoidBlock(chain *common.FctChain) block.IFBlock {
 		fmt.Println("Factoid Block height does not match Directory Block height:" + strconv.Itoa(int(dchain.NextDBHeight)))
 		//panic("Factoid Block height does not match Directory Block height:" + strconv.Itoa(int(dchain.NextDBHeight)))
 	}
-	fmt.Println("newFactoidBlock: block.Header.EBHeight = ", currentBlock.GetDBHeight())
+	fmt.Println("newFactoidBlock: block.Header.EBHeight = ", height)
 
 	chain.BlockMutex.Lock()
 	chain.NextBlockHeight++
@@ -1598,8 +1614,12 @@ func newFactoidBlock(chain *common.FctChain) block.IFBlock {
 func newDirectoryBlock(chain *common.DChain) *common.DirectoryBlock {
 	// acquire the last block
 	block := chain.NextBlock
-	if block.Header.DBHeight != chain.NextDBHeight {
-		// this is the first block after block sync up
+	
+	// check if this is the first block after block sync up, or 
+	// the prev block is downloaded from peers, not self-generated,
+	// as it was a minority during consensus building of last round
+	if block.Header.DBHeight != chain.NextDBHeight || fMemPool.isDownloaded(block.Header.DBHeight - 1) {
+		// if block.Header.DBHeight != chain.NextDBHeight {
 		block.Header.DBHeight = chain.NextDBHeight
 		prev, err := db.FetchDBlockByHeight(chain.NextDBHeight - 1)
 		if err != nil {
