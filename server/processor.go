@@ -1677,7 +1677,7 @@ func newDirectoryBlock(chain *common.DChain) *common.DirectoryBlock {
 	}
 	if err != nil {
 		fmt.Println("newDirectoryBlock: err in block.BuildBodyMR(), ", err.Error())
-		return nil
+		// return nil
 	}
 	
 	block.IsSealed = true
@@ -1689,8 +1689,12 @@ func newDirectoryBlock(chain *common.DChain) *common.DirectoryBlock {
 	//fmt.Println("after creating new dir block, dchain.NextDBHeight=", chain.NextDBHeight)
 
 	newDBlock = block
-	block.DBHash, _ = common.CreateHash(block)
+	block.DBHash, err = common.CreateHash(block)
 	block.BuildKeyMerkleRoot()
+	if err != nil {
+		fmt.Println("newDirectoryBlock: err in v(), ", err.Error())
+		// return nil
+	}
 
 	// send out dir block sig first
 	if dchain.NextDBHeight > 1 && block != nil {
