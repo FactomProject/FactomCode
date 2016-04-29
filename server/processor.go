@@ -587,20 +587,20 @@ func downloadNewDirBlock(p *peer, hash common.Hash, height uint32) {
 			p.QueueMessage(gdmsg, nil)
 		}
 	} else {
-		resyncUp(p)
+		resyncBlocks(p)
 	}
 }
 
-func resyncUp(p *peer) error {
+func resyncBlocks(p *peer) error {
 	locator, err := LatestDirBlockLocator()
 	if err != nil {
-		fmt.Printf("resyncUp: Failed to get block locator for the latest block: %v\n", err)
+		fmt.Printf("resyncBlocks: Failed to get block locator for the latest block: %v\n", err)
 		return err
 	}
 	
-	fmt.Printf("resyncUp: LatestDirBlockLocator: %s\n", spew.Sdump(locator))
+	fmt.Printf("resyncBlocks: LatestDirBlockLocator: %s\n", spew.Sdump(locator))
 	_, latestHeight, _ := db.FetchBlockHeightCache()
-	fmt.Printf("resyncUp: At %d: syncing from peer %v\n",	latestHeight, p)
+	fmt.Printf("resyncBlocks: At %d: syncing from peer %v\n",	latestHeight, p)
 	
 	p.PushGetDirBlocksMsg(locator, &zeroBtcHash)
 	return nil
@@ -630,7 +630,7 @@ func processAckMsg(ack *wire.MsgAck) ([]*wire.MsgMissing, error) {
 	_, latestHeight, _ := db.FetchBlockHeightCache()
 	if ClientOnly && ack.Type == wire.EndMinute10 && ack.Height - uint32(latestHeight) > 2 {
 		peer := localServer.SyncPeer()
-		resyncUp(peer)
+		resyncBlocks(peer)
 	}
 	if nodeMode != common.SERVER_NODE || localServer == nil || localServer.IsLeader() {
 		return nil, nil
@@ -1384,15 +1384,21 @@ func newEntryBlock(chain *common.EChain) *common.EBlock {
 	// acquire the last block
 	block := chain.NextBlock
 	if block == nil {
+		var err error
+		chain.NextBlock, err = common.MakeEBlock(chain, nil)
+		if err != nil {
+			fmt.Println("newEntryBlock: error in common.MakeEBlock. " + err.Error())
+		}
 		return nil
 	}
+	
 	if len(block.Body.EBEntries) < 1 {
 		procLog.Debug("newEntryBlock: No new entry found. No block created for chain: " + chain.ChainID.String())
 		return nil
 	}
 
-	fmt.Printf("newEntryBlock: block.Header.EBHeight =%d, EBSequenc=%d, dchain.NextDBHeight=%d, isDownloaded=%t, block=%s\n ",
-		block.Header.EBHeight, block.Header.EBSequence, dchain.NextDBHeight, 
+	fmt.Printf("newEntryBlock: block.Header.EBHeight =%d, EBSequenc=%d, echain.NextBlockHeight=%d, dchain.NextDBHeight=%d, isDownloaded=%t, block=%s\n ",
+		block.Header.EBHeight, block.Header.EBSequence, chain.NextBlockHeight, dchain.NextDBHeight, 
 		fMemPool.isDownloaded(block.Header.EBSequence - 1), spew.Sdump(block))
 
 	// check if this is the first block after block sync up, or 
@@ -1405,7 +1411,8 @@ func newEntryBlock(chain *common.EChain) *common.EBlock {
 		prev, err := db.FetchEBlockByHeight(chain.ChainID, chain.NextBlockHeight-1)
 		if err != nil {
 			fmt.Println("newEntryBlock: error in db.FetchEBlockByHeight", err.Error())
-			return nil
+			// can't return here, as the error could be EOF or Not Found
+			// return nil
 		}
 		if prev == nil {
 			fmt.Println("newEntryBlock from db: prev == nil")
@@ -1430,10 +1437,11 @@ func newEntryBlock(chain *common.EChain) *common.EBlock {
 	}
 
 	// Create the block and add a new block for new coming entries
+	block.Header.BodyMR = block.Body.MR()
 	block.Header.EBHeight = dchain.NextDBHeight
 	block.Header.EntryCount = uint32(len(block.Body.EBEntries))
-	fmt.Printf("newEntryBlock: block.Header.EBHeight =%d, EBSequenc=%d, dchain.NextDBHeight=%d\n ",
-		block.Header.EBHeight, block.Header.EBSequence, dchain.NextDBHeight)
+	fmt.Printf("newEntryBlock: block.Header.EBHeight =%d, EBSequenc=%d, echain.NextBlockHeight=%d, dchain.NextDBHeight=%d, block=%s\n ",
+		block.Header.EBHeight, block.Header.EBSequence, chain.NextBlockHeight, dchain.NextDBHeight, spew.Sdump(block))
 
 	chain.NextBlockHeight++
 	var err error
