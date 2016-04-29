@@ -588,16 +588,23 @@ func downloadNewDirBlock(p *peer, hash common.Hash, height uint32) {
 			p.QueueMessage(gdmsg, nil)
 		}
 	} else {
-		locator, err := LatestDirBlockLocator()
-		if err != nil {
-			fmt.Printf("Failed to get block locator for the latest block: %v\n", err)
-			return
-		}
-		fmt.Printf("LatestDirBlockLocator: %s\n", spew.Sdump(locator))
-		fmt.Printf("At %d: syncing to block height %d from peer %v\n", latestHeight, p.lastBlock, p)
-		
-		p.PushGetDirBlocksMsg(locator, &zeroBtcHash)
+		resyncUp(p)
 	}
+}
+
+func resyncUp(p *peer) error {
+	locator, err := LatestDirBlockLocator()
+	if err != nil {
+		fmt.Printf("resyncUp: Failed to get block locator for the latest block: %v\n", err)
+		return err
+	}
+	
+	fmt.Printf("resyncUp: LatestDirBlockLocator: %s\n", spew.Sdump(locator))
+	_, latestHeight, _ := db.FetchBlockHeightCache()
+	fmt.Printf("resyncUp: At %d: syncing from peer %v\n",	latestHeight, p)
+	
+	p.PushGetDirBlocksMsg(locator, &zeroBtcHash)
+	return nil
 }
 
 // processAckPeerMsg validates the ack and adds it to processlist
@@ -621,10 +628,14 @@ func processAckPeerMsg(ack *ackMsg) ([]*wire.MsgMissing, error) {
 // processAckMsg validates the ack and adds it to processlist
 // this is only for post-syncup followers need to deal with Ack
 func processAckMsg(ack *wire.MsgAck) ([]*wire.MsgMissing, error) {
+	_, latestHeight, _ := db.FetchBlockHeightCache()
+	if ClientOnly && ack.Type == wire.EndMinute10 && ack.Height - uint32(latestHeight) > 2 {
+		peer := localServer.SyncPeer()
+		resyncUp(peer)
+	}
 	if nodeMode != common.SERVER_NODE || localServer == nil || localServer.IsLeader() {
 		return nil, nil
 	}
-	_, latestHeight, _ := db.FetchBlockHeightCache()
 	fmt.Printf("processAckMsg: Ack.Height=%d, Ack.Index=%d, dchain.NextDBHeight=%d, db.latestDBHeight=%d, blockSyncing=%v\n",
 		ack.Height, ack.Index, dchain.NextDBHeight, latestHeight, blockSyncing)
 	
@@ -732,6 +743,9 @@ func processAckMsg(ack *wire.MsgAck) ([]*wire.MsgMissing, error) {
 		if err != nil {
 			return nil, err
 		}
+		// relay EOM10 to clients as heartbeat for height signal, 
+		// so that if clients fall behind, it can download needed blocks.
+		relayMessageToClients(ack)
 	}
 	return nil, nil
 }
@@ -1425,21 +1439,24 @@ func newEntryBlock(chain *common.EChain) *common.EBlock {
 
 // Note: on directory block heights 22881, 22884, 22941, 22950, 22977, and 22979,
 // the ECBlock height fell behind DBHeight by 1, and
-// then it fell behind by 2 on block 23269.
-// In other words, there're two ecblocks of 22880, 22882, 22938, 22946,
-// 22972, 22973, 23261 & 23262.
-// ECBlocks:  22879, 22880, 22880, 22881, 22882, 22882, ..., 22938, 22938, ..., 22946, 22946, ..., 22972, 22972, 22973, 22973, ..., 23260, 23261, 23262, 23261, 23262, 23263, ...
-// DirBlocks: 22879, 22880, 22881, 22882, 22883, 22884, ..., 22940, 22941, ..., 22949, 22950, ..., 22976, 22977, 22978, 22979, ..., 23266, 23267, 23268, 23269, 23270, 23271, ...
+// then it fell behind by 2 since dir block 23269.
+//
+// In other words, there're two ecblocks, in ecblock chain, of 22880, 22882, 22938, 22946, 22972, 22973, 23261 & 23262.
+//
+// DirBlocks: 22879, 22880, 22881, 22882, 22883, 22884, 22885, ..., 22939, 22940, 22941, 22942, ..., 22948, 22949, 22950, 22951, ..., 22975, 22976, 22977, 22978, 22979, 22980, ..., 23266, 23267, 23268, 23269, 23270, 23271, ...
+// ECBlocks:  22879, 22880, 22880, 22881, 22882, 22882, 22883, ..., 22937, 22938, 22938, 22939, ..., 22945, 22946, 22946, 22947, ..., 22971, 22972, 22972, 22973, 22973, 22974, ..., 23260, 23261, 23262, 23261, 23262, 23263, ...
 func newEntryCreditBlock(chain *common.ECChain) *common.ECBlock {
 	// acquire the last block
 	block := chain.NextBlock
 	fmt.Printf("newEntryCreditBlock: block.Header.EBHeight =%d, chain.NextBlockHeight=%d, isDownloaded=%t\n ", 
 		block.Header.EBHeight, chain.NextBlockHeight, fMemPool.isDownloaded(block.Header.EBHeight - 1))
+		
 	// do not intend to recreate the existing ec chain here
 	// just simply make it work for echeight > 23263
 	if block.Header.EBHeight > 23263 && block.Header.EBHeight >= chain.NextBlockHeight-8 {
 		chain.NextBlockHeight = chain.NextBlockHeight - 8
-		fmt.Printf("after adjust chain.NextBlockHeight - 8: block.Header.EBHeight =%d, chain.NextBlockHeight=%d\n ", block.Header.EBHeight, chain.NextBlockHeight)
+		fmt.Printf("after adjust EC (chain.NextBlockHeight - 8): block.Header.EBHeight =%d, chain.NextBlockHeight=%d\n ", 
+			block.Header.EBHeight, chain.NextBlockHeight)
 	}
 
 	// check if this is the first block after block sync up, or 
@@ -1905,6 +1922,14 @@ func relayToClients() {
 	for _, client := range localServer.clientPeers {
 		fmt.Println("relayToClients: client=", client)
 		relayNewBlocks(client)
+	}
+}
+
+func relayMessageToClients(msg wire.Message) {
+	fmt.Println("relayMessageToClients: len=", len(localServer.clientPeers))
+	for _, client := range localServer.clientPeers {
+		fmt.Println("relayMessageToClients: client=", client)
+		client.QueueMessage(msg, nil) 
 	}
 }
 

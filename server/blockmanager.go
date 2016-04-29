@@ -698,7 +698,12 @@ func (b *blockManager) isSyncCandidateFactom(p *peer) bool {
 
 // handleAckMsg handles ACK messages from all peers.
 func (b *blockManager) handleAckMsg(amsg *ackMsg) {
-	if b.server.IsLeader() || ClientOnly {
+	if b.server.IsLeader() {
+		return
+	}
+	// let EOM10 work as a heartbeat for clients to know real height
+	// and check if they are missing blocks
+	if  ClientOnly && amsg.ack.Type != wire.EndMinute10 {
 		return
 	}
 	missingMsgs, err := processAckPeerMsg(amsg)
