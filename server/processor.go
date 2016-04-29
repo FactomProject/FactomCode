@@ -138,19 +138,18 @@ func InitProcessor(ldb database.Db) {
 	initEChains()
 	for _, chain := range chainIDMap {
 		initEChainFromDB(chain)
-
 		fmt.Println("Loaded ", chain.NextBlockHeight, " blocks for chain: "+chain.ChainID.String())
 	}
 
 	// Validate all dir blocks
 	err := validateDChain(dchain)
 	if err != nil {
-		if nodeMode == common.SERVER_NODE {
-			panic("Error found in validating directory blocks: " + err.Error())
+		// if nodeMode == common.SERVER_NODE {
+		panic("Error found in validating directory blocks: " + err.Error())
 			//fmt.Println("Error found in validating directory blocks: " + err.Error())
-		} else {
-			dchain.IsValidated = false
-		}
+		// } else {
+			// dchain.IsValidated = false
+		// }
 	}
 }
 
@@ -1450,14 +1449,15 @@ func newEntryCreditBlock(chain *common.ECChain) *common.ECBlock {
 	block := chain.NextBlock
 	fmt.Printf("newEntryCreditBlock: block.Header.EBHeight =%d, chain.NextBlockHeight=%d, isDownloaded=%t\n ", 
 		block.Header.EBHeight, chain.NextBlockHeight, fMemPool.isDownloaded(block.Header.EBHeight - 1))
-		
+	
+	// this ec chain.NextBlockHeight adjustment is done in initECChain()	
 	// do not intend to recreate the existing ec chain here
 	// just simply make it work for echeight > 23263
-	if block.Header.EBHeight > 23263 && block.Header.EBHeight >= chain.NextBlockHeight-8 {
-		chain.NextBlockHeight = chain.NextBlockHeight - 8
-		fmt.Printf("after adjust EC (chain.NextBlockHeight - 8): block.Header.EBHeight =%d, chain.NextBlockHeight=%d\n ", 
-			block.Header.EBHeight, chain.NextBlockHeight)
-	}
+	// if block.Header.EBHeight > 23263 && block.Header.EBHeight >= chain.NextBlockHeight-8 {
+		// chain.NextBlockHeight = chain.NextBlockHeight - 8
+		// fmt.Printf("after adjust EC (chain.NextBlockHeight - 8): block.Header.EBHeight =%d, chain.NextBlockHeight=%d\n ", 
+			// block.Header.EBHeight, chain.NextBlockHeight)
+	// }
 
 	// check if this is the first block after block sync up, or 
 	// the prev block is downloaded from peers, not self-generated,
@@ -1488,9 +1488,9 @@ func newEntryCreditBlock(chain *common.ECChain) *common.ECBlock {
 		}
 	}
 	
-	if chain.NextBlockHeight != dchain.NextDBHeight {
-		fmt.Println("Entry Credit Block height does not match Directory Block height: ", dchain.NextDBHeight)
-	}
+	// if chain.NextBlockHeight != dchain.NextDBHeight {
+		// fmt.Println("Entry Credit Block height does not match Directory Block height: ", dchain.NextDBHeight)
+	// }
 
 	block.BuildHeader()
 	fmt.Println("newEntryCreditBlock: block.Header.EBHeight = ", block.Header.EBHeight)

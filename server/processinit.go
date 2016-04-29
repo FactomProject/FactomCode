@@ -80,6 +80,14 @@ func initDChain() {
 }
 
 // Initialize Entry Credit Block Chain from database
+// Note: on directory block heights 22881, 22884, 22941, 22950, 22977, and 22979,
+// the ECBlock height fell behind DBHeight by 1, and
+// then it fell behind by 2 since dir block 23269.
+//
+// In other words, there're two ecblocks, in ecblock chain, of 22880, 22882, 22938, 22946, 22972, 22973, 23261 & 23262.
+//
+// DirBlocks: 22879, 22880, 22881, 22882, 22883, 22884, 22885, ..., 22939, 22940, 22941, 22942, ..., 22948, 22949, 22950, 22951, ..., 22975, 22976, 22977, 22978, 22979, 22980, ..., 23266, 23267, 23268, 23269, 23270, 23271, ...
+// ECBlocks:  22879, 22880, 22880, 22881, 22882, 22882, 22883, ..., 22937, 22938, 22938, 22939, ..., 22945, 22946, 22946, 22947, ..., 22971, 22972, 22972, 22973, 22973, 22974, ..., 23260, 23261, 23262, 23261, 23262, 23263, ...
 func initECChain() {
 
 	eCreditMap = make(map[string]int32)
@@ -108,8 +116,13 @@ func initECChain() {
 			}
 		}
 	} else {
-		// Entry Credit Chain should have the same height as the dir chain
-		ecchain.NextBlockHeight = dchain.NextDBHeight
+		if dchain.NextDBHeight < 22881 {
+			ecchain.NextBlockHeight = dchain.NextDBHeight	
+		} else if dchain.NextDBHeight > 23271 {
+			ecchain.NextBlockHeight = dchain.NextDBHeight - 8
+			fmt.Printf("initECChain: after adjust EC height (minus 8): dchain.NextDBHeight =%d, echain.NextBlockHeight=%d\n ", 
+				dchain.NextDBHeight, ecchain.NextBlockHeight)
+		}
 		var err error
 		ecchain.NextBlock, err = common.NextECBlock(&ecBlocks[ecchain.NextBlockHeight-1])
 		if err != nil {
