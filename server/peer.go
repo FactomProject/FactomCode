@@ -2807,9 +2807,11 @@ func (p *peer) handleCurrentLeaderMsg(msg *wire.MsgCurrentLeader) {
 		return
 	}
 	fmt.Printf("handleCurrentLeaderMsg: %s\n", spew.Sdump(msg))
-	if p.server.IsLeader() {
-		panic("handleCurrentLeaderMsg: I'm the current leader, no need to select a new current leader")
-	}
+	// The timing b/w leader swtich in server.handleNextLeader and here could vary.
+	// So no need to check if p.server.IsLeader()	
+	// if p.server.IsLeader() {
+		// panic("handleCurrentLeaderMsg: I'm the current leader, no need to select a new current leader")
+	// }
 	if p.server.IsLeaderElect() {
 		panic("handleCurrentLeaderMsg: i'm the leaderElect, but new current leader is " + msg.NewLeaderCandidates)
 	}
