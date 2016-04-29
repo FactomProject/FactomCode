@@ -1068,7 +1068,6 @@ func buildRevealEntry(msg *wire.MsgRevealEntry) error {
 	err = chain.NextBlock.AddEBEntry(msg.Entry)
 
 	if err != nil {
-		//panic("Error while adding Entity to Block:" + err.Error())
 		fmt.Println("buildRevealEntry: Error while adding Entity to Block:" + err.Error())
 		return err
 	}
@@ -1080,20 +1079,25 @@ func buildRevealChain(msg *wire.MsgRevealEntry) error {
 	if chain == nil {
 		return fmt.Errorf("buildRevealChain: chain is nil for chainID=" + msg.Entry.ChainID.String())
 	}
-	// if chain.NextBlock == nil {
-		// chain.NextBlock = common.NewEBlock()
-	// }
+	
+	var err error	
+	if chain.NextBlock == nil {
+		chain.NextBlock, err = common.MakeEBlock(chain, nil)		//NewEBlock()
+		if err != nil {
+			return err
+		}
+	}
 
 	// Store the new chain in db
 	db.InsertChain(chain)
 
 	// Chain initialization. let initEChains and storeBlocksFromMemPool take care of it
-	initEChainFromDB(chain)
+	// initEChainFromDB(chain)
 
 	// store the new entry in db
 	db.InsertEntry(chain.FirstEntry)
 
-	err := chain.NextBlock.AddEBEntry(chain.FirstEntry)
+	err = chain.NextBlock.AddEBEntry(chain.FirstEntry)
 
 	if err != nil {
 		fmt.Printf(`buildRevealChain: Error while adding the First Entry to EBlock: %s`, err.Error())
