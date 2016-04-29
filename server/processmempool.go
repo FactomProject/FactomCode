@@ -139,7 +139,8 @@ func (mp *ftmMemPool) addDirBlockSig(dbsig *wire.MsgDirBlockSig) {
 	mp.dirBlockSigs = append(mp.dirBlockSigs, dbsig)
 }
 
-func (mp *ftmMemPool) lenDirBlockSig() int {
+func (mp *ftmMemPool) lenDirBlockSig(height uint32) int {
+	mp.resetDirBlockSigPool(height)
 	return len(mp.dirBlockSigs)
 }
 
@@ -190,7 +191,7 @@ func (mp *ftmMemPool) resetDirBlockSigPool(height uint32) {
 	fmt.Println("resetDirBlockSigPool, height=", height)
 	temp := make([]*wire.MsgDirBlockSig, 0, 32)
 	for _, sig := range mp.dirBlockSigs {
-		if sig != nil && sig.DBHeight > height {
+		if sig != nil && sig.DBHeight >= height {
 			temp = append(temp, sig)
 		} 
 	}

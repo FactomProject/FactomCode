@@ -245,19 +245,25 @@ func (db *LevelDb) InsertDirBlockInfo(dirBlockInfo *common.DirBlockInfo) (err er
 
 func (db *LevelDb) InsertDirBlockInfoMultiBatch(dirBlockInfo *common.DirBlockInfo) (err error) {
 	if dirBlockInfo == nil {
-		return nil
+		return fmt.Errorf("InsertDirBlockInfoMultiBatch: dirBlockInfo is nil")
 	}
 	if dirBlockInfo.BTCTxHash == nil {
 		return
 	}
 
 	if db.lbatch == nil {
-		return fmt.Errorf("db.lbatch == nil")
+		return fmt.Errorf("InsertDirBlockInfoMultiBatch: db.lbatch == nil")
 	}
 
 	var key = []byte{byte(TBL_DB_INFO)} // Table Name (1 bytes)
+	if dirBlockInfo.DBHash == nil {
+		return fmt.Errorf("InsertDirBlockInfoMultiBatchdir: BlockInfo.DBHash is nil")
+	}
 	key = append(key, dirBlockInfo.DBHash.Bytes()...)
-	binaryDirBlockInfo, _ := dirBlockInfo.MarshalBinary()
+	binaryDirBlockInfo, err := dirBlockInfo.MarshalBinary()
+	if err != nil {
+		return fmt.Errorf("InsertDirBlockInfoMultiBatch: error in dirBlockInfo.MarshalBinary(). " + err.Error())
+	}
 	db.lbatch.Put(key, binaryDirBlockInfo)
 
 	return nil

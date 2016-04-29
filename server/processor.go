@@ -386,7 +386,7 @@ func processLeaderEOM(msgEom *wire.MsgInt_EOM) error {
 	// to trigger signature comparison of last round.
 	// todo: when to start? can NOT do this for the first EOM_1 ???
 	if msgEom.EOM_Type == wire.EndMinute2 {
-		if !localServer.isSingleServerMode() && fMemPool.lenDirBlockSig() > 0 {
+		if !localServer.isSingleServerMode() && fMemPool.lenDirBlockSig(msgEom.NextDBlockHeight - 1) > 0 {
 			go processDirBlockSig()
 		} else {
 			// newDBlock is the genesis block or normal single server mode
@@ -439,7 +439,7 @@ func processDirBlockSig() error {
 			latestHeight, dchain.NextDBHeight)
 		return nil
 	} 
-	if fMemPool.lenDirBlockSig() == 0 {
+	if fMemPool.lenDirBlockSig(dchain.NextDBHeight-1) == 0 {
 		fmt.Println("no dir block sig in mempool.")
 		return nil
 	}
@@ -479,7 +479,8 @@ func processDirBlockSig() error {
 
 	totalServerNum := localServer.NonCandidateServerCount()
 	fmt.Printf("processDirBlockSig: By EOM_1, there're %d dirblock signatures "+
-		"arrived out of %d non-candidate federate servers.\n", fMemPool.lenDirBlockSig(), totalServerNum)
+		"arrived out of %d non-candidate federate servers.\n", 
+		fMemPool.lenDirBlockSig(dchain.NextDBHeight-1), totalServerNum)
 
 	var needDownload, needFromNonLeader bool
 	var winner *wire.MsgDirBlockSig
@@ -660,9 +661,10 @@ func processAckMsg(ack *wire.MsgAck) ([]*wire.MsgMissing, error) {
 		// either this is 11th minute: ack.NextDBlockHeight-1 == firstBlockHeight
 		// or is 1st minute: 
 		fmt.Println("processAckMsg: before go processDirBlockSig: firstBlockHeight=", firstBlockHeight, 
-			", DirBlockSig.len=", fMemPool.lenDirBlockSig(), ", isCandidate=", localServer.IsCandidate(), 
+			", DirBlockSig.len=", fMemPool.lenDirBlockSig(ack.Height - 1), ", isCandidate=", localServer.IsCandidate(), 
 			", ack=", spew.Sdump(ack))
-		if fMemPool.lenDirBlockSig() > 0 && ack.Height > firstBlockHeight && !localServer.IsCandidate() { // the block is not saved yet
+			
+		if fMemPool.lenDirBlockSig(ack.Height - 1) > 0 && ack.Height > firstBlockHeight && !localServer.IsCandidate() { // the block is not saved yet
 			go processDirBlockSig()
 		}
 	}
@@ -1240,6 +1242,9 @@ func buildBlocks() error {
 			//fmt.Printf("buildBlocks: dirBlock=%s\n", spew.Sdump(dBlock))
 			fmt.Printf("buildBlocks: dirBlock=%s\n", hex.EncodeToString(bytes))
 		}
+	} else {
+		fmt.Printf("buildBlocks: no new dir block generated; aBlock==nil: %t, ecBlock==nil: %t, fBlock==nil: %t\n", 
+			aBlock == nil, ecBlock == nil, fBlock == nil)
 	}
 
 	// should keep this process list for a while ????
@@ -1295,9 +1300,10 @@ func buildBlocks() error {
 		go timer.StartBlockTimer()
 	}
 
+	// Todo: what happen if newDBlock is nil
 	if localServer.IsLeader() || localServer.IsLeaderElect() {
-		fmt.Println("buildBlocks: send it to channel: localServer.latestDBHeight <- ", newDBlock.Header.DBHeight)
-		localServer.latestDBHeight <- newDBlock.Header.DBHeight
+		fmt.Println("buildBlocks: send it to channel: localServer.latestDBHeight <- ", dchain.NextDBHeight - 1)	// newDBlock.Header.DBHeight)
+		localServer.latestDBHeight <- dchain.NextDBHeight - 1		// newDBlock.Header.DBHeight
 	}
 
 	// relay stale messages left in mempool and orphan pool.
@@ -1349,7 +1355,8 @@ func newEntryBlock(chain *common.EChain) *common.EBlock {
 	}
 
 	fmt.Printf("newEntryBlock: block.Header.EBHeight =%d, EBSequenc=%d, dchain.NextDBHeight=%d, isDownloaded=%t, block=%s\n ",
-		block.Header.EBHeight, block.Header.EBSequence, dchain.NextDBHeight, fMemPool.isDownloaded(block.Header.EBSequence - 1), spew.Sdump(block))
+		block.Header.EBHeight, block.Header.EBSequence, dchain.NextDBHeight, 
+		fMemPool.isDownloaded(block.Header.EBSequence - 1), spew.Sdump(block))
 
 	// check if this is the first block after block sync up, or 
 	// the prev block is downloaded from peers, not self-generated,
@@ -1727,7 +1734,14 @@ func saveBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
 	db.ProcessFBlockBatch(fblock)
 	db.ProcessECBlockBatch(ecblock)
 	db.ProcessABlockBatch(ablock)
-	db.InsertDirBlockInfo(common.NewDirBlockInfoFromDBlock(dblock))
+	
+	dbinfo := common.NewDirBlockInfoFromDBlock(dblock)
+	err := db.InsertDirBlockInfo(dbinfo)
+	if err != nil {
+		fmt.Println("saveBlocks: error in db.InsertDirBlockInfo. ", err.Error())
+	}
+	fmt.Println("saveBlocks: DirBlockInfo. ", spew.Sdump(dbinfo))
+	
 	for _, eblock := range eblocks {
 		if eblock == nil {
 			continue
@@ -1748,7 +1762,7 @@ func saveBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
 
 	exportBlocks(newDBlock, newABlock, newECBlock, newFBlock, newEBlocks)	
 
-	fMemPool.resetDirBlockSigPool(dblock.Header.DBHeight)
+	fMemPool.resetDirBlockSigPool(dblock.Header.DBHeight+1)
 	newDBlock, newABlock, newECBlock, newFBlock, newEBlocks = nil, nil, nil, nil, nil
 	return nil
 }
@@ -1835,7 +1849,7 @@ func saveBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
 	fmt.Println("saveBlocks: done=", dblock.Header.DBHeight)
 
 	placeAnchor(dblock)
-	fMemPool.resetDirBlockSigPool(dblock.Header.DBHeight)
+	fMemPool.resetDirBlockSigPool(dblock.Header.DBHeight+1)
 
 	// export blocks here for less database lock time
 	exportBlocks(newDBlock, newABlock, newECBlock, newFBlock, newEBlocks)
