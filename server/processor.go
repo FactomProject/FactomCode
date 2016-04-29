@@ -568,20 +568,35 @@ func processDirBlockSig() error {
 func downloadNewDirBlock(p *peer, hash common.Hash, height uint32) {
 	fmt.Printf("downloadNewDirBlock: height=%d, hash=%s, peer=%s\n", height, hash.String(), p)
 	fMemPool.addDownloaded(height)
-	//if zeroHash.IsSameAs(&hash) {
-	if bytes.Compare(zeroHash.Bytes(), hash.Bytes()) == 0 {
-		iv := wire.NewInvVectHeight(wire.InvTypeFactomGetDirData, hash, int64(height))
-		gdmsg := wire.NewMsgGetFactomData()
-		gdmsg.AddInvVectHeight(iv)
-		// what happens when p as leaderPeer just crashed?
-		p.QueueMessage(gdmsg, nil)
+	
+	// check if more blocks need to be downloaded
+	_, latestHeight, _ := db.FetchBlockHeightCache()
+	if height - uint32(latestHeight) == 1 {
+		//if zeroHash.IsSameAs(&hash) {
+		if bytes.Compare(zeroHash.Bytes(), hash.Bytes()) == 0 {
+			iv := wire.NewInvVectHeight(wire.InvTypeFactomGetDirData, hash, int64(height))
+			gdmsg := wire.NewMsgGetFactomData()
+			gdmsg.AddInvVectHeight(iv)
+			// what happens when p as leaderPeer just crashed?
+			p.QueueMessage(gdmsg, nil)
+		} else {
+			sha, _ := wire.NewShaHash(hash.Bytes())
+			iv := wire.NewInvVect(wire.InvTypeFactomDirBlock, sha)
+			gdmsg := wire.NewMsgGetDirData()
+			gdmsg.AddInvVect(iv)
+			// what happens when p as leaderPeer just crashed?
+			p.QueueMessage(gdmsg, nil)
+		}
 	} else {
-		sha, _ := wire.NewShaHash(hash.Bytes())
-		iv := wire.NewInvVect(wire.InvTypeFactomDirBlock, sha)
-		gdmsg := wire.NewMsgGetDirData()
-		gdmsg.AddInvVect(iv)
-		// what happens when p as leaderPeer just crashed?
-		p.QueueMessage(gdmsg, nil)
+		locator, err := LatestDirBlockLocator()
+		if err != nil {
+			fmt.Printf("Failed to get block locator for the latest block: %v\n", err)
+			return
+		}
+		fmt.Printf("LatestDirBlockLocator: %s\n", spew.Sdump(locator))
+		fmt.Printf("At %d: syncing to block height %d from peer %v\n", latestHeight, p.lastBlock, p)
+		
+		p.PushGetDirBlocksMsg(locator, &zeroBtcHash)
 	}
 }
 
