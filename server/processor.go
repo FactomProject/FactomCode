@@ -1053,14 +1053,19 @@ func buildRevealEntry(msg *wire.MsgRevealEntry) error {
 	if chain == nil {
 		return fmt.Errorf("buildRevealEntry: chain is nil for chainID=" + msg.Entry.ChainID.String())
 	}
+	
+	var err error
 	if chain.NextBlock == nil {
-		chain.NextBlock = common.NewEBlock()
+		chain.NextBlock, err = common.MakeEBlock(chain, nil)		//NewEBlock()
+		if err != nil {
+			return err
+		}
 	}
 
 	// store the new entry in db
 	db.InsertEntry(msg.Entry)
 
-	err := chain.NextBlock.AddEBEntry(msg.Entry)
+	err = chain.NextBlock.AddEBEntry(msg.Entry)
 
 	if err != nil {
 		//panic("Error while adding Entity to Block:" + err.Error())
