@@ -1273,21 +1273,24 @@ func buildBlocks() error {
 		if dBlock == nil {
 			errStr = errStr + "dir Block is nil; "
 		} else {
-			// todo: relay new blocks to all candidates if i'm the leader
-			// and to my clients
-			bytes, _ := dBlock.MarshalBinary()
-			//fmt.Printf("buildBlocks: dirBlock=%s\n", spew.Sdump(dBlock))
-			fmt.Printf("buildBlocks: dirBlock=%s\n", hex.EncodeToString(bytes))
+			bytes, err := dBlock.MarshalBinary()
+			if err != nil {
+				fmt.Println("buildBlocks: error in dBlock.MarshalBinary(): ", err.Error())
+			} else {
+				//fmt.Printf("buildBlocks: dirBlock=%s\n", spew.Sdump(dBlock))
+				fmt.Printf("buildBlocks: dirBlock=%s\n", hex.EncodeToString(bytes))
+			}
 		}
 	} else {
 		fmt.Printf("buildBlocks: no new dir block generated; aBlock==nil: %t, ecBlock==nil: %t, fBlock==nil: %t\n", 
 			aBlock == nil, ecBlock == nil, fBlock == nil)
 	}
 
-	// should keep this process list for a while ????
+	// Todo: should only backup map data when dblock is built successfully ???
 	backupKeyMapData()
 	// remove msg of current process list from mempool
 	fMemPool.cleanUpMemPool()	
+	// should keep this process list for a while ????
 	initProcessListMgr()
 	
 	// for leader / follower regime change
@@ -1393,7 +1396,7 @@ func newEntryBlock(chain *common.EChain) *common.EBlock {
 	}
 	
 	if len(block.Body.EBEntries) < 1 {
-		procLog.Debug("newEntryBlock: No new entry found. No block created for chain: " + chain.ChainID.String())
+		// procLog.Debug("newEntryBlock: No new entry found. No block created for chain: " + chain.ChainID.String())
 		return nil
 	}
 
@@ -1504,10 +1507,6 @@ func newEntryCreditBlock(chain *common.ECChain) *common.ECBlock {
 			fmt.Println("newEntryCreditBlock: ", err.Error())
 		}
 	}
-	
-	// if chain.NextBlockHeight != dchain.NextDBHeight {
-		// fmt.Println("Entry Credit Block height does not match Directory Block height: ", dchain.NextDBHeight)
-	// }
 
 	block.BuildHeader()
 	fmt.Println("newEntryCreditBlock: block.Header.EBHeight = ", block.Header.EBHeight)
@@ -1725,7 +1724,7 @@ func newDirectoryBlock(chain *common.DChain) *common.DirectoryBlock {
 		block.Header.BodyMR, err = block.BuildBodyMR()
 	}
 	if err != nil {
-		fmt.Println("newDirectoryBlock: err in block.BuildBodyMR(), ", err.Error())
+		fmt.Println("newDirectoryBlock: error in block.BuildBodyMR(), ", err.Error())
 		// return nil
 	}
 	
@@ -1734,16 +1733,18 @@ func newDirectoryBlock(chain *common.DChain) *common.DirectoryBlock {
 	chain.NextDBHeight++
 	chain.NextBlock, _ = common.CreateDBlock(chain, block, 10)
 	chain.BlockMutex.Unlock()
-	//fmt.Printf("newDirectoryBlock: new dbBlock=%s\n", spew.Sdump(block.Header))
+	fmt.Printf("newDirectoryBlock: new dbBlock=%s\n", spew.Sdump(block.Header))
 	//fmt.Println("after creating new dir block, dchain.NextDBHeight=", chain.NextDBHeight)
 
 	newDBlock = block
-	block.DBHash, err = common.CreateHash(block)
-	block.BuildKeyMerkleRoot()
+	//block.DBHash, err = common.CreateHash(block)
+	binaryDblock, err := block.MarshalBinary()
 	if err != nil {
-		fmt.Println("newDirectoryBlock: err in v(), ", err.Error())
-		// return nil
+		fmt.Println("newDirectoryBlock: error in block.MarshalBinary(), ", err.Error())
+		return nil
 	}
+	block.DBHash = common.Sha(binaryDblock)
+	block.BuildKeyMerkleRoot()
 
 	// send out dir block sig first
 	if dchain.NextDBHeight > 1 && block != nil {

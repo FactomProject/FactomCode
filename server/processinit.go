@@ -98,6 +98,7 @@ func initECChain() {
 	// get all ecBlocks from db
 	ecBlocks, _ := db.FetchAllECBlocks()
 	sort.Sort(util.ByECBlockIDAccending(ecBlocks))
+	fmt.Println("initECChain: len(ecBlocks)=", len(ecBlocks))
 
 	for _, v := range ecBlocks {
 		initializeECreditMap(&v)
@@ -116,15 +117,16 @@ func initECChain() {
 			}
 		}
 	} else {
+		var err error
 		if dchain.NextDBHeight < 22881 {
 			ecchain.NextBlockHeight = dchain.NextDBHeight	
-		} else if dchain.NextDBHeight > 23271 {
-			ecchain.NextBlockHeight = dchain.NextDBHeight - 8
-			fmt.Printf("initECChain: after adjust EC height (minus 8): dchain.NextDBHeight =%d, echain.NextBlockHeight=%d\n ", 
-				dchain.NextDBHeight, ecchain.NextBlockHeight)
+			ecchain.NextBlock, err = common.NextECBlock(&ecBlocks[ecchain.NextBlockHeight-1])
+		} else if dchain.NextDBHeight > 34248 {
+			ecchain.NextBlockHeight = dchain.NextDBHeight - 10
+			ecchain.NextBlock, err = common.NextECBlock(&ecBlocks[dchain.NextDBHeight-1])
+			fmt.Printf("initECChain: after adjust EC height (minus 10): dchain.NextDBHeight =%d, echain.NextBlockHeight=%d, ecchain.NextBlock.Header.EBHeight=%d\n ", 
+				dchain.NextDBHeight, ecchain.NextBlockHeight, ecchain.NextBlock.Header.EBHeight)
 		}
-		var err error
-		ecchain.NextBlock, err = common.NextECBlock(&ecBlocks[ecchain.NextBlockHeight-1])
 		if err != nil {
 			panic(err)
 		}
