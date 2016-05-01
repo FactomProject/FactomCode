@@ -1347,7 +1347,12 @@ func buildBlocks() error {
 	}
 
 	// relay stale messages left in mempool and orphan pool.
-	// fMemPool.relayStaleMessages()
+	fMemPool.relayStaleMessages()
+
+	if len(errStr) > 0 {
+		fmt.Println("buildBlocks: errStr=", errStr)
+		return fmt.Errorf("%s", errStr)
+	}
 	return nil
 }
 
@@ -1725,7 +1730,8 @@ func newDirectoryBlock(chain *common.DChain) *common.DirectoryBlock {
 	}
 	if err != nil {
 		fmt.Println("newDirectoryBlock: error in block.BuildBodyMR(), ", err.Error())
-		// return nil
+		fmt.Printf("newDirectoryBlock: new dbBlock=%s\n", spew.Sdump(block))
+		return nil
 	}
 	
 	block.IsSealed = true
@@ -1733,18 +1739,18 @@ func newDirectoryBlock(chain *common.DChain) *common.DirectoryBlock {
 	chain.NextDBHeight++
 	chain.NextBlock, _ = common.CreateDBlock(chain, block, 10)
 	chain.BlockMutex.Unlock()
-	fmt.Printf("newDirectoryBlock: new dbBlock=%s\n", spew.Sdump(block.Header))
 	//fmt.Println("after creating new dir block, dchain.NextDBHeight=", chain.NextDBHeight)
 
-	newDBlock = block
 	//block.DBHash, err = common.CreateHash(block)
 	binaryDblock, err := block.MarshalBinary()
 	if err != nil {
 		fmt.Println("newDirectoryBlock: error in block.MarshalBinary(), ", err.Error())
+		fmt.Printf("newDirectoryBlock: new dbBlock=%s\n", spew.Sdump(block))
 		return nil
 	}
 	block.DBHash = common.Sha(binaryDblock)
 	block.BuildKeyMerkleRoot()
+	newDBlock = block
 
 	// send out dir block sig first
 	if dchain.NextDBHeight > 1 && block != nil {
