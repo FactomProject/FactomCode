@@ -86,8 +86,8 @@ func initDChain() {
 //
 // In other words, there're two ecblocks, in ecblock chain, of 22880, 22882, 22938, 22946, 22972, 22973, 23261 & 23262.
 //
-// DirBlocks: 22879, 22880, 22881, 22882, 22883, 22884, 22885, ..., 22939, 22940, 22941, 22942, ..., 22948, 22949, 22950, 22951, ..., 22975, 22976, 22977, 22978, 22979, 22980, ..., 23266, 23267, 23268, 23269, 23270, 23271, ...
-// ECBlocks:  22879, 22880, 22880, 22881, 22882, 22882, 22883, ..., 22937, 22938, 22938, 22939, ..., 22945, 22946, 22946, 22947, ..., 22971, 22972, 22972, 22973, 22973, 22974, ..., 23260, 23261, 23262, 23261, 23262, 23263, ...
+// DirBlocks: 22879, 22880, 22881, 22882, 22883, 22884, 22885, ..., 22939, 22940, 22941, 22942, ..., 22948, 22949, 22950, 22951, ..., 22975, 22976, 22977, 22978, 22979, 22980, ..., 23266, 23267, 23268, 23269, 23270, 23271, ..., 31459, 31460, 31461, 31462, 31463, ...
+// ECBlocks:  22879, 22880, 22880, 22881, 22882, 22882, 22883, ..., 22937, 22938, 22938, 22939, ..., 22945, 22946, 22946, 22947, ..., 22971, 22972, 22972, 22973, 22973, 22974, ..., 23260, 23261, 23262, 23261, 23262, 23263, ..., 31451, 31452, 31451, 31452, 31453, ...
 func initECChain() {
 
 	eCreditMap = make(map[string]int32)
@@ -121,7 +121,7 @@ func initECChain() {
 		if dchain.NextDBHeight < 22881 {
 			ecchain.NextBlockHeight = dchain.NextDBHeight	
 			ecchain.NextBlock, err = common.NextECBlock(&ecBlocks[ecchain.NextBlockHeight-1])
-		} else if dchain.NextDBHeight > 34248 {
+		} else if dchain.NextDBHeight > 31463 {
 			ecchain.NextBlockHeight = dchain.NextDBHeight - 10
 			ecchain.NextBlock, err = common.NextECBlock(&ecBlocks[dchain.NextDBHeight-1])
 			fmt.Printf("initECChain: after adjust EC height (minus 10): dchain.NextDBHeight =%d, echain.NextBlockHeight=%d, ecchain.NextBlock.Header.EBHeight=%d\n ", 
