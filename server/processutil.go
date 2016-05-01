@@ -346,16 +346,3 @@ func fileNotExists(name string) bool {
 	}
 	return err != nil
 }
-
-// HaveBlockInDB returns whether or not the chain instance has the block represented
-// by the passed hash.  This includes checking the various places a block can
-// be like part of the main chain, on a side chain, or in the orphan pool.
-//
-// This function is NOT safe for concurrent access.
-func HaveBlockInDB(hash *common.Hash) (bool, error) {
-	blk, _ := db.FetchDBlockByHash(hash) 
-	if blk != nil {
-		return true, nil
-	}
-	return false, nil
-}

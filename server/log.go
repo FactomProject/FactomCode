@@ -247,7 +247,7 @@ func invSummary(invList []*wire.InvVect) string {
 			return fmt.Sprintf("factom getDirData (by height) %s", iv.Hash)
 		}
 
-		return fmt.Sprintf("unknown (%d) %s", uint32(iv.Type), iv.Hash)
+		return fmt.Sprintf("unknown %d%s", uint32(iv.Type), iv.Hash)
 	}
 
 	// More than one inv item.
@@ -316,6 +316,27 @@ func messageSummary(msg wire.Message) string {
 
 	case *wire.MsgInv:
 		return invSummary(msg.InvList)
+
+	case *wire.MsgDirBlock:
+		return fmt.Sprintf("%d", msg.DBlk.Header.DBHeight)
+
+	case *wire.MsgABlock:
+		return fmt.Sprintf("%d", msg.ABlk.Header.DBHeight)
+
+	case *wire.MsgFBlock:
+		return fmt.Sprintf("%d", msg.SC.GetDBHeight())
+
+	case *wire.MsgEBlock:
+		return fmt.Sprintf("%d", msg.EBlk.Header.EBHeight)
+
+	case *wire.MsgECBlock:
+		return fmt.Sprintf("%d", msg.ECBlock.Header.EBHeight)
+
+	case *wire.MsgGetDirData:
+		return fmt.Sprintf("len=%d", len(msg.InvList))
+
+	case *wire.MsgDirInv:
+		return fmt.Sprintf("len=%d", len(msg.InvList))
 
 	case *wire.MsgNotFound:
 		return invSummary(msg.InvList)

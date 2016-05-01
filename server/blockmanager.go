@@ -204,11 +204,6 @@ func (b *blockManager) handleDonePeerMsg(peers *list.List, p *peer) {
 // current returns true if we believe we are synced with our peers, false if we
 // still have blocks to check
 func (b *blockManager) current() bool {
-	/*
-		if !b.blockChain.IsCurrent(b.server.timeSource) {
-			return false
-		}
-	*/
 	// if blockChain thinks we are current and we have no syncPeer it
 	// is probably right.
 	if b.syncPeer == nil {
@@ -218,9 +213,6 @@ func (b *blockManager) current() bool {
 	_, height, err := db.FetchBlockHeightCache() //b.server.db.NewestSha()
 	// No matter what chain thinks, if we are below the block we are
 	// syncing to we are not current.
-	// TODO(oga) we can get chain to return the height of each block when we
-	// parse an orphan, which would allow us to update the height of peers
-	// from what it was at initial handshake.
 	if err != nil || height < int64(b.syncPeer.lastBlock) {
 		return false
 	}
@@ -229,21 +221,36 @@ func (b *blockManager) current() bool {
 }
 
 // haveInventory returns whether or not the inventory represented by the passed
-// inventory vector is known.  This includes checking all of the various places
-// inventory can be when it is in different states such as blocks that are part
-// of the main chain, on a side chain, in the orphan pool, and transactions that
-// are in the memory pool (either the main pool or orphan pool).
+// inventory vector is known.  
 func (b *blockManager) haveInventory(invVect *wire.InvVect) (bool, error) {
 	switch invVect.Type {
 
 	case wire.InvTypeFactomDirBlock:
 		// Ask db if the block is known to it in any form (main
 		// chain, side chain, or orphan).
-		return HaveBlockInDB((&invVect.Hash).ToFactomHash())
+		return b.haveBlockInDB((&invVect.Hash).ToFactomHash())
 	}
 	// The requested inventory is is an unsupported type, so just claim
 	// it is known to avoid requesting it.
 	return true, nil
+}
+
+// haveBlockInDB returns whether or not the chain instance has the block represented
+// by the passed hash.  This includes checking the various places a block can
+// be like part of the main chain, on a side chain, or in the orphan pool.
+//
+// This function is NOT safe for concurrent access.
+func (b *blockManager) haveBlockInDB(hash *common.Hash) (bool, error) {
+	blk, _ := db.FetchDBlockByHash(hash) 
+	// most errors are "leveldb not found"
+	// if err != nil {
+		// fmt.Println("haveBlockInDB: error in db.FetchDBlockByHash. ", err.Error())
+		// return false, err
+	// }
+	if blk != nil {
+		return true, nil
+	}
+	return false, nil
 }
 
 // blockHandler is the main handler for the block manager.  It must be run
@@ -310,44 +317,6 @@ func (b *blockManager) NewPeer(p *peer) {
 
 	b.msgChan <- &newPeerMsg{peer: p}
 }
-
-/*
-// QueueTx adds the passed transaction message and peer to the block handling
-// queue.
-func (b *blockManager) QueueTx(tx *btcutil.Tx, p *peer) {
-	//	util.Trace()
-	// Don't accept more transactions if we're shutting down.
-	if atomic.LoadInt32(&b.shutdown) != 0 {
-		p.txProcessed <- struct{}{}
-		return
-	}
-
-	b.msgChan <- &txMsg{tx: tx, peer: p}
-}
-
-// QueueBlock adds the passed block message and peer to the block handling queue.
-func (b *blockManager) QueueBlock(block *btcutil.Block, p *peer) {
-	// Don't accept more blocks if we're shutting down.
-	if atomic.LoadInt32(&b.shutdown) != 0 {
-		p.blockProcessed <- struct{}{}
-		return
-	}
-
-	b.msgChan <- &blockMsg{block: block, peer: p}
-}
-
-
-// QueueInv adds the passed inv message and peer to the block handling queue.
-func (b *blockManager) QueueInv(inv *wire.MsgInv, p *peer) {
-	//	util.Trace()
-	// No channel handling here because peers do not need to block on inv
-	// messages.
-	if atomic.LoadInt32(&b.shutdown) != 0 {
-		return
-	}
-
-	b.msgChan <- &invMsg{inv: inv, peer: p}
-}*/
 
 // DonePeer informs the blockmanager that a peer has disconnected.
 func (b *blockManager) DonePeer(p *peer) {
@@ -443,11 +412,11 @@ func (b *blockManager) handleDirInvMsg(imsg *dirInvMsg) {
 	// not be one.
 	lastBlock := -1
 	invVects := imsg.inv.InvList
-	bmgrLog.Debugf("len(InvVects)=%d", len(invVects))
+	bmgrLog.Debugf("handleDirInvMsg: len(InvVects)=%d", len(invVects))
 	for i := len(invVects) - 1; i >= 0; i-- {
 		if invVects[i].Type == wire.InvTypeFactomDirBlock {
 			lastBlock = i
-			bmgrLog.Debugf("lastBlock=%d", lastBlock)
+			bmgrLog.Debugf("handleDirInvMsg: lastBlock=%d", lastBlock)
 			break
 		}
 	}
@@ -472,30 +441,23 @@ func (b *blockManager) handleDirInvMsg(imsg *dirInvMsg) {
 	if lastBlock != -1 && b.current() {
 		h := &invVects[lastBlock].Hash
 		hash, _ := common.NewShaHash(h.Bytes())
-		dblock, err := db.FetchDBlockByMR(hash)
+		dblock, err := db.FetchDBlockByHash(hash)
 		if err == nil && dblock != nil {
 			imsg.peer.UpdateLastBlockHeight(int32(dblock.Header.DBHeight))
 			bmgrLog.Infof("handleDirInvMsg: UpdateLastBlockHeight: %d, %s, %s",
 				dblock.Header.DBHeight, hash.String(), imsg.peer)
 		}
 	}
-	/*
-		//exists, err := db.ExistsSha(&invVects[lastBlock].Hash)
-		//if err == nil && exists {
-			blkHeight, err := db.FetchBlockHeightBySha(&invVects[lastBlock].Hash)
-			if err != nil {
-				bmgrLog.Warnf("Unable to fetch block height for block (sha: %v), %v",
-					&invVects[lastBlock].Hash, err)
-			} else {
-				imsg.peer.UpdateLastBlockHeight(int32(blkHeight))
-			}
-		}
+
+	/*dblock, err := db.FetchDBlockByHash((&invVects[lastBlock].Hash).ToFactomHash())
+	if err != nil {
+		bmgrLog.Warnf("Unable to fetch dir block for (hash: %v), %v",
+			(&invVects[lastBlock].Hash).ToFactomHash(), err)
+	} else {
+		imsg.peer.UpdateLastBlockHeight(int32(dblock.Header.DBHeight))
 	}*/
 
-	// Request the advertised inventory if we don't already have it.  Also,
-	// request parent blocks of orphans if we receive one we already have.
-	// Finally, attempt to detect potential stalls due to long side chains
-	// we already have and request more blocks to prevent them.
+	// Request the advertised inventory if we don't already have it.  
 	for i, iv := range invVects {
 		// Ignore unsupported inventory types.
 		if iv.Type != wire.InvTypeFactomDirBlock { //} && iv.Type != wire.InvTypeTx {
@@ -517,23 +479,18 @@ func (b *blockManager) handleDirInvMsg(imsg *dirInvMsg) {
 		if !haveInv {
 			// Add it to the request queue.
 			imsg.peer.requestQueue = append(imsg.peer.requestQueue, iv)
-			continue
+			// continue
 		}
 
-		if iv.Type == wire.InvTypeFactomDirBlock {
-
-			// We already have the final block advertised by this
-			// inventory message, so force a request for more.  This
-			// should only happen if we're on a really long side
-			// chain.
-			if i == lastBlock {
-				// Request blocks after this one up to the
-				// final one the remote peer knows about (zero
-				// stop hash).
-				bmgrLog.Debug("push for more dir blocks: PushGetDirBlocksMsg")
-				locator := DirBlockLocatorFromHash(&iv.Hash)
-				imsg.peer.PushGetDirBlocksMsg(locator, &zeroBtcHash)
-			}
+		// We already have the final block advertised by this
+		// inventory message, so force a request for more.  
+		if i == lastBlock {
+			// Request blocks after this one up to the
+			// final one the remote peer knows about (zero
+			// stop hash).
+			bmgrLog.Debug("push for more dir blocks: PushGetDirBlocksMsg")
+			locator := DirBlockLocatorFromHash(&iv.Hash)
+			imsg.peer.PushGetDirBlocksMsg(locator, &zeroBtcHash)
 		}
 	}
 

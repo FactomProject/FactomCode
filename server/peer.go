@@ -303,7 +303,6 @@ func (p *peer) RelayTxDisabled() bool {
 // pushVersionMsg sends a version message to the connected peer using the
 // current state.
 func (p *peer) pushVersionMsg() error {
-	//_, blockNum, err := p.server.db.NewestSha()
 	_, blockNum, err := db.FetchBlockHeightCache()
 	if err != nil {
 		return err
@@ -415,7 +414,7 @@ func (p *peer) updateAddresses(msg *wire.MsgVersion) {
 // and is used to negotiate the protocol version details as well as kick start
 // the communications.
 func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
-	fmt.Println("handleVersionMsg: ", spew.Sdump(msg))
+	// fmt.Println("handleVersionMsg: ", spew.Sdump(msg))
 	
 	// Detect self connections.
 	if msg.Nonce == p.server.nonce {
@@ -1356,9 +1355,9 @@ out:
 			if msg.doneChan != nil {
 				msg.doneChan <- struct{}{}
 			}
-			peerLog.Tracef("%s: acking queuehandler", p)
+			// peerLog.Tracef("%s: acking queuehandler", p)
 			p.sendDoneQueue <- struct{}{}
-			peerLog.Tracef("%s: acked queuehandler", p)
+			// peerLog.Tracef("%s: acked queuehandler", p)
 
 		case <-p.quit:
 			break out
@@ -1672,8 +1671,6 @@ func (p *peer) handleDirBlockMsg(msg *wire.MsgDirBlock, buf []byte) {
 	// Query the db for the latest best block since the block
 	// that was processed could be on a side chain or have caused
 	// a reorg.
-	//newestSha, newestHeight, _ := db.NewestSha()
-	//b.updateChainState(newestSha, newestHeight)
 	blkShaUpdate, newestHeight, _ := db.FetchBlockHeightCache()
 
 	// Update this peer's latest block height, for future
@@ -1956,8 +1953,6 @@ func (p *peer) handleGetDirDataMsg(msg *wire.MsgGetDirData) {
 		}
 		var err error
 		switch iv.Type {
-		//case wire.InvTypeTx:
-		//err = p.pushTxMsg(&iv.Hash, c, waitChan)
 		case wire.InvTypeFactomDirBlock:
 			err = p.pushDirBlockMsg(&iv.Hash, c, waitChan)
 			/*
@@ -2003,11 +1998,14 @@ func (p *peer) handleGetDirBlocksMsg(msg *wire.MsgGetDirBlocks) {
 	// Return all block hashes to the latest one (up to max per message) if
 	// no stop hash was specified.
 	// Attempt to find the ending index of the stop hash if specified.
+	// fmt.Println("handleGetDirBlocksMsg: ", spew.Sdump(msg))
 	endIdx := database.AllShas //factom db
 	if !msg.HashStop.IsEqual(&zeroBtcHash) {
 		height, err := db.FetchBlockHeightBySha(&msg.HashStop)
 		if err == nil {
 			endIdx = height + 1
+		} else {
+			fmt.Println("handleGetDirBlocksMsg: error in db.FetchBlockHeightBySha. ", err.Error())
 		}
 	}
 
@@ -2023,6 +2021,8 @@ func (p *peer) handleGetDirBlocksMsg(msg *wire.MsgGetDirBlocks) {
 			// Start with the next hash since we know this one.
 			startIdx = height + 1
 			break
+		} else {
+			fmt.Println("handleGetDirBlocksMsg: error in db.FetchBlockHeightBySha. ", err.Error())
 		}
 
 	}
@@ -2066,7 +2066,7 @@ func (p *peer) handleGetDirBlocksMsg(msg *wire.MsgGetDirBlocks) {
 		}
 		start += int64(len(hashList))
 	}
-	peerLog.Infof("len(invList)=%d", len(invMsg.InvList))
+	peerLog.Infof("len(invList)=%d, autoContinue=%t", len(invMsg.InvList), autoContinue)
 
 	// Send the inventory message if there is anything to send.
 	if len(invMsg.InvList) > 0 {
@@ -2593,7 +2593,7 @@ func (p *peer) pushEntryMsg(commonhash *common.Hash, doneChan, waitChan chan str
 // handleFactoidMsg
 func (p *peer) handleFactoidMsg(msg *wire.MsgFactoidTX, buf []byte) {
 	// the factoid balance should be update during syncup
-	fmt.Println("handleFactoidMsg: ", spew.Sdump(msg))
+	// fmt.Println("handleFactoidMsg: ", spew.Sdump(msg))
 	if ClientOnly {
 		return
 	}
