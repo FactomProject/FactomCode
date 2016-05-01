@@ -184,7 +184,7 @@ func (db *LevelDb) FetchHeightRange(startHeight, endHeight int64) (rshalist []wi
 		dbhash, lerr := db.FetchDBHashByHeight(uint32(height))
 		if lerr != nil || dbhash == nil {
 			fmt.Printf("FetchHeightRange: err in height=%d, %s\n", height, lerr.Error())
-			err = lerr
+			// err = lerr
 			break
 		}
 
