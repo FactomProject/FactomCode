@@ -384,7 +384,7 @@ func processLeaderEOM(msgEom *wire.MsgInt_EOM) error {
 	// to simplify this, for leader & followers, use the next wire.EndMinute1
 	// to trigger signature comparison of last round.
 	// todo: when to start? can NOT do this for the first EOM_1 ???
-	if msgEom.EOM_Type == wire.EndMinute2 {
+	if msgEom.EOM_Type == wire.EndMinute1 {
 		if !localServer.isSingleServerMode() && fMemPool.lenDirBlockSig(msgEom.NextDBlockHeight - 1) > 0 {
 			go processDirBlockSig()
 		} else {
@@ -681,7 +681,7 @@ func processAckMsg(ack *wire.MsgAck) ([]*wire.MsgMissing, error) {
 	// to simplify this, for leader & followers, use the next wire.EndMinute1
 	// to trigger signature comparison of last round.
 	// todo: when to start? can NOT do this for the first EOM_1 ???
-	if ack.Type == wire.EndMinute2 {
+	if ack.Type == wire.EndMinute1 {
 		// need to bypass the first block of newly-joined follower, 
 		// either this is 11th minute: ack.NextDBlockHeight-1 == firstBlockHeight
 		// or is 1st minute: 
@@ -1161,13 +1161,13 @@ func buildGenesisBlocks() error {
 	cBlock := newEntryCreditBlock(ecchain)
 	procLog.Debugf("buildGenesisBlocks: cBlock=%s\n", spew.Sdump(cBlock.Header))
 	dchain.AddECBlockToDBEntry(cBlock)
-	exportECChain(ecchain)
+	// exportECChain(ecchain)
 
 	// Admin chain
 	aBlock := newAdminBlock(achain)
 	procLog.Debugf("buildGenesisBlocks: aBlock=%s\n", spew.Sdump(aBlock.Header))
 	dchain.AddABlockToDBEntry(aBlock)
-	exportAChain(achain)
+	// exportAChain(achain)
 
 	// factoid Genesis Address
 	//fchain.NextBlock = block.GetGenesisFBlock(0, FactoshisPerCredit, 10, 200000000000)
@@ -1175,12 +1175,13 @@ func buildGenesisBlocks() error {
 	FBlock := newFactoidBlock(fchain)
 	procLog.Debugf("buildGenesisBlocks: fBlock.height=%d\n", FBlock.GetDBHeight())
 	dchain.AddFBlockToDBEntry(FBlock)
-	exportFctChain(fchain)
+	// exportFctChain(fchain)
 
 	// Directory Block chain
 	procLog.Debug("onto newDirectoryBlock in buildGenesisBlocks")
 	dbBlock := newDirectoryBlock(dchain)
-	exportDChain(dchain)
+	procLog.Debugf("buildGenesisBlocks: dbBlock=%s\n", spew.Sdump(dbBlock))
+	// exportDChain(dchain)
 
 	// Check block hash if genesis block
 	if dbBlock.DBHash.String() != common.GENESIS_DIR_BLOCK_HASH {
@@ -1191,8 +1192,9 @@ func buildGenesisBlocks() error {
 
 	initProcessListMgr()
 
-	// saveBlocks will be done at the next EOM_1
-	//go saveBlocks(dbBlock, aBlock, cBlock, FBlock, nil)
+	// saveBlocks will be done at the next EOM_1. however, for 10-min blocks
+	// as Blocktimes starts anytime, and it could skip EOM_1. So let saveBlocks here
+	go saveBlocks(dbBlock, aBlock, cBlock, FBlock, nil)
 	return nil
 }
 
@@ -1502,7 +1504,7 @@ func newEntryCreditBlock(chain *common.ECChain) *common.ECBlock {
 			fmt.Println("newEntryCreditBlock from mempool: prev == nil")
 			return nil
 		}
-		fmt.Println("newEntryCreditBlock: prev=", spew.Sdump(prev.Header))
+		fmt.Println("newEntryCreditBlock: prev=", spew.Sdump(prev))
 		block.Header.PrevHeaderHash, err = prev.HeaderHash()
 		if err != nil {
 			fmt.Println("newEntryCreditBlock: ", err.Error())
