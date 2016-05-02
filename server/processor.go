@@ -1793,6 +1793,13 @@ func saveBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
 		downloadNewDirBlock(peer, *zeroHash, dchain.NextDBHeight-1)
 		return nil
 	}
+	
+	_, latestHeight, _ := db.FetchBlockHeightCache()
+	if uint32(latestHeight) == dblock.Header.DBHeight {
+		fmt.Printf("saveBlocks: block already saved: db.latestDBHeight=%d, dblock.Header.DBHeight=%d\n", 
+			latestHeight, dblock.Header.DBHeight)
+		return nil
+	} 
 
 	db.ProcessDBlockBatch(dblock)
 	db.ProcessFBlockBatch(fblock)
