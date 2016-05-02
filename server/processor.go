@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -26,8 +27,9 @@ import (
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/consensus"
 	"github.com/FactomProject/ed25519"
-	//cp "github.com/FactomProject/FactomCode/controlpanel"
+	cp "github.com/FactomProject/FactomCode/controlpanel"
 	"github.com/FactomProject/FactomCode/database"
+	fct "github.com/FactomProject/factoid"
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/FactomCode/wire"
 	"github.com/FactomProject/factoid/block"
@@ -100,7 +102,7 @@ func LoadConfigurations(fcfg *util.FactomdConfig) {
 	directoryBlockInSeconds = factomConfig.App.DirectoryBlockInSeconds
 	nodeMode = factomConfig.App.NodeMode
 	serverPrivKeyHex = factomConfig.App.ServerPrivKey
-	//cp.CP.SetPort(factomConfig.Controlpanel.Port)
+	cp.CP.SetPort(factomConfig.Controlpanel.Port)
 }
 
 // InitProcessor initializes the processor
@@ -415,14 +417,14 @@ func processLeaderEOM(msgEom *wire.MsgInt_EOM) error {
 			return err
 		}
 	}
-	/*
-		cp.CP.AddUpdate(
-			"MinMark",  // tag
-			"status",   // Category
-			"Progress", // Title
-			fmt.Sprintf("End of Minute %v\n", msgEom.EOM_Type)+ // Message
-				fmt.Sprintf("Directory Block Height %v", dchain.NextDBHeight),
-			0)*/
+	
+	cp.CP.AddUpdate(
+		"MinMark",  // tag
+		"status",   // Category
+		"Progress", // Title
+		fmt.Sprintf("End of Minute %v\n", msgEom.EOM_Type)+ // Message
+			fmt.Sprintf("Directory Block Height %v", dchain.NextDBHeight),
+		0)
 	return nil
 }
 
@@ -1606,30 +1608,30 @@ func newAdminBlock(chain *common.AdminChain) *common.AdminBlock {
 func newFactoidBlock(chain *common.FctChain) block.IFBlock {
 	cfg := util.ReReadConfig()
 	FactoshisPerCredit = cfg.App.ExchangeRate
-	/*
-		older := FactoshisPerCredit
-		rate := fmt.Sprintf("Current Exchange rate is %v",
-			strings.TrimSpace(fct.ConvertDecimal(FactoshisPerCredit)))
-		if older != FactoshisPerCredit {
 
-			orate := fmt.Sprintf("The Exchange rate was    %v\n",
-				strings.TrimSpace(fct.ConvertDecimal(older)))
+	older := FactoshisPerCredit
+	rate := fmt.Sprintf("Current Exchange rate is %v",
+		strings.TrimSpace(fct.ConvertDecimal(FactoshisPerCredit)))
 
-			cp.CP.AddUpdate(
-				"Fee",    // tag
-				"status", // Category
-				"Entry Credit Exchange Rate Changed", // Title
-				orate+rate,
-				0)
-		} else {
-			cp.CP.AddUpdate(
-				"Fee",                        // tag
-				"status",                     // Category
-				"Entry Credit Exchange Rate", // Title
-				rate,
-				0)
-		}
-	*/
+	if older != FactoshisPerCredit {
+
+		orate := fmt.Sprintf("The Exchange rate was    %v\n",
+			strings.TrimSpace(fct.ConvertDecimal(older)))
+
+		cp.CP.AddUpdate(
+			"Fee",    // tag
+			"status", // Category
+			"Entry Credit Exchange Rate Changed", // Title
+			orate+rate,
+			0)
+	} else {
+		cp.CP.AddUpdate(
+			"Fee",                        // tag
+			"status",                     // Category
+			"Entry Credit Exchange Rate", // Title
+			rate,
+			0)
+	}
 
 	// acquire the last block
 	currentBlock := chain.NextBlock

@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/FactomProject/FactomCode/common"
-	//cp "github.com/FactomProject/FactomCode/controlpanel"
+	cp "github.com/FactomProject/FactomCode/controlpanel"
 	"github.com/FactomProject/FactomCode/wire"
 	"github.com/davecgh/go-spew/spew"
 )
@@ -619,14 +619,14 @@ func (b *blockManager) startSyncFactom(peers *list.List) {
 		str := fmt.Sprintf("At %d: syncing to block height %d from peer %v",
 			height, bestPeer.lastBlock, bestPeer.addr)
 		bmgrLog.Infof(str)
-		/*
-			cp.CP.AddUpdate(
-				"Syncing", // tag
-				"status",  // Category
-				"Client is Syncing with Federated Server(s)", // Title
-				str, // Message
-				60)
-		*/
+		
+		cp.CP.AddUpdate(
+			"Syncing", // tag
+			"status",  // Category
+			"Client is Syncing with Federated Server(s)", // Title
+			str, // Message
+			60)
+		
 		bestPeer.PushGetDirBlocksMsg(locator, &zeroBtcHash)
 		b.syncPeer = bestPeer
 		if common.SERVER_NODE == b.server.nodeType {

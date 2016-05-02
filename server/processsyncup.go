@@ -14,7 +14,7 @@ import (
 
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/factoid/block"
-	//cp "github.com/FactomProject/FactomCode/controlpanel"
+	cp "github.com/FactomProject/FactomCode/controlpanel"
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/wire"
 	"github.com/davecgh/go-spew/spew"
@@ -25,15 +25,15 @@ import (
 func processDirBlock(msg *wire.MsgDirBlock) error {
 	fmt.Println("processDirBlock: height:", msg.DBlk.Header.DBHeight)
 	blk, _ := db.FetchDBlockByHeight(msg.DBlk.Header.DBHeight)
-	if blk != nil {
-		/*
-			procLog.Info("DBlock already exists for height:" + string(msg.DBlk.Header.DBHeight))
-			cp.CP.AddUpdate(
-				"DBOverlap",                                                          // tag
-				"warning",                                                            // Category
-				"Directory Block Overlap",                                            // Title
-				"DBlock already exists for height:"+string(msg.DBlk.Header.DBHeight), // Message
-				0) // Expire */
+
+	if blk != nil {	
+		procLog.Info("DBlock already exists for height:" + string(msg.DBlk.Header.DBHeight))
+		cp.CP.AddUpdate(
+			"DBOverlap",                                                          // tag
+			"warning",                                                            // Category
+			"Directory Block Overlap",                                            // Title
+			"DBlock already exists for height:"+string(msg.DBlk.Header.DBHeight), // Message
+			0) // Expire 
 		return nil
 	}
 
@@ -45,15 +45,15 @@ func processDirBlock(msg *wire.MsgDirBlock) error {
 	// fMemPool.removeMissingMsg(msg.DBlk.KeyMR)
 	
 	fMemPool.addBlockMsg(msg, strconv.Itoa(int(msg.DBlk.Header.DBHeight))) // store in mempool with the height as the key
-	/*
-		//procLog.Debug("SyncUp: MsgDirBlock DBHeight=", msg.DBlk.Header.DBHeight)
-		cp.CP.AddUpdate(
-			"DBSyncUp", // tag
-			"Status",   // Category
-			"SyncUp:",  // Title
-			"MsgDirBlock DBHeigth=:"+string(msg.DBlk.Header.DBHeight), // Message
-			0) // Expire
-	*/
+	
+	//procLog.Debug("SyncUp: MsgDirBlock DBHeight=", msg.DBlk.Header.DBHeight)
+	cp.CP.AddUpdate(
+		"DBSyncUp", // tag
+		"Status",   // Category
+		"SyncUp:",  // Title
+		"MsgDirBlock DBHeigth=:"+string(msg.DBlk.Header.DBHeight), // Message
+		0) // Expire
+	
 	return nil
 }
 
