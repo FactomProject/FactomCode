@@ -184,8 +184,8 @@ type peer struct {
 	knownAddresses     map[string]struct{}
 	knownInventory     *MruInventoryMap
 	knownInvMutex      sync.Mutex
-	requestedTxns      map[wire.ShaHash]struct{} // owned by blockmanager
-	requestedBlocks    map[wire.ShaHash]struct{} // owned by blockmanager
+	// requestedTxns      map[wire.ShaHash]struct{} // owned by blockmanager
+	// requestedBlocks    map[wire.ShaHash]struct{} // owned by blockmanager
 	retryCount         int64
 	prevGetBlocksBegin *wire.ShaHash // owned by blockmanager
 	prevGetBlocksStop  *wire.ShaHash // owned by blockmanager
@@ -1505,8 +1505,8 @@ func newPeerBase(s *server, inbound bool) *peer {
 		inbound:         inbound,
 		knownAddresses:  make(map[string]struct{}),
 		knownInventory:  NewMruInventoryMap(maxKnownInventory),
-		requestedTxns:   make(map[wire.ShaHash]struct{}),
-		requestedBlocks: make(map[wire.ShaHash]struct{}),
+		// requestedTxns:   make(map[wire.ShaHash]struct{}),
+		// requestedBlocks: make(map[wire.ShaHash]struct{}),
 		outputQueue:     make(chan outMsg, outputBufferSize),
 		sendQueue:       make(chan outMsg, 1),   // nonblocking sync
 		sendDoneQueue:   make(chan struct{}, 1), // nonblocking sync
@@ -1654,8 +1654,8 @@ func (p *peer) handleDirBlockMsg(msg *wire.MsgDirBlock, buf []byte) {
 		p.pushGetNonDirDataMsg(msg.DBlk)
 	}
 
-	delete(p.requestedBlocks, *hash)
-	delete(p.server.blockManager.requestedBlocks, *hash)
+	// delete(p.requestedBlocks, *hash)
+	// delete(p.server.blockManager.requestedBlocks, *hash)
 
 	// Meta-data about the new block this peer is reporting. We use this
 	// below to update this peer's lastest block height and the heights of

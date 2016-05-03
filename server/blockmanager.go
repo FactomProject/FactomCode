@@ -115,10 +115,10 @@ type blockManager struct {
 	server            *server
 	started           int32
 	shutdown          int32
-	requestedTxns     map[wire.ShaHash]struct{}
-	requestedBlocks   map[wire.ShaHash]struct{}
-	receivedLogBlocks int64
-	receivedLogTx     int64
+	// requestedTxns     map[wire.ShaHash]struct{}
+	// requestedBlocks   map[wire.ShaHash]struct{}
+	// receivedLogBlocks int64
+	// receivedLogTx     int64
 	processingReqs    bool
 	syncPeer          *peer
 	msgChan           chan interface{}
@@ -180,17 +180,17 @@ func (b *blockManager) handleDonePeerMsg(peers *list.List, p *peer) {
 
 	// Remove requested transactions from the global map so that they will
 	// be fetched from elsewhere next time we get an inv.
-	for k := range p.requestedTxns {
-		delete(b.requestedTxns, k)
-	}
+	// for k := range p.requestedTxns {
+		// delete(b.requestedTxns, k)
+	// }
 
 	// Remove requested blocks from the global map so that they will be
 	// fetched from elsewhere next time we get an inv.
 	// TODO(oga) we could possibly here check which peers have these blocks
 	// and request them now to speed things up a little.
-	for k := range p.requestedBlocks {
-		delete(b.requestedBlocks, k)
-	}
+	// for k := range p.requestedBlocks {
+		// delete(b.requestedBlocks, k)
+	// }
 
 	// Attempt to find a new peer to sync from if the quitting peer is the
 	// sync peer.  Also, reset the headers-first state if in headers-first
@@ -390,8 +390,8 @@ func newBlockManager(s *server) (*blockManager, error) {
 
 	bm := blockManager{
 		server:          s,
-		requestedTxns:   make(map[wire.ShaHash]struct{}),
-		requestedBlocks: make(map[wire.ShaHash]struct{}),
+		// requestedTxns:   make(map[wire.ShaHash]struct{}),
+		// requestedBlocks: make(map[wire.ShaHash]struct{}),
 		msgChan:         make(chan interface{}, cfg.MaxPeers*3),
 		quit:            make(chan struct{}),
 	}
@@ -508,12 +508,12 @@ func (b *blockManager) handleDirInvMsg(imsg *dirInvMsg) {
 		case wire.InvTypeFactomDirBlock:
 			// Request the block if there is not already a pending
 			// request.
-			if _, exists := b.requestedBlocks[iv.Hash]; !exists {
-				b.requestedBlocks[iv.Hash] = struct{}{}
-				imsg.peer.requestedBlocks[iv.Hash] = struct{}{}
+			// if _, exists := b.requestedBlocks[iv.Hash]; !exists {
+				// b.requestedBlocks[iv.Hash] = struct{}{}
+				// imsg.peer.requestedBlocks[iv.Hash] = struct{}{}
 				gdmsg.AddInvVect(iv)
 				numRequested++
-			}
+			// }
 
 			//case wire.InvTypeFactoidTx:  ???
 		}

@@ -1793,7 +1793,7 @@ func saveBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
 		downloadNewDirBlock(peer, *zeroHash, dchain.NextDBHeight-1)
 		return nil
 	}
-	
+
 	_, latestHeight, _ := db.FetchBlockHeightCache()
 	if uint32(latestHeight) == dblock.Header.DBHeight {
 		fmt.Printf("saveBlocks: block already saved: db.latestDBHeight=%d, dblock.Header.DBHeight=%d\n", 
@@ -2104,7 +2104,7 @@ func backupKeyMapData() {
 
 func resetLeaderState(height uint32) {
 	// reset eCreditMap & chainIDMap & processList
-	fmt.Println("resetLeaderState: ")
+	fmt.Println("resetLeaderState: height=", height)
 	eCreditMap = eCreditMapBackup
 	chainIDMap = chainIDMapBackup
 	commitChainMap = commitChainMapBackup

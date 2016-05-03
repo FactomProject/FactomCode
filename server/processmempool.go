@@ -335,6 +335,8 @@ func (mp *ftmMemPool) rebuildLeaderProcessList(height uint32) {
 		if mp.ackpool[d][i] == nil {
 			continue
 		}
+		// this could happen b/c leader crash bypasses the normal initialization of ackpool
+		// if there's no ackmsg received yet.
 		if mp.ackpool[d][i].Height != height {
 			fmt.Println("rebuildLeaderProcessList: outdated ackpool: ack.height=%d, current.height=%d\n",
 				mp.ackpool[d][i].Height, height)
