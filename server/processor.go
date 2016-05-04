@@ -399,7 +399,7 @@ func processLeaderEOM(msgEom *wire.MsgInt_EOM) error {
 	common.FactoidState.EndOfPeriod(int(msgEom.EOM_Type))
 
 	ack, err := plMgr.AddToLeadersProcessList(msgEom, nil, msgEom.EOM_Type, 
-		dchain.NextBlock.Header.Timestamp, fchain.NextBlock.GetCoinbaseTimestamp())
+		dchain.NextBlock.Header.Timestamp, fchain.NextBlock.GetCoinbaseTimestamp(), localServer.nodeID)
 	if err != nil {
 		return err
 	}
@@ -792,7 +792,8 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 				fmt.Println("Exceeding MyProcessList size limit!")
 				return fMemPool.addOrphanMsg(msg, h)
 			}
-			ack, err := plMgr.AddToLeadersProcessList(msg, h, wire.AckRevealEntry, dchain.NextBlock.Header.Timestamp, fchain.NextBlock.GetCoinbaseTimestamp())
+			ack, err := plMgr.AddToLeadersProcessList(msg, h, wire.AckRevealEntry, dchain.NextBlock.Header.Timestamp, 
+				fchain.NextBlock.GetCoinbaseTimestamp(), localServer.nodeID)
 			if err != nil {
 				return err
 			}
@@ -852,7 +853,8 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 				fmt.Println("Exceeding MyProcessList size limit!")
 				return fMemPool.addOrphanMsg(msg, h)
 			}
-			ack, err := plMgr.AddToLeadersProcessList(msg, h, wire.AckRevealChain, dchain.NextBlock.Header.Timestamp, fchain.NextBlock.GetCoinbaseTimestamp())
+			ack, err := plMgr.AddToLeadersProcessList(msg, h, wire.AckRevealChain, dchain.NextBlock.Header.Timestamp, 
+				fchain.NextBlock.GetCoinbaseTimestamp(), localServer.nodeID)
 			if err != nil {
 				return err
 			}
@@ -904,7 +906,8 @@ func processCommitEntry(msg *wire.MsgCommitEntry) error {
 			fmt.Println("Exceeding MyProcessList size limit!")
 			return fMemPool.addOrphanMsg(msg, &h)
 		}
-		ack, err := plMgr.AddToLeadersProcessList(msg, &h, wire.AckCommitEntry, dchain.NextBlock.Header.Timestamp, fchain.NextBlock.GetCoinbaseTimestamp())
+		ack, err := plMgr.AddToLeadersProcessList(msg, &h, wire.AckCommitEntry, dchain.NextBlock.Header.Timestamp, 
+			fchain.NextBlock.GetCoinbaseTimestamp(), localServer.nodeID)
 		if err != nil {
 			return err
 		}
@@ -952,7 +955,8 @@ func processCommitChain(msg *wire.MsgCommitChain) error {
 			fmt.Println("Exceeding MyProcessList size limit!")
 			return fMemPool.addOrphanMsg(msg, &h)
 		}
-		ack, err := plMgr.AddToLeadersProcessList(msg, &h, wire.AckCommitChain, dchain.NextBlock.Header.Timestamp, fchain.NextBlock.GetCoinbaseTimestamp())
+		ack, err := plMgr.AddToLeadersProcessList(msg, &h, wire.AckCommitChain, dchain.NextBlock.Header.Timestamp, 
+			fchain.NextBlock.GetCoinbaseTimestamp(), localServer.nodeID)
 		if err != nil {
 			return err
 		}
@@ -1007,7 +1011,8 @@ func processFactoidTX(msg *wire.MsgFactoidTX) error {
 			fmt.Println("Exceeding MyProcessList size limit!")
 			return fMemPool.addOrphanMsg(msg, &h)
 		}
-		ack, err := plMgr.AddToLeadersProcessList(msg, &h, wire.AckFactoidTx, dchain.NextBlock.Header.Timestamp, fchain.NextBlock.GetCoinbaseTimestamp())
+		ack, err := plMgr.AddToLeadersProcessList(msg, &h, wire.AckFactoidTx, dchain.NextBlock.Header.Timestamp, 
+			fchain.NextBlock.GetCoinbaseTimestamp(), localServer.nodeID)
 		if err != nil {
 			return err
 		}
@@ -1093,7 +1098,8 @@ func buildRevealChain(msg *wire.MsgRevealEntry) error {
 	// Store the new chain in db
 	db.InsertChain(chain)
 
-	// Chain initialization. let initEChains and storeBlocksFromMemPool take care of it
+	// Todo: Chain initialization. why ???
+	// let initEChains and storeBlocksFromMemPool take care of it
 	initEChainFromDB(chain)
 
 	// store the new entry in db
@@ -2102,7 +2108,7 @@ func backupKeyMapData() {
 	}
 }
 
-func resetLeaderState(height uint32) {
+func resetLeaderState(leader string, height uint32) {
 	// reset eCreditMap & chainIDMap & processList
 	fmt.Println("resetLeaderState: height=", height)
 	eCreditMap = eCreditMapBackup
@@ -2112,7 +2118,7 @@ func resetLeaderState(height uint32) {
 	initProcessListMgr()
 
 	// rebuild leader's process list
-	fMemPool.rebuildLeaderProcessList(height)
+	fMemPool.rebuildLeaderProcessList(leader, height)
 
 	// start clock
 	fmt.Println("resetLeaderState: @@@@ start BlockTimer for new current leader.")

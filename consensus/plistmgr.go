@@ -44,10 +44,10 @@ func (plMgr *ProcessListMgr) AddToFollowersProcessList(msg wire.Message, ack *wi
 
 // AddToLeadersProcessList creates a new process list item and add it to the MyProcessList
 func (plMgr *ProcessListMgr) AddToLeadersProcessList(msg wire.FtmInternalMsg, hash *wire.ShaHash,
-	msgType byte, dirBlockTimestamp uint32, coinbaseTimestamp int64) (ack *wire.MsgAck, err error) {
+	msgType byte, dirBlockTimestamp uint32, coinbaseTimestamp int64, sid string) (ack *wire.MsgAck, err error) {
 	
 	ack = wire.NewMsgAck(plMgr.NextDBlockHeight, uint32(plMgr.MyProcessList.nextIndex), hash, msgType,
-		dirBlockTimestamp, uint64(coinbaseTimestamp))
+		dirBlockTimestamp, uint64(coinbaseTimestamp), sid)
 	// Sign the ack using server private keys
 	err = ack.Sign(&plMgr.serverPrivKey)
 	if err != nil {

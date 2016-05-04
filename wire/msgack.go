@@ -49,6 +49,7 @@ type MsgAck struct {
 	Affirmation       *ShaHash // affirmation value -- hash of the message/object in question
 	SerialHash        [32]byte
 	Signature         [64]byte
+	SourceNodeID	  string
 }
 
 // Sign is used to sign this message
@@ -80,6 +81,8 @@ func (msg *MsgAck) GetBinaryForSignature() (data []byte, err error) {
 	binary.Write(&buf, binary.BigEndian, msg.CoinbaseTimestamp)
 	buf.Write(msg.Affirmation.Bytes())
 	buf.Write(msg.SerialHash[:])
+	buf.WriteByte(byte(len(msg.SourceNodeID)))
+	buf.Write([]byte(msg.SourceNodeID))
 	return buf.Bytes(), err
 }
 
@@ -104,6 +107,10 @@ func (msg *MsgAck) BtcDecode(r io.Reader, pver uint32) error {
 	copy(msg.SerialHash[:], newData[0:32])
 	newData = newData[32:]
 	copy(msg.Signature[:], newData[0:64])
+
+	var slen byte
+	slen, newData = newData[64], newData[65:]
+	msg.SourceNodeID = string(newData[:slen])
 	return nil
 }
 
@@ -119,6 +126,8 @@ func (msg *MsgAck) BtcEncode(w io.Writer, pver uint32) error {
 	buf.Write(msg.Affirmation.Bytes())
 	buf.Write(msg.SerialHash[:])
 	buf.Write(msg.Signature[:])
+	buf.WriteByte(byte(len(msg.SourceNodeID)))
+	buf.Write([]byte(msg.SourceNodeID))
 	w.Write(buf.Bytes())
 	return nil
 }
@@ -132,12 +141,12 @@ func (msg *MsgAck) Command() string {
 // MaxPayloadLength returns the maximum length the payload can be for the
 // receiver.  This is part of the Message interface implementation.
 func (msg *MsgAck) MaxPayloadLength(pver uint32) uint32 {
-	return 181 //4 + 32 + 4 + 1 + 4 + 8 + 32 + 32 + 64
+	return 300 //4 + 32 + 4 + 1 + 4 + 8 + 32 + 32 + 64 = 181 + len(str)
 }
 
 // NewMsgAck returns a new ack message that conforms to the Message
 // interface.  See MsgAck for details.
-func NewMsgAck(height uint32, index uint32, affirm *ShaHash, ackType byte, timestamp uint32, coinbaseTS uint64) *MsgAck {
+func NewMsgAck(height uint32, index uint32, affirm *ShaHash, ackType byte, timestamp uint32, coinbaseTS uint64, sid string) *MsgAck {
 	if affirm == nil {
 		affirm = new(ShaHash)
 	}
@@ -149,6 +158,7 @@ func NewMsgAck(height uint32, index uint32, affirm *ShaHash, ackType byte, times
 		CoinbaseTimestamp: coinbaseTS,
 		Affirmation:       affirm,
 		Type:              ackType,
+		SourceNodeID:	   sid,
 	}
 }
 
@@ -171,6 +181,7 @@ func (msg *MsgAck) Clone() *MsgAck {
 		CoinbaseTimestamp: msg.CoinbaseTimestamp,
 		Affirmation:       msg.Affirmation,
 		Type:              msg.Type,
+		SourceNodeID:	   msg.SourceNodeID,
 	}
 }
 
@@ -192,10 +203,12 @@ func (msg *MsgAck) Equals(ack *MsgAck) bool {
 		msg.Affirmation.IsEqual(ack.Affirmation) &&
 		msg.ChainID.IsSameAs(ack.ChainID) &&
 		bytes.Equal(msg.SerialHash[:], ack.SerialHash[:]) &&
-		bytes.Equal(msg.Signature[:], ack.Signature[:])
+		bytes.Equal(msg.Signature[:], ack.Signature[:]) && 
+		msg.SourceNodeID == ack.SourceNodeID
 }
 
 // String returns its string value
 func (msg *MsgAck) String() string {
-	return fmt.Sprintf("Ack(h=%d, idx=%d, type=%v)", msg.Height, msg.Index, msg.Type)
+	return fmt.Sprintf("Ack(h=%d, idx=%d, type=%v, from=%s)", 
+		msg.Height, msg.Index, msg.Type, msg.SourceNodeID)
 }

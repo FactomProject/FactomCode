@@ -326,7 +326,7 @@ func (mp *ftmMemPool) assembleFollowerProcessList(ack *wire.MsgAck) error {
 }
 
 // rebuild leader's process list
-func (mp *ftmMemPool) rebuildLeaderProcessList(height uint32) {
+func (mp *ftmMemPool) rebuildLeaderProcessList(leader string, height uint32) {
 	var msg wire.FtmInternalMsg
 	var hash *wire.ShaHash
 	d := height % 2
@@ -359,7 +359,7 @@ func (mp *ftmMemPool) rebuildLeaderProcessList(height uint32) {
 		outMsgQueue <- msg
 
 		ack, _ := plMgr.AddToLeadersProcessList(msg, hash, mp.ackpool[d][i].Type, 
-			dchain.NextBlock.Header.Timestamp, fchain.NextBlock.GetCoinbaseTimestamp())
+			dchain.NextBlock.Header.Timestamp, fchain.NextBlock.GetCoinbaseTimestamp(), leader)
 		fmt.Println("rebuildLeaderProcessList: broadcast ack ", ack)
 		outMsgQueue <- ack
 		
