@@ -379,6 +379,14 @@ func processLeaderEOM(msgEom *wire.MsgInt_EOM) error {
 		return nil
 	}
 	var singleServerMode = localServer.isSingleServerMode()
+
+	fmt.Println()
+	fmt.Println("//////////////////////")
+	fmt.Println("///                ///")
+	fmt.Println("///   Leader   	///")
+	fmt.Println("///                ///")
+	fmt.Println("//////////////////////")
+	fmt.Println()
 	fmt.Println("processLeaderEOM: federate servers #: ", localServer.FederateServerCount(),
 		", Non-candidate federate servers #: ", localServer.NonCandidateServerCount(),
 		", singleServerMode=", singleServerMode)
@@ -386,7 +394,7 @@ func processLeaderEOM(msgEom *wire.MsgInt_EOM) error {
 	// to simplify this, for leader & followers, use the next wire.EndMinute1
 	// to trigger signature comparison of last round.
 	// todo: when to start? can NOT do this for the first EOM_1 ???
-	if msgEom.EOM_Type == wire.EndMinute1 {
+	if msgEom.EOM_Type == wire.EndMinute2 {
 		if !localServer.isSingleServerMode() && fMemPool.lenDirBlockSig(msgEom.NextDBlockHeight - 1) > 0 {
 			go processDirBlockSig()
 		} else {
@@ -683,7 +691,7 @@ func processAckMsg(ack *wire.MsgAck) ([]*wire.MsgMissing, error) {
 	// to simplify this, for leader & followers, use the next wire.EndMinute1
 	// to trigger signature comparison of last round.
 	// todo: when to start? can NOT do this for the first EOM_1 ???
-	if ack.Type == wire.EndMinute1 {
+	if ack.Type == wire.EndMinute2 {
 		// need to bypass the first block of newly-joined follower, 
 		// either this is 11th minute: ack.NextDBlockHeight-1 == firstBlockHeight
 		// or is 1st minute: 
@@ -981,13 +989,6 @@ func processFactoidTX(msg *wire.MsgFactoidTX) error {
 	
 	// broadcast it to other federate servers only if it's new to me
 	h, _ := msg.Sha()
-	/*if fMemPool.haveMsg(h) {
-		fmt.Println("processFactoidTX: already in mempool. ", spew.Sdump(msg))
-		return nil
-	}
-	outMsgQueue <- msg
-	fMemPool.addMsg(msg, &h)*/
-
 	tx := msg.Transaction
 	txnum := 0
 	if common.FactoidState.GetCurrentBlock() == nil {
@@ -1130,8 +1131,7 @@ func buildEndOfMinute(pl *consensus.ProcessList, pli *consensus.ProcessListItem)
 			v.Ack.Type == wire.AckRevealChain {
 			cid := v.Msg.(*wire.MsgRevealEntry).Entry.ChainID.String()
 			tmpChains[cid] = chainIDMap[cid]
-		} else if wire.EndMinute1 <= v.Ack.Type &&
-			v.Ack.Type <= wire.EndMinute10 {
+		} else if v.Ack.IsEomAck() {
 			tmpChains = make(map[string]*common.EChain)
 		}
 	}
@@ -1389,7 +1389,7 @@ func buildFromProcessList(pl *consensus.ProcessList) error {
 			if err != nil {
 				return err
 			}
-		} else if wire.EndMinute1 <= pli.Ack.Type && pli.Ack.Type <= wire.EndMinute10 {
+		} else if pli.Ack.IsEomAck() {
 			buildEndOfMinute(pl, pli)
 		}
 	}
