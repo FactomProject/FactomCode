@@ -303,7 +303,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		if ok && msgRevealEntry.IsValid() {
 			// broadcast it to other federate servers only if it's new to me
 			h, _ := msgRevealEntry.Sha()
-			fmt.Printf("CmdRevealEntry: msgRevealEntry=%s, hash=%s\n", spew.Sdump(msgRevealEntry), h.String())
+			fmt.Printf("CmdRevealEntry: msgRevealEntry=%s, msg.hash=%s\n", spew.Sdump(msgRevealEntry), h.String())
 			if fMemPool.haveMsg(h) {
 				fmt.Printf("CmdRevealEntry: already in mempool. msgRevealEntry=%s, hash=%s\n", 
 					spew.Sdump(msgRevealEntry), h.String())
@@ -637,8 +637,8 @@ func processAckMsg(ack *wire.MsgAck) ([]*wire.MsgMissing, error) {
 	if nodeMode != common.SERVER_NODE || localServer == nil || localServer.IsLeader() {
 		return nil, nil
 	}
-	fmt.Printf("processAckMsg: Ack.Height=%d, Ack.Index=%d, dchain.NextDBHeight=%d, db.latestDBHeight=%d, blockSyncing=%v\n",
-		ack.Height, ack.Index, dchain.NextDBHeight, latestHeight, blockSyncing)
+	fmt.Printf("processAckMsg: Ack.Height=%d, Ack.Index=%d, type=%d, dchain.NextDBHeight=%d, db.latestDBHeight=%d, blockSyncing=%v\n",
+		ack.Height, ack.Index, ack.Type, dchain.NextDBHeight, latestHeight, blockSyncing)
 	
 	//dchain.NextDBHeight is the dir block height for the network
 	//update it with ack height from the leader if necessary
@@ -1094,7 +1094,7 @@ func buildRevealChain(msg *wire.MsgRevealEntry) error {
 	db.InsertChain(chain)
 
 	// Chain initialization. let initEChains and storeBlocksFromMemPool take care of it
-	// initEChainFromDB(chain)
+	initEChainFromDB(chain)
 
 	// store the new entry in db
 	db.InsertEntry(chain.FirstEntry)

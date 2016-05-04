@@ -55,7 +55,7 @@ const (
 	CmdCommitEntry = "commitentry"
 	CmdRevealEntry = "revealentry"
 
-	CmdAck            = "confirmation"
+	CmdAck            = "ack"
 	CmdMHashReveal    = "mhashreveal"
 	CmdEOM            = "eom"
 	CmdDirBlockSig    = "dirblocksig"

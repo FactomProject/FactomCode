@@ -314,6 +314,9 @@ func messageSummary(msg wire.Message) string {
 	case *wire.MsgAlert:
 		// No summary.
 
+	case *wire.MsgAck:
+		// return fmt.Sprintf("(h=%d, idx=%d, type=%v)", msg.Height, msg.Index, msg.Type)
+
 	case *wire.MsgInv:
 		return invSummary(msg.InvList)
 
