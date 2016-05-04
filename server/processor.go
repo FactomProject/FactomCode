@@ -81,7 +81,8 @@ var (
 	firstBlockHeight                   uint32 // the DBHeight of the first block being built by follower after sync up
 	doneSetFollowersCointbaseTimeStamp bool
 	doneSentCandidateMsg               bool
-	leaderCrashed 										 bool
+	leaderCrashed 					   bool
+	consensusEOM					   = wire.EndMinute1
 
 	zeroHash                = common.NewHash()
 	directoryBlockInSeconds int
@@ -100,9 +101,13 @@ func LoadConfigurations(fcfg *util.FactomdConfig) {
 	dataStorePath = factomConfig.App.DataStorePath
 	ldbpath = factomConfig.App.LdbPath
 	directoryBlockInSeconds = factomConfig.App.DirectoryBlockInSeconds
+	if directoryBlockInSeconds == 60 {
+		consensusEOM = wire.EndMinute2
+	}
 	nodeMode = factomConfig.App.NodeMode
 	serverPrivKeyHex = factomConfig.App.ServerPrivKey
 	cp.CP.SetPort(factomConfig.Controlpanel.Port)
+
 }
 
 // InitProcessor initializes the processor
@@ -394,7 +399,7 @@ func processLeaderEOM(msgEom *wire.MsgInt_EOM) error {
 	// to simplify this, for leader & followers, use the next wire.EndMinute1
 	// to trigger signature comparison of last round.
 	// todo: when to start? can NOT do this for the first EOM_1 ???
-	if msgEom.EOM_Type == wire.EndMinute2 {
+	if msgEom.EOM_Type == consensusEOM {
 		if !localServer.isSingleServerMode() && fMemPool.lenDirBlockSig(msgEom.NextDBlockHeight - 1) > 0 {
 			go processDirBlockSig()
 		} else {
@@ -691,7 +696,7 @@ func processAckMsg(ack *wire.MsgAck) ([]*wire.MsgMissing, error) {
 	// to simplify this, for leader & followers, use the next wire.EndMinute1
 	// to trigger signature comparison of last round.
 	// todo: when to start? can NOT do this for the first EOM_1 ???
-	if ack.Type == wire.EndMinute2 {
+	if ack.Type == consensusEOM {
 		// need to bypass the first block of newly-joined follower, 
 		// either this is 11th minute: ack.NextDBlockHeight-1 == firstBlockHeight
 		// or is 1st minute: 
