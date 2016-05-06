@@ -507,6 +507,9 @@ func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
 			p.Disconnect()
 			return
 		}
+		if msg.NodeState == wire.NodeLeader && p.IsLeader() {
+			panic("I can NOT join as a leader, since there's already a leader in " + msg.NodeID)
+		}
 		var fed *federateServer
 		for _, fed = range p.server.federateServers {
 			// Usually when a server has both listen and connect, it has 2 peers (inboud + outbound)

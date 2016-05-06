@@ -106,6 +106,7 @@ func doTransaction(hash *common.Hash, blockHeight uint32, dirBlockInfo *common.D
 	if err != nil {
 		return nil, fmt.Errorf("cannot send Raw Transaction: %s", err)
 	}
+	anchorLog.Info("btc.tx.sha=", shaHash.String())
 
 	if dirBlockInfo != nil {
 		dirBlockInfo.BTCTxHash = toHash(shaHash)

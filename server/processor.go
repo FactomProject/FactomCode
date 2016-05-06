@@ -1120,6 +1120,7 @@ func buildRevealChain(msg *wire.MsgRevealEntry) error {
 	return nil
 }
 
+// todo: what does this do exactly ???
 // Loop through the Process List items and get the touched chains
 // Put End-Of-Minute marker in the entry chains
 func buildEndOfMinute(pl *consensus.ProcessList, pli *consensus.ProcessListItem) {
@@ -1150,6 +1151,7 @@ func buildEndOfMinute(pl *consensus.ProcessList, pli *consensus.ProcessListItem)
 	ecchain.NextBlock.AddEntry(cbEntry)
 
 	// Add it to the admin chain
+	// todo: is this right???
 	abEntries := achain.NextBlock.ABEntries
 	if len(abEntries) > 0 && abEntries[len(abEntries)-1].Type() != common.TYPE_MINUTE_NUM {
 		achain.NextBlock.AddEndOfMinuteMarker(pli.Ack.Type)
