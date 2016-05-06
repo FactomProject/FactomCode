@@ -458,9 +458,9 @@ func processDirBlockSig() error {
 		return nil
 	}
 
-	leadPeer := localServer.GetLeaderPeer()		//.leaderPeer
+	leadPeer := localServer.GetLeaderPeer()
 	if localServer.latestLeaderSwitchDBHeight == dchain.NextDBHeight {
-		leadPeer = localServer.GetPrevLeaderPeer()		//.prevLeaderPeer
+		leadPeer = localServer.GetPrevLeaderPeer()
 	}
 	leaderID := localServer.nodeID
 	if leadPeer != nil {
@@ -2074,9 +2074,21 @@ func SignDirectoryBlock(newdb *common.DirectoryBlock) error {
 	return nil
 }
 
-// Place an anchor into btc
+// Place an anchor into bitcoin blockchain
+// cases to consider: single server mode, and isLeader & not recently switched or crashed
+// or, recently switched leader or leader crashed.
 func placeAnchor(dblock *common.DirectoryBlock) error {
-	if localServer.IsLeader() || localServer.isSingleServerMode() {
+	var me bool 
+	if localServer.isSingleServerMode() {
+		me = true
+	} else if localServer.IsLeader() && 
+		(localServer.latestLeaderSwitchDBHeight != dchain.NextDBHeight || leaderCrashed) {
+		me = true
+	} else if localServer.IsPrevLeader() && localServer.latestLeaderSwitchDBHeight == dchain.NextDBHeight {
+		me = true
+	}
+
+	if me {
 		fmt.Printf("placeAnchor: height=%d, leader=%s\n", dblock.Header.DBHeight, localServer.nodeID)
 		anchor.UpdateDirBlockInfoMap(common.NewDirBlockInfoFromDBlock(dblock))
 		go anchor.SendRawTransactionToBTC(dblock.KeyMR, dblock.Header.DBHeight)
