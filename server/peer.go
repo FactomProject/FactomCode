@@ -435,7 +435,7 @@ func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
 			//return
 		}
 	}
-
+	/*
 	// Notify and disconnect clients that have a protocol version that is
 	// too old.
 	if msg.ProtocolVersion < int32(wire.MultipleAddressVersion) {
@@ -448,7 +448,7 @@ func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
 			nil, true)
 		p.Disconnect()
 		return
-	}
+	}*/
 
 	// Updating a bunch of stats.
 	p.StatsMtx.Lock()
@@ -507,9 +507,10 @@ func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
 			p.Disconnect()
 			return
 		}
-		if msg.NodeState == wire.NodeLeader && p.IsLeader() {
-			panic("I can NOT join as a leader, since there's already a leader in " + msg.NodeID)
-		}
+		// not be able to tell who is the existing leader or newly joined leader
+		// if msg.NodeState == wire.NodeLeader && p.IsLeader() {
+			// panic("I can NOT join as a leader, since there's already a leader in " + msg.NodeID)
+		// }
 		var fed *federateServer
 		for _, fed = range p.server.federateServers {
 			// Usually when a server has both listen and connect, it has 2 peers (inboud + outbound)

@@ -388,7 +388,7 @@ func processLeaderEOM(msgEom *wire.MsgInt_EOM) error {
 	fmt.Println()
 	fmt.Println("//////////////////////")
 	fmt.Println("///                ///")
-	fmt.Println("///   Leader   	///")
+	fmt.Println("///   Leader       ///")
 	fmt.Println("///                ///")
 	fmt.Println("//////////////////////")
 	fmt.Println()
@@ -1168,9 +1168,11 @@ func buildGenesisBlocks() error {
 	dchain.NextBlock.Header.Timestamp = uint32(t.Unix() / 60)
 
 	// Allocate the first two dbentries for ECBlock and Factoid block
-	dchain.AddDBEntry(&common.DBEntry{}) // AdminBlock
-	dchain.AddDBEntry(&common.DBEntry{}) // ECBlock
-	dchain.AddDBEntry(&common.DBEntry{}) // Factoid block
+	// dchain.AddDBEntry(&common.DBEntry{}) // AdminBlock
+	// dchain.AddDBEntry(&common.DBEntry{}) // ECBlock
+	// dchain.AddDBEntry(&common.DBEntry{}) // Factoid block
+
+	dchain.AddThreeDBEntries()	
 
 	// Entry Credit Chain
 	cBlock := newEntryCreditBlock(ecchain)
@@ -1220,9 +1222,12 @@ func buildBlocks() error {
 		dchain.NextDBHeight, achain.NextBlockHeight, fchain.NextBlockHeight, ecchain.NextBlockHeight)
 
 	// Allocate the first three dbentries for Admin block, ECBlock and Factoid block
-	dchain.AddDBEntry(&common.DBEntry{}) // AdminBlock
-	dchain.AddDBEntry(&common.DBEntry{}) // ECBlock
-	dchain.AddDBEntry(&common.DBEntry{}) // factoid
+	// dchain.AddDBEntry(&common.DBEntry{}) // AdminBlock
+	// dchain.AddDBEntry(&common.DBEntry{}) // ECBlock
+	// dchain.AddDBEntry(&common.DBEntry{}) // factoid
+
+	// this prevents adding more than 3 DBEntries, in case of prev block being downloaded.
+	dchain.AddThreeDBEntries()
 
 	if plMgr != nil {
 		err := buildFromProcessList(plMgr.MyProcessList)
@@ -1294,7 +1299,7 @@ func buildBlocks() error {
 			if err != nil {
 				fmt.Println("buildBlocks: error in dBlock.MarshalBinary(): ", err.Error())
 			} else {
-				//fmt.Printf("buildBlocks: dirBlock=%s\n", spew.Sdump(dBlock))
+				fmt.Printf("buildBlocks: dirBlock=%s\n", spew.Sdump(dBlock.Header))
 				fmt.Printf("buildBlocks: dirBlock=%s\n", hex.EncodeToString(bytes))
 			}
 		}

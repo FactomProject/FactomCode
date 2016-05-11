@@ -306,9 +306,6 @@ func (s *server) handleAddPeerMsg(state *peerState, p *peer) bool {
 
 	// Ignore new peers if we've already had them.
 	for _, fed := range s.federateServers {
-		// if fed.Peer == nil {
-			// continue
-		// }
 		if fed.Peer.addr == p.addr || fed.Peer.nodeID == p.nodeID {
 			fmt.Printf("handleAddPeerMsg: duplicated peer: peer=%s\n", fed.Peer)
 			p.Shutdown()

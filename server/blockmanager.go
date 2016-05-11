@@ -148,7 +148,7 @@ func (b *blockManager) handleNewPeerMsg(peers *list.List, p *peer) {
 		return
 	}
 
-	bmgrLog.Infof("New valid peer %s (%s)", p, p.userAgent)
+	bmgrLog.Infof("New valid peer %s", p)
 
 	// Ignore the peer if it's not a sync candidate.
 	if !b.isSyncCandidateFactom(p) {
@@ -665,7 +665,7 @@ func (b *blockManager) handleAckMsg(amsg *ackMsg) {
 	}
 	missingMsgs, err := processAckPeerMsg(amsg)
 	if err != nil {
-		fmt.Println("blockManager.handleAckMsg: ", err.Error())
+		fmt.Printf("blockManager.handleAckMsg: ack=%s, err=%s\n", amsg, err.Error())
 		return
 	}
 	// todo: use InvVest to send it in one msg

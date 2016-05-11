@@ -536,6 +536,16 @@ func (c *DChain) AddFBlockToDBEntry(b block.IFBlock) (err error) {
 	return nil
 }
 
+// AddThreeDBEntries add 3 dbentries for ablock, ecblock and fblock.
+func (c *DChain) AddThreeDBEntries() {
+	c.BlockMutex.Lock()
+	for i := 0; i < 3; i++ {
+		c.NextBlock.DBEntries[i] = &DBEntry{}
+	}
+	c.BlockMutex.Unlock()
+}
+
+/*
 // Add DBEntry
 func (c *DChain) AddDBEntry(dbEntry *DBEntry) (err error) {
 
@@ -546,7 +556,6 @@ func (c *DChain) AddDBEntry(dbEntry *DBEntry) (err error) {
 	return nil
 }
 
-/*
 // Add DBEntry from a Factoid Block
 func (c *DChain) AddFBlockMRToDBEntry(dbEntry *DBEntry) (err error) {
 
