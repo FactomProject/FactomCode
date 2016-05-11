@@ -539,8 +539,8 @@ func (c *DChain) AddFBlockToDBEntry(b block.IFBlock) (err error) {
 // AddThreeDBEntries add 3 dbentries for ablock, ecblock and fblock.
 func (c *DChain) AddThreeDBEntries() {
 	c.BlockMutex.Lock()
-	for i := 0; i < 3; i++ {
-		c.NextBlock.DBEntries[i] = &DBEntry{}
+	for len(c.NextBlock.DBEntries) < 3 {
+		c.NextBlock.DBEntries = append(c.NextBlock.DBEntries, &DBEntry{})
 	}
 	c.BlockMutex.Unlock()
 }
