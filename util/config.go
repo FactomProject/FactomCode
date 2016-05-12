@@ -21,6 +21,7 @@ type FactomdConfig struct {
 		DirectoryBlockInSeconds int
 		NodeMode                string
 		NodeID                  string
+		Passphrase 				string
 		InitLeader              bool
 		ServerPrivKey           string
 		ExchangeRate            uint64
@@ -95,7 +96,8 @@ DirectoryBlockInSeconds				= 60
 ; --------------- NodeMode: FULL | SERVER | LIGHT ----------------
 NodeMode				        	= FULL
 ; NodeID is a hash hex string uniquely identifying this server and MUST be set for a federate server (NodeMode is SERVER)
-NodeID										= "SERVER_DEFAULT"
+NodeID								= "SERVER_DEFAULT"
+Passphrase 							= "please change me"
 ; This server will start as the ONLY leader initially among federate servers if InitLead is true, and all other servers have to be set as false.
 InitLeader							= "false"
 ServerPrivKey			      		= 07c0d52cb74f4ca3106d80c4a70488426886bccc6ebc10c6bafb37bf8a65f4c38cee85c62a9e48039d4ac294da97943c2001be1539809ea5f54721f0c5477a0a

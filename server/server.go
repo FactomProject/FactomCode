@@ -78,7 +78,7 @@ type GetPeerInfoResult struct {
 	SyncNode       bool    `json:"syncnode"`
 }
 
-// broadcastMsg provides the ability to house a bitcoin message to be broadcast
+// broadcastMsg provides the ability to house a factom message to be broadcast
 // to all connected peers except specified excluded peers.
 type broadcastMsg struct {
 	message      wire.Message
@@ -112,8 +112,8 @@ type updatePeerHeightsMsg struct {
 	originPeer *peer
 }
 
-// server provides a bitcoin server for handling communications to and from
-// bitcoin peers.
+// server provides a factom server for handling communications to and from
+// factom peers.
 type server struct {
 	nonce                uint64
 	listeners            []net.Listener
@@ -740,7 +740,7 @@ func (s *server) seedFromDNS() {
 			for i, peer := range seedpeers {
 				addresses[i] = new(wire.NetAddress)
 				addresses[i].SetAddress(peer, uint16(intPort))
-				// bitcoind seeds with addresses from
+				// factomd seeds with addresses from
 				// a time randomly selected between 3
 				// and 7 days ago.
 				addresses[i].Timestamp = time.Now().Add(-1 *
@@ -748,7 +748,7 @@ func (s *server) seedFromDNS() {
 					randSource.Int31n(secondsIn4Days)))
 			}
 
-			// Bitcoind uses a lookup of the dns seeder here. This
+			// factomd uses a lookup of the dns seeder here. This
 			// is rather strange since the values looked up by the
 			// DNS seed lookups will vary quite a lot.
 			// to replicate this behaviour we put all addresses as
@@ -1372,7 +1372,7 @@ out:
 }
 
 // newServer returns a new btcd server configured to listen on addr for the
-// bitcoin network type specified by chainParams.  Use start to begin accepting
+// factom network type specified by chainParams.  Use start to begin accepting
 // connections from peers.
 func newServer(listenAddrs []string, chainParams *Params) (*server, error) {
 	nonce, err := wire.RandomUint64()

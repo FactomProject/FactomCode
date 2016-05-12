@@ -380,7 +380,7 @@ func (b *blockManager) Pause() chan<- struct{} {
 	return c
 }
 
-// newBlockManager returns a new bitcoin block manager.
+// newBlockManager returns a new factom block manager.
 // Use Start to begin processing asynchronous block and inv updates.
 func newBlockManager(s *server) (*blockManager, error) {
 	//newestHash, height, err := s.db.NewestSha()

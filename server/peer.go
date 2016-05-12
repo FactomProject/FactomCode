@@ -78,11 +78,11 @@ var (
 	nodeCount int32
 
 	// userAgentName is the user agent name and is used to help identify
-	// ourselves to other bitcoin peers.
+	// ourselves to other factom peers.
 	userAgentName = "factomd"
 
 	// userAgentVersion is the user agent version and is used to help
-	// identify ourselves to other bitcoin peers.
+	// identify ourselves to other factom peers.
 	userAgentVersion = fmt.Sprintf("%d.%d.%d", appMajor, appMinor, appPatch)
 )
 
@@ -99,7 +99,7 @@ func minUint32(a, b uint32) uint32 {
 }
 
 // newNetAddress attempts to extract the IP address and port from the passed
-// net.Addr interface and create a bitcoin NetAddress structure using that
+// net.Addr interface and create a factom NetAddress structure using that
 // information.
 func newNetAddress(addr net.Addr, services wire.ServiceFlag) (*wire.NetAddress, error) {
 	// addr will be a net.TCPAddr when not using a proxy.
@@ -145,7 +145,7 @@ type outMsg struct {
 	doneChan chan struct{}
 }
 
-// peer provides a bitcoin peer for handling bitcoin communications.  The
+// peer provides a factom peer for handling factom communications.  The
 // overall data flow is split into 3 goroutines and a separate block manager.
 // Inbound messages are read via the inHandler goroutine and generally
 // dispatched to their own handler.  For inbound data-related messages such as
@@ -330,9 +330,9 @@ func (p *peer) pushVersionMsg() error {
 		p.server.nonce, int32(blockNum))
 	msg.AddUserAgent(userAgentName, userAgentVersion)
 
-	// XXX: bitcoind appears to always enable the full node services flag
+	// XXX: factomd appears to always enable the full node services flag
 	// of the remote peer netaddress field in the version message regardless
-	// of whether it knows it supports it or not.  Also, bitcoind sets
+	// of whether it knows it supports it or not.  Also, factomd sets
 	// the services field of the local peer to 0 regardless of support.
 	//
 	// Realistically, this should be set as follows:
@@ -358,6 +358,7 @@ func (p *peer) pushVersionMsg() error {
 	msg.NodeType = p.server.nodeType
 	msg.NodeID = p.server.nodeID
 	msg.NodeSig = p.server.privKey.Sign([]byte(p.server.nodeID))
+	msg.SetPassphrase(factomConfig.App.Passphrase)
 	
 	if !ClientOnly {
 		msg.NodeState = p.server.GetMyFederateServer().Peer.nodeState		
@@ -410,7 +411,7 @@ func (p *peer) updateAddresses(msg *wire.MsgVersion) {
 	}
 }
 
-// handleVersionMsg is invoked when a peer receives a version bitcoin message
+// handleVersionMsg is invoked when a peer receives a version factom message
 // and is used to negotiate the protocol version details as well as kick start
 // the communications.
 func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
@@ -435,20 +436,6 @@ func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
 			//return
 		}
 	}
-	/*
-	// Notify and disconnect clients that have a protocol version that is
-	// too old.
-	if msg.ProtocolVersion < int32(wire.MultipleAddressVersion) {
-		// Send a reject message indicating the protocol version is
-		// obsolete and wait for the message to be sent before
-		// disconnecting.
-		reason := fmt.Sprintf("protocol version must be %d or greater",
-			wire.MultipleAddressVersion)
-		p.PushRejectMsg(msg.Command(), wire.RejectObsolete, reason,
-			nil, true)
-		p.Disconnect()
-		return
-	}*/
 
 	// Updating a bunch of stats.
 	p.StatsMtx.Lock()
@@ -511,6 +498,12 @@ func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
 		// if msg.NodeState == wire.NodeLeader && p.IsLeader() {
 			// panic("I can NOT join as a leader, since there's already a leader in " + msg.NodeID)
 		// }
+		if !msg.ComparePassphrase(factomConfig.App.Passphrase) {
+			fmt.Println("Error in compare Passphrase: ", msg.Passphrase)
+			p.PushRejectMsg(msg.Command(), wire.RejectInvalidPWd, "invalid Passphrase", nil, true)
+			p.Disconnect()
+			return
+		}
 		var fed *federateServer
 		for _, fed = range p.server.federateServers {
 			// Usually when a server has both listen and connect, it has 2 peers (inboud + outbound)
@@ -534,7 +527,7 @@ func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
 			StartTime:	 msg.StartTime,
 		}
 		p.server.federateServers = append(p.server.federateServers, fedServer)
-		peerLog.Debugf("Signature verified successfully total=%d after adding a new federate server: %s",
+		peerLog.Debugf("Signature & Passphrase verified successfully total=%d after adding a new federate server: %s",
 			p.server.FederateServerCount(), p)
 	} else {
 		p.server.clientPeers = append(p.server.clientPeers, p)
@@ -637,7 +630,7 @@ func (p *peer) PushRejectMsg(command string, code wire.RejectCode, reason string
 	<-doneChan
 }
 
-// handleInvMsg is invoked when a peer receives an inv bitcoin message and is
+// handleInvMsg is invoked when a peer receives an inv factom message and is
 // used to examine the inventory being advertised by the remote peer and react
 // accordingly.  We pass the message down to blockmanager which will call
 // QueueMessage with any appropriate responses.
@@ -645,7 +638,7 @@ func (p *peer) PushRejectMsg(command string, code wire.RejectCode, reason string
 //p.server.blockManager.QueueInv(msg, p)
 //}
 
-// handleGetAddrMsg is invoked when a peer receives a getaddr bitcoin message
+// handleGetAddrMsg is invoked when a peer receives a getaddr factom message
 // and is used to provide the peer with known addresses from the address
 // manager.
 func (p *peer) handleGetAddrMsg(msg *wire.MsgGetAddr) {
@@ -717,7 +710,7 @@ func (p *peer) pushAddrMsg(addresses []*wire.NetAddress) error {
 	return nil
 }
 
-// handleAddrMsg is invoked when a peer receives an addr bitcoin message and
+// handleAddrMsg is invoked when a peer receives an addr factom message and
 // is used to notify the server about advertised addresses.
 func (p *peer) handleAddrMsg(msg *wire.MsgAddr) {
 	// Ignore addresses when running on the simulation test network.  This
@@ -762,12 +755,12 @@ func (p *peer) handleAddrMsg(msg *wire.MsgAddr) {
 	// Add addresses to server address manager.  The address manager handles
 	// the details of things such as preventing duplicate addresses, max
 	// addresses, and last seen updates.
-	// XXX bitcoind gives a 2 hour time penalty here, do we want to do the
+	// XXX factomd gives a 2 hour time penalty here, do we want to do the
 	// same?
 	p.server.addrManager.AddAddresses(msg.AddrList, p.na)
 }
 
-// handlePingMsg is invoked when a peer receives a ping bitcoin message.  For
+// handlePingMsg is invoked when a peer receives a ping factom message.  For
 // recent clients (protocol version > BIP0031Version), it replies with a pong
 // message.  For older clients, it does nothing and anything other than failure
 // is considered a successful ping.
@@ -779,7 +772,7 @@ func (p *peer) handlePingMsg(msg *wire.MsgPing) {
 	}
 }
 
-// handlePongMsg is invoked when a peer received a pong bitcoin message.
+// handlePongMsg is invoked when a peer received a pong factom message.
 // recent clients (protocol version > BIP0031Version), and if we had send a ping
 // previosuly we update our ping time statistics. If the client is too old or
 // we had not send a ping we ignore it.
@@ -803,7 +796,7 @@ func (p *peer) handlePongMsg(msg *wire.MsgPong) {
 	}
 }
 
-// readMessage reads the next bitcoin message from the peer with logging.
+// readMessage reads the next factom message from the peer with logging.
 func (p *peer) readMessage() (wire.Message, []byte, error) {
 	n, msg, buf, err := wire.ReadMessageN(p.conn, p.ProtocolVersion(),
 		p.fctnet)
@@ -836,7 +829,7 @@ func (p *peer) readMessage() (wire.Message, []byte, error) {
 	return msg, buf, nil
 }
 
-// writeMessage sends a bitcoin Message to the peer with logging.
+// writeMessage sends a factom Message to the peer with logging.
 func (p *peer) writeMessage(msg wire.Message) {
 	// Don't do anything if we're disconnecting.
 	if atomic.LoadInt32(&p.disconnect) != 0 {
@@ -1046,8 +1039,11 @@ out:
 			// peer.
 
 		case *wire.MsgReject:
-			// Nothing to do currently.  Logging of the rejected
-			// message is handled already in readMessage.
+			// Logging of the rejected message is handled already in readMessage.
+			if msg.Code == wire.RejectInvalidPWd || msg.Code == wire.RejectInvalidSig {
+				// for testing purpose
+				panic(msg.Reason)
+			}
 
 
 			// Factom transactional messages processed only by servers
@@ -1391,7 +1387,7 @@ cleanup:
 	peerLog.Tracef("Peer output handler done for %s", p)
 }
 
-// QueueMessage adds the passed bitcoin message to the peer send queue.  It
+// QueueMessage adds the passed factom message to the peer send queue.  It
 // uses a buffered channel to communicate with the output handler goroutine so
 // it is automatically rate limited and safe for concurrent access.
 func (p *peer) QueueMessage(msg wire.Message, doneChan chan struct{}) {
@@ -1497,7 +1493,7 @@ func (p *peer) Shutdown() {
 	p.Disconnect()
 }
 
-// newPeerBase returns a new base bitcoin peer for the provided server and
+// newPeerBase returns a new base factom peer for the provided server and
 // inbound flag.  This is used by the newInboundPeer and newOutboundPeer
 // functions to perform base setup needed by both types of peers.
 func newPeerBase(s *server, inbound bool) *peer {
@@ -1522,7 +1518,7 @@ func newPeerBase(s *server, inbound bool) *peer {
 	return &p
 }
 
-// newInboundPeer returns a new inbound bitcoin peer for the provided server and
+// newInboundPeer returns a new inbound factom peer for the provided server and
 // connection.  Use Start to begin processing incoming and outgoing messages.
 func newInboundPeer(s *server, conn net.Conn) *peer {
 	p := newPeerBase(s, true)
@@ -1533,7 +1529,7 @@ func newInboundPeer(s *server, conn net.Conn) *peer {
 	return p
 }
 
-// newOutbountPeer returns a new outbound bitcoin peer for the provided server and
+// newOutbountPeer returns a new outbound factom peer for the provided server and
 // address and connects to it asynchronously. If the connection is successful
 // then the peer will also be started.
 func newOutboundPeer(s *server, addr string, persistent bool, retryCount int64) *peer {
@@ -1723,7 +1719,7 @@ func (p *peer) handleECBlockMsg(msg *wire.MsgECBlock, buf []byte) {
 	//inMsgQueue <- msg
 }
 
-// handleEBlockMsg is invoked when a peer receives an entry block bitcoin message.
+// handleEBlockMsg is invoked when a peer receives an entry block factom message.
 func (p *peer) handleEBlockMsg(msg *wire.MsgEBlock, buf []byte) {
 	processEBlock(msg)
 	binary, _ := msg.EBlk.MarshalBinary()
@@ -1925,7 +1921,7 @@ func (p *peer) handleGetNonDirDataMsg(msg *wire.MsgGetNonDirData) {
 	}
 }
 
-// handleDirInvMsg is invoked when a peer receives an inv bitcoin message and is
+// handleDirInvMsg is invoked when a peer receives an inv factom message and is
 // used to examine the inventory being advertised by the remote peer and react
 // accordingly.  We pass the message down to blockmanager which will call
 // QueueMessage with any appropriate responses.

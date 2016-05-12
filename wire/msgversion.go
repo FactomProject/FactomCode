@@ -8,9 +8,10 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"net"
 	"strings"
 	"time"
+
+	"golang.org/x/crypto/bcrypt"
 
 	"github.com/FactomProject/FactomCode/common"
 )
@@ -93,6 +94,9 @@ type MsgVersion struct {
 	
 	// StartTime is the time when server starts
 	StartTime int64
+
+	// Passphrase is the encrypted Passphrase
+	Passphrase string
 }
 
 // HasService returns whether the specified service is supported by the peer
@@ -229,6 +233,14 @@ func (msg *MsgVersion) BtcDecode(r io.Reader, pver uint32) error {
 		}
 	}
 
+	if buf.Len() > 0 {
+		pass, err := readVarString(buf, pver)
+		if err != nil {
+			return err
+		}
+		msg.Passphrase = pass
+	}
+
 	return nil
 }
 
@@ -306,6 +318,11 @@ func (msg *MsgVersion) BtcEncode(w io.Writer, pver uint32) error {
 		return err
 	}
 
+	err = writeVarString(w, pver, msg.Passphrase)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -351,27 +368,6 @@ func NewMsgVersion(me *NetAddress, you *NetAddress, nonce uint64,
 	}
 }
 
-// NewMsgVersionFromConn is a convenience function that extracts the remote
-// and local address from conn and returns a new bitcoin version message that
-// conforms to the Message interface.  See NewMsgVersion.
-func NewMsgVersionFromConn(conn net.Conn, nonce uint64,
-	lastBlock int32) (*MsgVersion, error) {
-
-	// Don't assume any services until we know otherwise.
-	lna, err := NewNetAddress(conn.LocalAddr(), 0)
-	if err != nil {
-		return nil, err
-	}
-
-	// Don't assume any services until we know otherwise.
-	rna, err := NewNetAddress(conn.RemoteAddr(), 0)
-	if err != nil {
-		return nil, err
-	}
-
-	return NewMsgVersion(lna, rna, nonce, lastBlock), nil
-}
-
 // validateUserAgent checks userAgent length against MaxUserAgentLen
 func validateUserAgent(userAgent string) error {
 	if len(userAgent) > MaxUserAgentLen {
@@ -400,4 +396,27 @@ func (msg *MsgVersion) AddUserAgent(name string, version string,
 	}
 	msg.UserAgent = newUserAgent
 	return nil
+}
+
+// SetPassphrase takes a plain string and encrypt it
+func (msg *MsgVersion) SetPassphrase(pass string) {
+    hashedPassword, err := bcrypt.GenerateFromPassword([]byte(pass), bcrypt.DefaultCost)
+    if err != nil {
+        fmt.Println("err in SetPassphrase: ", err)
+        return
+    }
+    if hashedPassword != nil {
+    	fmt.Println("hashed pwd=", string(hashedPassword), ", len=", len(hashedPassword))
+    	msg.Passphrase = string(hashedPassword)
+    }
+}
+
+// ComparePassphrase compares the decrypted msg.Passphrase with the passed Passphrase
+func (msg *MsgVersion) ComparePassphrase(Passphrase string) bool {
+    err := bcrypt.CompareHashAndPassword([]byte(msg.Passphrase), []byte(Passphrase))
+    if err == nil {
+    	return true
+    }
+    fmt.Println("err in ComparePassphrase: ", err)
+    return false
 }
