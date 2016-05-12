@@ -317,11 +317,11 @@ func checkMissingDirBlockInfo() {
 	dirBlockInfoMap2, _ := db.FetchAllDirBlockInfo()
 	for _, dblock := range dblocks {
 		if dblock.KeyMR == nil || bytes.Compare(dblock.KeyMR.Bytes(), common.NewHash().Bytes()) == 0 {
-			anchorLog.Debug("Missing dirBlock.KeyMR for height of ", dblock.Header.DBHeight)
+			// anchorLog.Debug("Missing dirBlock.KeyMR for height of ", dblock.Header.DBHeight)
 			dblock.BuildKeyMerkleRoot()
 		}
 		if _, ok := dirBlockInfoMap2[dblock.KeyMR.String()]; ok {
-			anchorLog.Debug("Existing dirBlock.KeyMR", dblock.KeyMR.String())
+			// anchorLog.Debug("Existing dirBlock.KeyMR", dblock.KeyMR.String())
 			continue
 		} else {
 			dirBlockInfo := common.NewDirBlockInfoFromDBlock(&dblock)
@@ -349,10 +349,13 @@ func InitAnchor(ldb database.Db, q chan factomwire.FtmInternalMsg, serverKey com
 		return
 	}
 	anchorLog.Debug("init dirBlockInfoMap.len=", len(dirBlockInfoMap))
-	// this might take a while to check missing DirBlockInfo for existing DirBlocks in database
-	go checkMissingDirBlockInfo()
 
+	// this might take a while to check missing DirBlockInfo for existing DirBlocks in database
 	readConfig()
+	if cfg.App.InitLeader {
+		go checkMissingDirBlockInfo()
+	}
+
 	if err = InitRPCClient(); err != nil {
 		anchorLog.Error(err.Error())
 	} else {
@@ -362,7 +365,11 @@ func InitAnchor(ldb database.Db, q chan factomwire.FtmInternalMsg, serverKey com
 	ticker0 := time.NewTicker(time.Minute * time.Duration(1))
 	go func() {
 		for _ = range ticker0.C {
-			checkForAnchor()
+			if wclient != nil && dclient != nil{
+				checkForAnchor()
+			} else {
+				anchorLog.Warning("\n\n$$$ WARNING: rpc clients and/or wallet are not initiated successfully. No anchoring for now.\n")
+			}
 		}
 	}()
 
@@ -396,7 +403,7 @@ func readConfig() {
 		panic("Cannot parse Server EC Key from configuration file: " + err.Error())
 	}
 	anchorChainID, err = common.HexToHash(cfg.Anchor.AnchorChainID)
-	anchorLog.Debug("anchorChainID: ", anchorChainID)
+	// anchorLog.Debug("anchorChainID: ", anchorChainID)
 	if err != nil || anchorChainID == nil {
 		panic("Cannot parse Server AnchorChainID from configuration file: " + err.Error())
 	}
@@ -583,10 +590,11 @@ func doSaveDirBlockInfo(transaction *btcutil.Tx, details *btcjson.BlockDetails, 
 	anchorLog.Infof("In doSaveDirBlockInfo, dirBlockInfo:%s saved to db\n", spew.Sdump(dirBlockInfo))
 
 	// to make factom / explorer more user friendly, instead of waiting for
-	// over 2 hours to know it's anchored, we can create the anchor chain instantly
+	// over 2 hours to know if it's anchored, we can create the anchor chain instantly
 	// then change it when the btc main chain re-org happens.
 	saveToAnchorChain(dirBlockInfo)
 }
+
 
 func saveToAnchorChain(dirBlockInfo *common.DirBlockInfo) {
 	anchorLog.Debug("in saveToAnchorChain")
@@ -628,6 +636,7 @@ func UpdateDirBlockInfoMap(dirBlockInfo *common.DirBlockInfo) {
 }
 
 func checkForAnchor() {
+	anchorLog.Debug("checkForAnchor: map.len=", len(dirBlockInfoMap))
 	timeNow := time.Now().Unix()
 	time0 := 60 * 60 * reAnchorAfter
 	dirBlockInfos := make([]*common.DirBlockInfo, 0, len(dirBlockInfoMap))
@@ -641,7 +650,9 @@ func checkForAnchor() {
 			anchorLog.Debug("first time anchor: ", spew.Sdump(dirBlockInfo))
 			SendRawTransactionToBTC(dirBlockInfo.DBMerkleRoot, dirBlockInfo.DBHeight)
 		} else {
-			// This is the re-anchor case for the missed callback of malleated tx
+			// This is the re-anchor case for the missed callback or malleated tx,
+			// that is, it has BTCTxHash and/or BTCBlockHash, BTCBlockHeight etc but 
+			// BTCConfirm is false.
 			lapse := timeNow - dirBlockInfo.Timestamp
 			if lapse > int64(time0) {
 				anchorLog.Debugf("re-anchor: time lapse=%d, %s\n", lapse, spew.Sdump(dirBlockInfo))
@@ -656,7 +667,9 @@ func checkTxConfirmations() {
 	time1 := 60 * 5 * confirmationsNeeded
 	dirBlockInfos := make([]*common.DirBlockInfo, 0, len(dirBlockInfoMap))
 	for _, v := range dirBlockInfoMap {
-		dirBlockInfos = append(dirBlockInfos, v)
+		if bytes.Compare(v.BTCTxHash.Bytes(), common.NewHash().Bytes()) != 0 {
+			dirBlockInfos = append(dirBlockInfos, v)
+		}
 	}
 	sort.Sort(ByTimestamp(dirBlockInfos))
 	for _, dirBlockInfo := range dirBlockInfos {

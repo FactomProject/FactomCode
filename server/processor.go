@@ -779,6 +779,8 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 	if e.ChainID.IsSameAs(zeroHash) || e.ChainID.IsSameAs(dchain.ChainID) || e.ChainID.IsSameAs(achain.ChainID) ||
 		e.ChainID.IsSameAs(ecchain.ChainID) || e.ChainID.IsSameAs(fchain.ChainID) {
 		return fmt.Errorf("This entry chain is not supported: %s", e.ChainID.String())
+	} else if factomConfig.Anchor.AnchorChainID == e.ChainID.String() {
+		fmt.Println("processRevealEntry: it's anchor chain")
 	}
 
 	if c, ok := commitEntryMap[e.Hash().String()]; ok {
