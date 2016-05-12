@@ -567,10 +567,10 @@ func (b *blockManager) QueueDirInv(inv *wire.MsgDirInv, p *peer) {
 // candidates and removes them as needed.
 func (b *blockManager) startSyncFactom(peers *list.List) {
 	// Return now if we're already syncing.
-	if b.syncPeer != nil {
-		bmgrLog.Info("syncPeer: ", b.syncPeer)
-		return
-	}
+	// if b.syncPeer != nil {
+		// bmgrLog.Info("syncPeer: ", b.syncPeer)
+		// return
+	// }
 
 	// Find the height of the current known best block.
 	_, height, err := db.FetchBlockHeightCache()
@@ -587,21 +587,19 @@ func (b *blockManager) startSyncFactom(peers *list.List) {
 		enext = e.Next()
 		p := e.Value.(*peer)
 
-		// Remove sync candidate peers that are no longer candidates due
-		// to passing their latest known block.  NOTE: The < is
-		// intentional as opposed to <=.  While techcnically the peer
-		// doesn't have a later block when it's equal, it will likely
-		// have one soon so it is a reasonable choice.  It also allows
-		// the case where both are at 0 such as during regression test.
-		// Factom: make it <=
 		if p.lastBlock <= int32(height) {
 			peers.Remove(e)
 			continue
 		}
 
-		// TODO(davec): Use a better algorithm to choose the best peer.
-		// For now, just pick the first available candidate.
-		bestPeer = p
+		if p.IsLeader() {
+			bestPeer = p
+			break
+		} 
+
+		if bestPeer == nil || bestPeer != nil && p.lastBlock > bestPeer.lastBlock {
+			bestPeer = p
+		}
 	}
 	bmgrLog.Info("bestPeer: ", bestPeer)
 
