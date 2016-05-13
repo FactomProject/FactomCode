@@ -113,12 +113,6 @@ func LoadConfigurations(fcfg *util.FactomdConfig) {
 // InitProcessor initializes the processor
 func InitProcessor(ldb database.Db, inQ, outQ chan wire.FtmInternalMsg) {
 	db = ldb
-	defer func() {
-		err := db.Close()
-		if err != nil {
-			panic(err)
-		}
-	}()
 	inMsgQueue = inQ
 	outMsgQueue = outQ
 
@@ -160,12 +154,7 @@ func InitProcessor(ldb database.Db, inQ, outQ chan wire.FtmInternalMsg) {
 	// Validate all dir blocks
 	err := validateDChain(dchain)
 	if err != nil {
-		// if nodeMode == common.SERVER_NODE {
 		panic("Error found in validating directory blocks: " + err.Error())
-			//fmt.Println("Error found in validating directory blocks: " + err.Error())
-		// } else {
-			// dchain.IsValidated = false
-		// }
 	}
 }
 
@@ -1828,8 +1817,9 @@ func saveBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
 		fmt.Printf("saveBlocks: block already saved: db.latestDBHeight=%d, dblock.Header.DBHeight=%d\n", 
 			latestHeight, dblock.Header.DBHeight)
 		return nil
-	} 
+	}
 
+	fmt.Println("saveBlocks: start=", dblock.Header.DBHeight)
 	db.ProcessDBlockBatch(dblock)
 	db.ProcessFBlockBatch(fblock)
 	db.ProcessECBlockBatch(ecblock)

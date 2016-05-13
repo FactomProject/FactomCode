@@ -112,7 +112,7 @@ func initDB() {
 			panic(err)
 		}
 	}
-	ftmdLog.Info("Database started from: " + cfg.App.LdbPath)
+	fmt.Println("Database started from: " + cfg.App.LdbPath)
 }
 
 func isCompilerVersionOK() bool {

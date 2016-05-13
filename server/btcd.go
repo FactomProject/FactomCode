@@ -114,6 +114,13 @@ func btcdMain(serverChan chan<- *server) error {
 
 // StartBtcd starts btcd main
 func StartBtcd() {
+	defer func() {
+		err := db.Close()
+		if err != nil {
+			panic(err)
+		}
+	}()
+	
 	if common.SERVER_NODE != factomConfig.App.NodeMode {
 		ClientOnly = true
 	}
