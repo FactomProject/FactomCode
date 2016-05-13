@@ -8,7 +8,7 @@
 // It syncs up with peers and build blocks based on the process lists and a
 // timed schedule.
 // For details, please refer to:
-// https://github.com/FactomProject/FactomDocs/blob/master/FactomLedgerbyConsensus.pdf
+// https://github.com/FactomProject/FactomDocs/blob/master/FactomLedgerbyfactomConsensus.pdf
 
 package server
 
@@ -25,7 +25,6 @@ import (
 
 	"github.com/FactomProject/FactomCode/anchor"
 	"github.com/FactomProject/FactomCode/common"
-	"github.com/FactomProject/FactomCode/consensus"
 	"github.com/FactomProject/ed25519"
 	cp "github.com/FactomProject/FactomCode/controlpanel"
 	"github.com/FactomProject/FactomCode/database"
@@ -69,7 +68,7 @@ var (
 	eCreditMapBackup map[string]int32 // backup from previous block - eCreditMap with public key string([32]byte) as key, credit balance as value
 
 	fMemPool *ftmMemPool
-	plMgr    *consensus.ProcessListMgr
+	plMgr    *ProcessListMgr
 
 	//Server Private key and Public key for milestone 1
 	serverPrivKey common.PrivateKey
@@ -1123,7 +1122,7 @@ func buildRevealChain(msg *wire.MsgRevealEntry) error {
 // todo: what does this do exactly ???
 // Loop through the Process List items and get the touched chains
 // Put End-Of-Minute marker in the entry chains
-func buildEndOfMinute(pl *consensus.ProcessList, pli *consensus.ProcessListItem) {
+func buildEndOfMinute(pl *ProcessList, pli *ProcessListItem) {
 	tmpChains := make(map[string]*common.EChain)
 	for _, v := range pl.GetPLItems()[:pli.Ack.Index] {
 		if v == nil {
@@ -1379,7 +1378,7 @@ func buildBlocks() error {
 }
 
 // build blocks from a process lists
-func buildFromProcessList(pl *consensus.ProcessList) error {
+func buildFromProcessList(pl *ProcessList) error {
 	for _, pli := range pl.GetPLItems() {
 		//fmt.Println("buildFromProcessList: pli=", spew.Sdump(pli))
 		if pli == nil {

@@ -8,7 +8,7 @@
 // It syncs up with peers and build blocks based on the process lists and a
 // timed schedule.
 // For details, please refer to:
-// https://github.com/FactomProject/FactomDocs/blob/master/FactomLedgerbyConsensus.pdf
+// https://github.com/FactomProject/FactomDocs/blob/master/FactomLedgerbyfactomConsensus.pdf
 
 package server
 
@@ -24,7 +24,6 @@ import (
 
 	// "github.com/FactomProject/FactomCode/anchor"
 	"github.com/FactomProject/FactomCode/common"
-	"github.com/FactomProject/FactomCode/consensus"
 	// "github.com/FactomProject/ed25519"
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/util"
@@ -76,7 +75,7 @@ type state struct {
 	fchain  *common.FctChain   // factoid Chain
 
 	fMemPool *ftmMemPool
-	plMgr    *consensus.ProcessListMgr
+	plMgr    *ProcessListMgr
 
 	//Server Private key and Public key for milestone 1
 	serverPrivKey common.PrivateKey

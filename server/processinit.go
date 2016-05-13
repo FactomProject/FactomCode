@@ -14,7 +14,6 @@ import (
 	"strconv"
 
 	"github.com/FactomProject/FactomCode/common"
-	"github.com/FactomProject/FactomCode/consensus"
 	cp "github.com/FactomProject/FactomCode/controlpanel"
 	"github.com/FactomProject/FactomCode/util"
 	fct "github.com/FactomProject/factoid"
@@ -305,7 +304,7 @@ func initServerKeys() {
 
 // Initialize the process list manager with the proper dir block height
 func initProcessListMgr() {
-	plMgr = consensus.NewProcessListMgr(dchain.NextDBHeight, 100, serverPrivKey)
+	plMgr = NewProcessListMgr(dchain.NextDBHeight, 100, serverPrivKey)
 
 }
 

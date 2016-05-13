@@ -3,7 +3,6 @@ package wire_test
 import (
 	"bytes"
 	"github.com/FactomProject/FactomCode/common"
-	"github.com/FactomProject/FactomCode/consensus"
 	"github.com/FactomProject/FactomCode/wire"
 	"testing"
 )
@@ -15,7 +14,7 @@ func TestMsgACK(t *testing.T) {
 	// Sign the ack using server private keys
 	b, _ := ack.GetBinaryForSignature()
 	serverPrivKey, err := common.NewPrivateKeyFromHex("07c0d52cb74f4ca3106d80c4a70488426886bccc6ebc10c6bafb37bf8a65f4c38cee85c62a9e48039d4ac294da97943c2001be1539809ea5f54721f0c5477a0a")
-	plMgr := consensus.NewProcessListMgr(1, 1, 10, serverPrivKey)
+	plMgr := factomNewProcessListMgr(1, 1, 10, serverPrivKey)
 	ack.Signature = *plMgr.SignAck(b).Sig
 
 	buf := bytes.Buffer{}

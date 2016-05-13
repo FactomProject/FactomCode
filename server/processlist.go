@@ -1,4 +1,4 @@
-package consensus
+package server
 
 import (
 	"github.com/FactomProject/FactomCode/wire"
