@@ -14,8 +14,8 @@ import (
 
 	"github.com/FactomProject/FactomCode/common"
 	cp "github.com/FactomProject/FactomCode/controlpanel"
-	"github.com/FactomProject/FactomCode/database"
-	"github.com/FactomProject/FactomCode/wire"
+	// "github.com/FactomProject/FactomCode/database"
+	// "github.com/FactomProject/FactomCode/wire"
 )
 
 var (
@@ -114,9 +114,7 @@ func btcdMain(serverChan chan<- *server) error {
 	return nil
 }
 
-// StartBtcd starts btcd main
-func StartBtcd(ldb database.Db, inQ, outQ chan wire.FtmInternalMsg) {
-	db = ldb
+/* func StartBtcd(ldb database.Db, inQ, outQ chan wire.FtmInternalMsg) {
 	defer func() {
 		err := db.Close()
 		if err != nil {
@@ -125,6 +123,10 @@ func StartBtcd(ldb database.Db, inQ, outQ chan wire.FtmInternalMsg) {
 	}()
 	inMsgQueue = inQ
 	outMsgQueue = outQ
+*/
+
+// StartBtcd starts btcd main
+func StartBtcd() {
 	if common.SERVER_NODE != factomConfig.App.NodeMode {
 		ClientOnly = true
 	}

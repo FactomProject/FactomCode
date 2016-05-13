@@ -71,7 +71,7 @@ func main() {
 
 	// Initialize db
 	initDB()
-	server.InitProcessor(db)
+	server.InitProcessor(db, inMsgQueue, outMsgQueue)
 
 	// Use all processor cores.
 	//runtime.GOMAXPROCS(runtime.NumCPU())
@@ -84,7 +84,7 @@ func main() {
 	// Start the wsapi server module in a separate go-routine
 	wsapi.Start(db, inMsgQueue)
 
-	server.StartBtcd(db, inMsgQueue, outMsgQueue)
+	server.StartBtcd()
 }
 
 // Load settings from configuration file: factomd.conf

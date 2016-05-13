@@ -111,8 +111,17 @@ func LoadConfigurations(fcfg *util.FactomdConfig) {
 }
 
 // InitProcessor initializes the processor
-func InitProcessor(ldb database.Db) {
+func InitProcessor(ldb database.Db, inQ, outQ chan wire.FtmInternalMsg) {
 	db = ldb
+	defer func() {
+		err := db.Close()
+		if err != nil {
+			panic(err)
+		}
+	}()
+	inMsgQueue = inQ
+	outMsgQueue = outQ
+
 	initServerKeys()
 	fMemPool = new(ftmMemPool)
 	fMemPool.initFtmMemPool()
