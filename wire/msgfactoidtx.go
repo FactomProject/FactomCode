@@ -16,12 +16,12 @@ var _ = fmt.Printf
 type IMsgFactoidTX interface {
 	// Set the Transaction to be carried by this message.
 	SetTransaction(fct.ITransaction)
-	// BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
+	// MsgEncode encodes the receiver to w using the bitcoin protocol encoding.
 	// This is part of the Message interface implementation.
-	BtcEncode(w io.Writer, pver uint32) error
-	// BtcDecode decodes r using the bitcoin protocol encoding into the receiver.
+	MsgEncode(w io.Writer, pver uint32) error
+	// MsgDecode decodes r using the bitcoin protocol encoding into the receiver.
 	// This is part of the Message interface implementation.
-	BtcDecode(r io.Reader, pver uint32) error
+	MsgDecode(r io.Reader, pver uint32) error
 	// Command returns the protocol command string for the message.  This is part
 	// of the Message interface implementation.
 	Command() string
@@ -34,7 +34,7 @@ type IMsgFactoidTX interface {
 	// Check whether the msg can pass the message level validations
 	// such as timestamp, signiture and etc
 	IsValid() bool
-	// Create a sha hash from the message binary (output of BtcEncode)
+	// Create a sha hash from the message binary (output of MsgEncode)
 	Sha() (ShaHash, error)
 }
 
@@ -51,9 +51,9 @@ func (msg *MsgFactoidTX) SetTransaction(transaction fct.ITransaction) {
 	msg.Transaction = transaction
 }
 
-// BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
+// MsgEncode encodes the receiver to w using the bitcoin protocol encoding.
 // This is part of the Message interface implementation.
-func (msg *MsgFactoidTX) BtcEncode(w io.Writer, pver uint32) error {
+func (msg *MsgFactoidTX) MsgEncode(w io.Writer, pver uint32) error {
 
 	data, err := msg.Transaction.MarshalBinary()
 	if err != nil {
@@ -68,9 +68,9 @@ func (msg *MsgFactoidTX) BtcEncode(w io.Writer, pver uint32) error {
 	return nil
 }
 
-// BtcDecode decodes r using the bitcoin protocol encoding into the receiver.
+// MsgDecode decodes r using the bitcoin protocol encoding into the receiver.
 // This is part of the Message interface implementation.
-func (msg *MsgFactoidTX) BtcDecode(r io.Reader, pver uint32) error {
+func (msg *MsgFactoidTX) MsgDecode(r io.Reader, pver uint32) error {
 
 	data, err := readVarBytes(r, pver, uint32(MaxAppMsgPayload), CmdEBlock)
 	if err != nil {
@@ -118,11 +118,11 @@ func (msg *MsgFactoidTX) IsValid() bool {
 	return true
 }
 
-// Create a sha hash from the message binary (output of BtcEncode)
+// Create a sha hash from the message binary (output of MsgEncode)
 func (msg *MsgFactoidTX) Sha() (ShaHash, error) {
 
 	buf := bytes.NewBuffer(nil)
-	msg.BtcEncode(buf, ProtocolVersion)
+	msg.MsgEncode(buf, ProtocolVersion)
 	var sha ShaHash
 	_ = sha.SetBytes(Sha256(buf.Bytes()))
 

@@ -73,13 +73,13 @@ type MsgReject struct {
 	Hash ShaHash
 }
 
-// BtcDecode decodes r using the factom protocol encoding into the receiver.
+// MsgDecode decodes r using the factom protocol encoding into the receiver.
 // This is part of the Message interface implementation.
-func (msg *MsgReject) BtcDecode(r io.Reader, pver uint32) error {
+func (msg *MsgReject) MsgDecode(r io.Reader, pver uint32) error {
 	if pver < RejectVersion {
 		str := fmt.Sprintf("reject message invalid for protocol "+
 			"version %d", pver)
-		return messageError("MsgReject.BtcDecode", str)
+		return messageError("MsgReject.MsgDecode", str)
 	}
 
 	// Command that was rejected.
@@ -115,13 +115,13 @@ func (msg *MsgReject) BtcDecode(r io.Reader, pver uint32) error {
 	return nil
 }
 
-// BtcEncode encodes the receiver to w using the factom protocol encoding.
+// MsgEncode encodes the receiver to w using the factom protocol encoding.
 // This is part of the Message interface implementation.
-func (msg *MsgReject) BtcEncode(w io.Writer, pver uint32) error {
+func (msg *MsgReject) MsgEncode(w io.Writer, pver uint32) error {
 	if pver < RejectVersion {
 		str := fmt.Sprintf("reject message invalid for protocol "+
 			"version %d", pver)
-		return messageError("MsgReject.BtcEncode", str)
+		return messageError("MsgReject.MsgEncode", str)
 	}
 
 	// Command that was rejected.

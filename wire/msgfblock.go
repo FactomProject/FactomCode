@@ -14,9 +14,9 @@ type MsgFBlock struct {
 	SC block.IFBlock
 }
 
-// BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
+// MsgEncode encodes the receiver to w using the bitcoin protocol encoding.
 // This is part of the Message interface implementation.
-func (msg *MsgFBlock) BtcEncode(w io.Writer, pver uint32) error {
+func (msg *MsgFBlock) MsgEncode(w io.Writer, pver uint32) error {
 
 	bytes, err := msg.SC.MarshalBinary()
 	if err != nil {
@@ -31,9 +31,9 @@ func (msg *MsgFBlock) BtcEncode(w io.Writer, pver uint32) error {
 	return nil
 }
 
-// BtcDecode decodes r using the bitcoin protocol encoding into the receiver.
+// MsgDecode decodes r using the bitcoin protocol encoding into the receiver.
 // This is part of the Message interface implementation.
-func (msg *MsgFBlock) BtcDecode(r io.Reader, pver uint32) error {
+func (msg *MsgFBlock) MsgDecode(r io.Reader, pver uint32) error {
 
 	bytes, err := readVarBytes(r, pver, uint32(MaxBlockMsgPayload), CmdFBlock)
 	if err != nil {

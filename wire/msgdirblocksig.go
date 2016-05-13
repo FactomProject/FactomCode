@@ -23,11 +23,11 @@ func (msg *MsgDirBlockSig) Command() string {
 	return CmdDirBlockSig
 }
 
-// BtcDecode is part of the Message interface implementation.
-func (msg *MsgDirBlockSig) BtcDecode(r io.Reader, pver uint32) error {
+// MsgDecode is part of the Message interface implementation.
+func (msg *MsgDirBlockSig) MsgDecode(r io.Reader, pver uint32) error {
 	buf, ok := r.(*bytes.Buffer)
 	if !ok {
-		return fmt.Errorf("MsgDirBlockSig.BtcDecode reader is not a " +
+		return fmt.Errorf("MsgDirBlockSig.MsgDecode reader is not a " +
 			"*bytes.Buffer")
 	}
 	err := readElements(buf, &msg.DBHeight, &msg.DirBlockHash, &msg.Sig)
@@ -44,8 +44,8 @@ func (msg *MsgDirBlockSig) BtcDecode(r io.Reader, pver uint32) error {
 	return nil
 }
 
-// BtcEncode is part of the Message interface implementation.
-func (msg *MsgDirBlockSig) BtcEncode(w io.Writer, pver uint32) error {
+// MsgEncode is part of the Message interface implementation.
+func (msg *MsgDirBlockSig) MsgEncode(w io.Writer, pver uint32) error {
 	err := writeElements(w, msg.DBHeight, msg.DirBlockHash, msg.Sig)
 	if err != nil {
 		fmt.Errorf(err.Error())

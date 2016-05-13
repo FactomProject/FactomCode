@@ -19,16 +19,16 @@ func TestMsgACK(t *testing.T) {
 	ack.Signature = *plMgr.SignAck(b).Sig
 
 	buf := bytes.Buffer{}
-	err = ack.BtcEncode(&buf, 1)
+	err = ack.MsgEncode(&buf, 1)
 	if err != nil {
 		t.Errorf("Error:", err)
 	}
 
 	b1 := buf.Bytes()
-	err = ack.BtcDecode(&buf, 1)
+	err = ack.MsgDecode(&buf, 1)
 
 	buf2 := bytes.Buffer{}
-	err = ack.BtcEncode(&buf2, 1)
+	err = ack.MsgEncode(&buf2, 1)
 	if err != nil {
 		t.Errorf("Error:", err)
 	}

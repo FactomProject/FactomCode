@@ -16,9 +16,9 @@ type MsgABlock struct {
 	ABlk *common.AdminBlock
 }
 
-// BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
+// MsgEncode encodes the receiver to w using the bitcoin protocol encoding.
 // This is part of the Message interface implementation.
-func (msg *MsgABlock) BtcEncode(w io.Writer, pver uint32) error {
+func (msg *MsgABlock) MsgEncode(w io.Writer, pver uint32) error {
 
 	bytes, err := msg.ABlk.MarshalBinary()
 	if err != nil {
@@ -33,9 +33,9 @@ func (msg *MsgABlock) BtcEncode(w io.Writer, pver uint32) error {
 	return nil
 }
 
-// BtcDecode decodes r using the bitcoin protocol encoding into the receiver.
+// MsgDecode decodes r using the bitcoin protocol encoding into the receiver.
 // This is part of the Message interface implementation.
-func (msg *MsgABlock) BtcDecode(r io.Reader, pver uint32) error {
+func (msg *MsgABlock) MsgDecode(r io.Reader, pver uint32) error {
 
 	bytes, err := readVarBytes(r, pver, uint32(MaxBlockMsgPayload), CmdABlock)
 	if err != nil {

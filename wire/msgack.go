@@ -86,11 +86,11 @@ func (msg *MsgAck) GetBinaryForSignature() (data []byte, err error) {
 	return buf.Bytes(), err
 }
 
-// BtcDecode is part of the Message interface implementation.
-func (msg *MsgAck) BtcDecode(r io.Reader, pver uint32) error {
+// MsgDecode is part of the Message interface implementation.
+func (msg *MsgAck) MsgDecode(r io.Reader, pver uint32) error {
 	newData, err := ioutil.ReadAll(r)
 	if err != nil {
-		return fmt.Errorf("MsgAck.BtcDecode reader is invalid")
+		return fmt.Errorf("MsgAck.MsgDecode reader is invalid")
 	}
 
 	msg.Height, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
@@ -114,8 +114,8 @@ func (msg *MsgAck) BtcDecode(r io.Reader, pver uint32) error {
 	return nil
 }
 
-// BtcEncode is part of the Message interface implementation.
-func (msg *MsgAck) BtcEncode(w io.Writer, pver uint32) error {
+// MsgEncode is part of the Message interface implementation.
+func (msg *MsgAck) MsgEncode(w io.Writer, pver uint32) error {
 	var buf bytes.Buffer
 	binary.Write(&buf, binary.BigEndian, msg.Height)
 	buf.Write(msg.ChainID.Bytes())
@@ -162,10 +162,10 @@ func NewMsgAck(height uint32, index uint32, affirm *ShaHash, ackType byte, times
 	}
 }
 
-// Sha Creates a sha hash from the message binary (output of BtcEncode)
+// Sha Creates a sha hash from the message binary (output of MsgEncode)
 func (msg *MsgAck) Sha() (ShaHash, error) {
 	buf := bytes.NewBuffer(nil)
-	msg.BtcEncode(buf, ProtocolVersion)
+	msg.MsgEncode(buf, ProtocolVersion)
 	var sha ShaHash
 	_ = sha.SetBytes(Sha256(buf.Bytes()))
 	return sha, nil

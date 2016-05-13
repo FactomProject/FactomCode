@@ -35,16 +35,16 @@ func TestMsgVersion(t *testing.T) {
 	//t.Errorf("ReadMessage =, msg %v", 		spew.Sdump(msgVersion))
 
 	buf := bytes.Buffer{}
-	err = msgVersion.BtcEncode(&buf, 1)
+	err = msgVersion.MsgEncode(&buf, 1)
 	if err != nil {
 		t.Errorf("Error:", err)
 	}
 
 	b1 := buf.Bytes()
-	err = msgVersion.BtcDecode(&buf, 1)
+	err = msgVersion.MsgDecode(&buf, 1)
 
 	buf2 := bytes.Buffer{}
-	err = msgVersion.BtcEncode(&buf2, 1)
+	err = msgVersion.MsgEncode(&buf2, 1)
 	if err != nil {
 		t.Errorf("Error:", err)
 	}

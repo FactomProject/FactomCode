@@ -26,9 +26,9 @@ func NewMsgCommitEntry() *MsgCommitEntry {
 	return m
 }
 
-// BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
+// MsgEncode encodes the receiver to w using the bitcoin protocol encoding.
 // This is part of the Message interface implementation.
-func (msg *MsgCommitEntry) BtcEncode(w io.Writer, pver uint32) error {
+func (msg *MsgCommitEntry) MsgEncode(w io.Writer, pver uint32) error {
 	bytes, err := msg.CommitEntry.MarshalBinary()
 	if err != nil {
 		return err
@@ -41,9 +41,9 @@ func (msg *MsgCommitEntry) BtcEncode(w io.Writer, pver uint32) error {
 	return nil
 }
 
-// BtcDecode decodes r using the bitcoin protocol encoding into the receiver.
+// MsgDecode decodes r using the bitcoin protocol encoding into the receiver.
 // This is part of the Message interface implementation.
-func (msg *MsgCommitEntry) BtcDecode(r io.Reader, pver uint32) error {
+func (msg *MsgCommitEntry) MsgDecode(r io.Reader, pver uint32) error {
 	bytes, err := readVarBytes(r, pver, uint32(common.CommitEntrySize),
 		CmdEntry)
 	if err != nil {
@@ -77,11 +77,11 @@ func (msg *MsgCommitEntry) IsValid() bool {
 	return msg.CommitEntry.IsValid()
 }
 
-// Create a sha hash from the message binary (output of BtcEncode)
+// Create a sha hash from the message binary (output of MsgEncode)
 func (msg *MsgCommitEntry) Sha() (ShaHash, error) {
 
 	buf := bytes.NewBuffer(nil)
-	msg.BtcEncode(buf, ProtocolVersion)
+	msg.MsgEncode(buf, ProtocolVersion)
 	var sha ShaHash
 	_ = sha.SetBytes(Sha256(buf.Bytes()))
 

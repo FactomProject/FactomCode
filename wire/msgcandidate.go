@@ -21,11 +21,11 @@ func (msg *MsgCandidate) Command() string {
 	return CmdCandidate
 }
 
-// BtcDecode is part of the Message interface implementation.
-func (msg *MsgCandidate) BtcDecode(r io.Reader, pver uint32) error {
+// MsgDecode is part of the Message interface implementation.
+func (msg *MsgCandidate) MsgDecode(r io.Reader, pver uint32) error {
 	buf, ok := r.(*bytes.Buffer)
 	if !ok {
-		return fmt.Errorf("MsgCandidate.BtcDecode reader is not a " +
+		return fmt.Errorf("MsgCandidate.MsgDecode reader is not a " +
 			"*bytes.Buffer")
 	}
 	err := readElements(buf, &msg.DBHeight, &msg.Sig)
@@ -42,8 +42,8 @@ func (msg *MsgCandidate) BtcDecode(r io.Reader, pver uint32) error {
 	return nil
 }
 
-// BtcEncode is part of the Message interface implementation.
-func (msg *MsgCandidate) BtcEncode(w io.Writer, pver uint32) error {
+// MsgEncode is part of the Message interface implementation.
+func (msg *MsgCandidate) MsgEncode(w io.Writer, pver uint32) error {
 	err := writeElements(w, msg.DBHeight, msg.Sig)
 	if err != nil {
 		fmt.Errorf(err.Error())

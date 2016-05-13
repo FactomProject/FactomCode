@@ -84,7 +84,7 @@ func main() {
 	// Start the wsapi server module in a separate go-routine
 	wsapi.Start(db, inMsgQueue)
 
-	server.StartBtcd()
+	server.StartFactomd()
 }
 
 // Load settings from configuration file: factomd.conf
@@ -106,7 +106,7 @@ func initDB() {
 	}
 
 	if db == nil {
-		ftmdLog.Info("Creating new db ...")
+		fmt.Println("Creating new db ...")
 		db, err = ldb.OpenLevelDB(cfg.App.LdbPath, true)
 		if err != nil {
 			panic(err)
@@ -117,13 +117,10 @@ func initDB() {
 
 func isCompilerVersionOK() bool {
 	goodenough := false
-	if strings.Contains(runtime.Version(), "1.4") {
-		goodenough = true
-	}
-	if strings.Contains(runtime.Version(), "1.5") {
-		goodenough = true
-	}
-	if strings.Contains(runtime.Version(), "1.6") {
+	if strings.Contains(runtime.Version(), "1.4") || 
+		strings.Contains(runtime.Version(), "1.5") ||
+		strings.Contains(runtime.Version(), "1.6") ||
+		strings.Contains(runtime.Version(), "1.7") {
 		goodenough = true
 	}
 	return goodenough

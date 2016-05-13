@@ -21,7 +21,7 @@ type tst struct {
 }
 
 // const dbpath = "/tmp/ldb9"
-const dbpath = "/home/me/.btcd/data/factoid0/blocks_leveldb"
+const dbpath = "/home/me/.factom/ldb"
 
 func main() {
 

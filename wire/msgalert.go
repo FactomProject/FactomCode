@@ -338,9 +338,9 @@ type MsgAlert struct {
 	Payload *Alert
 }
 
-// BtcDecode decodes r using the bitcoin protocol encoding into the receiver.
+// MsgDecode decodes r using the bitcoin protocol encoding into the receiver.
 // This is part of the Message interface implementation.
-func (msg *MsgAlert) BtcDecode(r io.Reader, pver uint32) error {
+func (msg *MsgAlert) MsgDecode(r io.Reader, pver uint32) error {
 	var err error
 
 	msg.SerializedPayload, err = readVarBytes(r, pver, MaxMessagePayload,
@@ -363,9 +363,9 @@ func (msg *MsgAlert) BtcDecode(r io.Reader, pver uint32) error {
 	return nil
 }
 
-// BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
+// MsgEncode encodes the receiver to w using the bitcoin protocol encoding.
 // This is part of the Message interface implementation.
-func (msg *MsgAlert) BtcEncode(w io.Writer, pver uint32) error {
+func (msg *MsgAlert) MsgEncode(w io.Writer, pver uint32) error {
 	var err error
 	var serializedpayload []byte
 	if msg.Payload != nil {
@@ -384,7 +384,7 @@ func (msg *MsgAlert) BtcEncode(w io.Writer, pver uint32) error {
 	}
 	slen := uint64(len(serializedpayload))
 	if slen == 0 {
-		return messageError("MsgAlert.BtcEncode", "empty serialized payload")
+		return messageError("MsgAlert.MsgEncode", "empty serialized payload")
 	}
 	err = writeVarBytes(w, pver, serializedpayload)
 	if err != nil {

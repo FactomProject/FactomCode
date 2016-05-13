@@ -16,9 +16,9 @@ type MsgECBlock struct {
 	ECBlock *common.ECBlock
 }
 
-// BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
+// MsgEncode encodes the receiver to w using the bitcoin protocol encoding.
 // This is part of the Message interface implementation.
-func (msg *MsgECBlock) BtcEncode(w io.Writer, pver uint32) error {
+func (msg *MsgECBlock) MsgEncode(w io.Writer, pver uint32) error {
 	bytes, err := msg.ECBlock.MarshalBinary()
 	if err != nil {
 		return err
@@ -32,9 +32,9 @@ func (msg *MsgECBlock) BtcEncode(w io.Writer, pver uint32) error {
 	return nil
 }
 
-// BtcDecode decodes r using the bitcoin protocol encoding into the receiver.
+// MsgDecode decodes r using the bitcoin protocol encoding into the receiver.
 // This is part of the Message interface implementation.
-func (msg *MsgECBlock) BtcDecode(r io.Reader, pver uint32) error {
+func (msg *MsgECBlock) MsgDecode(r io.Reader, pver uint32) error {
 
 	bytes, err := readVarBytes(r, pver, uint32(MaxBlockMsgPayload), CmdECBlock)
 	if err != nil {

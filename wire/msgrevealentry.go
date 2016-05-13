@@ -18,9 +18,9 @@ type MsgRevealEntry struct {
 	Entry *common.Entry
 }
 
-// BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
+// MsgEncode encodes the receiver to w using the bitcoin protocol encoding.
 // This is part of the Message interface implementation.
-func (msg *MsgRevealEntry) BtcEncode(w io.Writer, pver uint32) error {
+func (msg *MsgRevealEntry) MsgEncode(w io.Writer, pver uint32) error {
 
 	//Entry
 	bytes, err := msg.Entry.MarshalBinary()
@@ -36,9 +36,9 @@ func (msg *MsgRevealEntry) BtcEncode(w io.Writer, pver uint32) error {
 	return nil
 }
 
-// BtcDecode decodes r using the bitcoin protocol encoding into the receiver.
+// MsgDecode decodes r using the bitcoin protocol encoding into the receiver.
 // This is part of the Message interface implementation.
-func (msg *MsgRevealEntry) BtcDecode(r io.Reader, pver uint32) error {
+func (msg *MsgRevealEntry) MsgDecode(r io.Reader, pver uint32) error {
 	//Entry
 	bytes, err := readVarBytes(r, pver, uint32(MaxAppMsgPayload), CmdRevealEntry)
 	if err != nil {
@@ -72,11 +72,11 @@ func NewMsgRevealEntry() *MsgRevealEntry {
 	return &MsgRevealEntry{}
 }
 
-// Create a sha hash from the message binary (output of BtcEncode)
+// Create a sha hash from the message binary (output of MsgEncode)
 func (msg *MsgRevealEntry) Sha() (ShaHash, error) {
 
 	buf := bytes.NewBuffer(nil)
-	msg.BtcEncode(buf, ProtocolVersion)
+	msg.MsgEncode(buf, ProtocolVersion)
 	var sha ShaHash
 	_ = sha.SetBytes(Sha256(buf.Bytes()))
 

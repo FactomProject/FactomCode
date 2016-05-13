@@ -1581,7 +1581,7 @@ func newOutboundPeer(s *server, addr string, persistent bool, retryCount int64) 
 			time.Sleep(scaledDuration)
 		}
 		srvrLog.Debugf("Attempting to connect to %s", addr)
-		conn, err := btcdDial("tcp", addr)
+		conn, err := factomdDial("tcp", addr)
 		if err != nil {
 			srvrLog.Debugf("Failed to connect to %s: %v", addr, err)
 			p.server.donePeers <- p

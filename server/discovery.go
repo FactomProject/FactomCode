@@ -135,7 +135,7 @@ func torLookupIP(host, proxy string) ([]net.IP, error) {
 // seeders. If proxy is not "" then it is used as a tor proxy for the
 // resolution.
 func dnsDiscover(seeder string) ([]net.IP, error) {
-	peers, err := btcdLookup(seeder)
+	peers, err := factomdLookup(seeder)
 	if err != nil {
 		return nil, err
 	}

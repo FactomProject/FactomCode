@@ -17,52 +17,46 @@ import (
 	"strings"
 	"time"
 
-	//	"github.com/FactomProject/btcd/database"
-	//	_ "github.com/FactomProject/btcd/database/ldb"
-	//	_ "github.com/FactomProject/btcd/database/memdb"
-	"github.com/FactomProject/FactomCode/wire"
-	//	"github.com/FactomProject/btcutil"
+	// "github.com/FactomProject/FactomCode/wire"
 	flags "github.com/FactomProject/go-flags"
 	"github.com/FactomProject/go-socks/socks"
 )
 
 const (
-	defaultConfigFilename = "NONE.conf"
+	// defaultConfigFilename = "NONE.conf"
 	//	defaultDataDirname       = "data"
 	defaultLogLevel    = "info"
 	defaultLogDirname  = ""
-	defaultLogFilename = "btcd.log"
-	//	defaultMaxPeers          = 125
-	// defaultMaxPeers          = 10
+	defaultLogFilename = "factomd.log"
 	defaultMaxPeers = 125
 	//	defaultBanDuration       = time.Hour * 24
 	defaultBanDuration       = time.Minute // used in Factom to ban old clients, for a minute...
-	defaultMaxRPCClients     = 10
-	defaultMaxRPCWebsockets  = 25
-	defaultVerifyEnabled     = false
+	// defaultMaxRPCClients     = 10
+	// defaultMaxRPCWebsockets  = 25
+	// defaultVerifyEnabled     = false
 	defaultDbType            = "leveldb"
-	defaultFreeTxRelayLimit  = 15.0
-	defaultBlockMinSize      = 0
-	defaultBlockMaxSize      = 750000
-	blockMaxSizeMin          = 1000
-	blockMaxSizeMax          = wire.MaxBlockPayload - 1000
-	defaultBlockPrioritySize = 50000
-	defaultGenerate          = false
-	defaultAddrIndex         = false
+	// defaultFreeTxRelayLimit  = 15.0
+	// defaultBlockMinSize      = 0
+	// defaultBlockMaxSize      = 750000
+	// blockMaxSizeMin          = 1000
+	// blockMaxSizeMax          = wire.MaxBlockPayload - 1000
+	// defaultBlockPrioritySize = 50000
+	// defaultGenerate          = false
+	// defaultAddrIndex         = false
 )
 
 var (
-	btcdHomeDir       = getHomeDir() + "/.factom/"
-	defaultConfigFile = filepath.Join(btcdHomeDir, defaultConfigFilename)
-	//	defaultDataDir    = filepath.Join(btcdHomeDir, defaultDataDirname)
-	defaultDataDir = filepath.Join(btcdHomeDir)
+	factomdHomeDir       = getHomeDir() + "/.factom/"
+	// defaultConfigFile = filepath.Join(factomdHomeDir, defaultConfigFilename)
+	//	defaultDataDir    = filepath.Join(factomdHomeDir, defaultDataDirname)
+	defaultDataDir = filepath.Join(factomdHomeDir)
 	//	knownDbTypes       = database.SupportedDBs()
-	defaultRPCKeyFile  = filepath.Join(btcdHomeDir, "rpc.key")
-	defaultRPCCertFile = filepath.Join(btcdHomeDir, "rpc.cert")
-	defaultLogDir      = filepath.Join(btcdHomeDir, defaultLogDirname)
+	// defaultRPCKeyFile  = filepath.Join(factomdHomeDir, "rpc.key")
+	// defaultRPCCertFile = filepath.Join(factomdHomeDir, "rpc.cert")
+	defaultLogDir      = filepath.Join(factomdHomeDir, defaultLogDirname)
 
-	factomdUser string
-	factomdPass string
+	// factomdUser string
+	// factomdPass string
 	// ClientOnly specifies non server nodes (milestone1)
 	ClientOnly bool
 )
@@ -87,13 +81,13 @@ type config struct {
 	BanDuration   time.Duration `long:"banduration" description:"How long to ban misbehaving peers.  Valid time units are {s, m, h}.  Minimum 1 second"`
 	//	RPCUser            string        `short:"u" long:"rpcuser" description:"Username for RPC connections"`
 	//	RPCPass            string        `short:"P" long:"rpcpass" default-mask:"-" description:"Password for RPC connections"`
-	RPCListeners       []string `long:"rpclisten" description:"Add an interface/port to listen for RPC connections (default port: 8384, testnet: 18334)"`
-	RPCCert            string   `long:"rpccert" description:"File containing the certificate file"`
-	RPCKey             string   `long:"rpckey" description:"File containing the certificate key"`
-	RPCMaxClients      int      `long:"rpcmaxclients" description:"Max number of RPC clients for standard connections"`
-	RPCMaxWebsockets   int      `long:"rpcmaxwebsockets" description:"Max number of RPC websocket connections"`
-	DisableRPC         bool     `long:"norpc" description:"Disable built-in RPC server -- NOTE: The RPC server is disabled by default if no rpcuser/rpcpass is specified"`
-	DisableTLS         bool     `long:"notls" description:"Disable TLS for the RPC server -- NOTE: This is only allowed if the RPC server is bound to localhost"`
+	// RPCListeners       []string `long:"rpclisten" description:"Add an interface/port to listen for RPC connections (default port: 8384, testnet: 18334)"`
+	// RPCCert            string   `long:"rpccert" description:"File containing the certificate file"`
+	// RPCKey             string   `long:"rpckey" description:"File containing the certificate key"`
+	// RPCMaxClients      int      `long:"rpcmaxclients" description:"Max number of RPC clients for standard connections"`
+	// RPCMaxWebsockets   int      `long:"rpcmaxwebsockets" description:"Max number of RPC websocket connections"`
+	// DisableRPC         bool     `long:"norpc" description:"Disable built-in RPC server -- NOTE: The RPC server is disabled by default if no rpcuser/rpcpass is specified"`
+	// DisableTLS         bool     `long:"notls" description:"Disable TLS for the RPC server -- NOTE: This is only allowed if the RPC server is bound to localhost"`
 	DisableDNSSeed     bool     `long:"nodnsseed" description:"Disable DNS seeding for peers"`
 	ExternalIPs        []string `long:"externalip" description:"Add an ip to the list of local addresses we claim to listen on to peers"`
 	Proxy              string   `long:"proxy" description:"Connect via SOCKS5 proxy (eg. 127.0.0.1:9050)"`
@@ -106,21 +100,21 @@ type config struct {
 	TestNet3           bool     `long:"testnet" description:"Use the test network"`
 	RegressionTest     bool     `long:"devnet" description:"Use the devnet test network"`
 	SimNet             bool     `long:"simnet" description:"Use the simulation test network"`
-	DisableCheckpoints bool     `long:"nocheckpoints" description:"Disable built-in checkpoints.  Don't do this unless you know what you're doing."`
+	// DisableCheckpoints bool     `long:"nocheckpoints" description:"Disable built-in checkpoints.  Don't do this unless you know what you're doing."`
 	DbType             string   `long:"dbtype" description:"Database backend to use for the Block Chain"`
 	Profile            string   `long:"profile" description:"Enable HTTP profiling on given port -- NOTE port must be between 1024 and 65536"`
 	CPUProfile         string   `long:"cpuprofile" description:"Write CPU profile to the specified file"`
 	DebugLevel         string   `short:"d" long:"debuglevel" description:"Logging level for all subsystems {trace, debug, info, warn, error, critical} -- You may also specify <subsystem>=<level>,<subsystem2>=<level>,... to set the log level for individual subsystems -- Use show to list available subsystems"`
 	Upnp               bool     `long:"upnp" description:"Use UPnP to map our listening port outside of NAT"`
-	FreeTxRelayLimit   float64  `long:"limitfreerelay" description:"Limit relay of transactions with no transaction fee to the given amount in thousands of bytes per minute"`
-	Generate           bool     `long:"generate" description:"Generate (mine) bitcoins using the CPU"`
-	MiningAddrs        []string `long:"miningaddr" description:"Add the specified payment address to the list of addresses to use for generated blocks -- At least one address is required if the generate option is set"`
-	BlockMinSize       uint32   `long:"blockminsize" description:"Mininum block size in bytes to be used when creating a block"`
-	BlockMaxSize       uint32   `long:"blockmaxsize" description:"Maximum block size in bytes to be used when creating a block"`
-	BlockPrioritySize  uint32   `long:"blockprioritysize" description:"Size in bytes for high-priority/low-fee transactions when creating a block"`
-	GetWorkKeys        []string `long:"getworkkey" description:"DEPRECATED -- Use the --miningaddr option instead"`
-	AddrIndex          bool     `long:"addrindex" description:"Build and maintain a full address index. Currently only supported by leveldb."`
-	DropAddrIndex      bool     `long:"dropaddrindex" description:"Deletes the address-based transaction index from the database on start up, and the exits."`
+	// FreeTxRelayLimit   float64  `long:"limitfreerelay" description:"Limit relay of transactions with no transaction fee to the given amount in thousands of bytes per minute"`
+	// Generate           bool     `long:"generate" description:"Generate (mine) bitcoins using the CPU"`
+	// MiningAddrs        []string `long:"miningaddr" description:"Add the specified payment address to the list of addresses to use for generated blocks -- At least one address is required if the generate option is set"`
+	// BlockMinSize       uint32   `long:"blockminsize" description:"Mininum block size in bytes to be used when creating a block"`
+	// BlockMaxSize       uint32   `long:"blockmaxsize" description:"Maximum block size in bytes to be used when creating a block"`
+	// BlockPrioritySize  uint32   `long:"blockprioritysize" description:"Size in bytes for high-priority/low-fee transactions when creating a block"`
+	// GetWorkKeys        []string `long:"getworkkey" description:"DEPRECATED -- Use the --miningaddr option instead"`
+	// AddrIndex          bool     `long:"addrindex" description:"Build and maintain a full address index. Currently only supported by leveldb."`
+	// DropAddrIndex      bool     `long:"dropaddrindex" description:"Deletes the address-based transaction index from the database on start up, and the exits."`
 	onionlookup        func(string) ([]net.IP, error)
 	lookup             func(string) ([]net.IP, error)
 	oniondial          func(string, string) (net.Conn, error)
@@ -139,7 +133,7 @@ type serviceOptions struct {
 func cleanAndExpandPath(path string) string {
 	// Expand initial ~ to OS specific home directory.
 	if strings.HasPrefix(path, "~") {
-		homeDir := filepath.Dir(btcdHomeDir)
+		homeDir := filepath.Dir(factomdHomeDir)
 		path = strings.Replace(path, "~", homeDir, 1)
 	}
 
@@ -313,23 +307,23 @@ func newConfigParser(cfg *config, so *serviceOptions, options flags.Options) *fl
 func loadConfig() (*config, []string, error) {
 	// Default config.
 	cfg := config{
-		ConfigFile:        defaultConfigFile,
+		// ConfigFile:        defaultConfigFile,
 		DebugLevel:        defaultLogLevel,
 		MaxPeers:          defaultMaxPeers,
 		BanDuration:       defaultBanDuration,
-		RPCMaxClients:     defaultMaxRPCClients,
-		RPCMaxWebsockets:  defaultMaxRPCWebsockets,
+		// RPCMaxClients:     defaultMaxRPCClients,
+		// RPCMaxWebsockets:  defaultMaxRPCWebsockets,
 		DataDir:           defaultDataDir,
 		LogDir:            defaultLogDir,
 		DbType:            defaultDbType,
-		RPCKey:            defaultRPCKeyFile,
-		RPCCert:           defaultRPCCertFile,
-		FreeTxRelayLimit:  defaultFreeTxRelayLimit,
-		BlockMinSize:      defaultBlockMinSize,
-		BlockMaxSize:      defaultBlockMaxSize,
-		BlockPrioritySize: defaultBlockPrioritySize,
-		Generate:          defaultGenerate,
-		AddrIndex:         defaultAddrIndex,
+		// RPCKey:            defaultRPCKeyFile,
+		// RPCCert:           defaultRPCCertFile,
+		// FreeTxRelayLimit:  defaultFreeTxRelayLimit,
+		// BlockMinSize:      defaultBlockMinSize,
+		// BlockMaxSize:      defaultBlockMaxSize,
+		// BlockPrioritySize: defaultBlockPrioritySize,
+		// Generate:          defaultGenerate,
+		// AddrIndex:         defaultAddrIndex,
 	}
 
 	// Service options which are only added on Windows.
@@ -372,8 +366,7 @@ func loadConfig() (*config, []string, error) {
 	// Load additional config from file.
 	var configFileError error
 	parser := newConfigParser(&cfg, &serviceOpts, flags.Default)
-	if !(preCfg.RegressionTest || preCfg.SimNet) || preCfg.ConfigFile !=
-		defaultConfigFile {
+	if !(preCfg.RegressionTest || preCfg.SimNet) {
 
 		err := flags.NewIniParser(parser).ParseFile(preCfg.ConfigFile)
 		if err != nil {
@@ -403,7 +396,7 @@ func loadConfig() (*config, []string, error) {
 
 	// Create the home directory if it doesn't already exist.
 	funcName := "loadConfig"
-	err = os.MkdirAll(btcdHomeDir, 0700)
+	err = os.MkdirAll(factomdHomeDir, 0700)
 	if err != nil {
 		// Show a nicer error message if it's because a symlink is
 		// linked to a directory that does not exist (probably because
@@ -427,8 +420,8 @@ func loadConfig() (*config, []string, error) {
 	// while we're at it
 	if cfg.TestNet3 {
 		numNets++
-		//		activeNetParams = &testNet3Params
-		activeNetParams = &mainNetParams
+		activeNetParams = &testNet3Params
+		// activeNetParams = &mainNetParams
 	}
 	if cfg.RegressionTest {
 		numNets++
@@ -491,7 +484,7 @@ func loadConfig() (*config, []string, error) {
 			fmt.Fprintln(os.Stderr, usageMessage)
 			return nil, nil, err
 		}
-	*/
+	
 
 	if cfg.AddrIndex && cfg.DropAddrIndex {
 		err := fmt.Errorf("addrindex and dropaddrindex cannot be " +
@@ -507,7 +500,7 @@ func loadConfig() (*config, []string, error) {
 		fmt.Fprintln(os.Stderr, err)
 		fmt.Fprintln(os.Stderr, usageMessage)
 		return nil, nil, err
-	}
+	}*/
 
 	// Validate profile port number
 	if cfg.Profile != "" {
@@ -566,7 +559,7 @@ func loadConfig() (*config, []string, error) {
 	//cfg.DisableRPC = true
 	//fmt.Println("Disabling the RPC server...")
 	//}
-
+	/*
 	// Default RPC to listen on localhost only.
 	if !cfg.DisableRPC && len(cfg.RPCListeners) == 0 {
 		addrs, err := net.LookupHost("localhost")
@@ -591,11 +584,11 @@ func loadConfig() (*config, []string, error) {
 		fmt.Fprintln(os.Stderr, err)
 		fmt.Fprintln(os.Stderr, usageMessage)
 		return nil, nil, err
-	}
+	}*/
 
 	// Limit the block priority and minimum block sizes to max block size.
-	cfg.BlockPrioritySize = minUint32(cfg.BlockPrioritySize, cfg.BlockMaxSize)
-	cfg.BlockMinSize = minUint32(cfg.BlockMinSize, cfg.BlockMaxSize)
+	// cfg.BlockPrioritySize = minUint32(cfg.BlockPrioritySize, cfg.BlockMaxSize)
+	// cfg.BlockMinSize = minUint32(cfg.BlockMinSize, cfg.BlockMaxSize)
 
 	/*
 		// Check getwork keys are valid and saved parsed versions.
@@ -656,7 +649,7 @@ func loadConfig() (*config, []string, error) {
 	// duplicate addresses.
 	cfg.Listeners = normalizeAddresses(cfg.Listeners,
 		activeNetParams.DefaultPort)
-
+	/*
 	// Add default port to all rpc listener addresses if needed and remove
 	// duplicate addresses.
 	cfg.RPCListeners = normalizeAddresses(cfg.RPCListeners,
@@ -690,7 +683,7 @@ func loadConfig() (*config, []string, error) {
 				return nil, nil, err
 			}
 		}
-	}
+	}*/
 
 	// Add default port to all added peer addresses if needed and remove
 	// duplicate addresses.
@@ -767,26 +760,26 @@ func loadConfig() (*config, []string, error) {
 	return &cfg, remainingArgs, nil
 }
 
-// btcdDial connects to the address on the named network using the appropriate
+// factomdDial connects to the address on the named network using the appropriate
 // dial function depending on the address and configuration options.  For
 // example, .onion addresses will be dialed using the onion specific proxy if
 // one was specified, but will otherwise use the normal dial function (which
 // could itself use a proxy or not).
-func btcdDial(network, address string) (net.Conn, error) {
+func factomdDial(network, address string) (net.Conn, error) {
 	if strings.HasSuffix(address, ".onion") {
 		return cfg.oniondial(network, address)
 	}
 	return cfg.dial(network, address)
 }
 
-// btcdLookup returns the correct DNS lookup function to use depending on the
+// factomdLookup returns the correct DNS lookup function to use depending on the
 // passed host and configuration options.  For example, .onion addresses will be
 // resolved using the onion specific proxy if one was specified, but will
 // otherwise treat the normal proxy as tor unless --noonion was specified in
 // which case the lookup will fail.  Meanwhile, normal IP addresses will be
 // resolved using tor if a proxy was specified unless --noonion was also
 // specified in which case the normal system DNS resolver will be used.
-func btcdLookup(host string) ([]net.IP, error) {
+func factomdLookup(host string) ([]net.IP, error) {
 	if strings.HasSuffix(host, ".onion") {
 		return cfg.onionlookup(host)
 	}

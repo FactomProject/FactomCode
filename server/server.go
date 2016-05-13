@@ -1380,7 +1380,7 @@ func newServer(listenAddrs []string, chainParams *Params) (*server, error) {
 		return nil, err
 	}
 
-	amgr := addrmgr.New(cfg.DataDir, btcdLookup)
+	amgr := addrmgr.New(cfg.DataDir, factomdLookup)
 
 	var listeners []net.Listener
 	var nat NAT

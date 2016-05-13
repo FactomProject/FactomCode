@@ -23,11 +23,11 @@ func (msg *MsgCurrentLeader) Command() string {
 	return CmdCurrentLeader
 }
 
-// BtcDecode is part of the Message interface implementation.
-func (msg *MsgCurrentLeader) BtcDecode(r io.Reader, pver uint32) error {
+// MsgDecode is part of the Message interface implementation.
+func (msg *MsgCurrentLeader) MsgDecode(r io.Reader, pver uint32) error {
 	buf, ok := r.(*bytes.Buffer)
 	if !ok {
-		return fmt.Errorf("MsgCurrentLeader.BtcDecode reader is not a " +
+		return fmt.Errorf("MsgCurrentLeader.MsgDecode reader is not a " +
 			"*bytes.Buffer")
 	}
 	if buf.Len() > 0 {
@@ -58,8 +58,8 @@ func (msg *MsgCurrentLeader) BtcDecode(r io.Reader, pver uint32) error {
 	return nil
 }
 
-// BtcEncode is part of the Message interface implementation.
-func (msg *MsgCurrentLeader) BtcEncode(w io.Writer, pver uint32) error {
+// MsgEncode is part of the Message interface implementation.
+func (msg *MsgCurrentLeader) MsgEncode(w io.Writer, pver uint32) error {
 	err := writeVarString(w, pver, msg.CurrLeaderGone)
 	if err != nil {
 		return err

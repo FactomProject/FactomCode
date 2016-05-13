@@ -17,10 +17,10 @@ func (msg *MsgEOM) Command() string {
 	return CmdEOM
 }
 
-func (msg *MsgEOM) BtcDecode(r io.Reader, pver uint32) error {
+func (msg *MsgEOM) MsgDecode(r io.Reader, pver uint32) error {
 	buf, ok := r.(*bytes.Buffer)
 	if !ok {
-		return fmt.Errorf("MsgVersion.BtcDecode reader is not a " +
+		return fmt.Errorf("MsgVersion.MsgDecode reader is not a " +
 			"*bytes.Buffer")
 	}
 	err := readElements(buf, &msg.EOMType, &msg.NextDBlockHeight)
@@ -30,7 +30,7 @@ func (msg *MsgEOM) BtcDecode(r io.Reader, pver uint32) error {
 	return nil
 }
 
-func (msg *MsgEOM) BtcEncode(w io.Writer, pver uint32) error {
+func (msg *MsgEOM) MsgEncode(w io.Writer, pver uint32) error {
 	err := writeElements(w, msg.EOMType, msg.NextDBlockHeight)
 	if err != nil {
 		fmt.Errorf(err.Error())

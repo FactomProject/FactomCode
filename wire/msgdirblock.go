@@ -17,9 +17,9 @@ type MsgDirBlock struct {
 	NonDirBlockNeeded bool
 }
 
-// BtcEncode encodes the receiver to w using the factom protocol encoding.
+// MsgEncode encodes the receiver to w using the factom protocol encoding.
 // This is part of the Message interface implementation.
-func (msg *MsgDirBlock) BtcEncode(w io.Writer, pver uint32) error {
+func (msg *MsgDirBlock) MsgEncode(w io.Writer, pver uint32) error {
 
 	bytes, err := msg.DBlk.MarshalBinary()
 	if err != nil {
@@ -39,9 +39,9 @@ func (msg *MsgDirBlock) BtcEncode(w io.Writer, pver uint32) error {
 	return nil
 }
 
-// BtcDecode decodes r using the factom protocol encoding into the receiver.
+// MsgDecode decodes r using the factom protocol encoding into the receiver.
 // This is part of the Message interface implementation.
-func (msg *MsgDirBlock) BtcDecode(r io.Reader, pver uint32) error {
+func (msg *MsgDirBlock) MsgDecode(r io.Reader, pver uint32) error {
 	bytes, err := readVarBytes(r, pver, uint32(MaxBlockMsgPayload), CmdRevealEntry)
 	if err != nil {
 		return err

@@ -78,8 +78,8 @@ const MaxBlockMsgPayload = (1024 * 1024 * 32) // 32MB
 // and may therefore contain additional or fewer fields than those which
 // are used directly in the protocol encoded message.
 type Message interface {
-	BtcDecode(io.Reader, uint32) error
-	BtcEncode(io.Writer, uint32) error
+	MsgDecode(io.Reader, uint32) error
+	MsgEncode(io.Writer, uint32) error
 	Command() string
 	MaxPayloadLength(uint32) uint32
 }
@@ -273,7 +273,7 @@ func WriteMessageN(w io.Writer, msg Message, pver uint32, btcnet FactomNet) (int
 
 	// Encode the message payload.
 	var bw bytes.Buffer
-	err := msg.BtcEncode(&bw, pver)
+	err := msg.MsgEncode(&bw, pver)
 	if err != nil {
 		return totalBytes, err
 	}
@@ -416,9 +416,9 @@ func ReadMessageN(r io.Reader, pver uint32, btcnet FactomNet) (int, Message, []b
 	}
 
 	// Unmarshal message.  NOTE: This must be a *bytes.Buffer since the
-	// MsgVersion BtcDecode function requires it.
+	// MsgVersion MsgDecode function requires it.
 	pr := bytes.NewBuffer(payload)
-	err = msg.BtcDecode(pr, pver)
+	err = msg.MsgDecode(pr, pver)
 	if err != nil {
 		return totalBytes, nil, nil, err
 	}
