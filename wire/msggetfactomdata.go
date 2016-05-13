@@ -95,7 +95,7 @@ func (msg *MsgGetFactomData) MaxPayloadLength(pver uint32) uint32 {
 	return MaxVarIntPayload + (MaxInvPerMsg * maxInvVectPayload)
 }
 
-// NewMsgGetFactomData returns a new bitcoin getdata message that conforms to the
+// NewMsgGetFactomData returns a new factom getdata message that conforms to the
 // Message interface.  See MsgGetFactomData for details.
 func NewMsgGetFactomData() *MsgGetFactomData {
 	return &MsgGetFactomData{

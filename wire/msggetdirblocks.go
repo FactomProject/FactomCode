@@ -54,7 +54,7 @@ func (msg *MsgGetDirBlocks) AddBlockLocatorHash(hash *ShaHash) error {
 	return nil
 }
 
-// MsgDecode decodes r using the bitcoin protocol encoding into the receiver.
+// MsgDecode decodes r using the factom protocol encoding into the receiver.
 // This is part of the Message interface implementation.
 func (msg *MsgGetDirBlocks) MsgDecode(r io.Reader, pver uint32) error {
 	//util.Trace()
@@ -92,7 +92,7 @@ func (msg *MsgGetDirBlocks) MsgDecode(r io.Reader, pver uint32) error {
 	return nil
 }
 
-// MsgEncode encodes the receiver to w using the bitcoin protocol encoding.
+// MsgEncode encodes the receiver to w using the factom protocol encoding.
 // This is part of the Message interface implementation.
 func (msg *MsgGetDirBlocks) MsgEncode(w io.Writer, pver uint32) error {
 	//util.Trace()
@@ -144,7 +144,7 @@ func (msg *MsgGetDirBlocks) MaxPayloadLength(pver uint32) uint32 {
 	return 4 + MaxVarIntPayload + (MaxBlockLocatorsPerMsg * HashSize) + HashSize
 }
 
-// NewMsgGetDirBlocks returns a new bitcoin getdirblocks message that conforms to the
+// NewMsgGetDirBlocks returns a new factom getdirblocks message that conforms to the
 // Message interface using the passed parameters and defaults for the remaining
 // fields.
 func NewMsgGetDirBlocks(hashStop *ShaHash) *MsgGetDirBlocks {

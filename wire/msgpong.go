@@ -9,9 +9,9 @@ import (
 	"io"
 )
 
-// MsgPong implements the Message interface and represents a bitcoin pong
+// MsgPong implements the Message interface and represents a factom pong
 // message which is used primarily to confirm that a connection is still valid
-// in response to a bitcoin ping message (MsgPing).
+// in response to a factom ping message (MsgPing).
 //
 // This message was not added until protocol versions AFTER BIP0031Version.
 type MsgPong struct {
@@ -20,7 +20,7 @@ type MsgPong struct {
 	Nonce uint64
 }
 
-// MsgDecode decodes r using the bitcoin protocol encoding into the receiver.
+// MsgDecode decodes r using the factom protocol encoding into the receiver.
 // This is part of the Message interface implementation.
 func (msg *MsgPong) MsgDecode(r io.Reader, pver uint32) error {
 	// NOTE: <= is not a mistake here.  The BIP0031 was defined as AFTER
@@ -39,7 +39,7 @@ func (msg *MsgPong) MsgDecode(r io.Reader, pver uint32) error {
 	return nil
 }
 
-// MsgEncode encodes the receiver to w using the bitcoin protocol encoding.
+// MsgEncode encodes the receiver to w using the factom protocol encoding.
 // This is part of the Message interface implementation.
 func (msg *MsgPong) MsgEncode(w io.Writer, pver uint32) error {
 	// NOTE: <= is not a mistake here.  The BIP0031 was defined as AFTER
@@ -79,7 +79,7 @@ func (msg *MsgPong) MaxPayloadLength(pver uint32) uint32 {
 	return plen
 }
 
-// NewMsgPong returns a new bitcoin pong message that conforms to the Message
+// NewMsgPong returns a new factom pong message that conforms to the Message
 // interface.  See MsgPong for details.
 func NewMsgPong(nonce uint64) *MsgPong {
 	return &MsgPong{

@@ -16,7 +16,7 @@ type MsgECBlock struct {
 	ECBlock *common.ECBlock
 }
 
-// MsgEncode encodes the receiver to w using the bitcoin protocol encoding.
+// MsgEncode encodes the receiver to w using the factom protocol encoding.
 // This is part of the Message interface implementation.
 func (msg *MsgECBlock) MsgEncode(w io.Writer, pver uint32) error {
 	bytes, err := msg.ECBlock.MarshalBinary()
@@ -32,7 +32,7 @@ func (msg *MsgECBlock) MsgEncode(w io.Writer, pver uint32) error {
 	return nil
 }
 
-// MsgDecode decodes r using the bitcoin protocol encoding into the receiver.
+// MsgDecode decodes r using the factom protocol encoding into the receiver.
 // This is part of the Message interface implementation.
 func (msg *MsgECBlock) MsgDecode(r io.Reader, pver uint32) error {
 
@@ -62,7 +62,7 @@ func (msg *MsgECBlock) MaxPayloadLength(pver uint32) uint32 {
 	return MaxBlockMsgPayload
 }
 
-// NewMsgECBlock returns a new bitcoin inv message that conforms to the Message
+// NewMsgECBlock returns a new factom inv message that conforms to the Message
 // interface.  See MsgInv for details.
 func NewMsgECBlock() *MsgECBlock {
 	return &MsgECBlock{}

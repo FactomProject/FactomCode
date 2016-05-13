@@ -112,7 +112,7 @@ func (msg *MsgMissing) MaxPayloadLength(pver uint32) uint32 {
 	return 255
 }
 
-// NewMsgMissing returns a new bitcoin ping message that conforms to the Message
+// NewMsgMissing returns a new factom ping message that conforms to the Message
 // interface.  See MsgMissing for details.
 func NewMsgMissing(height uint32, index uint32, typ byte, isAck bool,
 	shaHash ShaHash, sourceID string) *MsgMissing {

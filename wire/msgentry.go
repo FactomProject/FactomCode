@@ -16,7 +16,7 @@ type MsgEntry struct {
 	Entry *common.Entry
 }
 
-// MsgEncode encodes the receiver to w using the bitcoin protocol encoding.
+// MsgEncode encodes the receiver to w using the factom protocol encoding.
 // This is part of the Message interface implementation.
 func (msg *MsgEntry) MsgEncode(w io.Writer, pver uint32) error {
 	bytes, err := msg.Entry.MarshalBinary()
@@ -32,7 +32,7 @@ func (msg *MsgEntry) MsgEncode(w io.Writer, pver uint32) error {
 	return nil
 }
 
-// MsgDecode decodes r using the bitcoin protocol encoding into the receiver.
+// MsgDecode decodes r using the factom protocol encoding into the receiver.
 // This is part of the Message interface implementation.
 func (msg *MsgEntry) MsgDecode(r io.Reader, pver uint32) error {
 	//Entry
@@ -62,7 +62,7 @@ func (msg *MsgEntry) MaxPayloadLength(pver uint32) uint32 {
 	return MaxAppMsgPayload
 }
 
-// NewMsgEntry returns a new bitcoin inv message that conforms to the Message
+// NewMsgEntry returns a new factom inv message that conforms to the Message
 // interface.  See MsgInv for details.
 func NewMsgEntry() *MsgEntry {
 	return &MsgEntry{}

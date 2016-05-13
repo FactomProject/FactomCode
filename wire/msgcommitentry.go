@@ -26,7 +26,7 @@ func NewMsgCommitEntry() *MsgCommitEntry {
 	return m
 }
 
-// MsgEncode encodes the receiver to w using the bitcoin protocol encoding.
+// MsgEncode encodes the receiver to w using the factom protocol encoding.
 // This is part of the Message interface implementation.
 func (msg *MsgCommitEntry) MsgEncode(w io.Writer, pver uint32) error {
 	bytes, err := msg.CommitEntry.MarshalBinary()
@@ -41,7 +41,7 @@ func (msg *MsgCommitEntry) MsgEncode(w io.Writer, pver uint32) error {
 	return nil
 }
 
-// MsgDecode decodes r using the bitcoin protocol encoding into the receiver.
+// MsgDecode decodes r using the factom protocol encoding into the receiver.
 // This is part of the Message interface implementation.
 func (msg *MsgCommitEntry) MsgDecode(r io.Reader, pver uint32) error {
 	bytes, err := readVarBytes(r, pver, uint32(common.CommitEntrySize),

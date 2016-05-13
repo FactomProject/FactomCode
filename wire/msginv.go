@@ -18,7 +18,7 @@ import (
 // typical case.
 const defaultInvListAlloc = 1000
 
-// MsgInv implements the Message interface and represents a bitcoin inv message.
+// MsgInv implements the Message interface and represents a factom inv message.
 // It is used to advertise a peer's known data such as blocks and transactions
 // through inventory vectors.  It may be sent unsolicited to inform other peers
 // of the data or in response to a getblocks message (MsgGetBlocks).  Each
@@ -43,7 +43,7 @@ func (msg *MsgInv) AddInvVect(iv *InvVect) error {
 	return nil
 }
 
-// MsgDecode decodes r using the bitcoin protocol encoding into the receiver.
+// MsgDecode decodes r using the factom protocol encoding into the receiver.
 // This is part of the Message interface implementation.
 func (msg *MsgInv) MsgDecode(r io.Reader, pver uint32) error {
 	count, err := readVarInt(r, pver)
@@ -70,7 +70,7 @@ func (msg *MsgInv) MsgDecode(r io.Reader, pver uint32) error {
 	return nil
 }
 
-// MsgEncode encodes the receiver to w using the bitcoin protocol encoding.
+// MsgEncode encodes the receiver to w using the factom protocol encoding.
 // This is part of the Message interface implementation.
 func (msg *MsgInv) MsgEncode(w io.Writer, pver uint32) error {
 	// Limit to max inventory vectors per message.
@@ -108,7 +108,7 @@ func (msg *MsgInv) MaxPayloadLength(pver uint32) uint32 {
 	return MaxVarIntPayload + (MaxInvPerMsg * maxInvVectPayload)
 }
 
-// NewMsgInv returns a new bitcoin inv message that conforms to the Message
+// NewMsgInv returns a new factom inv message that conforms to the Message
 // interface.  See MsgInv for details.
 func NewMsgInv() *MsgInv {
 	return &MsgInv{
@@ -116,7 +116,7 @@ func NewMsgInv() *MsgInv {
 	}
 }
 
-// NewMsgInvSizeHint returns a new bitcoin inv message that conforms to the
+// NewMsgInvSizeHint returns a new factom inv message that conforms to the
 // Message interface.  See MsgInv for details.  This function differs from
 // NewMsgInv in that it allows a default allocation size for the backing array
 // which houses the inventory vector list.  This allows callers who know in

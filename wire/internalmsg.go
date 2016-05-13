@@ -1,6 +1,6 @@
 package wire
 
-// Commands used in bitcoin message headers which describe the type of message.
+// Commands used in factom message headers which describe the type of message.
 const (
 
 	// Factom internal messages:

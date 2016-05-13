@@ -30,7 +30,7 @@ const Max3HashStringSize = Hash3Size * 2
 // string that has too many characters.
 var Err3HashStrSize = fmt.Errorf("max hash string length for sha3 is %v bytes", Max3HashStringSize)
 
-// Sha3Hash is used in several of the bitcoin messages and common structures.  It
+// Sha3Hash is used in several of the factom messages and common structures.  It
 // typically represents the double sha256 of data.
 type Sha3Hash [Hash3Size]byte
 

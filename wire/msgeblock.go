@@ -17,7 +17,7 @@ type MsgEBlock struct {
 	EntryNeeded bool
 }
 
-// MsgEncode encodes the receiver to w using the bitcoin protocol encoding.
+// MsgEncode encodes the receiver to w using the factom protocol encoding.
 // This is part of the Message interface implementation.
 func (msg *MsgEBlock) MsgEncode(w io.Writer, pver uint32) error {
 
@@ -39,7 +39,7 @@ func (msg *MsgEBlock) MsgEncode(w io.Writer, pver uint32) error {
 	return nil
 }
 
-// MsgDecode decodes r using the bitcoin protocol encoding into the receiver.
+// MsgDecode decodes r using the factom protocol encoding into the receiver.
 // This is part of the Message interface implementation.
 func (msg *MsgEBlock) MsgDecode(r io.Reader, pver uint32) error {
 
@@ -74,7 +74,7 @@ func (msg *MsgEBlock) MaxPayloadLength(pver uint32) uint32 {
 	return MaxBlockMsgPayload
 }
 
-// NewMsgEBlock returns a new bitcoin inv message that conforms to the Message
+// NewMsgEBlock returns a new factom inv message that conforms to the Message
 // interface.  See MsgInv for details.
 func NewMsgEBlock() *MsgEBlock {
 	return &MsgEBlock{

@@ -40,7 +40,7 @@ const (
 	RejectVersion uint32 = 70002
 )
 
-// ServiceFlag identifies services supported by a bitcoin peer.
+// ServiceFlag identifies services supported by a factom peer.
 type ServiceFlag uint64
 
 const (
@@ -78,10 +78,10 @@ func (f ServiceFlag) String() string {
 	return s
 }
 
-// FactomNet represents which bitcoin network a message belongs to.
+// FactomNet represents which factom network a message belongs to.
 type FactomNet uint32
 
-// Constants used to indicate the message bitcoin network.  They can also be
+// Constants used to indicate the message factom network.  They can also be
 // used to seek to the next message when a stream's state is unknown, but
 // this package does not provide that functionality since it's generally a
 // better idea to simply disconnect clients that are misbehaving over TCP.
@@ -100,7 +100,7 @@ const (
 	SimNet FactomNet = 0x12141c16
 )
 
-// bnStrings is a map of bitcoin networks back to their constant names for
+// bnStrings is a map of factom networks back to their constant names for
 // pretty printing.
 var bnStrings = map[FactomNet]string{
 	MainNet:  "MainNet",

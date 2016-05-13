@@ -35,7 +35,7 @@ func (msg *MsgGetDirData) AddInvVect(iv *InvVect) error {
 	return nil
 }
 
-// MsgDecode decodes r using the bitcoin protocol encoding into the receiver.
+// MsgDecode decodes r using the factom protocol encoding into the receiver.
 // This is part of the Message interface implementation.
 func (msg *MsgGetDirData) MsgDecode(r io.Reader, pver uint32) error {
 	count, err := readVarInt(r, pver)
@@ -62,7 +62,7 @@ func (msg *MsgGetDirData) MsgDecode(r io.Reader, pver uint32) error {
 	return nil
 }
 
-// MsgEncode encodes the receiver to w using the bitcoin protocol encoding.
+// MsgEncode encodes the receiver to w using the factom protocol encoding.
 // This is part of the Message interface implementation.
 func (msg *MsgGetDirData) MsgEncode(w io.Writer, pver uint32) error {
 	// Limit to max inventory vectors per message.
@@ -100,7 +100,7 @@ func (msg *MsgGetDirData) MaxPayloadLength(pver uint32) uint32 {
 	return MaxVarIntPayload + (MaxInvPerMsg * maxInvVectPayload)
 }
 
-// NewMsgGetDirData returns a new bitcoin getdata message that conforms to the
+// NewMsgGetDirData returns a new factom getdata message that conforms to the
 // Message interface.  See MsgGetDirData for details.
 func NewMsgGetDirData() *MsgGetDirData {
 	return &MsgGetDirData{
@@ -108,7 +108,7 @@ func NewMsgGetDirData() *MsgGetDirData {
 	}
 }
 
-// NewMsgGetDirDataSizeHint returns a new bitcoin getdata message that conforms to
+// NewMsgGetDirDataSizeHint returns a new factom getdata message that conforms to
 // the Message interface.  See MsgGetDirData for details.  This function differs
 // from NewMsgGetDirData in that it allows a default allocation size for the
 // backing array which houses the inventory vector list.  This allows callers

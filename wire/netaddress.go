@@ -16,7 +16,7 @@ import (
 // a TCP address as required.
 var ErrInvalidNetAddr = errors.New("provided net.Addr is not a net.TCPAddr")
 
-// maxNetAddressPayload returns the max payload size for a bitcoin NetAddress
+// maxNetAddressPayload returns the max payload size for a factom NetAddress
 // based on the protocol version.
 func maxNetAddressPayload(pver uint32) uint32 {
 	// Services 8 bytes + ip 16 bytes + port 2 bytes.
@@ -36,7 +36,7 @@ func maxNetAddressPayload(pver uint32) uint32 {
 type NetAddress struct {
 	// Last time the address was seen.  This is, unfortunately, encoded as a
 	// uint32 on the wire and therefore is limited to 2106.  This field is
-	// not present in the bitcoin version message (MsgVersion) nor was it
+	// not present in the factom version message (MsgVersion) nor was it
 	// added until protocol version >= NetAddressTimeVersion.
 	Timestamp time.Time
 
@@ -110,7 +110,7 @@ func readNetAddress(r io.Reader, pver uint32, na *NetAddress, ts bool) error {
 	var ip [16]byte
 	var port uint16
 
-	// NOTE: The bitcoin protocol uses a uint32 for the timestamp so it will
+	// NOTE: The factom protocol uses a uint32 for the timestamp so it will
 	// stop working somewhere around 2106.  Also timestamp wasn't added until
 	// protocol version >= NetAddressTimeVersion
 	if ts && pver >= NetAddressTimeVersion {
@@ -126,7 +126,7 @@ func readNetAddress(r io.Reader, pver uint32, na *NetAddress, ts bool) error {
 	if err != nil {
 		return err
 	}
-	// Sigh.  Bitcoin protocol mixes little and big endian.
+	// Sigh.  factom protocol mixes little and big endian.
 	err = binary.Read(r, binary.BigEndian, &port)
 	if err != nil {
 		return err
@@ -142,7 +142,7 @@ func readNetAddress(r io.Reader, pver uint32, na *NetAddress, ts bool) error {
 // version and whether or not the timestamp is included per ts.  Some messages
 // like version do not include the timestamp.
 func writeNetAddress(w io.Writer, pver uint32, na *NetAddress, ts bool) error {
-	// NOTE: The bitcoin protocol uses a uint32 for the timestamp so it will
+	// NOTE: The factom protocol uses a uint32 for the timestamp so it will
 	// stop working somewhere around 2106.  Also timestamp wasn't added until
 	// until protocol version >= NetAddressTimeVersion.
 	if ts && pver >= NetAddressTimeVersion {
@@ -162,7 +162,7 @@ func writeNetAddress(w io.Writer, pver uint32, na *NetAddress, ts bool) error {
 		return err
 	}
 
-	// Sigh.  Bitcoin protocol mixes little and big endian.
+	// Sigh.  factom protocol mixes little and big endian.
 	err = binary.Write(w, binary.BigEndian, na.Port)
 	if err != nil {
 		return err

@@ -1335,7 +1335,7 @@ out:
 			// listen port?
 			// XXX this assumes timeout is in seconds.
 			listenPort, err := s.nat.AddPortMapping("tcp", int(lport), int(lport),
-				"btcd listen port", 20*60)
+				"factomd listen port", 20*60)
 			if err != nil {
 				srvrLog.Warnf("can't add UPnP port mapping: %v", err)
 			}
@@ -1371,7 +1371,7 @@ out:
 	}
 }
 
-// newServer returns a new btcd server configured to listen on addr for the
+// newServer returns a new factomd server configured to listen on addr for the
 // factom network type specified by chainParams.  Use start to begin accepting
 // connections from peers.
 func newServer(listenAddrs []string, chainParams *Params) (*server, error) {

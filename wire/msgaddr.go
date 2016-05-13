@@ -10,10 +10,10 @@ import (
 )
 
 // MaxAddrPerMsg is the maximum number of addresses that can be in a single
-// bitcoin addr message (MsgAddr).
+// factom addr message (MsgAddr).
 const MaxAddrPerMsg = 1000
 
-// MsgAddr implements the Message interface and represents a bitcoin
+// MsgAddr implements the Message interface and represents a factom
 // addr message.  It is used to provide a list of known active peers on the
 // network.  An active peer is considered one that has transmitted a message
 // within the last 3 hours.  Nodes which have not transmitted in that time
@@ -55,7 +55,7 @@ func (msg *MsgAddr) ClearAddresses() {
 	msg.AddrList = []*NetAddress{}
 }
 
-// MsgDecode decodes r using the bitcoin protocol encoding into the receiver.
+// MsgDecode decodes r using the factom protocol encoding into the receiver.
 // This is part of the Message interface implementation.
 func (msg *MsgAddr) MsgDecode(r io.Reader, pver uint32) error {
 	count, err := readVarInt(r, pver)
@@ -82,7 +82,7 @@ func (msg *MsgAddr) MsgDecode(r io.Reader, pver uint32) error {
 	return nil
 }
 
-// MsgEncode encodes the receiver to w using the bitcoin protocol encoding.
+// MsgEncode encodes the receiver to w using the factom protocol encoding.
 // This is part of the Message interface implementation.
 func (msg *MsgAddr) MsgEncode(w io.Writer, pver uint32) error {
 	// Protocol versions before MultipleAddressVersion only allowed 1 address
@@ -133,7 +133,7 @@ func (msg *MsgAddr) MaxPayloadLength(pver uint32) uint32 {
 	return MaxVarIntPayload + (MaxAddrPerMsg * maxNetAddressPayload(pver))
 }
 
-// NewMsgAddr returns a new bitcoin addr message that conforms to the
+// NewMsgAddr returns a new factom addr message that conforms to the
 // Message interface.  See MsgAddr for details.
 func NewMsgAddr() *MsgAddr {
 	return &MsgAddr{

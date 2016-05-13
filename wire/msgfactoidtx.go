@@ -16,10 +16,10 @@ var _ = fmt.Printf
 type IMsgFactoidTX interface {
 	// Set the Transaction to be carried by this message.
 	SetTransaction(fct.ITransaction)
-	// MsgEncode encodes the receiver to w using the bitcoin protocol encoding.
+	// MsgEncode encodes the receiver to w using the factom protocol encoding.
 	// This is part of the Message interface implementation.
 	MsgEncode(w io.Writer, pver uint32) error
-	// MsgDecode decodes r using the bitcoin protocol encoding into the receiver.
+	// MsgDecode decodes r using the factom protocol encoding into the receiver.
 	// This is part of the Message interface implementation.
 	MsgDecode(r io.Reader, pver uint32) error
 	// Command returns the protocol command string for the message.  This is part
@@ -28,7 +28,7 @@ type IMsgFactoidTX interface {
 	// MaxPayloadLength returns the maximum length the payload can be for the
 	// receiver.  This is part of the Message interface implementation.
 	MaxPayloadLength(pver uint32) uint32
-	// NewMsgCommitEntry returns a new bitcoin Commit Entry message that conforms to
+	// NewMsgCommitEntry returns a new factom Commit Entry message that conforms to
 	// the Message interface.
 	NewMsgFactoidTX() IMsgFactoidTX
 	// Check whether the msg can pass the message level validations
@@ -51,7 +51,7 @@ func (msg *MsgFactoidTX) SetTransaction(transaction fct.ITransaction) {
 	msg.Transaction = transaction
 }
 
-// MsgEncode encodes the receiver to w using the bitcoin protocol encoding.
+// MsgEncode encodes the receiver to w using the factom protocol encoding.
 // This is part of the Message interface implementation.
 func (msg *MsgFactoidTX) MsgEncode(w io.Writer, pver uint32) error {
 
@@ -68,7 +68,7 @@ func (msg *MsgFactoidTX) MsgEncode(w io.Writer, pver uint32) error {
 	return nil
 }
 
-// MsgDecode decodes r using the bitcoin protocol encoding into the receiver.
+// MsgDecode decodes r using the factom protocol encoding into the receiver.
 // This is part of the Message interface implementation.
 func (msg *MsgFactoidTX) MsgDecode(r io.Reader, pver uint32) error {
 
@@ -98,7 +98,7 @@ func (msg *MsgFactoidTX) MaxPayloadLength(pver uint32) uint32 {
 	return MaxAppMsgPayload
 }
 
-// NewMsgCommitEntry returns a new bitcoin Commit Entry message that conforms to
+// NewMsgCommitEntry returns a new factom Commit Entry message that conforms to
 // the Message interface.
 func NewMsgFactoidTX() IMsgFactoidTX {
 	return &MsgFactoidTX{}
