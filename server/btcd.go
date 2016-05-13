@@ -14,8 +14,6 @@ import (
 
 	"github.com/FactomProject/FactomCode/common"
 	cp "github.com/FactomProject/FactomCode/controlpanel"
-	// "github.com/FactomProject/FactomCode/database"
-	// "github.com/FactomProject/FactomCode/wire"
 )
 
 var (
@@ -113,17 +111,6 @@ func btcdMain(serverChan chan<- *server) error {
 	ftmdLog.Info("Shutdown complete")
 	return nil
 }
-
-/* func StartBtcd(ldb database.Db, inQ, outQ chan wire.FtmInternalMsg) {
-	defer func() {
-		err := db.Close()
-		if err != nil {
-			panic(err)
-		}
-	}()
-	inMsgQueue = inQ
-	outMsgQueue = outQ
-*/
 
 // StartBtcd starts btcd main
 func StartBtcd() {

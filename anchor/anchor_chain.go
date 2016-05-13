@@ -89,13 +89,13 @@ func submitEntryToAnchorChain(aRecord *AnchorRecord) error {
 	cm := wire.NewMsgCommitEntry()
 	cm.CommitEntry = commit
 	inMsgQ <- cm
-	anchorLog.Debug("MsgCommitEntry: ", spew.Sdump(cm))
+	// anchorLog.Debug("MsgCommitEntry: ", spew.Sdump(cm))
 
 	// create a RevealEntry msg and send it to the local inmsgQ
 	rm := wire.NewMsgRevealEntry()
 	rm.Entry = entry
 	inMsgQ <- rm
-	anchorLog.Debug("MsgRevealEntry: ", spew.Sdump(rm))
+	// anchorLog.Debug("MsgRevealEntry: ", spew.Sdump(rm))
 
 	return nil
 }
