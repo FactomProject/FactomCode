@@ -567,10 +567,10 @@ func (b *blockManager) QueueDirInv(inv *wire.MsgDirInv, p *peer) {
 // candidates and removes them as needed.
 func (b *blockManager) startSyncFactom(peers *list.List) {
 	// Return now if we're already syncing.
-	// if b.syncPeer != nil {
-		// bmgrLog.Info("syncPeer: ", b.syncPeer)
-		// return
-	// }
+	if b.syncPeer != nil {
+		bmgrLog.Info("syncPeer: ", b.syncPeer)
+		return
+	}
 
 	// Find the height of the current known best block.
 	_, height, err := db.FetchBlockHeightCache()
