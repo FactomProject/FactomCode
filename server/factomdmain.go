@@ -42,7 +42,7 @@ func factomdMain(serverChan chan<- *server) error {
 	defer backendLog.Flush()
 
 	// Show version at startup.
-	ftmdLog.Infof("Version %s", version())
+	// ftmdLog.Infof("Version %s", version())
 
 	// Enable http profiling server if requested.
 	if cfg.Profile != "" {

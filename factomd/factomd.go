@@ -92,6 +92,7 @@ func loadConfigurations() {
 	cfg = util.ReadConfig()
 	cp.CP.SetPort(cfg.Controlpanel.Port)
 	server.LoadConfigurations(cfg)
+	fmt.Println("DirectoryBlockInSeconds: ", cfg.App.DirectoryBlockInSeconds)
 }
 
 // Initialize the level db and share it with other components

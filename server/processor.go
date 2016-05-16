@@ -387,7 +387,7 @@ func processLeaderEOM(msgEom *wire.MsgInt_EOM) error {
 	fmt.Println()
 	fmt.Println("//////////////////////")
 	fmt.Println("///                ///")
-	fmt.Println("///   Leader       ///")
+	fmt.Println("///     Leader     ///")
 	fmt.Println("///                ///")
 	fmt.Println("//////////////////////")
 	fmt.Println()

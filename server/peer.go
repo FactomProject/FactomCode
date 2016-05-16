@@ -176,8 +176,8 @@ type peer struct {
 	nodeType      string //nodeMode
 	nodeID        string //*wire.ShaHash
 	pubKey        common.PublicKey
-	startTime			int64
-	nodeState			wire.NodeState
+	startTime	  int64
+	nodeState	  wire.NodeState
 
 	inbound            bool
 	persistent         bool
@@ -498,7 +498,9 @@ func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
 		// if msg.NodeState == wire.NodeLeader && p.IsLeader() {
 			// panic("I can NOT join as a leader, since there's already a leader in " + msg.NodeID)
 		// }
-		if !msg.ComparePassphrase(factomConfig.App.Passphrase) {
+
+		// Only check passphrase only if both you and I are SERVER node.
+		if common.SERVER_NODE == p.server.nodeType && !msg.ComparePassphrase(factomConfig.App.Passphrase) {
 			fmt.Println("Error in compare Passphrase: ", msg.Passphrase)
 			p.PushRejectMsg(msg.Command(), wire.RejectInvalidPWd, "invalid Passphrase", nil, true)
 			p.Disconnect()
