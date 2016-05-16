@@ -72,5 +72,6 @@ func (msg *MsgDirBlockSig) Equals(m *MsgDirBlockSig) bool {
 
 // String returns str value
 func (msg *MsgDirBlockSig) String() string {
-	return fmt.Sprintf("DBHeight=%d, SourceID=%s, DirBlockHash=%s", msg.DBHeight, msg.SourceNodeID, hex.EncodeToString(msg.DirBlockHash.Bytes()))
+	return fmt.Sprintf("DirBlockSig(h=%d, from=%s, hash=%s)", 
+		msg.DBHeight, msg.SourceNodeID, hex.EncodeToString(msg.DirBlockHash.Bytes()))
 }

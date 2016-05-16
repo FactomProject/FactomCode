@@ -100,6 +100,6 @@ func NewCurrentLeaderMsg(currLeaderID string, candidates string, sourceID string
 
 // String returns its string value
 func (msg *MsgCurrentLeader) String() string {
-	return fmt.Sprintf("MsgCurrentLeader: CurrLeaderID=%s, candidates=%s, sourceID=%s, StartDBHeight=%d",
+	return fmt.Sprintf("MsgCurrentLeader(curr=%s, new=%s, from=%s, start=%d)",
 		msg.CurrLeaderGone, msg.NewLeaderCandidates, msg.SourceNodeID, msg.StartDBHeight)
 }

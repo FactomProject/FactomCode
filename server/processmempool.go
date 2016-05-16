@@ -155,7 +155,7 @@ func (mp *ftmMemPool) getDirBlockSigMap(leaderID string) (dgsMap map[string][]*w
 
 	for _, v := range mp.dirBlockSigs {
 		if !v.Sig.Verify(v.DirBlockHash.GetBytes()) {
-			fmt.Println("getDirBlockSigMap: could not verify sig: ", spew.Sdump(v))
+			fmt.Println("getDirBlockSigMap: could not verify sig: ", v)
 			continue
 		}
 		if v.DBHeight != dchain.NextDBHeight-1 {
@@ -164,11 +164,11 @@ func (mp *ftmMemPool) getDirBlockSigMap(leaderID string) (dgsMap map[string][]*w
 		}
 		if v.SourceNodeID == leaderID {
 			leaderDirBlockSig = v
-			fmt.Println("getDirBlockSigMap: got leader sig: ", leaderID)
+			// fmt.Println("getDirBlockSigMap: got leader sig: ", leaderID)
 		}
 		if v.SourceNodeID == localServer.nodeID {
 			myDirBlockSig = v
-			fmt.Println("getDirBlockSigMap: got my sig: ", localServer.nodeID)
+			// fmt.Println("getDirBlockSigMap: got my sig: ", localServer.nodeID)
 		}
 		key := v.DirBlockHash.String()
 		val := dgsMap[key]
@@ -240,7 +240,7 @@ func (mp *ftmMemPool) addAck(ack *wire.MsgAck) *wire.MsgMissing {
 		return nil
 	}
 
-	fmt.Printf("ftmMemPool.addAck: %s\n", ack)
+	// fmt.Printf("ftmMemPool.addAck: %s\n", ack)
 	mp.ackpool[d][ack.Index] = ack
 	if ack.Type == wire.AckRevealEntry || ack.Type == wire.AckRevealChain ||
 		ack.Type == wire.AckCommitChain || ack.Type == wire.AckCommitEntry ||
@@ -355,16 +355,16 @@ func (mp *ftmMemPool) rebuildLeaderProcessList(leader string, height uint32) {
 				hash = new(wire.ShaHash)
 			}
 		}
-		fmt.Println("rebuildLeaderProcessList: broadcast msg ", spew.Sdump(msg))
+		fmt.Println("rebuildLeaderProcessList: broadcast ", msg)
 		outMsgQueue <- msg
 
 		ack, _ := plMgr.AddToLeadersProcessList(msg, hash, mp.ackpool[d][i].Type, 
 			dchain.NextBlock.Header.Timestamp, fchain.NextBlock.GetCoinbaseTimestamp(), leader)
-		fmt.Println("rebuildLeaderProcessList: broadcast ack ", ack)
+		fmt.Println("rebuildLeaderProcessList: broadcast ", ack)
 		outMsgQueue <- ack
 		
 		if mp.ackpool[d][i].Type == wire.EndMinute10 {
-			fmt.Println("rebuildLeaderProcessList: stopped at EOM10")
+			// fmt.Println("rebuildLeaderProcessList: stopped at EOM10")
 			// should not get to this point
 			break
 		}

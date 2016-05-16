@@ -406,7 +406,7 @@ func (msg *MsgVersion) SetPassphrase(pass string) {
         return
     }
     if hashedPassword != nil {
-    	fmt.Println("hashed pwd=", string(hashedPassword), ", len=", len(hashedPassword))
+    	// fmt.Println("hashed pwd=", string(hashedPassword), ", len=", len(hashedPassword))
     	msg.Passphrase = string(hashedPassword)
     }
 }

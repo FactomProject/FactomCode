@@ -18,7 +18,6 @@ import (
 	"errors"
 	"fmt"
 	"sort"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -34,8 +33,6 @@ import (
 	"github.com/FactomProject/factoid/block"
 	"github.com/davecgh/go-spew/spew"
 )
-
-var _ = (*block.FBlock)(nil)
 
 var (
 	localServer  *server
@@ -122,18 +119,18 @@ func InitProcessor(ldb database.Db, inQ, outQ chan wire.FtmInternalMsg) {
 
 	// init Directory Block Chain
 	initDChain()
-	fmt.Println("Loaded ", dchain.NextDBHeight, " Directory blocks for chain: "+dchain.ChainID.String())
+	fmt.Println("Loaded ", dchain.NextDBHeight, " Directory blocks")
 
 	// init Entry Credit Chain
 	initECChain()
-	fmt.Println("Loaded ", ecchain.NextBlockHeight, " Entry Credit blocks for chain: "+ecchain.ChainID.String())
+	fmt.Println("Loaded ", ecchain.NextBlockHeight, " Entry Credit blocks")
 
 	// init Admin Chain
 	initAChain()
-	fmt.Println("Loaded ", achain.NextBlockHeight, " Admin blocks for chain: "+achain.ChainID.String())
+	fmt.Println("Loaded ", achain.NextBlockHeight, " Admin blocks")
 
 	initFctChain()
-	fmt.Println("Loaded ", fchain.NextBlockHeight, " factoid blocks for chain: "+fchain.ChainID.String())
+	fmt.Println("Loaded ", fchain.NextBlockHeight, " factoid blocks")
 
 	//Init anchor for server
 	if nodeMode == common.SERVER_NODE {
@@ -169,18 +166,23 @@ func StartProcessor(wg *sync.WaitGroup, quit chan struct{}) {
 	if localServer.IsLeader() {
 		if dchain.NextDBHeight == 0 {
 			buildGenesisBlocks()
-			procLog.Debug("after creating genesis block: dchain.NextDBHeight=", dchain.NextDBHeight)
+			// procLog.Debug("after creating genesis block: dchain.NextDBHeight=", dchain.NextDBHeight)
 		}
 		// sign the last dir block for next admin block
 		signDirBlockForAdminBlock(dchain.Blocks[dchain.NextDBHeight-1])
 
 		// Initialize timer for the open dblock before processing messages
-		timer := &BlockTimer{
-			nextDBlockHeight: dchain.NextDBHeight,
-			inMsgQueue:       inMsgQueue,
-		}
-		go timer.StartBlockTimer()
+		// timer := &BlockTimer{
+			// nextDBlockHeight: dchain.NextDBHeight,
+			// inMsgQueue:       inMsgQueue,
+		// }
+		// only leader runs a timer
+		// go timer.StartBlockTimer()
 	} 
+
+	// start the new block timer, where leader & follower have its own timers.
+	go startBlockTimer()
+
 	// process the blocks and entries downloaded from peers
 	// this is needed for clients and followers and leader when sync up
 	//fmt.Println("StartProcessor: validateAndStoreBlocks")
@@ -232,7 +234,7 @@ func StartProcessor(wg *sync.WaitGroup, quit chan struct{}) {
 
 			default:
 				//panic(fmt.Sprintf("bad outMsgQueue message received: %v", msg))
-				fmt.Printf("bad outMsgQueue message received: %#v\n", msg)
+				// fmt.Printf("bad outMsgQueue message received: %#v\n", msg)
 			}
 		case <-quit:
 			return
@@ -348,14 +350,14 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 			return nil
 		}
 		dbs, _ := msg.(*wire.MsgDirBlockSig)
-		fmt.Printf("Incoming MsgDirBlockSig: %s\n", spew.Sdump(dbs))
+		// fmt.Printf("Incoming: %s\n", dbs)
 		// to simplify this, use the next wire.EndMinute1 to trigger signature comparison. ???
 		fMemPool.addDirBlockSig(dbs)
 
 	case wire.CmdInt_EOM:
 		// this is only for leader. as followers have no blocktimer
 		// followers EOM will be driven by Ack of this EOM.
-		fmt.Printf("in case.CmdInt_EOM: localServer.IsLeader=%v\n", localServer.IsLeader())
+		// fmt.Printf("in case.CmdInt_EOM: localServer.IsLeader=%v\n", localServer.IsLeader())
 		msgEom, _ := msg.(*wire.MsgInt_EOM)
 		if leaderCrashed {
 			miss := checkMissingLeaderEOMs(msgEom)
@@ -389,9 +391,9 @@ func processLeaderEOM(msgEom *wire.MsgInt_EOM) error {
 	fmt.Println("///                ///")
 	fmt.Println("//////////////////////")
 	fmt.Println()
-	fmt.Println("processLeaderEOM: federate servers #: ", localServer.FederateServerCount(),
-		", Non-candidate federate servers #: ", localServer.NonCandidateServerCount(),
-		", singleServerMode=", singleServerMode)
+	fmt.Println("processLeaderEOM: servers #: ", localServer.FederateServerCount(),
+		", Non-candidates #: ", localServer.NonCandidateServerCount(),
+		", singleServer=", singleServerMode)
 
 	// to simplify this, for leader & followers, use the next wire.EndMinute1
 	// to trigger signature comparison of last round.
@@ -417,7 +419,7 @@ func processLeaderEOM(msgEom *wire.MsgInt_EOM) error {
 	if ack.ChainID == nil {
 		ack.ChainID = dchain.ChainID
 	}
-	fmt.Printf("processLeaderEOM: leader sending ack=%s\n", spew.Sdump(ack))
+	fmt.Printf("processLeaderEOM: sending %s\n", ack)
 	outMsgQueue <- ack
 
 	if msgEom.EOM_Type == wire.EndMinute10 {
@@ -446,12 +448,12 @@ func processDirBlockSig() error {
 	}
 	_, latestHeight, _ := db.FetchBlockHeightCache()
 	if uint32(latestHeight) == dchain.NextDBHeight-1 {
-		fmt.Printf("processDirBlockSig: block already saved: db.latestDBHeight=%d, dchain.NextDBHeight=%d\n", 
-			latestHeight, dchain.NextDBHeight)
+		// fmt.Printf("processDirBlockSig: block already saved: db.latestDBHeight=%d, dchain.NextDBHeight=%d\n", 
+			// latestHeight, dchain.NextDBHeight)
 		return nil
 	} 
 	if fMemPool.lenDirBlockSig(dchain.NextDBHeight-1) == 0 {
-		fmt.Println("no dir block sig in mempool.")
+		// fmt.Println("no dir block sig in mempool.")
 		return nil
 	}
 
@@ -479,10 +481,10 @@ func processDirBlockSig() error {
 		fmt.Printf("processDirBlockSig: I am a candidate just turned follower, "+
 			"leadPeer=%s, dbheight=%d\n", leadPeer, dchain.NextDBHeight-1)
 		if leaderDirBlockSig != nil {
-			fmt.Println("download it from leaderPeer with known hash. ", leadPeer)
+			// fmt.Println("download blocks from leaderPeer with known hash. ", leadPeer)
 			downloadNewDirBlock(leadPeer, leaderDirBlockSig.DirBlockHash, dchain.NextDBHeight-1)
 		} else {
-			fmt.Println("download it from leaderPeer with unknown hash. ", leadPeer)
+			// fmt.Println("download it from leaderPeer with unknown hash. ", leadPeer)
 			downloadNewDirBlock(leadPeer, *zeroHash, dchain.NextDBHeight-1)
 		}
 		return nil
@@ -495,9 +497,9 @@ func processDirBlockSig() error {
 
 	var needDownload, needFromNonLeader bool
 	var winner *wire.MsgDirBlockSig
-	for k, v := range dgsMap {
+	for _, v := range dgsMap {
 		n := float32(len(v)) / float32(totalServerNum)
-		fmt.Printf("key=%s, len=%d, n=%v\n", k, len(v), n)
+		// fmt.Printf("key=%s, len=%d, n=%v\n", k, len(v), n)
 		if n >= float32(1.0) {
 			fmt.Println("A full consensus !")
 			winner = myDirBlockSig
@@ -526,18 +528,18 @@ func processDirBlockSig() error {
 				}
 			}
 			fmt.Printf("A majority !  hasLeader=%v, hasMe=%v, needDownload=%v, "+
-				"needFromNonLeader=%v, winner=%s\n", hasLeader, hasMe, needDownload, needFromNonLeader, spew.Sdump(winner))
+				"needFromNonLeader=%v, winner=%s\n", hasLeader, hasMe, needDownload, needFromNonLeader, winner)
 			break
 		} else if n == float32(0.5) {
 			if leaderDirBlockSig != nil {
 				if myDirBlockSig != nil && leaderDirBlockSig.Equals(myDirBlockSig) {
 					winner = myDirBlockSig
 					needDownload = false
-					fmt.Printf("A tie with leader & me. needDownload=%v, winner=%s\n", needDownload, spew.Sdump(winner))
+					fmt.Printf("A tie with leader & me. needDownload=%v, winner=%s\n", needDownload, winner)
 				} else {
 					winner = leaderDirBlockSig
 					needDownload = true
-					fmt.Printf("A tie with leader but not me. needDownload=%v, winner=%s\n", needDownload, spew.Sdump(winner))
+					fmt.Printf("A tie with leader but not me. needDownload=%v, winner=%s\n", needDownload, winner)
 				}
 			} else {
 				needDownload = true
@@ -550,7 +552,7 @@ func processDirBlockSig() error {
 	}
 
 	if needDownload {
-		fmt.Println("needDownload is true")
+		// fmt.Println("needDownload is true")
 		if !needFromNonLeader {
 			fmt.Println("downloadNewDirBlock: from leader")
 			downloadNewDirBlock(leadPeer, leaderDirBlockSig.DirBlockHash, dchain.NextDBHeight-1)
@@ -577,7 +579,7 @@ func processDirBlockSig() error {
 }
 
 func downloadNewDirBlock(p *peer, hash common.Hash, height uint32) {
-	fmt.Printf("downloadNewDirBlock: height=%d, hash=%s, peer=%s\n", height, hash.String(), p)
+	fmt.Printf("downloadNewDirBlock: h=%d, hash=%s, peer=%s\n", height, hash.String(), p)
 	fMemPool.addDownloaded(height)
 	
 	// check if more blocks need to be downloaded
@@ -610,7 +612,7 @@ func resyncBlocks(p *peer) error {
 		return err
 	}
 	
-	fmt.Printf("resyncBlocks: LatestDirBlockLocator: %s\n", spew.Sdump(locator))
+	// fmt.Printf("resyncBlocks: LatestDirBlockLocator: %s\n", spew.Sdump(locator))
 	_, latestHeight, _ := db.FetchBlockHeightCache()
 	fmt.Printf("resyncBlocks: At %d: syncing from peer %v\n",	latestHeight, p)
 	
@@ -621,7 +623,7 @@ func resyncBlocks(p *peer) error {
 // processAckPeerMsg validates the ack and adds it to processlist
 // this is only for post-syncup followers need to deal with Ack
 func processAckPeerMsg(ack *ackMsg) ([]*wire.MsgMissing, error) {
-	//fmt.Printf("processAckPeerMsg: %s\n", spew.Sdump(ack))
+	//fmt.Printf("processAckPeerMsg: %s\n", ack)
 	// Validate the signiture
 	bytes, err := ack.ack.GetBinaryForSignature()
 	if err != nil {
@@ -630,8 +632,8 @@ func processAckPeerMsg(ack *ackMsg) ([]*wire.MsgMissing, error) {
 	}
 	if !ack.peer.pubKey.Verify(bytes, &ack.ack.Signature) {
 		//to-do
-		//return errors.New(fmt.Sprintf("Invalid signature in Ack = %s\n", spew.Sdump(ack)))
-		fmt.Println("verify ack signature: FAILED")
+		return nil, errors.New(fmt.Sprintf("Invalid signature in Ack = %s\n", ack))
+		// fmt.Println("verify ack signature: FAILED")
 	}
 	return processAckMsg(ack.ack)
 }
@@ -647,8 +649,8 @@ func processAckMsg(ack *wire.MsgAck) ([]*wire.MsgMissing, error) {
 	if nodeMode != common.SERVER_NODE || localServer == nil || localServer.IsLeader() {
 		return nil, nil
 	}
-	fmt.Printf("processAckMsg: Ack.Height=%d, Ack.Index=%d, type=%d, dchain.NextDBHeight=%d, db.latestDBHeight=%d, blockSyncing=%v\n",
-		ack.Height, ack.Index, ack.Type, dchain.NextDBHeight, latestHeight, blockSyncing)
+	fmt.Printf("processAckMsg: %s, dchain.NextDBHeight=%d, db.latestDBHeight=%d, blockSyncing=%v\n",
+		ack, dchain.NextDBHeight, latestHeight, blockSyncing)
 	
 	//dchain.NextDBHeight is the dir block height for the network
 	//update it with ack height from the leader if necessary
@@ -659,12 +661,12 @@ func processAckMsg(ack *wire.MsgAck) ([]*wire.MsgMissing, error) {
 	if dchain.NextDBHeight == uint32(latestHeight)+1 && blockSyncing {
 		blockSyncing = false
 		firstBlockHeight = ack.Height
-		fmt.Println("processAckMsg: reset blockSyncing=false, bypass building this block: firstBlockHeight=", firstBlockHeight)
+		// fmt.Println("processAckMsg: reset blockSyncing=false, bypass building this block: firstBlockHeight=", firstBlockHeight)
 	}
 	if !doneSetFollowersCointbaseTimeStamp && ack.CoinbaseTimestamp > 0 {
 		fchain.NextBlock.SetCoinbaseTimestamp(ack.CoinbaseTimestamp)
 		doneSetFollowersCointbaseTimeStamp = true
-		fmt.Printf("processAckMsg: reset follower's CoinbaseTimestamp: %d\n", ack.CoinbaseTimestamp)
+		// fmt.Printf("processAckMsg: reset follower's CoinbaseTimestamp: %d\n", ack.CoinbaseTimestamp)
 	}
 	myPeer := localServer.GetMyFederateServer().Peer
 	if blockSyncing || firstBlockHeight == dchain.NextDBHeight {
@@ -685,7 +687,7 @@ func processAckMsg(ack *wire.MsgAck) ([]*wire.MsgMissing, error) {
 		m := wire.NewMsgCandidate(firstBlockHeight, localServer.nodeID, sig)
 		outMsgQueue <- m
 		doneSentCandidateMsg = true
-		fmt.Println("processAckMsg: sending MsgCandidate: ", spew.Sdump(m))
+		fmt.Println("processAckMsg: sending ", m)
 		// update this federate server
 		localServer.GetMyFederateServer().FirstAsFollower = firstBlockHeight
 	}
@@ -697,9 +699,9 @@ func processAckMsg(ack *wire.MsgAck) ([]*wire.MsgMissing, error) {
 		// need to bypass the first block of newly-joined follower, 
 		// either this is 11th minute: ack.NextDBlockHeight-1 == firstBlockHeight
 		// or is 1st minute: 
-		fmt.Println("processAckMsg: before go processDirBlockSig: firstBlockHeight=", firstBlockHeight, 
-			", DirBlockSig.len=", fMemPool.lenDirBlockSig(ack.Height - 1), ", isCandidate=", localServer.IsCandidate(), 
-			", ack=", spew.Sdump(ack))
+		fmt.Println("processAckMsg: before processDirBlockSig: firstBlockHeight=", firstBlockHeight, 
+			", len=", fMemPool.lenDirBlockSig(ack.Height - 1), ", isCandidate=", localServer.IsCandidate(), 
+			", ", ack)
 			
 		if fMemPool.lenDirBlockSig(ack.Height - 1) > 0 && ack.Height > firstBlockHeight && !localServer.IsCandidate() { // the block is not saved yet
 			go processDirBlockSig()
@@ -708,12 +710,12 @@ func processAckMsg(ack *wire.MsgAck) ([]*wire.MsgMissing, error) {
 
 	// for candidate server, bypass block building
 	if localServer.IsCandidate() {
-		fmt.Println("processAckMsg: is candidate, return, no block building.")
+		// fmt.Println("processAckMsg: is candidate, return, no block building.")
 		return nil, nil
 	}
 
 	if ack.IsEomAck() {
-		fmt.Println("processAckMsg: follower's EndOfPeriod: type=", int(ack.Type))
+		// fmt.Println("processAckMsg: follower's EndOfPeriod: type=", int(ack.Type))
 		common.FactoidState.EndOfPeriod(int(ack.Type))
 	}
 
@@ -722,16 +724,16 @@ func processAckMsg(ack *wire.MsgAck) ([]*wire.MsgMissing, error) {
 	// only check missing acks every minute
 	if ack.IsEomAck() {
 		missingAcks = fMemPool.getMissingMsgAck(ack)
-		if len(missingAcks) > 0 {
-			fmt.Printf("processAckMsg: missing Acks total: %d\n", len(missingAcks)) //, spew.Sdump(missingAcks))
-		}
+		// if len(missingAcks) > 0 {
+			// fmt.Printf("processAckMsg: missing Acks total: %d\n", len(missingAcks)) //, spew.Sdump(missingAcks))
+		// }
 		if dchain.NextBlock.Header.Timestamp == 0 && ack.DBlockTimestamp > 0 {
 			dchain.NextBlock.Header.Timestamp = ack.DBlockTimestamp
-			fmt.Printf("processAckMsg: reset follower's DBlockTimestamp: %d\n", ack.DBlockTimestamp)
+			// fmt.Printf("processAckMsg: reset follower's DBlockTimestamp: %d\n", ack.DBlockTimestamp)
 		}
 	}
 	if missingMsg != nil {
-		fmt.Println("processAckMsg: missing MSG: ", spew.Sdump(missingMsg))
+		// fmt.Println("processAckMsg: missing MSG: ", spew.Sdump(missingMsg))
 		missingAcks = append(missingAcks, missingMsg)
 	}
 	if len(missingAcks) > 0 {
@@ -742,21 +744,21 @@ func processAckMsg(ack *wire.MsgAck) ([]*wire.MsgMissing, error) {
 		}
 	}
 	if ack.Type == wire.EndMinute10 {
-		fmt.Println("processAckMsg: assembleFollowerProcessList")
+		// fmt.Println("processAckMsg: assembleFollowerProcessList")
 		err := fMemPool.assembleFollowerProcessList(ack)
 		if err != nil {
 			fmt.Println(err.Error())
 		}
 		fmt.Printf("processAckMsg: follower ProcessList: %s\n", spew.Sdump(plMgr.MyProcessList))
 		// followers build Blocks
-		fmt.Println("processAckMsg: follower buildBlocks, height=", ack.Height)
+		// fmt.Println("processAckMsg: follower buildBlocks, height=", ack.Height)
 		err = buildBlocks() //broadcast new dir block sig
 		if err != nil {
 			return nil, err
 		}
 		// relay EOM10 to clients as heartbeat for height signal, 
 		// so that if clients fall behind, it can download needed blocks.
-		relayMessageToClients(ack)
+		relayHeartbeatToClients(ack)
 	}
 	return nil, nil
 }
@@ -776,8 +778,8 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 	if e.ChainID.IsSameAs(zeroHash) || e.ChainID.IsSameAs(dchain.ChainID) || e.ChainID.IsSameAs(achain.ChainID) ||
 		e.ChainID.IsSameAs(ecchain.ChainID) || e.ChainID.IsSameAs(fchain.ChainID) {
 		return fmt.Errorf("This entry chain is not supported: %s", e.ChainID.String())
-	} else if factomConfig.Anchor.AnchorChainID == e.ChainID.String() {
-		fmt.Println("processRevealEntry: it's anchor chain")
+	// } else if factomConfig.Anchor.AnchorChainID == e.ChainID.String() {
+		// fmt.Println("processRevealEntry: it's anchor chain")
 	}
 
 	if c, ok := commitEntryMap[e.Hash().String()]; ok {
@@ -809,7 +811,7 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 			if err != nil {
 				return err
 			}
-			fmt.Printf("AckRevealEntry: %s\n", spew.Sdump(ack))
+			fmt.Printf("AckRevealEntry: %s\n", ack)
 			outMsgQueue <- ack
 			//???
 			delete(commitEntryMap, e.Hash().String())
@@ -870,7 +872,7 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 			if err != nil {
 				return err
 			}
-			fmt.Printf("AckRevealChain: %s\n", spew.Sdump(ack))
+			fmt.Printf("AckRevealChain: %s\n", ack)
 			outMsgQueue <- ack
 			//???
 			delete(commitChainMap, e.Hash().String())
@@ -923,7 +925,7 @@ func processCommitEntry(msg *wire.MsgCommitEntry) error {
 		if err != nil {
 			return err
 		}
-		fmt.Printf("AckCommitEntry: %s\n", spew.Sdump(ack))
+		fmt.Printf("AckCommitEntry: %s\n", ack)
 		outMsgQueue <- ack
 	}
 	return nil
@@ -972,7 +974,7 @@ func processCommitChain(msg *wire.MsgCommitChain) error {
 		if err != nil {
 			return err
 		}
-		fmt.Printf("AckCommitChain: %s\n", spew.Sdump(ack))
+		fmt.Printf("AckCommitChain: %s\n", ack)
 		outMsgQueue <- ack
 	}
 	return nil
@@ -1024,7 +1026,7 @@ func processFactoidTX(msg *wire.MsgFactoidTX) error {
 		if ack == nil {
 			return fmt.Errorf("processFactoidTX: ack is nil")
 		}
-		fmt.Printf("AckFactoidTx: %s\n", spew.Sdump(ack))
+		fmt.Printf("AckFactoidTx: %s\n", ack)
 		outMsgQueue <- ack
 	}
 	return nil
@@ -1167,41 +1169,31 @@ func buildGenesisBlocks() error {
 	dchain.NextBlock.Header.Timestamp = uint32(t.Unix() / 60)
 
 	// Allocate the first two dbentries for ECBlock and Factoid block
-	// dchain.AddDBEntry(&common.DBEntry{}) // AdminBlock
-	// dchain.AddDBEntry(&common.DBEntry{}) // ECBlock
-	// dchain.AddDBEntry(&common.DBEntry{}) // Factoid block
-
 	dchain.AddThreeDBEntries()	
+	fmt.Println("buildGenesisBlocks: start")
 
 	// Entry Credit Chain
 	cBlock := newEntryCreditBlock(ecchain)
-	procLog.Debugf("buildGenesisBlocks: cBlock=%s\n", spew.Sdump(cBlock.Header))
+	// fmt.Printf("buildGenesisBlocks: cBlock=%s\n", cBlock.Header.EBHeight)	//spew.Sdump(cBlock.Header))
 	dchain.AddECBlockToDBEntry(cBlock)
-	// exportECChain(ecchain)
 
 	// Admin chain
 	aBlock := newAdminBlock(achain)
-	procLog.Debugf("buildGenesisBlocks: aBlock=%s\n", spew.Sdump(aBlock.Header))
+	// fmt.Printf("buildGenesisBlocks: aBlock=%s\n", aBlock.Header.DBHeight)	//spew.Sdump(aBlock.Header))
 	dchain.AddABlockToDBEntry(aBlock)
-	// exportAChain(achain)
 
 	// factoid Genesis Address
-	//fchain.NextBlock = block.GetGenesisFBlock(0, FactoshisPerCredit, 10, 200000000000)
 	fchain.NextBlock = block.GetGenesisFBlock()
 	FBlock := newFactoidBlock(fchain)
-	procLog.Debugf("buildGenesisBlocks: fBlock.height=%d\n", FBlock.GetDBHeight())
+	// fmt.Printf("buildGenesisBlocks: fBlock.height=%d\n", FBlock.GetDBHeight())
 	dchain.AddFBlockToDBEntry(FBlock)
-	// exportFctChain(fchain)
 
 	// Directory Block chain
-	procLog.Debug("onto newDirectoryBlock in buildGenesisBlocks")
 	dbBlock := newDirectoryBlock(dchain)
-	procLog.Debugf("buildGenesisBlocks: dbBlock=%s\n", spew.Sdump(dbBlock))
-	// exportDChain(dchain)
+	// fmt.Printf("buildGenesisBlocks: dbBlock=%s\n", dbBlock.Header.DBHeight)		//spew.Sdump(dbBlock.Header))
 
 	// Check block hash if genesis block
 	if dbBlock.DBHash.String() != common.GENESIS_DIR_BLOCK_HASH {
-		//Panic for Milestone 1
 		panic("\nGenesis block hash expected: " + common.GENESIS_DIR_BLOCK_HASH +
 			"\nGenesis block hash found:    " + dbBlock.DBHash.String() + "\n")
 	}
@@ -1211,19 +1203,14 @@ func buildGenesisBlocks() error {
 	// saveBlocks will be done at the next EOM_1. however, for 10-min blocks
 	// as Blocktimes starts anytime, and it could skip EOM_1. So let saveBlocks here
 	go saveBlocks(dbBlock, aBlock, cBlock, FBlock, nil)
+	fmt.Println("buildGenesisBlocks: end")
 	return nil
 }
 
 // build blocks from all process lists
 func buildBlocks() error {
-	// build the Genesis blocks if the current height is 0
 	fmt.Printf("buildBlocks: dchain.NextDBHeight=%d, achain.NextDBHeight=%d, fchain.NextDBHeight=%d, ecchain.NextDBHeight=%d\n",
 		dchain.NextDBHeight, achain.NextBlockHeight, fchain.NextBlockHeight, ecchain.NextBlockHeight)
-
-	// Allocate the first three dbentries for Admin block, ECBlock and Factoid block
-	// dchain.AddDBEntry(&common.DBEntry{}) // AdminBlock
-	// dchain.AddDBEntry(&common.DBEntry{}) // ECBlock
-	// dchain.AddDBEntry(&common.DBEntry{}) // factoid
 
 	// this prevents adding more than 3 DBEntries, in case of prev block being downloaded.
 	dchain.AddThreeDBEntries()
@@ -1350,16 +1337,16 @@ func buildBlocks() error {
 
 	// should have a long-lasting block timer ???
 	// Initialize timer for the new dblock, only for leader before regime change.
-	if localServer.isSingleServerMode() ||
-		localServer.IsLeader() && dchain.NextDBHeight-1 != localServer.myLeaderPolicy.StartDBHeight+localServer.myLeaderPolicy.Term-1 ||
-		localServer.IsLeaderElect() && dchain.NextDBHeight-1 == localServer.myLeaderPolicy.StartDBHeight-1 {
-		fmt.Println("@@@@ start BlockTimer ")
-		timer := &BlockTimer{
+	// if localServer.isSingleServerMode() ||
+		// localServer.IsLeader() && dchain.NextDBHeight-1 != localServer.myLeaderPolicy.StartDBHeight+localServer.myLeaderPolicy.Term-1 ||
+		// localServer.IsLeaderElect() && dchain.NextDBHeight-1 == localServer.myLeaderPolicy.StartDBHeight-1 {
+		// fmt.Println("@@@@ start BlockTimer ")
+		/*timer := &BlockTimer{
 			nextDBlockHeight: dchain.NextDBHeight,
 			inMsgQueue:       inMsgQueue,
 		}
-		go timer.StartBlockTimer()
-	}
+		go timer.StartBlockTimer()*/
+	// }
 
 	// Todo: what happen if newDBlock is nil
 	if localServer.IsLeader() || localServer.IsLeaderElect() {
@@ -1497,13 +1484,6 @@ func newEntryCreditBlock(chain *common.ECChain) *common.ECBlock {
 		block.Header.EBHeight, chain.NextBlockHeight, fMemPool.isDownloaded(block.Header.EBHeight - 1))
 	
 	// this ec chain.NextBlockHeight adjustment is done in initECChain()	
-	// do not intend to recreate the existing ec chain here
-	// just simply make it work for echeight > 23263
-	// if block.Header.EBHeight > 23263 && block.Header.EBHeight >= chain.NextBlockHeight-8 {
-		// chain.NextBlockHeight = chain.NextBlockHeight - 8
-		// fmt.Printf("after adjust EC (chain.NextBlockHeight - 8): block.Header.EBHeight =%d, chain.NextBlockHeight=%d\n ", 
-			// block.Header.EBHeight, chain.NextBlockHeight)
-	// }
 
 	// check if this is the first block after block sync up, or 
 	// the prev block is downloaded from peers, not self-generated,
@@ -1683,10 +1663,9 @@ func newFactoidBlock(chain *common.FctChain) block.IFBlock {
 		currentBlock.SetCoinbaseTimestamp(plMgr.MyProcessList.GetCoinbaseTimestamp())
 	}
 
-	if chain.NextBlockHeight != dchain.NextDBHeight {
-		fmt.Println("Factoid Block height does not match Directory Block height:" + strconv.Itoa(int(dchain.NextDBHeight)))
-		//panic("Factoid Block height does not match Directory Block height:" + strconv.Itoa(int(dchain.NextDBHeight)))
-	}
+	// if chain.NextBlockHeight != dchain.NextDBHeight {
+		// fmt.Println("Factoid Block height does not match Directory Block height:" + strconv.Itoa(int(dchain.NextDBHeight)))
+	// }
 	fmt.Println("newFactoidBlock: block.Header.EBHeight = ", height)
 
 	chain.BlockMutex.Lock()
@@ -1783,14 +1762,6 @@ func newDirectoryBlock(chain *common.DChain) *common.DirectoryBlock {
 // save all blocks and anchor dir block if it's the leader
 func saveBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
 	ecblock *common.ECBlock, fblock block.IFBlock, eblocks []*common.EBlock) error {
-	/*
-	// in case of leader crashed and a new leader elected, excluding genesis block
-	_, latestHeight, _ := db.FetchBlockHeightCache()
-	if latestHeight > 0 && uint32(latestHeight) == dchain.NextDBHeight-1 {
-		fmt.Printf("saveBlocks: block already saved: db.latestDBHeight=%d, dchain.NextDBHeight=%d\n", 
-			latestHeight, dchain.NextDBHeight)
-		return nil
-	} */
 	
 	// in case of any block building failure, dblock will be nil. 
 	// so download them immediately
@@ -1829,7 +1800,7 @@ func saveBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
 	if err != nil {
 		fmt.Println("saveBlocks: error in db.InsertDirBlockInfo. ", err.Error())
 	}
-	fmt.Println("saveBlocks: DirBlockInfo. ", spew.Sdump(dbinfo))
+	// fmt.Println("saveBlocks: DirBlockInfo. ", spew.Sdump(dbinfo))
 	
 	for _, eblock := range eblocks {
 		if eblock == nil {
@@ -1844,7 +1815,7 @@ func saveBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
 	db.UpdateNextBlockHeightCache(dchain.NextDBHeight)
 	fmt.Println("saveBlocks: done=", dblock.Header.DBHeight)
 	
-	placeAnchor(dblock)
+	placeAnchor(dbinfo)
 
 	relayToCandidates()
 	relayToClients()
@@ -1947,25 +1918,21 @@ func saveBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
 
 func exportBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
 	ecblock *common.ECBlock, fblock block.IFBlock, eblocks []*common.EBlock) {
+
 	exportFctBlock(fblock)
-	fmt.Println("export Factoid Block: block " + strconv.FormatUint(uint64(fblock.GetDBHeight()), 10))
 	exportABlock(ablock)
-	fmt.Println("export Admin Block: block " + strconv.FormatUint(uint64(ablock.Header.DBHeight), 10))
 	exportECBlock(ecblock)
-	fmt.Println("export EntryCreditBlock: block " + strconv.FormatUint(uint64(ecblock.Header.EBHeight), 10))
 	exportDBlock(dblock)
-	fmt.Println("export DirectoryBlock: block " + strconv.FormatUint(uint64(dblock.Header.DBHeight), 10))
 	for _, eblock := range eblocks {
 		exportEBlock(eblock)
-		fmt.Println("export EntryBlock: block " + strconv.FormatUint(uint64(eblock.Header.EBSequence), 10))
 	}
 }
 
 func relayToCandidates() {
 	_, candidates := localServer.nonCandidateServers()
-	fmt.Println("relayToCandidates: len(candidates)=", len(candidates))
+	fmt.Println("relayToCandidates: len=", len(candidates))
 	for _, candidate := range candidates {
-		fmt.Println("relayToCandidates: ", candidate)
+		fmt.Println("relayToCandidates: ", candidate.Peer)
 		relayNewBlocks(candidate.Peer) 
 	}
 }
@@ -1978,53 +1945,19 @@ func relayToClients() {
 	}
 }
 
-func relayMessageToClients(msg wire.Message) {
-	fmt.Println("relayMessageToClients: len=", len(localServer.clientPeers))
+func relayHeartbeatToClients(msg wire.Message) {
+	fmt.Println("relayHeartbeatToClients: len=", len(localServer.clientPeers))
 	for _, client := range localServer.clientPeers {
-		fmt.Println("relayMessageToClients: client=", client)
+		fmt.Println("relayHeartbeatToClients: client=", client)
 		client.QueueMessage(msg, nil) 
 	}
 }
 
 func relayNewBlocks(p *peer) {
-	fmt.Println("relayNewBlocks: ", p)
+	// fmt.Println("relayNewBlocks: ", p)
 	msgd := wire.NewMsgDirBlock()
 	msgd.DBlk = newDBlock
 	p.QueueMessage(msgd, nil) 
-	/*
-	msgf := wire.NewMsgFBlock()
-	msgf.SC = newFBlock
-	p.QueueMessage(msgf, nil) 
-	
-	msga := wire.NewMsgABlock()
-	msga.ABlk = newABlock
-	p.QueueMessage(msga, nil) 
-
-	msgc := wire.NewMsgECBlock()
-	msgc.ECBlock = newECBlock
-	p.QueueMessage(msgc, nil) 
-
-	for _, eblock := range newEBlocks {
-		if eblock == nil {
-			continue
-		}
-		msge := wire.NewMsgEBlock()
-		msge.EBlk = eblock
-		p.QueueMessage(msge, nil) 
-
-		for _, ebEntry := range eblock.Body.EBEntries {
-			//Skip the minute markers
-			if ebEntry.IsMinuteMarker() {
-				continue
-			}
-			entry, err := db.FetchEntryByHash(ebEntry)
-			if entry != nil && err == nil {
-				msgr := wire.NewMsgEntry()
-				msgr.Entry = entry
-				p.QueueMessage(msgr, nil) 
-			}
-		}
-	}*/
 }
 
 // signDirBlockForAdminBlock signs the directory block for next admin block
@@ -2066,7 +1999,7 @@ func SignDirBlockForVote(newdb *common.DirectoryBlock) error {
 			SourceNodeID: localServer.nodeID,
 		}
 		outMsgQueue <- msg
-		fmt.Println("my own: addDirBlockSig: ", spew.Sdump(msg))
+		fmt.Println("my own: ", msg)
 		fMemPool.addDirBlockSig(msg)
 	}
 	return nil
@@ -2082,7 +2015,7 @@ func SignDirectoryBlock(newdb *common.DirectoryBlock) error {
 // Place an anchor into bitcoin blockchain
 // cases to consider: single server mode, and isLeader & not recently switched or crashed
 // or, recently switched leader or leader crashed.
-func placeAnchor(dblock *common.DirectoryBlock) error {
+func placeAnchor(dbinfo *common.DirBlockInfo) error {
 	var me bool 
 	if localServer.isSingleServerMode() {
 		me = true
@@ -2094,9 +2027,12 @@ func placeAnchor(dblock *common.DirectoryBlock) error {
 	}
 
 	if me {
-		fmt.Printf("placeAnchor: height=%d, leader=%s\n", dblock.Header.DBHeight, localServer.nodeID)
-		anchor.UpdateDirBlockInfoMap(common.NewDirBlockInfoFromDBlock(dblock))
-		go anchor.SendRawTransactionToBTC(dblock.KeyMR, dblock.Header.DBHeight)
+		// fmt.Printf("placeAnchor: height=%d, leader=%s\n", dblock.Header.DBHeight, localServer.nodeID)
+		// anchor.UpdateDirBlockInfoMap(common.NewDirBlockInfoFromDBlock(dblock))
+		// go anchor.SendRawTransactionToBTC(dblock.KeyMR, dblock.Header.DBHeight)
+		fmt.Println("placeAnchor: DirBlockInfo. ", spew.Sdump(dbinfo))
+		anchor.UpdateDirBlockInfoMap(dbinfo)
+		go anchor.SendRawTransactionToBTC(dbinfo.DBMerkleRoot, dbinfo.DBHeight)
 	}
 	return nil
 }
@@ -2145,12 +2081,12 @@ func resetLeaderState(leader string, height uint32) {
 	fMemPool.rebuildLeaderProcessList(leader, height)
 
 	// start clock
-	fmt.Println("resetLeaderState: @@@@ start BlockTimer for new current leader.")
-	timer := &BlockTimer{
-		nextDBlockHeight: height,		//dchain.NextDBHeight,
-		inMsgQueue:       inMsgQueue,
-	}
-	go timer.StartBlockTimer()	
+	// fmt.Println("resetLeaderState: @@@@ start BlockTimer for new current leader.")
+	// timer := &BlockTimer{
+		// nextDBlockHeight: height,
+		// inMsgQueue:       inMsgQueue,
+	// }
+	// go timer.StartBlockTimer()	
 
 	// for missed EOMs, processLeaderEOM should take care them
 	// relay stale messages in orphan pool and mempool in next round.
@@ -2185,4 +2121,92 @@ func checkMissingLeaderEOMs(msgEom *wire.MsgInt_EOM) []*wire.MsgInt_EOM {
 		}
 	}
 	return em
+}
+
+
+func startBlockTimer() {	
+	var ts uint32
+	if directoryBlockInSeconds == 60 {
+		i := 0
+		n0 := time.Now()
+		time.Sleep(time.Duration(1000000000 - n0.Nanosecond()) * time.Nanosecond)
+		n1 := time.Now()
+		time.Sleep(time.Duration(60 - n1.Second()) * time.Second)
+		ts = uint32(time.Now().Truncate(time.Minute).Unix() / 60)
+		fmt.Println("now0=", n0, ", now1=", n1, ", i=", i, ", ts=", dchain.NextBlock.Header.Timestamp)
+
+		c := time.Tick(6 * time.Second)
+		for now := range c {
+			if i < 10 {
+				i++
+			} else {
+				i = 1
+			}
+
+			if i == 10 {
+				ts = uint32(time.Now().Truncate(time.Minute).Unix() / 60)
+			}
+			if i == 1 && localServer.IsLeader() {
+				dchain.NextBlock.Header.Timestamp = ts
+			}
+			fmt.Printf("\ntimer: h=%d type=%d ts=%d %v\n", dchain.NextDBHeight, i, dchain.NextBlock.Header.Timestamp, now)
+			
+			if localServer.IsLeader() {
+				eom := &wire.MsgInt_EOM{
+					EOM_Type:         byte(i),
+					NextDBlockHeight: dchain.NextDBHeight,
+				}
+				processLeaderEOM(eom)
+			}
+		}
+	}
+
+	if directoryBlockInSeconds == 600 {
+		n0 := time.Now()
+		time.Sleep(time.Duration(1000000000 - n0.Nanosecond()) * time.Nanosecond)
+		n1 := time.Now()
+		time.Sleep(time.Duration(60 - n1.Second()) * time.Second)
+		n2 := time.Now()
+		i := n2.Minute()
+		if i >= 10 {
+			i = i % 10
+		} 
+		
+		// if there's only 1 or 2 min left, sleep it out
+		if i > 7 {
+			time.Sleep(time.Duration(10 - i) * time.Minute)
+			i = time.Now().Minute() + 1
+			if i >= 10 {
+				i = i % 10
+			} 
+		}
+
+		ts = uint32(time.Now().Truncate(time.Minute).Unix() / 60)
+		fmt.Println("now0=", n0, ", now1=", n1, ", now2=", n2, ", i=", i, ", ts=", dchain.NextBlock.Header.Timestamp)
+
+		c := time.Tick(1 * time.Minute)
+		for now := range c {
+			if i < 10 {
+				i++
+			} else {
+				i = 1
+			}
+
+			if i == 10 {
+				ts = uint32(time.Now().Truncate(time.Minute).Unix() / 60)
+			}
+			if i == 1 && localServer.IsLeader() {
+				dchain.NextBlock.Header.Timestamp = ts
+			}
+			fmt.Printf("\ntimer: h=%d type=%d ts=%d %v\n", dchain.NextDBHeight, i, dchain.NextBlock.Header.Timestamp, now)
+			
+			if localServer.IsLeader() {
+				eom := &wire.MsgInt_EOM{
+					EOM_Type:         byte(i),
+					NextDBlockHeight: dchain.NextDBHeight,
+				}
+				processLeaderEOM(eom)
+			}
+		}
+	}
 }

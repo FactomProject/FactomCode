@@ -227,8 +227,8 @@ type peer struct {
 // String returns the peer's address and directionality as a human-readable
 // string.
 func (p *peer) String() string {
-	return fmt.Sprintf("%s (%s); nodeID=%s, id=%d, nodeState=%v", 
-		p.addr, directionString(p.inbound), p.nodeID, p.id, p.nodeState)
+	return fmt.Sprintf("%s (%s); %s, state=%v", 
+		p.addr, directionString(p.inbound), p.nodeID, p.nodeState)
 }
 
 // isKnownInventory returns whether or not the peer is known to have the passed
@@ -810,7 +810,7 @@ func (p *peer) readMessage() (wire.Message, []byte, error) {
 
 	// Use closures to log expensive operations so they are only run when
 	// the logging level requires it.
-	peerLog.Debugf("read: %v", newLogClosure(func() string {
+	/*peerLog.Debugf("read: %v", newLogClosure(func() string {
 		// Debug summary of message.
 		summary := messageSummary(msg)
 		if len(summary) > 0 {
@@ -819,7 +819,7 @@ func (p *peer) readMessage() (wire.Message, []byte, error) {
 		return fmt.Sprintf("Received %v%s from %s",
 			msg.Command(), summary, p)
 	}))
-	/*peerLog.Debugf("read: %v", newLogClosure(func() string {
+	peerLog.Debugf("read: %v", newLogClosure(func() string {
 		return spew.Sdump(msg)
 	}))
 		peerLog.Debugf("%v", newLogClosure(func() string {
@@ -850,7 +850,7 @@ func (p *peer) writeMessage(msg wire.Message) {
 
 	// Use closures to log expensive operations so they are only run when
 	// the logging level requires it.
-	peerLog.Debugf("write: %v", newLogClosure(func() string {
+	/*peerLog.Debugf("write: %v", newLogClosure(func() string {
 		// Debug summary of message.
 		summary := messageSummary(msg)
 		if len(summary) > 0 {
@@ -859,7 +859,7 @@ func (p *peer) writeMessage(msg wire.Message) {
 		return fmt.Sprintf("Sending %v%s to %s", msg.Command(),
 			summary, p)
 	}))
-	/*peerLog.Debugf("write: %v", newLogClosure(func() string {
+	peerLog.Debugf("write: %v", newLogClosure(func() string {
 		return spew.Sdump(msg)
 	}))
 		peerLog.Debugf("%v", newLogClosure(func() string {
@@ -1290,7 +1290,7 @@ cleanup:
 			break cleanup
 		}
 	}
-	peerLog.Tracef("Peer queue handler done for %s", p)
+	// peerLog.Tracef("Peer queue handler done for %s", p)
 }
 
 // outHandler handles all outgoing messages for the peer.  It must be run as a
@@ -1384,7 +1384,7 @@ cleanup:
 			break cleanup
 		}
 	}
-	peerLog.Tracef("Peer output handler done for %s", p)
+	// peerLog.Tracef("Peer output handler done for %s", p)
 }
 
 // QueueMessage adds the passed factom message to the peer send queue.  It

@@ -97,7 +97,7 @@ func initECChain() {
 	// get all ecBlocks from db
 	ecBlocks, _ := db.FetchAllECBlocks()
 	sort.Sort(util.ByECBlockIDAccending(ecBlocks))
-	fmt.Println("initECChain: len(ecBlocks)=", len(ecBlocks))
+	// fmt.Println("initECChain: len(ecBlocks)=", len(ecBlocks))
 
 	for _, v := range ecBlocks {
 		initializeECreditMap(&v)

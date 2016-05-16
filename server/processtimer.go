@@ -22,9 +22,6 @@ func (bt *BlockTimer) StartBlockTimer() {
 
 	//wait till the end of minute
 	//the first minute section might be bigger than others. To be improved.
-	/*	t := time.Now()
-		time.Sleep(time.Duration((60 - t.Second()) * 1000000000))
-	*/
 	fmt.Println("BlockTimer.StartBlockTimer. nextDBlockHeight=", bt.nextDBlockHeight)
 	if directoryBlockInSeconds == 60 {
 
@@ -45,27 +42,6 @@ func (bt *BlockTimer) StartBlockTimer() {
 			time.Sleep(time.Duration(sleeptime * 1000000000))
 		}
 		return
-	
-		/*
-		roundTime := time.Now().Round(time.Second)
-		sixSecondsRoundPassed := roundTime.Second()/6
-		offsetSeondsPassed := roundTime.Second() - sixSecondsRoundPassed*6
-		sleepSeconds := 6 - offsetSeondsPassed
-		fmt.Printf("roundTime=%d, sixSecondsRoundPassed=%d, sleepSeconds=%d\n ", roundTime, 
-			sixSecondsRoundPassed, sleepSeconds)
-		
-		if 0 < sleepSeconds && sleepSeconds < 6 {
-			time.Sleep(time.Duration(sleepSeconds * 1000000000))
-		}
-		for sixSecondsRoundPassed < 10 {
-			eomMsg := &wire.MsgInt_EOM{
-				EOM_Type:         wire.EndMinute1 + byte(sixSecondsRoundPassed),
-				NextDBlockHeight: bt.nextDBlockHeight,
-			}
-			bt.inMsgQueue <- eomMsg
-			sixSecondsRoundPassed++
-		}
-		return */
 	}
 
 	if directoryBlockInSeconds == 600 {

@@ -1,5 +1,9 @@
 package wire
 
+import (
+	"fmt"
+)
+
 // Commands used in factom message headers which describe the type of message.
 const (
 
@@ -35,6 +39,11 @@ type MsgInt_EOM struct {
 // End-of-Minute internal message for time commnunications between Goroutines
 func (msg *MsgInt_EOM) Command() string {
 	return CmdInt_EOM
+}
+
+// String returns its string value
+func (msg *MsgInt_EOM) String() string {
+	return fmt.Sprintf("MsgInt_EOM(type=%d, h=%d)", msg.EOM_Type, msg.NextDBlockHeight)
 }
 
 // Factoid block message for internal communication

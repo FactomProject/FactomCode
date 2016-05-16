@@ -9,28 +9,24 @@ import (
 	"io/ioutil"
 	"os"
 	"sort"
+	"strconv"
 
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/factoid/block"
-	"github.com/davecgh/go-spew/spew"
+	// "github.com/davecgh/go-spew/spew"
 )
 
-var _ = util.Trace
-var _ = spew.Sdump
 
 func GetEntryCreditBalance(pubKey *[32]byte) (int32, error) {
-
 	return eCreditMap[string(pubKey[:])], nil
 }
 
 func exportDChain(chain *common.DChain) {
-	if len(chain.Blocks) == 0 { //|| procLog.Level() < factomlog.Info {
-		//log.Println("no blocks to save for chain: " + string (*chain.ChainID))
-		return
-	}
+	// if len(chain.Blocks) == 0 || procLog.Level() < factomlog.Info {
+		// return
+	// }
 
-	// get all ecBlocks from db
 	dBlocks, _ := db.FetchAllDBlocks()
 	sort.Sort(util.ByDBlockIDAccending(dBlocks))
 
@@ -45,7 +41,7 @@ func exportDChain(chain *common.DChain) {
 		if fileNotExists(dataStorePath + strChainID) {
 			err := os.MkdirAll(dataStorePath+strChainID, 0777)
 			if err == nil {
-				procLog.Info("Created directory " + dataStorePath + strChainID)
+				// procLog.Info("Created directory " + dataStorePath + strChainID)
 			} else {
 				procLog.Error(err)
 			}
@@ -58,9 +54,9 @@ func exportDChain(chain *common.DChain) {
 }
 
 func exportEChain(chain *common.EChain) {
-	//if procLog.Level() < factomlog.Info {
-	//return
-	//}
+	// if len(chain.Blocks) == 0 || procLog.Level() < factomlog.Info {
+		// return
+	// }
 
 	eBlocks, _ := db.FetchAllEBlocksByChain(chain.ChainID)
 	sort.Sort(util.ByEBlockIDAccending(*eBlocks))
@@ -76,7 +72,7 @@ func exportEChain(chain *common.EChain) {
 		if fileNotExists(dataStorePath + strChainID) {
 			err := os.MkdirAll(dataStorePath+strChainID, 0777)
 			if err == nil {
-				procLog.Info("Created directory " + dataStorePath + strChainID)
+				// procLog.Info("Created directory " + dataStorePath + strChainID)
 			} else {
 				procLog.Error(err)
 			}
@@ -90,10 +86,10 @@ func exportEChain(chain *common.EChain) {
 }
 
 func exportECChain(chain *common.ECChain) {
-	//if procLog.Level() < factomlog.Info {
-	//return
-	//}
-	// get all ecBlocks from db
+	// if len(chain.Blocks) == 0 || procLog.Level() < factomlog.Info {
+		// return
+	// }
+
 	ecBlocks, _ := db.FetchAllECBlocks()
 	sort.Sort(util.ByECBlockIDAccending(ecBlocks))
 
@@ -107,7 +103,7 @@ func exportECChain(chain *common.ECChain) {
 		if fileNotExists(dataStorePath + strChainID) {
 			err := os.MkdirAll(dataStorePath+strChainID, 0777)
 			if err == nil {
-				procLog.Info("Created directory " + dataStorePath + strChainID)
+				// procLog.Info("Created directory " + dataStorePath + strChainID)
 			} else {
 				procLog.Error(err)
 			}
@@ -120,10 +116,10 @@ func exportECChain(chain *common.ECChain) {
 }
 
 func exportAChain(chain *common.AdminChain) {
-	//if procLog.Level() < factomlog.Info {
-	//return
-	//}
-	// get all aBlocks from db
+	// if len(chain.Blocks) == 0 || procLog.Level() < factomlog.Info {
+		// return
+	// }
+
 	aBlocks, _ := db.FetchAllABlocks()
 	sort.Sort(util.ByABlockIDAccending(aBlocks))
 
@@ -138,7 +134,7 @@ func exportAChain(chain *common.AdminChain) {
 		if fileNotExists(dataStorePath + strChainID) {
 			err := os.MkdirAll(dataStorePath+strChainID, 0777)
 			if err == nil {
-				procLog.Info("Created directory " + dataStorePath + strChainID)
+				// procLog.Info("Created directory " + dataStorePath + strChainID)
 			} else {
 				procLog.Error(err)
 			}
@@ -151,10 +147,10 @@ func exportAChain(chain *common.AdminChain) {
 }
 
 func exportFctChain(chain *common.FctChain) {
-	//if procLog.Level() < factomlog.Info {
-	//return
-	//}
-	// get all aBlocks from db
+	// if len(chain.Blocks) == 0 || procLog.Level() < factomlog.Info {
+		// return
+	// }
+
 	FBlocks, _ := db.FetchAllFBlocks()
 	sort.Sort(util.ByFBlockIDAccending(FBlocks))
 
@@ -169,7 +165,7 @@ func exportFctChain(chain *common.FctChain) {
 		if fileNotExists(dataStorePath + strChainID) {
 			err := os.MkdirAll(dataStorePath+strChainID, 0777)
 			if err == nil {
-				procLog.Info("Created directory " + dataStorePath + strChainID)
+				// procLog.Info("Created directory " + dataStorePath + strChainID)
 			} else {
 				procLog.Error(err)
 			}
@@ -183,10 +179,10 @@ func exportFctChain(chain *common.FctChain) {
 
 // to export individual block once at a time - for debugging ------------------------
 func exportDBlock(block *common.DirectoryBlock) {
-	if block == nil { //|| procLog.Level() < factomlog.Info {
-		//log.Println("no blocks to save for chain: " + string (*chain.ChainID))
-		return
-	}
+	// if block == nil || procLog.Level() < factomlog.Info {
+		// return
+	// }
+	fmt.Println("export Dir Block: " + strconv.FormatUint(uint64(block.Header.DBHeight), 10))
 
 	data, err := block.MarshalBinary()
 	if err != nil {
@@ -197,7 +193,7 @@ func exportDBlock(block *common.DirectoryBlock) {
 	if fileNotExists(dataStorePath + strChainID) {
 		err := os.MkdirAll(dataStorePath+strChainID, 0777)
 		if err == nil {
-			procLog.Info("Created directory " + dataStorePath + strChainID)
+			// procLog.Info("Created directory " + dataStorePath + strChainID)
 		} else {
 			procLog.Error(err)
 		}
@@ -210,9 +206,10 @@ func exportDBlock(block *common.DirectoryBlock) {
 }
 
 func exportEBlock(block *common.EBlock) {
-	if block == nil { //|| procLog.Level() < factomlog.Info {
-		return
-	}
+	// if block == nil || procLog.Level() < factomlog.Info {
+		// return
+	// }
+		fmt.Println("export Entry Block: " + strconv.FormatUint(uint64(block.Header.EBSequence), 10))
 
 	data, err := block.MarshalBinary()
 	if err != nil {
@@ -223,7 +220,7 @@ func exportEBlock(block *common.EBlock) {
 	if fileNotExists(dataStorePath + strChainID) {
 		err := os.MkdirAll(dataStorePath+strChainID, 0777)
 		if err == nil {
-			procLog.Info("Created directory " + dataStorePath + strChainID)
+			// procLog.Info("Created directory " + dataStorePath + strChainID)
 		} else {
 			procLog.Error(err)
 		}
@@ -237,9 +234,10 @@ func exportEBlock(block *common.EBlock) {
 }
 
 func exportECBlock(block *common.ECBlock) {
-	if block == nil { //|| procLog.Level() < factomlog.Info {
-		return
-	}
+	// if block == nil || procLog.Level() < factomlog.Info {
+		// return
+	// }
+	fmt.Println("export EC Block: " + strconv.FormatUint(uint64(block.Header.EBHeight), 10))
 
 	data, err := block.MarshalBinary()
 	if err != nil {
@@ -250,7 +248,7 @@ func exportECBlock(block *common.ECBlock) {
 	if fileNotExists(dataStorePath + strChainID) {
 		err := os.MkdirAll(dataStorePath+strChainID, 0777)
 		if err == nil {
-			procLog.Info("Created directory " + dataStorePath + strChainID)
+			// procLog.Info("Created directory " + dataStorePath + strChainID)
 		} else {
 			procLog.Error(err)
 		}
@@ -263,9 +261,10 @@ func exportECBlock(block *common.ECBlock) {
 }
 
 func exportABlock(block *common.AdminBlock) {
-	if block == nil { //|| procLog.Level() < factomlog.Info {
-		return
-	}
+	// if block == nil || procLog.Level() < factomlog.Info {
+		// return
+	// }
+	fmt.Println("export Admin Block: " + strconv.FormatUint(uint64(block.Header.DBHeight), 10))
 
 	data, err := block.MarshalBinary()
 	if err != nil {
@@ -276,7 +275,7 @@ func exportABlock(block *common.AdminBlock) {
 	if fileNotExists(dataStorePath + strChainID) {
 		err := os.MkdirAll(dataStorePath+strChainID, 0777)
 		if err == nil {
-			procLog.Info("Created directory " + dataStorePath + strChainID)
+			// procLog.Info("Created directory " + dataStorePath + strChainID)
 		} else {
 			procLog.Error(err)
 		}
@@ -289,9 +288,10 @@ func exportABlock(block *common.AdminBlock) {
 }
 
 func exportFctBlock(block block.IFBlock) {
-	if block == nil { //|| procLog.Level() < factomlog.Info {
-		return
-	}
+	// if block == nil || procLog.Level() < factomlog.Info {
+		// return
+	// }
+	fmt.Println("export Factoid Block: " + strconv.FormatUint(uint64(block.GetDBHeight()), 10))
 
 	data, err := block.MarshalBinary()
 	if err != nil {
@@ -302,7 +302,7 @@ func exportFctBlock(block block.IFBlock) {
 	if fileNotExists(dataStorePath + strChainID) {
 		err := os.MkdirAll(dataStorePath+strChainID, 0777)
 		if err == nil {
-			procLog.Info("Created directory " + dataStorePath + strChainID)
+			// procLog.Info("Created directory " + dataStorePath + strChainID)
 		} else {
 			procLog.Error(err)
 		}

@@ -1542,7 +1542,7 @@ func newServer(listenAddrs []string, chainParams *Params) (*server, error) {
 		newestHeight = 0
 	}
 	h := uint32(newestHeight)
-	srvrLog.Info("newestHeight=", h)
+	// srvrLog.Info("newestHeight=", h)
 	
 	if common.SERVER_NODE == s.nodeType {
 		// create a peer for myself, for convenience
@@ -1579,7 +1579,7 @@ func newServer(listenAddrs []string, chainParams *Params) (*server, error) {
 			fedServer.Peer.nodeState = wire.NodeCandidate
 			blockSyncing = true
 		}
-		fmt.Printf("newServer: blockSyncing=%t, fs=%s\n", blockSyncing, spew.Sdump(fedServer))
+		// fmt.Printf("newServer: blockSyncing=%t, fs=%s\n", blockSyncing, spew.Sdump(fedServer))
 	}
 
 	return &s, nil
@@ -1614,24 +1614,22 @@ func (s *server) SyncPeer() *peer {
 func (s *server) SetLeaderPeer(p *peer) {
 	peer := s.GetLeaderPeer()
 	if peer != nil {
-		fmt.Println("SetLeaderPeer: SetLeaderPrev first ", peer)
+		// fmt.Println("SetLeaderPeer: SetLeaderPrev first ", peer)
 		s.SetPrevLeaderPeer(peer)
-		//peer.nodeState = wire.NodeLeaderPrev
 	}
-	fmt.Println("SetLeaderPeer: ", p)
+	// fmt.Println("SetLeaderPeer: ", p)
 	p.nodeState = wire.NodeLeader
 }
 
 func (s *server) SetLeaderPeerByID(pid string) {
 	peer := s.GetLeaderPeer()
 	if peer != nil {
-		fmt.Println("SetLeaderPeerByID: SetLeaderPrev first ", peer)
+		// fmt.Println("SetLeaderPeerByID: SetLeaderPrev first ", peer)
 		s.SetPrevLeaderPeer(peer)
-		//peer.nodeState = wire.NodeLeaderPrev
 	}
 	peer = s.GetPeerByID(pid)
 	if peer != nil {
-		fmt.Println("SetLeaderPeerByID: ", pid)
+		// fmt.Println("SetLeaderPeerByID: ", pid)
 		peer.nodeState = wire.NodeLeader
 		return
 	}
@@ -1641,47 +1639,43 @@ func (s *server) SetLeaderPeerByID(pid string) {
 func (s *server) setLeaderElect(p *peer) {
 	peer := s.GetPeer(wire.NodeLeaderElect)
 	if peer != nil {
-		fmt.Println("setLeaderElect: reset others to Follower first ", peer)
+		// fmt.Println("setLeaderElect: reset others to Follower first ", peer)
 		peer.nodeState = wire.NodeFollower
 	}
-	fmt.Println("setLeaderElect: ", p)
+	// fmt.Println("setLeaderElect: ", p)
 	p.nodeState = wire.NodeLeaderElect
 }
 
 func (s *server) setLeaderElectByID(pid string) {
 	peer := s.GetPeer(wire.NodeLeaderElect)
 	if peer != nil {
-		fmt.Println("setLeaderElectByID: reset others to Follower first: ", peer)
+		// fmt.Println("setLeaderElectByID: reset others to Follower first: ", peer)
 		peer.nodeState = wire.NodeFollower
 	}
 	peer = s.GetPeerByID(pid)
 	if peer != nil {
-		fmt.Println("setLeaderElectByID: ", pid)
+		// fmt.Println("setLeaderElectByID: ", pid)
 		peer.nodeState = wire.NodeLeaderElect
 		return
 	}
-	fmt.Println("setLeaderElectByID: NOT found. ", pid)
+	// fmt.Println("setLeaderElectByID: NOT found. ", pid)
 }
 
 func (s *server) GetPeer(ns wire.NodeState) *peer {
 	for _, fs := range s.federateServers {
 		if fs.Peer.nodeState == ns {
-			// fmt.Println("GetPeer: found. ", fs.Peer)
 			return fs.Peer
 		}
 	}
-	// fmt.Println("GetPeer: NOT found. ", ns)
 	return nil
 }
 
 func (s *server) GetPeerByID(pid string) *peer {
 	for _, fs := range s.federateServers {
 		if fs.Peer.nodeID == pid {
-			// fmt.Println("GetPeerByID: found. ", pid)
 			return fs.Peer
 		}
 	}
-	// fmt.Println("GetPeerByID: NOT found. ", pid)
 	return nil
 }
 
@@ -1696,22 +1690,22 @@ func (s *server) GetLeaderPeer() *peer {
 func (s *server) SetPrevLeaderPeer(p *peer) {
 	peer := s.GetPeer(wire.NodeLeaderPrev)
 	if peer != nil {
-		fmt.Println("SetPrevLeaderPeer: reset others to Follower first ", peer)
+		// fmt.Println("SetPrevLeaderPeer: reset others to Follower first ", peer)
 		peer.nodeState = wire.NodeFollower
 	}
-	fmt.Println("SetPrevLeaderPeer: ", p)
+	// fmt.Println("SetPrevLeaderPeer: ", p)
 	p.nodeState = wire.NodeLeaderPrev
 }
 
 func (s *server) SetPrevLeaderByID(pid string) {
 	p := s.GetPeer(wire.NodeLeaderPrev)
 	if p != nil {
-		fmt.Println("SetPrevLeaderByID: reset others to Follower first: ", p)
+		// fmt.Println("SetPrevLeaderByID: reset others to Follower first: ", p)
 		p.nodeState = wire.NodeFollower
 	}
 	p = s.GetPeerByID(pid)
 	if p != nil {
-		fmt.Println("SetPrevLeaderByID: ", pid)
+		// fmt.Println("SetPrevLeaderByID: ", pid)
 		p.nodeState = wire.NodeLeaderPrev
 		return
 	}
@@ -1845,8 +1839,8 @@ out:
 
 // height is the latest dbheight in database
 func (s *server) handleNextLeader(height uint32) {
-	fmt.Printf("handleNextLeader starts: current height=%d, myLeaderPolicy=%+v\n",
-		height, s.myLeaderPolicy)
+	// fmt.Printf("handleNextLeader starts: current height=%d, myLeaderPolicy=%+v\n",
+		// height, s.myLeaderPolicy)
 	if !s.IsLeader() && !s.IsLeaderElect() {
 		fmt.Println("handleNextLeader: i'm neither leader nor leaderElect. ", 
 			spew.Sdump(s.GetMyFederateServer()))
@@ -1922,27 +1916,26 @@ func (s *server) selectNextLeader(height uint32) {
 		return
 	}
 	var next *federateServer
-	nonCandidates, candidates := s.nonCandidateServers()
+	nonCandidates, _ := s.nonCandidateServers()
+	// fmt.Println("selectNextLeader: nonCandidates=", spew.Sdump(nonCandidates))
 	
 	// I'm the leader, and no follower exists, then update my policy
 	if len(nonCandidates) == 1 && nonCandidates[0].Peer.nodeID == s.nodeID {
 		s.myLeaderPolicy.StartDBHeight = height + 3
 		fmt.Printf("selectNextLeader: no next leader chosen, " + 
-			"and update my own policy. non-candidates=%s, candidates=%s\n", 
-			spew.Sdump(nonCandidates), spew.Sdump(candidates))
+			"and update my own policy.")
 		return
 	}
 	
 	// simple round robin for now
 	sort.Sort(ByLeaderLast(nonCandidates))
-	fmt.Println("selectNextLeader: nonCandidates=", spew.Sdump(nonCandidates))
 	for _, fed := range nonCandidates {
 		if fed.Peer.nodeID != s.nodeID {
 			next = fed
 			break
 		}
 	}
-	fmt.Printf("selectNextLeader: next leader chosen: %s\n", spew.Sdump(next))
+	fmt.Printf("selectNextLeader: next leader chosen: %s\n", next.Peer)
 	
 	if next == nil {
 		// this shoud never happen here
@@ -1976,7 +1969,8 @@ func (s *server) selectCurrentleader(height uint32) {
 	}
 	//var next *federateServer
 	nonCandidates, candidates := s.nonCandidateServers()
-	fmt.Println("selectCurrentleader: nonCandidates=", spew.Sdump(nonCandidates))
+	// fmt.Println("selectCurrentleader: nonCandidates=", spew.Sdump(nonCandidates))
+
 	// if there's a leader plus one or more candidates, when leader crashes,
 	// no candidate should be promoted to the current leader, 
 	// as its block chain is not up to date yet.
@@ -2023,7 +2017,7 @@ func (s *server) selectCurrentleader(height uint32) {
 	// Note: LeaderLast is not the same for each peer, as it's not broadcast to everyone
 	sort.Sort(ByStartTime(nonCandidates))
 	if nonCandidates[0].Peer.nodeID == s.nodeID {
-		fmt.Printf("selectCurrentleader: I'm the server with the longest tenure: %s\n", spew.Sdump(nonCandidates[0]))
+		fmt.Printf("selectCurrentleader: I'm the server with the longest tenure: %s\n", nonCandidates[0].Peer)
 		prevID := ""
 		prev := s.GetLeaderPeer()
 		if prev != nil {
@@ -2044,12 +2038,13 @@ func (s *server) sendCurrentLeaderMsg(deadLeader string, newLeader string, sourc
 		Term:           defaultLeaderTerm,
 	}
 	s.myLeaderPolicy = policy
-	fmt.Printf("sendCurrentLeaderMsg: my.fs=%s\n", spew.Sdump(s.federateServers))
+	// fmt.Printf("sendCurrentLeaderMsg: my.fs=%s\n", spew.Sdump(s.federateServers))
 	
 	// restart leader in processor
 	sig := s.privKey.Sign([]byte(deadLeader + newLeader + source + strconv.Itoa(int(h))))
 	msg := wire.NewCurrentLeaderMsg(deadLeader, newLeader, source, h, sig)
-	fmt.Printf("sendCurrentLeaderMsg: broadcast %s, leaderCrashed=%t\n", spew.Sdump(msg), leaderCrashed)
+	fmt.Printf("sendCurrentLeaderMsg: broadcast %s, leaderCrashed=%t, isLeader=%t\n", 
+		msg, leaderCrashed, s.IsLeader())
 	s.BroadcastMessage(msg)
 	
 	if leaderCrashed {
