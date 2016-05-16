@@ -47,6 +47,7 @@ func (bt *BlockTimer) StartBlockTimer() {
 	if directoryBlockInSeconds == 600 {
 		roundTime := time.Now().Round(time.Minute)
 		minutesPassed := roundTime.Minute() - (roundTime.Minute()/10)*10
+		fmt.Printf("BlockTimer: roundTime=%d, minutesPassed=%d\n", roundTime, minutesPassed)
 
 		// Set the start time for the open dir block
 		if dchain.NextBlock.Header.Timestamp == 0 {
@@ -63,6 +64,7 @@ func (bt *BlockTimer) StartBlockTimer() {
 			} else {
 				time.Sleep(time.Duration((60 - t0.Second()) * 1000000000))
 			}
+			fmt.Printf("BlockTimer: minutesPassed=%d, t0=%d, t0Round=%d, now=%v\n", minutesPassed, t0, t0Round, time.Now())
 
 			eomMsg := &wire.MsgInt_EOM{
 				EOM_Type:         wire.EndMinute1 + byte(minutesPassed),

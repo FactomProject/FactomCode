@@ -43,7 +43,7 @@ func initDChain() {
 
 	for i := 0; i < len(dBlocks); i = i + 1 {
 		if dBlocks[i].Header.DBHeight != uint32(i) {
-			panic("Error in initializing dChain:" + dchain.ChainID.String())
+			panic("Error in initializing dChain: h=" + string(dBlocks[i].Header.DBHeight))
 		}
 		dBlocks[i].Chain = dchain
 		dBlocks[i].IsSealed = true
@@ -54,7 +54,8 @@ func initDChain() {
 	// double check the block ids
 	for i := 0; i < len(dchain.Blocks); i = i + 1 {
 		if uint32(i) != dchain.Blocks[i].Header.DBHeight {
-			panic(errors.New("BlockID does not equal index for chain:" + dchain.ChainID.String() + " block:" + fmt.Sprintf("%v", dchain.Blocks[i].Header.DBHeight)))
+			panic(errors.New("BlockID does not equal index for dchain. block:" + 
+				fmt.Sprintf("%v", dchain.Blocks[i].Header.DBHeight)))
 		}
 	}
 
@@ -73,7 +74,7 @@ func initDChain() {
 
 	//Double check the sealed flag
 	if dchain.NextBlock.IsSealed == true {
-		panic("dchain.Blocks[dchain.NextBlockID].IsSealed for chain:" + dchain.ChainID.String())
+		panic("dchain.Blocks[dchain.NextBlockID].IsSealed for chain:")
 	}
 
 }
@@ -158,7 +159,8 @@ func initAChain() {
 	// double check the block ids
 	for i := 0; i < len(aBlocks); i = i + 1 {
 		if uint32(i) != aBlocks[i].Header.DBHeight {
-			panic(errors.New("BlockID does not equal index for chain:" + achain.ChainID.String() + " block:" + fmt.Sprintf("%v", aBlocks[i].Header.DBHeight)))
+			panic(errors.New("BlockID does not equal index for chain. block:" + 
+				fmt.Sprintf("%v", aBlocks[i].Header.DBHeight)))
 		}
 		if !validateDBSignature(&aBlocks[i], dchain) {
 
@@ -280,7 +282,8 @@ func initializeECreditMap(block *common.ECBlock) {
 		case common.ECIDServerIndexNumber:
 		case common.ECIDMinuteNumber:
 		default:
-			panic("Unknow entry type:" + string(entry.ECID()) + " for ECBlock:" + strconv.FormatUint(uint64(block.Header.EBHeight), 10))
+			panic("Unknow entry type:" + string(entry.ECID()) + " for ECBlock:" + 
+				strconv.FormatUint(uint64(block.Header.EBHeight), 10))
 		}
 	}
 }
@@ -316,7 +319,8 @@ func initEChainFromDB(chain *common.EChain) {
 
 	for i := 0; i < len(*eBlocks); i = i + 1 {
 		if uint32(i) != (*eBlocks)[i].Header.EBSequence {
-			panic(errors.New("BlockID does not equal index for chain:" + chain.ChainID.String() + " block:" + fmt.Sprintf("%v", (*eBlocks)[i].Header.EBSequence)))
+			panic(errors.New("BlockID does not equal index for chain. block:" + 
+				fmt.Sprintf("%v", (*eBlocks)[i].Header.EBSequence)))
 		}
 	}
 
@@ -354,7 +358,8 @@ func validateDChain(c *common.DChain) error {
 	}
 
 	if uint32(len(c.Blocks)) != c.NextDBHeight {
-		return errors.New("Dir chain has an un-expected Next Block ID: " + strconv.Itoa(int(c.NextDBHeight)))
+		return errors.New("Dir chain has an un-expected Next Block ID: " + 
+			strconv.Itoa(int(c.NextDBHeight)))
 	}
 
 	//prevMR and prevBlkHash are used to validate against the block next in the chain

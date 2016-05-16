@@ -172,16 +172,16 @@ func StartProcessor(wg *sync.WaitGroup, quit chan struct{}) {
 		signDirBlockForAdminBlock(dchain.Blocks[dchain.NextDBHeight-1])
 
 		// Initialize timer for the open dblock before processing messages
-		// timer := &BlockTimer{
-			// nextDBlockHeight: dchain.NextDBHeight,
-			// inMsgQueue:       inMsgQueue,
-		// }
+		timer := &BlockTimer{
+			nextDBlockHeight: dchain.NextDBHeight,
+			inMsgQueue:       inMsgQueue,
+		}
 		// only leader runs a timer
-		// go timer.StartBlockTimer()
+		go timer.StartBlockTimer()
 	} 
 
 	// start the new block timer, where leader & follower have its own timers.
-	go startBlockTimer()
+	// go startBlockTimer()
 
 	// process the blocks and entries downloaded from peers
 	// this is needed for clients and followers and leader when sync up
@@ -1337,16 +1337,16 @@ func buildBlocks() error {
 
 	// should have a long-lasting block timer ???
 	// Initialize timer for the new dblock, only for leader before regime change.
-	// if localServer.isSingleServerMode() ||
-		// localServer.IsLeader() && dchain.NextDBHeight-1 != localServer.myLeaderPolicy.StartDBHeight+localServer.myLeaderPolicy.Term-1 ||
-		// localServer.IsLeaderElect() && dchain.NextDBHeight-1 == localServer.myLeaderPolicy.StartDBHeight-1 {
-		// fmt.Println("@@@@ start BlockTimer ")
-		/*timer := &BlockTimer{
+	if localServer.isSingleServerMode() ||
+		localServer.IsLeader() && dchain.NextDBHeight-1 != localServer.myLeaderPolicy.StartDBHeight+localServer.myLeaderPolicy.Term-1 ||
+		localServer.IsLeaderElect() && dchain.NextDBHeight-1 == localServer.myLeaderPolicy.StartDBHeight-1 {
+		fmt.Println("@@@@ start BlockTimer ")
+		timer := &BlockTimer{
 			nextDBlockHeight: dchain.NextDBHeight,
 			inMsgQueue:       inMsgQueue,
 		}
-		go timer.StartBlockTimer()*/
-	// }
+		go timer.StartBlockTimer()
+	}
 
 	// Todo: what happen if newDBlock is nil
 	if localServer.IsLeader() || localServer.IsLeaderElect() {
@@ -2081,12 +2081,12 @@ func resetLeaderState(leader string, height uint32) {
 	fMemPool.rebuildLeaderProcessList(leader, height)
 
 	// start clock
-	// fmt.Println("resetLeaderState: @@@@ start BlockTimer for new current leader.")
-	// timer := &BlockTimer{
-		// nextDBlockHeight: height,
-		// inMsgQueue:       inMsgQueue,
-	// }
-	// go timer.StartBlockTimer()	
+	fmt.Println("resetLeaderState: @@@@ start BlockTimer for new current leader.")
+	timer := &BlockTimer{
+		nextDBlockHeight: height,
+		inMsgQueue:       inMsgQueue,
+	}
+	go timer.StartBlockTimer()	
 
 	// for missed EOMs, processLeaderEOM should take care them
 	// relay stale messages in orphan pool and mempool in next round.
@@ -2133,32 +2133,10 @@ func startBlockTimer() {
 		n1 := time.Now()
 		time.Sleep(time.Duration(60 - n1.Second()) * time.Second)
 		ts = uint32(time.Now().Truncate(time.Minute).Unix() / 60)
-		fmt.Println("now0=", n0, ", now1=", n1, ", i=", i, ", ts=", dchain.NextBlock.Header.Timestamp)
+		fmt.Println("\nnow0=", n0, ", now1=", n1, ", i=", i, ", ts=", dchain.NextBlock.Header.Timestamp)
 
 		c := time.Tick(6 * time.Second)
-		for now := range c {
-			if i < 10 {
-				i++
-			} else {
-				i = 1
-			}
-
-			if i == 10 {
-				ts = uint32(time.Now().Truncate(time.Minute).Unix() / 60)
-			}
-			if i == 1 && localServer.IsLeader() {
-				dchain.NextBlock.Header.Timestamp = ts
-			}
-			fmt.Printf("\ntimer: h=%d type=%d ts=%d %v\n", dchain.NextDBHeight, i, dchain.NextBlock.Header.Timestamp, now)
-			
-			if localServer.IsLeader() {
-				eom := &wire.MsgInt_EOM{
-					EOM_Type:         byte(i),
-					NextDBlockHeight: dchain.NextDBHeight,
-				}
-				processLeaderEOM(eom)
-			}
-		}
+		blockTicker(i, ts, c)
 	}
 
 	if directoryBlockInSeconds == 600 {
@@ -2182,31 +2160,35 @@ func startBlockTimer() {
 		}
 
 		ts = uint32(time.Now().Truncate(time.Minute).Unix() / 60)
-		fmt.Println("now0=", n0, ", now1=", n1, ", now2=", n2, ", i=", i, ", ts=", dchain.NextBlock.Header.Timestamp)
+		fmt.Println("\nnow0=", n0, ", now1=", n1, ", now2=", n2, ", i=", i, ", ts=", dchain.NextBlock.Header.Timestamp)
 
 		c := time.Tick(1 * time.Minute)
-		for now := range c {
-			if i < 10 {
-				i++
-			} else {
-				i = 1
-			}
+		blockTicker(i, ts, c)
+	}
+}
 
-			if i == 10 {
-				ts = uint32(time.Now().Truncate(time.Minute).Unix() / 60)
+func blockTicker(i int, ts uint32, c <-chan time.Time) {
+	for now := range c {
+		if i < 10 {
+			i++
+		} else {
+			i = 1
+		}
+
+		if i == 10 {
+			ts = uint32(time.Now().Truncate(time.Minute).Unix() / 60)
+		}
+		if i == 1 && localServer.IsLeader() {
+			dchain.NextBlock.Header.Timestamp = ts
+		}
+		fmt.Printf("\ntimer: h=%d type=%d ts=%d %v\n", dchain.NextDBHeight, i, dchain.NextBlock.Header.Timestamp, now)
+		
+		if localServer.IsLeader() {
+			eom := &wire.MsgInt_EOM{
+				EOM_Type:         byte(i),
+				NextDBlockHeight: dchain.NextDBHeight,
 			}
-			if i == 1 && localServer.IsLeader() {
-				dchain.NextBlock.Header.Timestamp = ts
-			}
-			fmt.Printf("\ntimer: h=%d type=%d ts=%d %v\n", dchain.NextDBHeight, i, dchain.NextBlock.Header.Timestamp, now)
-			
-			if localServer.IsLeader() {
-				eom := &wire.MsgInt_EOM{
-					EOM_Type:         byte(i),
-					NextDBlockHeight: dchain.NextDBHeight,
-				}
-				processLeaderEOM(eom)
-			}
+			processLeaderEOM(eom)
 		}
 	}
 }

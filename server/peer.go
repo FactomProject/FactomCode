@@ -2705,9 +2705,9 @@ func (p *peer) handleNextLeaderMsg(msg *wire.MsgNextLeader) {
 		fmt.Println("handleNextLeaderMsg: signature verify FAILED.")
 		return
 	}
-	leader := p.server.GetLeaderPeer()
-	fmt.Printf("leader=%s, p=%s, my.fs.p=%s, p==fs.p: %t, leader==p: %t\n", leader, p, 
-		p.server.GetMyFederateServer().Peer, p.server.GetMyFederateServer().Peer==p, leader==p)
+	// leader := p.server.GetLeaderPeer()
+	// fmt.Printf("leader=%s, p=%s, my.fs.p=%s, p==fs.p: %t, leader==p: %t\n", leader, p, 
+		// p.server.GetMyFederateServer().Peer, p.server.GetMyFederateServer().Peer==p, leader==p)
 		
 	if p.nodeID != msg.CurrLeaderID {
 		fmt.Printf("handleNextLeaderMsg: leader verify FAILED: my leader is %s, but msg.leader is %s\n",
@@ -2724,7 +2724,7 @@ func (p *peer) handleNextLeaderMsg(msg *wire.MsgNextLeader) {
 		p.server.myLeaderPolicy = policy
 		p.server.setLeaderElectByID(p.server.nodeID)
 		fmt.Println("handleNextLeaderMsg: I'm the next leader elected. my.fs=", 
-			spew.Sdump(p.server.GetMyFederateServer()))
+			p.server.GetMyFederateServer().Peer)
 
 		sig := p.server.privKey.Sign([]byte(msg.CurrLeaderID + msg.NextLeaderID))
 		resp := wire.NewNextLeaderRespMsg(msg.CurrLeaderID, msg.NextLeaderID,
@@ -2738,7 +2738,7 @@ func (p *peer) handleNextLeaderRespMsg(msg *wire.MsgNextLeaderResp) {
 	if ClientOnly {
 		return
 	}
-	fmt.Printf("handleNextLeaderRespMsg: %s\n", spew.Sdump(msg))
+	fmt.Printf("handleNextLeaderRespMsg: %s\n", msg)
 	if !msg.Sig.Verify([]byte(msg.CurrLeaderID+msg.NextLeaderID)) {
 		fmt.Println("handleNextLeaderRespMsg: signature verify FAILED.")
 		return
@@ -2756,18 +2756,18 @@ func (p *peer) handleMissingMsg(msg *wire.MsgMissing) {
 	if ClientOnly {
 		return
 	}
-	fmt.Printf("handleMissingMsg: %s\n", spew.Sdump(msg))
+	fmt.Printf("handleMissingMsg: %s\n", msg)
 	if !p.server.IsLeader() {
 		fmt.Println("handleMissingMsg: MsgMissing has to be handled by the leader")
 		return
 	}
 	if !msg.Sig.Verify(msg.GetBinaryForSignature()) {
-		fmt.Println("handleMissingMsg: could not verify sig: ", spew.Sdump(msg))
+		fmt.Println("handleMissingMsg: could not verify sig: ", msg)
 		return
 	}
 	m := plMgr.MyProcessList.GetMissingMsg(msg)
 	if m == nil {
-		fmt.Printf("handleMissingMsg: found no msg/ack it in process list. %s\n", spew.Sdump(msg))
+		fmt.Println("handleMissingMsg: found no msg/ack it in process list.")
 		if !msg.IsAck {
 			m = fMemPool.getMsg(msg.ShaHash)
 		}
@@ -2779,7 +2779,7 @@ func (p *peer) handleMissingMsg(msg *wire.MsgMissing) {
 		p.QueueMessage(notFound, nil)
 		return
 	}
-	fmt.Printf("handleMissingMsg: found missing msg and sending it: %s\n", spew.Sdump(m))
+	fmt.Printf("handleMissingMsg: found missing msg and sending it: %s\n", m)
 	p.QueueMessage(m, nil)
 }
 
@@ -2798,7 +2798,7 @@ func (p *peer) handleCandidateMsg(msg *wire.MsgCandidate) {
 		if fs != nil {
 			fs.FirstAsFollower = msg.DBHeight
 		}
-		fmt.Println("handleCandidateMsg: candidate turned to follower: ", spew.Sdump(fs))
+		// fmt.Println("handleCandidateMsg: candidate turned to follower: ", spew.Sdump(fs))
 	}
 }
 
@@ -2896,7 +2896,7 @@ func (p *peer) handleCurrentLeaderMsg(msg *wire.MsgCurrentLeader) {
 	// find out the server with the longest tenure
 	sort.Sort(ByStartTime(nonCandidates))
 	if nonCandidates[0].Peer.nodeID == msg.NewLeaderCandidates {
-		fmt.Printf("handleCurrentLeaderMsg: longest FirstJoined: %s, p=%s\n", spew.Sdump(nonCandidates[0]), p)
+		fmt.Printf("handleCurrentLeaderMsg: longest FirstJoined: %s, p=%s\n", nonCandidates[0].Peer, p)
 		p.resetFollowerState(nonCandidates[0].Peer, msg)
 		return
 	}
