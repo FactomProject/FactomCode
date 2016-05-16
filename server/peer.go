@@ -1863,7 +1863,7 @@ func (p *peer) handleGetNonDirDataMsg(msg *wire.MsgGetNonDirData) {
 			}
 			if hash != nil && bytes.Compare(iv.Hash.ToFactomHash().Bytes(), hash.Bytes()) == 0 {
 				fmt.Println("found dirBlock as the newly generated dir block: ", 
-					spew.Sdump(newDBlock.Header))
+					newDBlock.Header.DBHeight)
 				blk = newDBlock
 			} else {
 				peerLog.Tracef("Unable to fetch requested dir block sha %v: %v",
@@ -2287,7 +2287,7 @@ func (p *peer) pushDirBlockMsg(sha *wire.ShaHash, doneChan, waitChan chan struct
 		}
 		if hash != nil && bytes.Compare(commonhash.Bytes(), hash.Bytes()) == 0 {
 			fmt.Println("found dirBlock as the newly generated dir block: ", 
-				spew.Sdump(newDBlock.Header))
+				newDBlock.Header.DBHeight)
 			blk = newDBlock
 		} else {
 			peerLog.Tracef("Unable to fetch requested dir block sha %v: %v", 
@@ -2322,7 +2322,7 @@ func (p *peer) pushDirBlockMsg(sha *wire.ShaHash, doneChan, waitChan chan struct
 	// to trigger it to issue another getblocks message for the next
 	// batch of inventory.
 	if p.continueHash != nil && p.continueHash.IsEqual(sha) {
-		peerLog.Debug("continueHash: " + spew.Sdump(sha))
+		peerLog.Debug("continueHash: " + sha.String())
 		// Sleep for 5 seconds for the peer to catch up
 		time.Sleep(5 * time.Second)
 
@@ -2429,8 +2429,7 @@ func (p *peer) pushFBlockMsg(commonhash *common.Hash, doneChan, waitChan chan st
 			hash = newFBlock.GetHash()
 		}
 		if hash != nil && bytes.Compare(commonhash.Bytes(), hash.Bytes()) == 0 {
-			fmt.Println("found it as the newly generated factoid Block: ", 
-				spew.Sdump(newFBlock))
+			fmt.Println("found it as the newly generated factoid Block: ", newFBlock.GetDBHeight())
 			blk = newFBlock
 		} else {
 			peerLog.Tracef("Unable to fetch requested factoid block sha %v: %v",
@@ -2467,7 +2466,7 @@ func (p *peer) pushABlockMsg(commonhash *common.Hash, doneChan, waitChan chan st
 		}
 		if hash != nil && bytes.Compare(commonhash.Bytes(), hash.Bytes()) == 0 {
 			fmt.Println("found it as the newly generated admin Block: ", 
-				spew.Sdump(newABlock))
+				newABlock.Header.DBHeight)
 			blk = newABlock
 		} else {
 			peerLog.Tracef("Unable to fetch requested Admin block sha %v: %v",
@@ -2503,7 +2502,7 @@ func (p *peer) pushECBlockMsg(commonhash *common.Hash, doneChan, waitChan chan s
 		}
 		if hash != nil && bytes.Compare(commonhash.Bytes(), hash.Bytes()) == 0 {
 			fmt.Println("found it as the newly generated Entry Credit Block: ", 
-				spew.Sdump(newECBlock))
+				newECBlock.Header.EBHeight)
 			blk = newECBlock
 		} else {
 			peerLog.Tracef("Unable to fetch requested Entry Credit block sha %v: %v",
@@ -2540,7 +2539,7 @@ func (p *peer) pushEBlockMsg(commonhash *common.Hash, doneChan, waitChan chan st
 			hash, _ := eblock.Hash()
 			if hash != nil && bytes.Compare(commonhash.Bytes(), hash.Bytes()) == 0 {
 				fmt.Println("found it as the newly generated Entry Block: ", 
-					spew.Sdump(eblock))
+					eblock.Header.EBHeight)
 				blk = eblock
 				err = nil
 				break
@@ -2702,7 +2701,7 @@ func (p *peer) handleNextLeaderMsg(msg *wire.MsgNextLeader) {
 	if ClientOnly {
 		return
 	}
-	fmt.Printf("handleNextLeaderMsg: %s\n", spew.Sdump(msg))
+	fmt.Printf("handleNextLeaderMsg: %s\n", msg)
 	if !msg.Sig.Verify([]byte(msg.CurrLeaderID+msg.NextLeaderID)) {
 		fmt.Println("handleNextLeaderMsg: signature verify FAILED.")
 		return
@@ -2808,7 +2807,7 @@ func (p *peer) handleCurrentLeaderMsg(msg *wire.MsgCurrentLeader) {
 	if ClientOnly {
 		return
 	}
-	fmt.Printf("handleCurrentLeaderMsg: %s\n", spew.Sdump(msg))
+	fmt.Printf("handleCurrentLeaderMsg: %s\n", msg)
 	// The timing b/w leader swtich in server.handleNextLeader and here could vary.
 	// So no need to check if p.server.IsLeader()	
 	// if p.server.IsLeader() {

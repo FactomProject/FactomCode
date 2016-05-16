@@ -1567,7 +1567,7 @@ func newAdminBlock(chain *common.AdminChain) *common.AdminBlock {
 		if err != nil {
 			fmt.Println("newAdminBlock: error in db.FetchDBlockByHeight", err.Error())
 		}
-		fmt.Println("newAdminBlock: get prev DirBlock for aBlock signature: prev dirBlock = ", spew.Sdump(prevDB))
+		// fmt.Println("newAdminBlock: get prev DirBlock for aBlock signature: prev dirBlock = ", spew.Sdump(prevDB))
 		signDirBlockForAdminBlock(prevDB)
 		block.AddEndOfMinuteMarker(wire.EndMinute1)
 	}

@@ -147,8 +147,8 @@ type server struct {
 	latestDBHeight             chan uint32
 	federateServers            []*federateServer //*list.List
 	myLeaderPolicy             *leaderPolicy
-	clientPeers								 []*peer
-	startTime									 int64
+	clientPeers				   []*peer
+	startTime				   int64
 }
 
 type leaderPolicy struct {
@@ -160,6 +160,10 @@ type leaderPolicy struct {
 	Confirmed      bool
 }
 
+func (fs *leaderPolicy) String() string {
+	return fmt.Sprintf("nextLeader: %s, start: %d", fs.NextLeader, fs.StartDBHeight)
+}
+
 type federateServer struct {
 	Peer            *peer
 	StartTime				int64	 //server start time 
@@ -167,6 +171,11 @@ type federateServer struct {
 	FirstAsFollower uint32 //DBHeight when this peer becomes a follower the first time.
 	LastSuccessVote uint32 //DBHeight of first successful vote of dir block signature
 	LeaderLast      uint32 //DBHeight when this peer was the leader the last time
+}
+
+func (fs *federateServer) String() string {
+	return fmt.Sprintf("peer: %s, start: %d, LeaderLast: %d", 
+		fs.Peer, fs.StartTime, fs.LeaderLast)
 }
 
 type peerState struct {
@@ -1842,8 +1851,7 @@ func (s *server) handleNextLeader(height uint32) {
 	// fmt.Printf("handleNextLeader starts: current height=%d, myLeaderPolicy=%+v\n",
 		// height, s.myLeaderPolicy)
 	if !s.IsLeader() && !s.IsLeaderElect() {
-		fmt.Println("handleNextLeader: i'm neither leader nor leaderElect. ", 
-			spew.Sdump(s.GetMyFederateServer()))
+		fmt.Println("handleNextLeader: i'm neither leader nor leaderElect. ", s.GetMyFederateServer())
 		return
 	}
 	if s.isSingleServerMode() {
@@ -1853,13 +1861,13 @@ func (s *server) handleNextLeader(height uint32) {
 	}
 
 	//fmt.Println("handleNextLeader: peerState=", spew.Sdump(s.PeerInfo()))
-	fmt.Println("handleNextLeader: federateServers=", spew.Sdump(s.federateServers))
+	fmt.Println("handleNextLeader: federateServers=", s.federateServers)
 
 	if s.IsLeaderElect() {
 		fmt.Printf("handleNextLeader: isLeaderElected=%t\n", s.IsLeaderElect())
 		if height > s.myLeaderPolicy.StartDBHeight {
-			fmt.Printf("height not right. height=%d, policy=%s\n",
-				height, spew.Sdump(s.myLeaderPolicy))
+			fmt.Printf("height not right. height=%d, policy=%#v\n",
+				height, s.myLeaderPolicy)
 			return
 		} else if height == s.myLeaderPolicy.StartDBHeight-1 {
 			// regime change for leader-elected
@@ -1890,7 +1898,7 @@ func (s *server) handleNextLeader(height uint32) {
 	// its policy could be outdated. update its polidy now.
 	if height > s.myLeaderPolicy.StartDBHeight+s.myLeaderPolicy.Term {
 		fmt.Printf("handleNextLeader: wrong height. height=%d, policy=%s\n",
-			height, spew.Sdump(s.myLeaderPolicy))
+			height, s.myLeaderPolicy)
 		return
 
 	} else if height == s.myLeaderPolicy.StartDBHeight+s.myLeaderPolicy.NotifyDBHeight-1 {
@@ -1950,7 +1958,7 @@ func (s *server) selectNextLeader(height uint32) {
 
 	sig := s.privKey.Sign([]byte(s.nodeID + next.Peer.nodeID))
 	msg := wire.NewNextLeaderMsg(s.nodeID, next.Peer.nodeID, h, sig)
-	fmt.Printf("selectNextLeader: broadcast NextLeaderMsg=%s\n", spew.Sdump(msg))
+	fmt.Printf("selectNextLeader: broadcast NextLeaderMsg=%s\n", msg)
 
 	s.BroadcastMessage(msg)
 	s.myLeaderPolicy.Notified = true
