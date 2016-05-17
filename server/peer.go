@@ -415,7 +415,8 @@ func (p *peer) updateAddresses(msg *wire.MsgVersion) {
 // and is used to negotiate the protocol version details as well as kick start
 // the communications.
 func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
-	// fmt.Println("handleVersionMsg: ", spew.Sdump(msg))
+	fmt.Printf("handleVersionMsg: %s (%s, %d): %s\n", 
+		msg.NodeID, msg.NodeType, msg.NodeState, msg.AddrMe.String())
 	
 	// Detect self connections.
 	if msg.Nonce == p.server.nonce {
@@ -459,8 +460,8 @@ func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
 	// Negotiate the protocol version.
 	p.protocolVersion = minUint32(p.protocolVersion, uint32(msg.ProtocolVersion))
 	p.versionKnown = true
-	peerLog.Debugf("Negotiated protocol version %d for peer %s",
-		p.protocolVersion, p)
+	// peerLog.Debugf("Negotiated protocol version %d for peer %s",
+		// p.protocolVersion, p)
 	p.lastBlock = msg.LastBlock
 	p.startingHeight = msg.LastBlock
 
@@ -485,7 +486,7 @@ func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
 	p.disableRelayTx = msg.DisableRelayTx
 	p.relayMtx.Unlock()
 
-	peerLog.Info("NodeType: ", msg.NodeType, ", NodeID: ", msg.NodeID)
+	// peerLog.Info("NodeType: ", msg.NodeType, ", NodeID: ", msg.NodeID)
 	// only verify id/sig for federate servers
 	if common.SERVER_NODE == msg.NodeType {
 		if !msg.NodeSig.Verify([]byte(msg.NodeID)) {
@@ -540,7 +541,7 @@ func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
 	p.nodeType = msg.NodeType
 	p.nodeID = msg.NodeID
 	p.pubKey = msg.NodeSig.Pub
-	peerLog.Info("set peer id/type info: ", p)
+	// peerLog.Info("set peer id/type info: ", p)
 
 	// Inbound connections.
 	if p.inbound {

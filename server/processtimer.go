@@ -45,37 +45,102 @@ func (bt *BlockTimer) StartBlockTimer() {
 	}
 
 	if directoryBlockInSeconds == 600 {
-		roundTime := time.Now().Round(time.Minute)
-		minutesPassed := roundTime.Minute() - (roundTime.Minute()/10)*10
-		fmt.Printf("BlockTimer: roundTime=%d, minutesPassed=%d\n", roundTime, minutesPassed)
+		n := time.Now()
+		minutesPassed := n.Minute() % 10
 
 		// Set the start time for the open dir block
 		if dchain.NextBlock.Header.Timestamp == 0 {
-			dchain.NextBlock.Header.Timestamp = uint32(roundTime.Add(time.Duration((0-60*minutesPassed)*1000000000)).Unix() / 60)
+			// dchain.NextBlock.Header.Timestamp = uint32(roundTime.Add(time.Duration((0-60*minutesPassed)*1000000000)).Unix() / 60)
+			dchain.NextBlock.Header.Timestamp = uint32(n.Truncate(time.Minute).Unix() / 60)
 		}
+
+		fmt.Printf("*BlockTimer: minutesPassed=%d, ts=%d, now=%s\n", minutesPassed, 
+			dchain.NextBlock.Header.Timestamp, n)
 		
 		for minutesPassed < 10 {
 
 			// Sleep till the end of minute
-			t0 := time.Now()
-			t0Round := t0.Round(time.Minute)
-			if t0.Before(t0Round) {
-				time.Sleep(time.Duration((60 + t0.Second()) * 1000000000))
-			} else {
-				time.Sleep(time.Duration((60 - t0.Second()) * 1000000000))
-			}
-			fmt.Printf("BlockTimer: minutesPassed=%d, t0=%d, t0Round=%d, now=%v\n", minutesPassed, t0, t0Round, time.Now())
+			time.Sleep(time.Duration(60 - time.Now().Second()) * time.Second)
+			fmt.Printf("BlockTimer: minutesPassed=%d, now=%s\n", minutesPassed, time.Now())
 
 			eomMsg := &wire.MsgInt_EOM{
 				EOM_Type:         wire.EndMinute1 + byte(minutesPassed),
 				NextDBlockHeight: bt.nextDBlockHeight,
 			}
 
-			//send the end-of-minute message to processor
 			bt.inMsgQueue <- eomMsg
-
 			minutesPassed++
 		}
 	}
+}
 
+
+// startBlockTimer is a new timer run by both leader and followers
+func startBlockTimer() {	
+	var ts uint32
+	if directoryBlockInSeconds == 60 {
+		i := 0
+		n0 := time.Now()
+		time.Sleep(time.Duration(1000000000 - n0.Nanosecond()) * time.Nanosecond)
+		n1 := time.Now()
+		time.Sleep(time.Duration(60 - n1.Second()) * time.Second)
+		ts = uint32(time.Now().Truncate(time.Minute).Unix() / 60)
+		fmt.Println("\nnow0=", n0, ", now1=", n1, ", i=", i, ", ts=", dchain.NextBlock.Header.Timestamp)
+
+		c := time.Tick(6 * time.Second)
+		blockTicker(i, ts, c)
+	}
+
+	if directoryBlockInSeconds == 600 {
+		n0 := time.Now()
+		time.Sleep(time.Duration(1000000000 - n0.Nanosecond()) * time.Nanosecond)
+		n1 := time.Now()
+		time.Sleep(time.Duration(60 - n1.Second()) * time.Second)
+		n2 := time.Now()
+		i := n2.Minute()
+		if i >= 10 {
+			i = i % 10
+		} 
+		
+		// if there's only 1 or 2 min left, sleep it out
+		if i > 7 {
+			time.Sleep(time.Duration(10 - i) * time.Minute)
+			i = time.Now().Minute() + 1
+			if i >= 10 {
+				i = i % 10
+			} 
+		}
+
+		ts = uint32(time.Now().Truncate(time.Minute).Unix() / 60)
+		fmt.Println("\nnow0=", n0, ", now1=", n1, ", now2=", n2, ", i=", i, ", ts=", dchain.NextBlock.Header.Timestamp)
+
+		c := time.Tick(1 * time.Minute)
+		blockTicker(i, ts, c)
+	}
+}
+
+func blockTicker(i int, ts uint32, c <-chan time.Time) {
+	for now := range c {
+		if i < 10 {
+			i++
+		} else {
+			i = 1
+		}
+
+		if i == 10 {
+			ts = uint32(time.Now().Truncate(time.Minute).Unix() / 60)
+		}
+		if i == 1 && localServer.IsLeader() {
+			dchain.NextBlock.Header.Timestamp = ts
+		}
+		fmt.Printf("\ntimer: h=%d type=%d ts=%d %v\n", dchain.NextDBHeight, i, dchain.NextBlock.Header.Timestamp, now)
+		
+		if localServer.IsLeader() {
+			eom := &wire.MsgInt_EOM{
+				EOM_Type:         byte(i),
+				NextDBlockHeight: dchain.NextDBHeight,
+			}
+			processLeaderEOM(eom)
+		}
+	}
 }

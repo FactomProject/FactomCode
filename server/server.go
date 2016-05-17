@@ -1848,8 +1848,7 @@ out:
 
 // height is the latest dbheight in database
 func (s *server) handleNextLeader(height uint32) {
-	// fmt.Printf("handleNextLeader starts: current height=%d, myLeaderPolicy=%+v\n",
-		// height, s.myLeaderPolicy)
+	fmt.Printf("handleNextLeader: start. h=%d, now=%s\n", height, time.Now())
 	if !s.IsLeader() && !s.IsLeaderElect() {
 		fmt.Println("handleNextLeader: i'm neither leader nor leaderElect. ", s.GetMyFederateServer())
 		return
@@ -1861,7 +1860,7 @@ func (s *server) handleNextLeader(height uint32) {
 	}
 
 	//fmt.Println("handleNextLeader: peerState=", spew.Sdump(s.PeerInfo()))
-	fmt.Println("handleNextLeader: federateServers=", s.federateServers)
+	fmt.Printf("handleNextLeader: Servers=%+v\n", s.federateServers)
 
 	if s.IsLeaderElect() {
 		fmt.Printf("handleNextLeader: isLeaderElected=%t\n", s.IsLeaderElect())
@@ -1879,7 +1878,6 @@ func (s *server) handleNextLeader(height uint32) {
 			}
 			s.sendCurrentLeaderMsg(leaderID, s.nodeID, s.nodeID, height + 1)
 			// turn on BlockTimer in processor
-			fmt.Println("handleNextLeader: ** height equal, regime change for leader-elected.")
 			fmt.Println()
 			fmt.Println("//////////////////////")
 			fmt.Println("///                ///")
@@ -1887,6 +1885,7 @@ func (s *server) handleNextLeader(height uint32) {
 			fmt.Println("///                ///")
 			fmt.Println("//////////////////////")
 			fmt.Println()
+			fmt.Println("handleNextLeader: regime change for leader-elected. ", time.Now())
 		}
 		return
 	}
@@ -1916,9 +1915,11 @@ func (s *server) handleNextLeader(height uint32) {
 		s.GetMyFederateServer().LeaderLast = height
 		// turn off BlockTimer in processor
 	}
+	fmt.Printf("handleNextLeader: end. %s\n", time.Now())
 }
 
 func (s *server) selectNextLeader(height uint32) {
+	fmt.Printf("selectNextLeader: start. %s\n", time.Now())
 	// determine who's the next qualified leader, exclude candidate servers 
 	if !s.IsLeader() {
 		return
@@ -1958,10 +1959,11 @@ func (s *server) selectNextLeader(height uint32) {
 
 	sig := s.privKey.Sign([]byte(s.nodeID + next.Peer.nodeID))
 	msg := wire.NewNextLeaderMsg(s.nodeID, next.Peer.nodeID, h, sig)
-	fmt.Printf("selectNextLeader: broadcast NextLeaderMsg=%s\n", msg)
+	// fmt.Printf("selectNextLeader: broadcast NextLeaderMsg=%s\n", msg)
 
 	s.BroadcastMessage(msg)
 	s.myLeaderPolicy.Notified = true
+	fmt.Printf("selectNextLeader: end. %s\n", time.Now())
 }
 
 // when current leader goes down, choose an emergency leader. 
@@ -1972,6 +1974,7 @@ func (s *server) selectNextLeader(height uint32) {
 // 2). else if prev leader exists, it's the new leader
 // 3). else it's the peer with the longest FirstJoined
 func (s *server) selectCurrentleader(height uint32) {
+	fmt.Printf("selectCurrentleader: start. %s\n", time.Now())
 	if s.IsLeader() || ClientOnly {
 		return
 	}
@@ -2033,9 +2036,11 @@ func (s *server) selectCurrentleader(height uint32) {
 		}
 		s.sendCurrentLeaderMsg(prevID, s.nodeID, s.nodeID, height+1)
 	}
+	fmt.Printf("selectCurrentleader: end. %s\n", time.Now())
 }
 
 func (s *server) sendCurrentLeaderMsg(deadLeader string, newLeader string, source string, h uint32) {
+	fmt.Printf("sendCurrentLeaderMsg: start. %s\n", time.Now())
 	s.SetLeaderPeerByID(s.nodeID)
 
 	// set leader policy
@@ -2058,6 +2063,7 @@ func (s *server) sendCurrentLeaderMsg(deadLeader string, newLeader string, sourc
 	if leaderCrashed {
 		resetLeaderState(newLeader, h)	// in processor
 	}
+	fmt.Printf("sendCurrentLeaderMsg: end. %s\n", time.Now())
 }
 
 // ByLeaderLast sorts federate server by its LeaderLast
