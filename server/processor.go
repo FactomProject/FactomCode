@@ -383,7 +383,7 @@ func processLeaderEOM(msgEom *wire.MsgInt_EOM) error {
 	if nodeMode != common.SERVER_NODE {
 		return nil
 	}
-	var singleServerMode = localServer.isSingleServerMode()
+	// var singleServerMode = localServer.isSingleServerMode()
 
 	fmt.Println()
 	fmt.Println("//////////////////////")
@@ -392,9 +392,8 @@ func processLeaderEOM(msgEom *wire.MsgInt_EOM) error {
 	fmt.Println("///                ///")
 	fmt.Println("//////////////////////")
 	fmt.Println()
-	fmt.Println("processLeaderEOM: servers #: ", localServer.FederateServerCount(),
-		", Non-candidates #: ", localServer.NonCandidateServerCount(),
-		", singleServer=", singleServerMode, ", now=", time.Now())
+	fmt.Println("processLeaderEOM: servers: ", localServer.FederateServerCount(),
+		", Non-candidates: ", localServer.NonCandidateServerCount(), ", ", time.Now())
 
 	// to simplify this, for leader & followers, use the next wire.EndMinute1
 	// to trigger signature comparison of last round.
@@ -677,7 +676,7 @@ func processAckMsg(ack *wire.MsgAck) ([]*wire.MsgMissing, error) {
 		fmt.Println()
 	}
 
-	fmt.Printf("processAckMsg: start. %s, dchain.NextDBHeight=%d, db.latestDBHeight=%d, blockSyncing=%v, now=%s\n",
+	fmt.Printf("processAckMsg: start. %s, dchain.NextDBHeight=%d, db.latestDBHeight=%d, blockSyncing=%v, %s\n",
 		ack, dchain.NextDBHeight, latestHeight, blockSyncing, time.Now())
 	
 	//dchain.NextDBHeight is the dir block height for the network
@@ -1239,7 +1238,7 @@ func buildGenesisBlocks() error {
 
 // build blocks from all process lists
 func buildBlocks() error {
-	fmt.Printf("buildBlocks: dchain.NextDBHeight=%d, achain.NextDBHeight=%d, fchain.NextDBHeight=%d, ecchain.NextDBHeight=%d, now=%s\n",
+	fmt.Printf("buildBlocks: dchain.NextDBHeight=%d, achain.NextDBHeight=%d, fchain.NextDBHeight=%d, ecchain.NextDBHeight=%d, %s\n",
 		dchain.NextDBHeight, achain.NextBlockHeight, fchain.NextBlockHeight, ecchain.NextBlockHeight, time.Now())
 
 	// this prevents adding more than 3 DBEntries, in case of prev block being downloaded.
@@ -1385,7 +1384,7 @@ func buildBlocks() error {
 	}
 
 	// relay stale messages left in mempool and orphan pool.
-	fMemPool.relayStaleMessages()
+	// fMemPool.relayStaleMessages()
 
 	if len(errStr) > 0 {
 		fmt.Println("buildBlocks: errStr=", errStr)
@@ -1511,7 +1510,7 @@ func newEntryBlock(chain *common.EChain) *common.EBlock {
 func newEntryCreditBlock(chain *common.ECChain) *common.ECBlock {
 	// acquire the last block
 	block := chain.NextBlock
-	fmt.Printf("newEntryCreditBlock: block.Header.EBHeight =%d, chain.NextBlockHeight=%d, isDownloaded=%t, now=%s\n ", 
+	fmt.Printf("newEntryCreditBlock: block.Header.EBHeight =%d, chain.NextBlockHeight=%d, isDownloaded=%t, %s\n ", 
 		block.Header.EBHeight, chain.NextBlockHeight, fMemPool.isDownloaded(block.Header.EBHeight - 1), time.Now())
 	
 	// this ec chain.NextBlockHeight adjustment is done in initECChain()	
@@ -1568,7 +1567,7 @@ func newEntryCreditBlock(chain *common.ECChain) *common.ECBlock {
 func newAdminBlock(chain *common.AdminChain) *common.AdminBlock {
 	// acquire the last block
 	block := chain.NextBlock
-	fmt.Printf("newAdminBlock: block.Header.DBHeight=%d, chain.NextBlockHeight=%d, isDownloaded=%t, now=%s\n ", 
+	fmt.Printf("newAdminBlock: block.Header.DBHeight=%d, chain.NextBlockHeight=%d, isDownloaded=%t, %s\n ", 
 		block.Header.DBHeight, chain.NextBlockHeight, fMemPool.isDownloaded(block.Header.DBHeight - 1), time.Now())
 	
 	// check if this is the first block after block sync up, or 
@@ -1719,7 +1718,7 @@ func newDirectoryBlock(chain *common.DChain) *common.DirectoryBlock {
 	// acquire the last block
 	block := chain.NextBlock
 
-	fmt.Printf("newDirectoryBlock: block.Header.DBHeight=%d, chain.NextBlockHeight=%d, isDownloaded=%t, now=%s\n ", 
+	fmt.Printf("newDirectoryBlock: block.Header.DBHeight=%d, chain.NextBlockHeight=%d, isDownloaded=%t, %s\n ", 
 		block.Header.DBHeight, chain.NextDBHeight, fMemPool.isDownloaded(block.Header.DBHeight - 1), time.Now())
 	
 	// check if this is the first block after block sync up, or 
@@ -1825,7 +1824,7 @@ func saveBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
 		return nil
 	}
 
-	fmt.Printf("saveBlocks: start. h=%d, now=%s\n", dblock.Header.DBHeight, time.Now())
+	fmt.Printf("saveBlocks: start. h=%d, %s\n", dblock.Header.DBHeight, time.Now())
 	db.ProcessDBlockBatch(dblock)
 	db.ProcessFBlockBatch(fblock)
 	db.ProcessECBlockBatch(ecblock)
@@ -1858,7 +1857,7 @@ func saveBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
 
 	fMemPool.resetDirBlockSigPool(dblock.Header.DBHeight+1)
 	newDBlock, newABlock, newECBlock, newFBlock, newEBlocks = nil, nil, nil, nil, nil
-	fmt.Printf("saveBlocks: end. h=%d, now=%s\n", dblock.Header.DBHeight, time.Now())
+	fmt.Printf("saveBlocks: end. h=%d, %s\n", dblock.Header.DBHeight, time.Now())
 	return nil
 }
 

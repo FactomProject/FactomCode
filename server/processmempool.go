@@ -563,11 +563,13 @@ func (mp *ftmMemPool) relayStaleMessages() {
 	for hash, msg := range mp.pool {
 		fmt.Println("relayStaleMessages: from mp.pool: ", spew.Sdump(msg))
 		outMsgQueue <- msg
+		// delete too early ???
 		delete(mp.pool, hash)
 	}
 	for hash, msg := range mp.orphans {
 		fmt.Println("relayStaleMessages: from mp.orphans: ", spew.Sdump(msg))
 		outMsgQueue <- msg
+		// delete too soon ???
 		delete(mp.orphans, hash)
 	}
 }

@@ -227,8 +227,8 @@ type peer struct {
 // String returns the peer's address and directionality as a human-readable
 // string.
 func (p *peer) String() string {
-	return fmt.Sprintf("%s (%s); %s, state=%v", 
-		p.addr, directionString(p.inbound), p.nodeID, p.nodeState)
+	return fmt.Sprintf("%s (%s); %s, state=%v, type=%s", 
+		p.addr, directionString(p.inbound), p.nodeID, p.nodeState, p.nodeType)
 }
 
 // isKnownInventory returns whether or not the peer is known to have the passed
@@ -415,7 +415,7 @@ func (p *peer) updateAddresses(msg *wire.MsgVersion) {
 // and is used to negotiate the protocol version details as well as kick start
 // the communications.
 func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
-	fmt.Printf("handleVersionMsg: %s (%s, %d)\n", 
+	peerLog.Debugf("handleVersionMsg: %s (%s, %d)", 
 		msg.NodeID, msg.NodeType, msg.NodeState)
 	
 	// Detect self connections.
@@ -2750,7 +2750,7 @@ func (p *peer) handleNextLeaderRespMsg(msg *wire.MsgNextLeaderResp) {
 		p.server.myLeaderPolicy.Confirmed = true
 	}
 	p.nodeState = wire.NodeLeaderElect 
-	fmt.Printf("handleNextLeaderRespMsg: next leader CONFIRMED: %s. startHeight=%d, p=%s\n", 
+	fmt.Printf("handleNextLeaderRespMsg: next leader CONFIRMED: %s. start=%d, p=%s\n", 
 		msg.NextLeaderID, msg.StartDBHeight, p)
 }
 

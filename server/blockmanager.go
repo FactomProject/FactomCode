@@ -645,7 +645,7 @@ func (b *blockManager) isSyncCandidateFactom(p *peer) bool {
 	// Todo: We should have a "NodeClient" as a NodeState, 
 	// so that client is able to download blocks from other clients
 	if common.SERVER_NODE == factomConfig.App.NodeMode && p.IsCandidate() {
-		fmt.Println("peer is not a sync candidate: ", p)
+		bmgrLog.Infof("peer is not a sync candidate: ", p)
 		return false
 	}
 	return true

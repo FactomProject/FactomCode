@@ -419,16 +419,16 @@ func (s *server) handleDonePeerMsg(state *peerState, p *peer) {
 		for i, fedServer := range s.federateServers {
 			if fedServer.Peer == p {
 				s.federateServers = append(s.federateServers[:i], s.federateServers[i+1:]...)
-				fmt.Printf("handleDonePeerMsg: server Removed: %s\n", p)
+				srvrLog.Debugf("handleDonePeerMsg: server Removed: %s\n", p)
 
 				// if p is leaderElected and I am the leader, select a new leaderElect
 				_, newestHeight, _ := db.FetchBlockHeightCache()
 				if s.IsLeader() && p.IsLeaderElect() {
-					fmt.Println("handleDonePeerMsg: leadElect crashed ")
+					srvrLog.Debugf("handleDonePeerMsg: leadElect crashed ")
 					s.selectNextLeader(uint32(newestHeight))
 
 				} else if p.IsLeader() {
-					fmt.Println("handleDonePeerMsg: leader crashed ")
+					srvrLog.Debugf("handleDonePeerMsg: leader crashed ")
 					leaderCrashed = true
 					s.selectCurrentleader(uint32(newestHeight))
 				}
@@ -439,7 +439,7 @@ func (s *server) handleDonePeerMsg(state *peerState, p *peer) {
 		for i, client := range s.clientPeers {
 			if client == p {
 				s.clientPeers = append(s.clientPeers[:i], s.clientPeers[i+1:]...)
-				fmt.Printf("handleDonePeerMsg: client Removed: %s\n", p)
+				srvrLog.Debugf("handleDonePeerMsg: client Removed: %s\n", p)
 			}
 		}
 	}
