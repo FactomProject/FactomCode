@@ -54,7 +54,7 @@ func initDChain() {
 	// double check the block ids
 	for i := 0; i < len(dchain.Blocks); i = i + 1 {
 		if uint32(i) != dchain.Blocks[i].Header.DBHeight {
-			panic(errors.New("BlockID does not equal index for dchain. block:" + 
+			panic(errors.New("initDChain: BlockID does not equal index. block:" + 
 				fmt.Sprintf("%v", dchain.Blocks[i].Header.DBHeight)))
 		}
 	}
@@ -159,7 +159,7 @@ func initAChain() {
 	// double check the block ids
 	for i := 0; i < len(aBlocks); i = i + 1 {
 		if uint32(i) != aBlocks[i].Header.DBHeight {
-			panic(errors.New("BlockID does not equal index for chain. block:" + 
+			panic(errors.New("initAChain: BlockID does not equal index. block:" + 
 				fmt.Sprintf("%v", aBlocks[i].Header.DBHeight)))
 		}
 		if !validateDBSignature(&aBlocks[i], dchain) {
@@ -198,8 +198,7 @@ func initFctChain() {
 	// double check the block ids
 	for i := 0; i < len(fBlocks); i = i + 1 {
 		if uint32(i) != fBlocks[i].GetDBHeight() {
-			panic(errors.New("BlockID does not equal index for chain:" +
-				fchain.ChainID.String() + " block:" +
+			panic(errors.New("initFctChain: BlockID does not equal index. block:" +
 				fmt.Sprintf("%v", fBlocks[i].GetDBHeight())))
 		} else {
 			FactoshisPerCredit = fBlocks[i].GetExchRate()
@@ -319,7 +318,7 @@ func initEChainFromDB(chain *common.EChain) {
 
 	for i := 0; i < len(*eBlocks); i = i + 1 {
 		if uint32(i) != (*eBlocks)[i].Header.EBSequence {
-			panic(errors.New("BlockID does not equal index for chain. block:" + 
+			panic(errors.New("initEChainFromDB: BlockID does not equal index. block: " + 
 				fmt.Sprintf("%v", (*eBlocks)[i].Header.EBSequence)))
 		}
 	}

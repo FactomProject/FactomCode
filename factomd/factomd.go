@@ -27,8 +27,8 @@ var (
 	_           = fmt.Print
 	cfg         *util.FactomdConfig
 	db          database.Db
-	inMsgQueue  = make(chan wire.FtmInternalMsg, 100) //incoming message queue for factom application messages
-	outMsgQueue = make(chan wire.FtmInternalMsg, 100) //outgoing message queue for factom application messages
+	inMsgQueue  = make(chan wire.FtmInternalMsg, 1000) //incoming message queue for factom application messages
+	outMsgQueue = make(chan wire.FtmInternalMsg, 1000) //outgoing message queue for factom application messages
 )
 
 // winServiceMain is only invoked on Windows.  It detects when server is running
