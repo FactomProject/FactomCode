@@ -192,11 +192,11 @@ func StartProcessor(wg *sync.WaitGroup, quit chan struct{}) {
 	for {
 		select {
 		case inmsg := <-inMsgQueue:
-			fmt.Printf("serveMsgRequest: start. %s\n", time.Now())
+			fmt.Printf("serveMsgRequest: start. %s, %s\n", inmsg.Command(), time.Now())
 			if err := serveMsgRequest(inmsg); err != nil {
 				procLog.Error(err)
 			}
-			fmt.Printf("serveMsgRequest: end. %s\n", time.Now())
+			fmt.Printf("serveMsgRequest: end. %s, %s\n", inmsg.Command(), time.Now())
 
 		case msg := <-outMsgQueue:
 			switch msg.(type) {
@@ -287,10 +287,9 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 
 			// broadcast it to other federate servers only if it's new to me
 			hash, _ := msgCommitEntry.Sha()
-			fmt.Printf("CmdCommitEntry: msgCommitEntry=%s, hash=%s\n", spew.Sdump(msgCommitEntry), hash.String())
+			fmt.Printf("CmdCommitEntry: hash=%s\n", hash.String())
 			if fMemPool.haveMsg(hash) {
-				fmt.Printf("CmdCommitEntry: already in mempool. msgCommitEntry=%s, hash=%s\n", 
-					spew.Sdump(msgCommitEntry), hash.String())
+				fmt.Printf("CmdCommitEntry: already in mempool. hash=%s\n", hash.String())
 				return nil
 			}
 			fMemPool.addMsg(msgCommitEntry, &hash)

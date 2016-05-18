@@ -2702,7 +2702,7 @@ func (p *peer) handleNextLeaderMsg(msg *wire.MsgNextLeader) {
 	if ClientOnly {
 		return
 	}
-	fmt.Printf("handleNextLeaderMsg: %s\n", msg)
+	fmt.Printf("handleNextLeaderMsg: %s, %s\n", msg, time.Now())
 	if !msg.Sig.Verify([]byte(msg.CurrLeaderID+msg.NextLeaderID)) {
 		fmt.Println("handleNextLeaderMsg: signature verify FAILED.")
 		return
@@ -2725,13 +2725,14 @@ func (p *peer) handleNextLeaderMsg(msg *wire.MsgNextLeader) {
 		}
 		p.server.myLeaderPolicy = policy
 		p.server.setLeaderElectByID(p.server.nodeID)
-		fmt.Println("handleNextLeaderMsg: I'm the next leader elected. my.fs=", 
+		fmt.Println("handleNextLeaderMsg: I'm the leaderElected. my.fs=", 
 			p.server.GetMyFederateServer().Peer)
 
 		sig := p.server.privKey.Sign([]byte(msg.CurrLeaderID + msg.NextLeaderID))
 		resp := wire.NewNextLeaderRespMsg(msg.CurrLeaderID, msg.NextLeaderID,
 			msg.StartDBHeight, sig, true)
-		fmt.Printf("handleNextLeaderMsg: sending NextLeaderRespMsg, leaderElected=%t\n", p.server.IsLeaderElect())
+		fmt.Printf("handleNextLeaderMsg: sending NextLeaderRespMsg, leaderElected=%t, %s\n", 
+			p.server.IsLeaderElect(), time.Now())
 		p.server.BroadcastMessage(resp)
 	}
 }
@@ -2740,7 +2741,7 @@ func (p *peer) handleNextLeaderRespMsg(msg *wire.MsgNextLeaderResp) {
 	if ClientOnly {
 		return
 	}
-	fmt.Printf("handleNextLeaderRespMsg: %s\n", msg)
+	fmt.Printf("handleNextLeaderRespMsg: %s, %s\n", msg, time.Now())
 	if !msg.Sig.Verify([]byte(msg.CurrLeaderID+msg.NextLeaderID)) {
 		fmt.Println("handleNextLeaderRespMsg: signature verify FAILED.")
 		return
@@ -2758,7 +2759,7 @@ func (p *peer) handleMissingMsg(msg *wire.MsgMissing) {
 	if ClientOnly {
 		return
 	}
-	fmt.Printf("handleMissingMsg: %s\n", msg)
+	fmt.Printf("handleMissingMsg: %s, %s\n", msg, time.Now())
 	if !p.server.IsLeader() {
 		fmt.Println("handleMissingMsg: MsgMissing has to be handled by the leader")
 		return
@@ -2789,7 +2790,7 @@ func (p *peer) handleCandidateMsg(msg *wire.MsgCandidate) {
 	if ClientOnly {
 		return
 	}
-	fmt.Printf("handleCandidateMsg: %s\n", msg)
+	fmt.Printf("handleCandidateMsg: %s, %s\n", msg, time.Now())
 	if !msg.Sig.Verify([]byte(string(msg.DBHeight) + msg.SourceNodeID)) {
 		fmt.Println("handleCandidateMsg: signature verify FAILED.")
 		return
@@ -2808,7 +2809,7 @@ func (p *peer) handleCurrentLeaderMsg(msg *wire.MsgCurrentLeader) {
 	if ClientOnly {
 		return
 	}
-	fmt.Printf("handleCurrentLeaderMsg: %s\n", msg)
+	fmt.Printf("handleCurrentLeaderMsg: %s, %s\n", msg, time.Now())
 	// The timing b/w leader swtich in server.handleNextLeader and here could vary.
 	// So no need to check if p.server.IsLeader()	
 	// if p.server.IsLeader() {
@@ -2912,7 +2913,8 @@ func (p *peer) resetFollowerState(leader *peer, msg *wire.MsgCurrentLeader) {
 	}
 	p.server.SetLeaderPeer(leader)
 	p.server.latestLeaderSwitchDBHeight = msg.StartDBHeight
-	fmt.Printf("resetFollowerState: leader=%s, fs=%s\n", leader, spew.Sdump(p.server.federateServers))
+	fmt.Printf("resetFollowerState: leader=%s, fs=%s, %s\n", leader, 
+		spew.Sdump(p.server.federateServers), time.Now())
 
 	// reset eCreditMap & chainIDMap & processList
 	if leaderCrashed {

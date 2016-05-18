@@ -12,6 +12,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
@@ -23,7 +24,7 @@ import (
 
 //Construct the entry and submit it to the server
 func submitEntryToAnchorChain(aRecord *AnchorRecord) error {
-
+	fmt.Printf("submitEntryToAnchorChain: start. %s, %#v\n", time.Now(), aRecord)
 	//Marshal aRecord into json
 	jsonARecord, err := json.Marshal(aRecord)
 	//anchorLog.Debug("submitEntryToAnchorChain - jsonARecord: ", string(jsonARecord))
@@ -89,13 +90,17 @@ func submitEntryToAnchorChain(aRecord *AnchorRecord) error {
 	cm := wire.NewMsgCommitEntry()
 	cm.CommitEntry = commit
 	inMsgQ <- cm
-	// anchorLog.Debug("MsgCommitEntry: ", spew.Sdump(cm))
+	hash, _ := cm.Sha()
+	fmt.Printf("submitEntryToAnchorChain: sending MsgCommitEntry: EntryHash=%s, msg.Hash=%s, %s\n", 
+		commit.EntryHash.String(), hash.String(), time.Now())
 
 	// create a RevealEntry msg and send it to the local inmsgQ
 	rm := wire.NewMsgRevealEntry()
 	rm.Entry = entry
 	inMsgQ <- rm
-	// anchorLog.Debug("MsgRevealEntry: ", spew.Sdump(rm))
+	hash, _ = rm.Sha()
+	fmt.Printf("submitEntryToAnchorChain: end. sending MsgRevealEntry: msg.Hash=%s, %s\n", 
+		hash.String(), time.Now())
 
 	return nil
 }
