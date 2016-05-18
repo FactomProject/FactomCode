@@ -145,7 +145,7 @@ type server struct {
 	privKey                    common.PrivateKey
 	latestLeaderSwitchDBHeight uint32 // latest dbheight when regime change happens
 	latestDBHeight             chan uint32
-	federateServers            []*federateServer //*list.List
+	federateServers            []*federateServer
 	myLeaderPolicy             *leaderPolicy
 	clientPeers				   []*peer
 	startTime				   int64
@@ -166,7 +166,7 @@ func (fs *leaderPolicy) String() string {
 
 type federateServer struct {
 	Peer            *peer
-	StartTime				int64	 //server start time 
+	StartTime		int64  //server start time 
 	FirstJoined     uint32 //DBHeight when this peer joins the network as a candidate federate server
 	FirstAsFollower uint32 //DBHeight when this peer becomes a follower the first time.
 	LastSuccessVote uint32 //DBHeight of first successful vote of dir block signature
@@ -414,7 +414,7 @@ func (s *server) handleDonePeerMsg(state *peerState, p *peer) {
 		}
 	}
 	//fmt.Println("handleDonePeerMsg: end peerstate: ", spew.Sdump(state))
-	fmt.Printf("handleDonePeerMsg: need to remove %s\n", p)
+	srvrLog.Debugf("handleDonePeerMsg: need to remove %s", p)
 	if common.SERVER_NODE == p.nodeType {
 		for i, fedServer := range s.federateServers {
 			if fedServer.Peer == p {
@@ -1860,7 +1860,7 @@ func (s *server) handleNextLeader(height uint32) {
 	}
 
 	//fmt.Println("handleNextLeader: peerState=", spew.Sdump(s.PeerInfo()))
-	fmt.Printf("handleNextLeader: Servers=%+v\n", s.federateServers)
+	fmt.Printf("handleNextLeader: Servers=%#v\n", s.federateServers)
 
 	if s.IsLeaderElect() {
 		fmt.Printf("handleNextLeader: isLeaderElected=%t\n", s.IsLeaderElect())

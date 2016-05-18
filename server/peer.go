@@ -415,8 +415,8 @@ func (p *peer) updateAddresses(msg *wire.MsgVersion) {
 // and is used to negotiate the protocol version details as well as kick start
 // the communications.
 func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
-	fmt.Printf("handleVersionMsg: %s (%s, %d): %s\n", 
-		msg.NodeID, msg.NodeType, msg.NodeState, msg.AddrMe.String())
+	fmt.Printf("handleVersionMsg: %s (%s, %d)\n", 
+		msg.NodeID, msg.NodeType, msg.NodeState)
 	
 	// Detect self connections.
 	if msg.Nonce == p.server.nonce {

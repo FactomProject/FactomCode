@@ -7,7 +7,7 @@ package wire
 import (
 	"encoding/binary"
 	"errors"
-	"fmt"
+	// "fmt"
 	"io"
 	"net"
 	"time"
@@ -74,9 +74,9 @@ func (na *NetAddress) SetAddress(ip net.IP, port uint16) {
 }
 
 // String returns its string value
-func (na *NetAddress) String() string {
-	return fmt.Sprintf("(%s:%s", na.IP.String(), string(na.Port))
-}
+// func (na *NetAddress) String() string {
+	// return fmt.Sprintf("(%s:%d", na.IP.String(), na.Port)
+// }
 
 // NewNetAddressIPPort returns a new NetAddress using the provided IP, port, and
 // supported services with defaults for the remaining fields.

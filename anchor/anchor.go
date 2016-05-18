@@ -493,7 +493,6 @@ func updateUTXO(base btcutil.Amount) error {
 		anchorLog.Info("updateUTXO: wclient is nil")
 		return nil
 	}
-	balances = make([]balance, 0, 200)
 	err := unlockWallet(int64(6)) //600
 	if err != nil {
 		return fmt.Errorf("%s", err)
@@ -506,11 +505,12 @@ func updateUTXO(base btcutil.Amount) error {
 	anchorLog.Info("updateUTXO: unspentResults.len=", len(unspentResults))
 
 	if len(unspentResults) > 0 {
-		var i int
+		balances = make([]balance, 0, len(unspentResults))
+		// var i int
 		for _, b := range unspentResults {
 			if b.Amount > base.ToBTC() { //fee.ToBTC()
 				balances = append(balances, balance{unspentResult: b})
-				i++
+				// i++
 			}
 		}
 	}
