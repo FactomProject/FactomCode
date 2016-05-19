@@ -384,8 +384,6 @@ func processLeaderEOM(msgEom *wire.MsgInt_EOM) error {
 	fmt.Println("///                ///")
 	fmt.Println("//////////////////////")
 	fmt.Println()
-	fmt.Println("processLeaderEOM: servers: ", localServer.FederateServerCount(),
-		", Non-candidates: ", localServer.NonCandidateServerCount(), ", ", time.Now())
 
 	// to simplify this, for leader & followers, use the next wire.EndMinute1
 	// to trigger signature comparison of last round.
@@ -412,6 +410,8 @@ func processLeaderEOM(msgEom *wire.MsgInt_EOM) error {
 		ack.ChainID = dchain.ChainID
 	}
 	fmt.Printf("processLeaderEOM: sending %s\n", ack)
+	fmt.Println("processLeaderEOM: servers: ", localServer.FederateServerCount(),
+		", Non-candidates: ", localServer.NonCandidateServerCount(), ", ", time.Now())
 	relayToServers(ack)
 
 	hash, _ := ack.Sha()

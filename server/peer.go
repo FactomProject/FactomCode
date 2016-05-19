@@ -13,7 +13,7 @@ import (
 	prand "math/rand"
 	"net"
 	"os"
-	"sort"
+	// "sort"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -2859,11 +2859,6 @@ func (p *peer) handleCurrentLeaderMsg(msg *wire.MsgCurrentLeader) {
 		fmt.Printf("handleCurrentLeaderMsg: a pass along msg. need to connect with ", msg.SourceNodeID)
 		return
 	}
-	// The timing b/w leader swtich in server.handleNextLeader and here could vary.
-	// So no need to check if p.server.IsLeader()	
-	// if p.server.IsLeader() {
-		// panic("handleCurrentLeaderMsg: I'm the current leader, no need to select a new current leader")
-	// }
 	if p.server.IsLeaderElect() {
 		panic("handleCurrentLeaderMsg: i'm the leaderElect, but new current leader is " + msg.NewLeaderCandidate)
 	}
@@ -2890,26 +2885,10 @@ func (p *peer) handleCurrentLeaderMsg(msg *wire.MsgCurrentLeader) {
 		fmt.Printf("handleCurrentLeaderMsg: normal regime change done already. do nothing here. curr=%s. prev=%s\n", curr, prev)
 		return
 	}
-	
-	/*
-	// the timing between resetting and verifying the currentLeader could be tricky.
-	// it's uncertain which one is done first. So omit this step 
-	if !(p.server.leaderPeer != nil && p.server.leaderPeer.nodeID == msg.CurrLeaderGone) {
-		s := fmt.Sprintf("handleCurrentLeaderMsg: leader verify FAILED: my leader is %s, but msg.leader is %s\n",
-			p.server.leaderPeer.nodeID, msg.CurrLeaderGone)
-		//return
-		panic(s)
-	}
-	// this could happen when a new block is downloaded but not saved to db yet
-	// when a candidate is just turned to a follower
-	_, newestHeight, _ := db.FetchBlockHeightCache()
-	if uint32(newestHeight) != msg.StartDBHeight-1 {
-		s := fmt.Sprintf("handleNextLeaderMsg: my DBHeight=%d, msg.StartDBHeight=%d\n", 
-			newestHeight, msg.StartDBHeight)
-		//return
-		panic(s)
-	}*/
 
+	/*	In support of non-mesh network, the verfication might be unnecessary 
+	// since unless everyone is connected, its status of other peers could be unavailable or outdated.
+	//
 	// verify the new leader to see if it follows the rule
 	// 0). if it's the only follower left, it's the new leader
 	// 1). if leaderElect exists, it's the new leader
@@ -2917,15 +2896,6 @@ func (p *peer) handleCurrentLeaderMsg(msg *wire.MsgCurrentLeader) {
 	// 3). else it's the peer with the longest FirstJoined
 	// var next *federateServer
 	nonCandidates, _ := p.server.nonCandidateServers()
-	
-	/*
-	// this case will be handled by the longest tenured case 
-	// check if it's the only follower left
-	if !p.IsCandidate() && len(nonCandidates) == 1 && nonCandidates[0].Peer.nodeID == msg.NewLeaderCandidate {
-		fmt.Println("handleCurrentLeaderMsg: It's the only follower left. ", msg.NewLeaderCandidate)
-		p.resetFollowerState(nonCandidates[0].Peer, msg)
-		return
-	}*/
 			
 	// find the leaderElect, excluding candidates
 	next := p.server.GetLeaderElect()		
@@ -2961,7 +2931,7 @@ func (p *peer) handleCurrentLeaderMsg(msg *wire.MsgCurrentLeader) {
 		fmt.Printf("handleCurrentLeaderMsg: longest FirstJoined: %s, p=%s\n", nonCandidates[0].Peer, p)
 		p.resetFollowerState(nonCandidates[0].Peer, msg)
 		return
-	}
+	}*/
 
 	// for non-mesh network, this means a server I have not connected with
 	// try to connect to it
