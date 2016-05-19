@@ -101,8 +101,8 @@ func NewNextLeaderRespMsg(currLeaderID string, nextLeaderID string, sid string,
 
 // String returns its string value
 func (msg *MsgNextLeaderResp) String() string {
-	return fmt.Sprintf("MsgNextLeaderResp: Curr=%s, Next=%s, Start=%d",
-		msg.CurrLeaderID, msg.NextLeaderID, msg.StartDBHeight)
+	return fmt.Sprintf("MsgNextLeaderResp: Curr=%s, Next=%s, from=%s, Start=%d",
+		msg.CurrLeaderID, msg.NextLeaderID, msg.SourceNodeID, msg.StartDBHeight)
 }
 
 // Sha Creates a sha hash from the message binary (output of MsgEncode)

@@ -18,6 +18,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -339,9 +340,9 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		}
 		
 		dbs, _ := msg.(*wire.MsgDirBlockSig)
-		fmt.Printf("CmdDirBlockSig: dbs=%s\n", dbs)
+		// fmt.Printf("CmdDirBlockSig: dbs=%s\n", dbs)
 		if fMemPool.haveDirBlockSig(dbs) {
-			fmt.Printf("CmdDirBlockSig: already in mempool. dbs=%s\n", dbs)
+			// fmt.Printf("CmdDirBlockSig: already in mempool. dbs=%s\n", dbs)
 			return nil
 		}
 		fMemPool.addDirBlockSig(dbs)
@@ -937,15 +938,16 @@ func processCommitEntry(msg *wire.MsgCommitEntry) error {
 		return nil
 	}
 	c := msg.CommitEntry
+	h, _ := msg.Sha()
 
 	// check that the CommitChain is fresh
 	if !c.InTime() {
-		return fmt.Errorf("Cannot commit chain, CommitChain must be timestamped within 24 hours of commit")
+		return fmt.Errorf("Cannot commit entry, CommitEntry must be timestamped within 24 hours of commit")
 	}
 
 	// check to see if the EntryHash has already been committed
 	if _, exist := commitEntryMap[c.EntryHash.String()]; exist {
-		return fmt.Errorf("Cannot commit entry, entry has already been commited")
+		return fmt.Errorf("entry has already been commited. msg.hash=" + h.String())
 	}
 
 	if c.Credits > common.MAX_ENTRY_CREDITS {
@@ -953,8 +955,9 @@ func processCommitEntry(msg *wire.MsgCommitEntry) error {
 	}
 
 	// Check the entry credit balance
-	if eCreditMap[string(c.ECPubKey[:])] < int32(c.Credits) {
-		return fmt.Errorf("Not enough credits for CommitEntry")
+	b := eCreditMap[string(c.ECPubKey[:])]
+	if b < int32(c.Credits) {
+		return fmt.Errorf("Not enough credits for CommitEntry: " + strconv.Itoa(int(b)))
 	}
 
 	// add to the commitEntryMap
@@ -963,7 +966,6 @@ func processCommitEntry(msg *wire.MsgCommitEntry) error {
 	// deduct the entry credits from the eCreditMap
 	eCreditMap[string(c.ECPubKey[:])] -= int32(c.Credits)
 
-	h, _ := msg.Sha()
 	if localServer.IsLeader() || localServer.isSingleServerMode() {
 		if plMgr.IsMyPListExceedingLimit() {
 			fmt.Println("Exceeding MyProcessList size limit!")
@@ -989,6 +991,7 @@ func processCommitChain(msg *wire.MsgCommitChain) error {
 		return nil
 	}
 	c := msg.CommitChain
+	h, _ := msg.Sha()
 
 	// check that the CommitChain is fresh
 	if !c.InTime() {
@@ -997,7 +1000,7 @@ func processCommitChain(msg *wire.MsgCommitChain) error {
 
 	// check to see if the EntryHash has already been committed
 	if _, exist := commitChainMap[c.EntryHash.String()]; exist {
-		return fmt.Errorf("Cannot commit chain, first entry for chain already exists")
+		return fmt.Errorf("Cannot commit chain, first entry for chain already exists. msg.hash=" + h.String())
 	}
 
 	if c.Credits > common.MAX_CHAIN_CREDITS {
@@ -1005,8 +1008,9 @@ func processCommitChain(msg *wire.MsgCommitChain) error {
 	}
 
 	// Check the entry credit balance
-	if eCreditMap[string(c.ECPubKey[:])] < int32(c.Credits) {
-		return fmt.Errorf("Not enough credits for CommitChain")
+	b := eCreditMap[string(c.ECPubKey[:])]
+	if b < int32(c.Credits) {
+		return fmt.Errorf("Not enough credits for CommitChain" + strconv.Itoa(int(b)))
 	}
 
 	// add to the commitChainMap
@@ -1015,7 +1019,6 @@ func processCommitChain(msg *wire.MsgCommitChain) error {
 	// deduct the entry credits from the eCreditMap
 	eCreditMap[string(c.ECPubKey[:])] -= int32(c.Credits)
 
-	h, _ := msg.Sha()
 	if localServer.IsLeader() || localServer.isSingleServerMode() {
 		if plMgr.IsMyPListExceedingLimit() {
 			fmt.Println("Exceeding MyProcessList size limit!")
@@ -1993,7 +1996,7 @@ func exportBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
 }
 
 func relayToServers(msg wire.Message) {
-	fmt.Printf("relayToServers: len %d, %s\n", len(localServer.federateServers), msg)
+	fmt.Printf("relayToServers: len %d, %s\n", len(localServer.federateServers) - 1, msg)
 	for _, s := range localServer.federateServers {
 		if s.Peer.nodeID != localServer.nodeID {
 			// fmt.Println("relayToServers: ", s.Peer)

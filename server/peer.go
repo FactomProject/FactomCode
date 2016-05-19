@@ -474,7 +474,7 @@ func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
 		if common.SERVER_NODE == p.server.nodeType && !msg.ComparePassphrase(factomConfig.App.Passphrase) {
 			fmt.Printf("*verKnown=%v, protocolVer=%d, (%s, %s)\n", p.VersionKnown(), 
 				p.ProtocolVersion(), msg.Command(), "invalid Passphrase")
-			fmt.Printf("Error in compare Passphrase: %s", msg.Passphrase)
+			fmt.Printf("Error in compare Passphrase: from %s, %s", msg.NodeID, msg.Passphrase)
 			p.PushRejectMsg(msg.Command(), wire.RejectInvalidPWd, "invalid Passphrase", nil, false)
 			// p.Disconnect()
 			return
@@ -2708,7 +2708,7 @@ func (p *peer) GetNodeID() string {
 }
 
 func (p *peer) handleNextLeaderMsg(msg *wire.MsgNextLeader) {
-	if ClientOnly {
+	if ClientOnly || p.server.nodeID == msg.SourceNodeID {
 		return
 	}
 	fmt.Printf("handleNextLeaderMsg: %s, %s\n", msg, time.Now())
@@ -2789,9 +2789,11 @@ func (p *peer) handleNextLeaderRespMsg(msg *wire.MsgNextLeaderResp) {
 	if p.server.IsLeader() && p.server.nodeID == msg.CurrLeaderID {
 		p.server.myLeaderPolicy.Confirmed = true
 	}
-	p.nodeState = wire.NodeLeaderElect 
-	fmt.Printf("handleNextLeaderRespMsg: next leader CONFIRMED: %s. start=%d, p=%s\n", 
-		msg.NextLeaderID, msg.StartDBHeight, p)
+	if p.nodeID == msg.NextLeaderID {
+		p.nodeState = wire.NodeLeaderElect 
+		fmt.Printf("handleNextLeaderRespMsg: next leader CONFIRMED: %s. start=%d, p=%s\n", 
+			msg.NextLeaderID, msg.StartDBHeight, p)
+	}
 }
 
 // MsgMissing is triggered by ack from leader. So this peer/server has to be leader
