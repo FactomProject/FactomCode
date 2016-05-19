@@ -67,11 +67,21 @@ func (msg *MsgDirBlockSig) MaxPayloadLength(pver uint32) uint32 {
 // Equals shows if both msg is the same
 func (msg *MsgDirBlockSig) Equals(m *MsgDirBlockSig) bool {
 	return msg.DBHeight == m.DBHeight &&
-		msg.DirBlockHash == m.DirBlockHash
+		msg.DirBlockHash == m.DirBlockHash &&
+		msg.SourceNodeID == m.SourceNodeID
 }
 
 // String returns str value
 func (msg *MsgDirBlockSig) String() string {
 	return fmt.Sprintf("DirBlockSig(h=%d, from=%s, hash=%s)", 
 		msg.DBHeight, msg.SourceNodeID, hex.EncodeToString(msg.DirBlockHash.Bytes()))
+}
+
+// Sha Creates a sha hash from the message binary (output of MsgEncode)
+func (msg *MsgDirBlockSig) Sha() (ShaHash, error) {
+	buf := bytes.NewBuffer(nil)
+	msg.MsgEncode(buf, ProtocolVersion)
+	var sha ShaHash
+	_ = sha.SetBytes(Sha256(buf.Bytes()))
+	return sha, nil
 }

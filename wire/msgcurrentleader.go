@@ -12,7 +12,8 @@ import (
 // in case of it's gone
 type MsgCurrentLeader struct {
 	CurrLeaderGone      string // it's gone but still needs to be verified
-	NewLeaderCandidates string
+	NewLeaderCandidate	string
+	AddrCandidate		NetAddress
 	SourceNodeID        string
 	StartDBHeight       uint32
 	Sig                 common.Signature
@@ -42,7 +43,13 @@ func (msg *MsgCurrentLeader) MsgDecode(r io.Reader, pver uint32) error {
 		if err != nil {
 			return err
 		}
-		msg.NewLeaderCandidates = nid
+		msg.NewLeaderCandidate = nid
+	}
+	if buf.Len() > 0 {
+		err := readNetAddress(buf, pver, &msg.AddrCandidate, false)
+		if err != nil {
+			return err
+		}
 	}
 	if buf.Len() > 0 {
 		cid, err := readVarString(buf, pver)
@@ -64,7 +71,11 @@ func (msg *MsgCurrentLeader) MsgEncode(w io.Writer, pver uint32) error {
 	if err != nil {
 		return err
 	}
-	err = writeVarString(w, pver, msg.NewLeaderCandidates)
+	err = writeVarString(w, pver, msg.NewLeaderCandidate)
+	if err != nil {
+		return err
+	}
+	err = writeNetAddress(w, pver, &msg.AddrCandidate, false)
 	if err != nil {
 		return err
 	}
@@ -91,7 +102,7 @@ func NewCurrentLeaderMsg(currLeaderID string, candidates string, sourceID string
 	height uint32, sig common.Signature) *MsgCurrentLeader {
 	return &MsgCurrentLeader{
 		CurrLeaderGone:      currLeaderID,
-		NewLeaderCandidates: candidates,
+		NewLeaderCandidate: candidates,
 		SourceNodeID:        sourceID,
 		StartDBHeight:       height,
 		Sig:                 sig,
@@ -101,5 +112,14 @@ func NewCurrentLeaderMsg(currLeaderID string, candidates string, sourceID string
 // String returns its string value
 func (msg *MsgCurrentLeader) String() string {
 	return fmt.Sprintf("MsgCurrentLeader(curr=%s, new=%s, from=%s, start=%d)",
-		msg.CurrLeaderGone, msg.NewLeaderCandidates, msg.SourceNodeID, msg.StartDBHeight)
+		msg.CurrLeaderGone, msg.NewLeaderCandidate, msg.SourceNodeID, msg.StartDBHeight)
+}
+
+// Sha Creates a sha hash from the message binary (output of MsgEncode)
+func (msg *MsgCurrentLeader) Sha() (ShaHash, error) {
+	buf := bytes.NewBuffer(nil)
+	msg.MsgEncode(buf, ProtocolVersion)
+	var sha ShaHash
+	_ = sha.SetBytes(Sha256(buf.Bytes()))
+	return sha, nil
 }

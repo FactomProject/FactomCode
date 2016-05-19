@@ -5,7 +5,7 @@
 package server
 
 import (
-	"encoding/hex"
+	// "encoding/hex"
 	"errors"
 	"fmt"
 	"strconv"
@@ -130,6 +130,22 @@ func (mp *ftmMemPool) FetchAndFoundFromBlockpool(str string) (wire.Message, bool
 
 	msg, found := mp.blockpool[str]
 	return msg, found
+}
+
+func (mp *ftmMemPool) haveDirBlockSig(dbsig *wire.MsgDirBlockSig) bool {
+	mp.RLock()
+	defer mp.RUnlock()
+
+	for _, v := range mp.dirBlockSigs {
+		if v == nil {
+			continue
+		}
+		if v.Equals(dbsig) {
+			// fmt.Println("haveDirBlockSig: ", dbsig)
+			return true
+		}
+	}
+	return false
 }
 
 func (mp *ftmMemPool) addDirBlockSig(dbsig *wire.MsgDirBlockSig) {
@@ -377,7 +393,7 @@ func (mp *ftmMemPool) haveMsg(hash wire.ShaHash) bool {
 
 	m := mp.pool[hash]
 	if m != nil {
-		fmt.Println("haveMsg: hash=", hex.EncodeToString(hash.Bytes()))
+		// fmt.Println("haveMsg: hash=", hex.EncodeToString(hash.Bytes()))
 		return true
 	}
 	return false
@@ -398,8 +414,11 @@ func (mp *ftmMemPool) addMsg(msg wire.Message, hash *wire.ShaHash) error {
 	if len(mp.pool) > common.MAX_TX_POOL_SIZE {
 		return errors.New("Transaction mem pool exceeds the limit.")
 	}
-	// todo: should check if exists, then just pass and no need to add it.
-	mp.pool[*hash] = msg
+
+	m := mp.pool[*hash]
+	if m == nil {
+		mp.pool[*hash] = msg
+	}
 	return nil
 }
 

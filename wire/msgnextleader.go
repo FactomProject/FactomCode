@@ -12,6 +12,7 @@ import (
 type MsgNextLeader struct {
 	CurrLeaderID  string
 	NextLeaderID  string
+	SourceNodeID  string
 	StartDBHeight uint32
 	Sig           common.Signature
 }
@@ -42,6 +43,13 @@ func (msg *MsgNextLeader) MsgDecode(r io.Reader, pver uint32) error {
 		}
 		msg.NextLeaderID = nid
 	}
+	if buf.Len() > 0 {
+		sid, err := readVarString(buf, pver)
+		if err != nil {
+			return err
+		}
+		msg.SourceNodeID = sid
+	}
 	err := readElements(buf, &msg.StartDBHeight, &msg.Sig)
 	if err != nil {
 		return err
@@ -56,6 +64,10 @@ func (msg *MsgNextLeader) MsgEncode(w io.Writer, pver uint32) error {
 		return err
 	}
 	err = writeVarString(w, pver, msg.NextLeaderID)
+	if err != nil {
+		return err
+	}
+	err = writeVarString(w, pver, msg.SourceNodeID)
 	if err != nil {
 		return err
 	}
@@ -74,11 +86,12 @@ func (msg *MsgNextLeader) MaxPayloadLength(pver uint32) uint32 {
 }
 
 // NewNextLeaderMsg creates a new MsgNextLeader
-func NewNextLeaderMsg(currLeaderID string, nextLeaderID string,
+func NewNextLeaderMsg(currLeaderID string, nextLeaderID string, sid string,
 	height uint32, sig common.Signature) *MsgNextLeader {
 	return &MsgNextLeader{
 		CurrLeaderID:  currLeaderID,
 		NextLeaderID:  nextLeaderID,
+		SourceNodeID:  sid,
 		StartDBHeight: height,
 		Sig:           sig,
 	}
@@ -88,4 +101,13 @@ func NewNextLeaderMsg(currLeaderID string, nextLeaderID string,
 func (msg *MsgNextLeader) String() string {
 	return fmt.Sprintf("MsgNextLeader: Curr=%s, Next=%s, Start=%d",
 		msg.CurrLeaderID, msg.NextLeaderID, msg.StartDBHeight)
+}
+
+// Sha Creates a sha hash from the message binary (output of MsgEncode)
+func (msg *MsgNextLeader) Sha() (ShaHash, error) {
+	buf := bytes.NewBuffer(nil)
+	msg.MsgEncode(buf, ProtocolVersion)
+	var sha ShaHash
+	_ = sha.SetBytes(Sha256(buf.Bytes()))
+	return sha, nil
 }

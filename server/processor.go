@@ -192,44 +192,27 @@ func StartProcessor(wg *sync.WaitGroup, quit chan struct{}) {
 	for {
 		select {
 		case inmsg := <-inMsgQueue:
-			fmt.Printf("serveMsgRequest: start. %s, inQ.len %d, %s\n", inmsg.Command(), 
-				len(inMsgQueue), time.Now())
+			// fmt.Printf("serveMsgRequest: start. %s, inQ.len %d, %s\n", inmsg.Command(), 
+				// len(inMsgQueue), time.Now())
 			if err := serveMsgRequest(inmsg); err != nil {
 				procLog.Error(err)
 			}
-			fmt.Printf("serveMsgRequest: end. %s, inQ.len %d, %s\n", inmsg.Command(), 
-				len(inMsgQueue), time.Now())
+			// fmt.Printf("serveMsgRequest: end. %s, inQ.len %d, %s\n", inmsg.Command(), 
+				// len(inMsgQueue), time.Now())
 
 		case msg := <-outMsgQueue:
 			switch msg.(type) {
-			/*case *wire.MsgInt_DirBlock:
-				// once it's done block syncing, this is only needed for CLIENT
-				// Use broadcast to exclude federate servers
-				// todo ???
-				//fmt.Println("StartProcessor: case of MsgInt_DirBlock: ", spew.Sdump(msg))
-				dirBlock, _ := msg.(*wire.MsgInt_DirBlock)
-				iv := wire.NewInvVect(wire.InvTypeFactomDirBlock, dirBlock.ShaHash)
-				localServer.RelayInventory(iv, nil)
-				//msgDirBlock := &wire.MsgDirBlock{DBlk: dirBlock}
-				//excludedPeers := make([]*peer, 0, 32)
-				//for e := localServer.federateServers.Front(); e != nil; e = e.Next() {
-				//excludedPeers = append(excludedPeers, e.Value.(*peer))
-				//}
-				//s.BroadcastMessage(msgDirBlock, excludedPeers)*/
-
 			case wire.Message:
-				// verify if this wireMsg should be one of MsgEOM, MsgAck,
-				// commitEntry/chain, revealEntry/Chain and MsgDirBlockSig
-				// need to exclude all peers that are not federate servers
-				// todo ???
-				fmt.Printf("outQ: start. %s, outQ.len %d, %s\n", msg.Command(), 
-					len(outMsgQueue), time.Now())
+				// only commitEntry/chain, revealEntry/Chain, factoidTx are sent here.
+				// all control msgs like MsgDirBlockSig and MsgAck are sent directly
+				// fmt.Printf("outQ: start. %s, outQ.len %d, %s\n", msg.Command(), 
+					// len(outMsgQueue), time.Now())
 
 				wireMsg, _ := msg.(wire.Message)
 				localServer.BroadcastMessage(wireMsg)
 
-				fmt.Printf("outQ: end. %s, outQ.len %d, %s\n", msg.Command(), 
-					len(outMsgQueue), time.Now())
+				// fmt.Printf("outQ: end. %s, outQ.len %d, %s\n", msg.Command(), 
+					// len(outMsgQueue), time.Now())
 				/*
 					if ClientOnly {
 						//fmt.Println("broadcasting from client.")
@@ -266,9 +249,9 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 
 			// broadcast it to other federate servers only if it's new to me
 			hash, _ := msgCommitChain.Sha()
-			fmt.Printf("CmdCommitChain: msgCommitChain=%s, hash=%s\n", spew.Sdump(msgCommitChain), hash.String())
+			fmt.Printf("CmdCommitChain: msgCommitChain=%s, msg.hash=%s\n", spew.Sdump(msgCommitChain), hash.String())
 			if fMemPool.haveMsg(hash) {
-				fmt.Printf("CmdCommitChain: already in mempool. msgCommitChain=%s, hash=%s\n", 
+				fmt.Printf("CmdCommitChain: already in mempool. msgCommitChain=%s, msg.hash=%s\n", 
 					spew.Sdump(msgCommitChain), hash.String())
 				return nil
 			}
@@ -294,7 +277,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 
 			// broadcast it to other federate servers only if it's new to me
 			hash, _ := msgCommitEntry.Sha()
-			fmt.Printf("CmdCommitEntry: hash=%s\n", hash.String())
+			fmt.Printf("CmdCommitEntry: msg.hash=%s\n", hash.String())
 			if fMemPool.haveMsg(hash) {
 				fmt.Printf("CmdCommitEntry: already in mempool. hash=%s\n", hash.String())
 				return nil
@@ -351,16 +334,18 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		return processFactoidTX(msgFactoidTX)
 
 	case wire.CmdDirBlockSig:
-		//only when server is building blocks. relax it for now ???
-		// for client, do nothing; for leader, always add it
-		// for followers, only add it when done with sync up.
-		if nodeMode != common.SERVER_NODE { //|| blockSyncing {
+		if nodeMode != common.SERVER_NODE {
 			return nil
 		}
+		
 		dbs, _ := msg.(*wire.MsgDirBlockSig)
-		// fmt.Printf("Incoming: %s\n", dbs)
-		// to simplify this, use the next wire.EndMinute1 to trigger signature comparison. ???
+		fmt.Printf("CmdDirBlockSig: dbs=%s\n", dbs)
+		if fMemPool.haveDirBlockSig(dbs) {
+			fmt.Printf("CmdDirBlockSig: already in mempool. dbs=%s\n", dbs)
+			return nil
+		}
 		fMemPool.addDirBlockSig(dbs)
+		relayToServers(dbs)
 
 	case wire.CmdInt_EOM:
 		// this is only for leader. as followers have no blocktimer
@@ -429,6 +414,9 @@ func processLeaderEOM(msgEom *wire.MsgInt_EOM) error {
 	fmt.Printf("processLeaderEOM: sending %s\n", ack)
 	relayToServers(ack)
 
+	hash, _ := ack.Sha()
+	fMemPool.addMsg(ack, &hash)
+
 	if msgEom.EOM_Type == wire.EndMinute10 {
 		fmt.Println("leader's ProcessList: ", spew.Sdump(plMgr.MyProcessList))
 		err = buildBlocks() //broadcast new dir block sig
@@ -444,7 +432,7 @@ func processLeaderEOM(msgEom *wire.MsgInt_EOM) error {
 		fmt.Sprintf("End of Minute %v\n", msgEom.EOM_Type)+ // Message
 			fmt.Sprintf("Directory Block Height %v", dchain.NextDBHeight),
 		0)
-	fmt.Printf("processLeaderEOM: end. %s\n", time.Now())
+	// fmt.Printf("processLeaderEOM: end. %s\n", time.Now())
 	return nil
 }
 
@@ -462,7 +450,7 @@ func processDirBlockSig() error {
 		return nil
 	}
 
-	fmt.Println("processDirBlockSig: start. ", time.Now())
+	// fmt.Println("processDirBlockSig: start. ", time.Now())
 	leadPeer := localServer.GetLeaderPeer()
 	if localServer.latestLeaderSwitchDBHeight == dchain.NextDBHeight {
 		leadPeer = localServer.GetPrevLeaderPeer()
@@ -474,10 +462,10 @@ func processDirBlockSig() error {
 	
 	dgsMap, leaderDirBlockSig, myDirBlockSig := fMemPool.getDirBlockSigMap(leaderID)
 
-	// fmt.Println("leaderID=", leaderID)
-	// if myDirBlockSig != nil {
-		// fmt.Println("myNodeID=", myDirBlockSig.SourceNodeID)
-	// }
+	fmt.Println("processDirBlockSig: leaderID=", leaderID)
+	if myDirBlockSig != nil {
+		fmt.Println("processDirBlockSig: myNodeID=", myDirBlockSig.SourceNodeID)
+	}
 
 	// Todo: This is not very good, because leader is not always the winner
 	//
@@ -551,7 +539,7 @@ func processDirBlockSig() error {
 				needDownload = true
 				needFromNonLeader = true
 				// winner is leaderDirBlockSig but is nil here
-				fmt.Printf("A tie without leader. needDownload=%v, winner= leaderDirBlockSig(ni)\n", needDownload)
+				fmt.Printf("A tie without leader. needDownload=%v, winner= nil\n", needDownload)
 			}
 			break
 		}
@@ -581,7 +569,7 @@ func processDirBlockSig() error {
 	} else {
 		go saveBlocks(newDBlock, newABlock, newECBlock, newFBlock, newEBlocks)
 	}
-	fmt.Printf("processDirBlockSig: end. %s\n", time.Now())
+	// fmt.Printf("processDirBlockSig: end. %s\n", time.Now())
 	return nil
 }
 
@@ -627,23 +615,32 @@ func resyncBlocks(p *peer) error {
 	return nil
 }
 
+/*
 // processAckPeerMsg validates the ack and adds it to processlist
 // this is only for post-syncup followers need to deal with Ack
 func processAckPeerMsg(ack *ackMsg) ([]*wire.MsgMissing, error) {
 	//fmt.Printf("processAckPeerMsg: %s\n", ack)
-	// Validate the signiture
 	bytes, err := ack.ack.GetBinaryForSignature()
 	if err != nil {
-		fmt.Println("error in GetBinaryForSignature", err.Error())
-		return nil, err
+		return nil, fmt.Errorf("error in GetBinaryForSignature" + err.Error())
 	}
+	// ??? should use peer of sourceNodeID
 	if !ack.peer.pubKey.Verify(bytes, &ack.ack.Signature) {
-		//to-do
-		return nil, errors.New(fmt.Sprintf("Invalid signature in Ack = %s\n", ack))
-		// fmt.Println("verify ack signature: FAILED")
+		return nil, fmt.Errorf("Invalid signature in " + ack.ack.String())
 	}
+
+	hash, _ := ack.ack.Sha()
+	fmt.Printf("processAckPeerMsg: ack=%s, ack.hash=%s\n", ack.ack, hash.String())
+	if fMemPool.haveMsg(hash) {
+		fmt.Printf("processAckPeerMsg: already in mempool. ack=%s, ack.hash=%s\n", 
+			ack.ack, hash.String())
+		return nil, nil
+	}
+	fMemPool.addMsg(ack.ack, &hash)
+	relayToFollowers(ack.ack)
+
 	return processAckMsg(ack.ack)
-}
+}*/
 
 // processAckMsg validates the ack and adds it to processlist
 // this is only for post-syncup followers need to deal with Ack
@@ -656,6 +653,16 @@ func processAckMsg(ack *wire.MsgAck) ([]*wire.MsgMissing, error) {
 	if nodeMode != common.SERVER_NODE || localServer == nil || localServer.IsLeader() {
 		return nil, nil
 	}
+
+	hash, _ := ack.Sha()
+	fmt.Printf("processAckMsg: ack=%s, ack.hash=%s\n", ack, hash.String())
+	if fMemPool.haveMsg(hash) {
+		fmt.Printf("processAckMsg: already in mempool. ack=%s, ack.hash=%s\n", 
+			ack, hash.String())
+		return nil, nil
+	}
+	fMemPool.addMsg(ack, &hash)
+	relayToFollowers(ack)
 
 	if localServer.IsLeaderElect() {
 		fmt.Println()
@@ -794,7 +801,7 @@ func processAckMsg(ack *wire.MsgAck) ([]*wire.MsgMissing, error) {
 		// so that if clients fall behind, it can download needed blocks.
 		relayHeartbeatToClients(ack)
 	}
-	fmt.Printf("processAckMsg: end. %s\n", time.Now())
+	// fmt.Printf("processAckMsg: end. %s\n", time.Now())
 	return nil, nil
 }
 
@@ -848,6 +855,10 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 			}
 			fmt.Printf("AckRevealEntry: %s\n", ack)
 			relayToServers(ack)
+			
+			hash, _ := ack.Sha()
+			fMemPool.addMsg(ack, &hash)
+
 			//???
 			delete(commitEntryMap, e.Hash().String())
 		}
@@ -909,6 +920,9 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 			}
 			fmt.Printf("AckRevealChain: %s\n", ack)
 			relayToServers(ack)
+			
+			hash, _ := ack.Sha()
+			fMemPool.addMsg(ack, &hash)
 			//???
 			delete(commitChainMap, e.Hash().String())
 		}
@@ -962,6 +976,9 @@ func processCommitEntry(msg *wire.MsgCommitEntry) error {
 		}
 		fmt.Printf("AckCommitEntry: %s\n", ack)
 		relayToServers(ack)
+			
+		hash, _ := ack.Sha()
+		fMemPool.addMsg(ack, &hash)
 	}
 	return nil
 }
@@ -1011,6 +1028,9 @@ func processCommitChain(msg *wire.MsgCommitChain) error {
 		}
 		fmt.Printf("AckCommitChain: %s\n", ack)
 		relayToServers(ack)
+			
+		hash, _ := ack.Sha()
+		fMemPool.addMsg(ack, &hash)
 	}
 	return nil
 }
@@ -1063,6 +1083,9 @@ func processFactoidTX(msg *wire.MsgFactoidTX) error {
 		}
 		fmt.Printf("AckFactoidTx: %s\n", ack)
 		relayToServers(ack)
+
+		hash, _ := ack.Sha()
+		fMemPool.addMsg(ack, &hash)
 	}
 	return nil
 }
@@ -1196,7 +1219,7 @@ func buildEndOfMinute(pl *ProcessList, pli *ProcessListItem) {
 
 // build Genesis blocks
 func buildGenesisBlocks() error {
-	fmt.Println("buildGenesisBlocks: start. ", time.Now())
+	// fmt.Println("buildGenesisBlocks: start. ", time.Now())
 	//Set the timestamp for the genesis block
 	t, err := time.Parse(time.RFC3339, common.GENESIS_BLK_TIMESTAMP)
 	if err != nil {
@@ -1239,7 +1262,7 @@ func buildGenesisBlocks() error {
 	// saveBlocks will be done at the next EOM_1. however, for 10-min blocks
 	// as Blocktimes starts anytime, and it could skip EOM_1. So let saveBlocks here
 	go saveBlocks(dbBlock, aBlock, cBlock, FBlock, nil)
-	fmt.Printf("buildGenesisBlocks: end. %s\n", time.Now())
+	// fmt.Printf("buildGenesisBlocks: end. %s\n", time.Now())
 	return nil
 }
 
@@ -1397,7 +1420,7 @@ func buildBlocks() error {
 		fmt.Println("buildBlocks: errStr=", errStr)
 		return fmt.Errorf("%s", errStr)
 	}
-	fmt.Printf("buildBlocks: end. %s\n", time.Now())
+	// fmt.Printf("buildBlocks: end. %s\n", time.Now())
 	return nil
 }
 
@@ -1566,7 +1589,7 @@ func newEntryCreditBlock(chain *common.ECChain) *common.ECBlock {
 	chain.NextBlock.AddEntry(serverIndex)
 	chain.BlockMutex.Unlock()
 	newECBlock = block
-	fmt.Printf("newEntryCreditBlock: end. %s\n", time.Now())
+	// fmt.Printf("newEntryCreditBlock: end. %s\n", time.Now())
 	return block
 }
 
@@ -1636,13 +1659,13 @@ func newAdminBlock(chain *common.AdminChain) *common.AdminBlock {
 	}
 	chain.BlockMutex.Unlock()
 	newABlock = block
-	fmt.Printf("newAdminBlock: end. %s\n", time.Now())
+	// fmt.Printf("newAdminBlock: end. %s\n", time.Now())
 	return block
 }
 
 // Seals the current open block, store it in db and create the next open block
 func newFactoidBlock(chain *common.FctChain) block.IFBlock {
-	fmt.Println("newFactoidBlock: start. ", time.Now())
+	// fmt.Println("newFactoidBlock: start. ", time.Now())
 	cfg := util.ReReadConfig()
 	FactoshisPerCredit = cfg.App.ExchangeRate
 
@@ -1674,8 +1697,8 @@ func newFactoidBlock(chain *common.FctChain) block.IFBlock {
 	currentBlock := chain.NextBlock
 	height := currentBlock.GetDBHeight()
 	
-	fmt.Printf("newFactoidBlock: block.Header.EBHeight=%d, chain.NextBlockHeight=%d, isDownloaded=%t\n", 
-		height, chain.NextBlockHeight, fMemPool.isDownloaded(height - 1))
+	fmt.Printf("newFactoidBlock: block.Header.EBHeight=%d, chain.NextBlockHeight=%d, isDownloaded=%t, %s\n", 
+		height, chain.NextBlockHeight, fMemPool.isDownloaded(height - 1), time.Now())
 	
 	// check if this is the first block after block sync up, or 
 	// the prev block is downloaded from peers, not self-generated,
@@ -1716,7 +1739,7 @@ func newFactoidBlock(chain *common.FctChain) block.IFBlock {
 	chain.BlockMutex.Unlock()
 	newFBlock = currentBlock
 	doneSetFollowersCointbaseTimeStamp = false
-	fmt.Printf("newFactoidBlock: end. %s\n", time.Now())
+	// fmt.Printf("newFactoidBlock: end. %s\n", time.Now())
 	return currentBlock
 }
 
@@ -1797,7 +1820,7 @@ func newDirectoryBlock(chain *common.DChain) *common.DirectoryBlock {
 	if dchain.NextDBHeight > 1 && block != nil {
 		SignDirectoryBlock(block)
 	}
-	fmt.Printf("newDirectoryBlock: end. %s\n", time.Now())
+	// fmt.Printf("newDirectoryBlock: end. %s\n", time.Now())
 	return block
 }
 
@@ -1831,7 +1854,7 @@ func saveBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
 		return nil
 	}
 
-	fmt.Printf("saveBlocks: start. h=%d, %s\n", dblock.Header.DBHeight, time.Now())
+	// fmt.Printf("saveBlocks: start. h=%d, %s\n", dblock.Header.DBHeight, time.Now())
 	db.ProcessDBlockBatch(dblock)
 	db.ProcessFBlockBatch(fblock)
 	db.ProcessECBlockBatch(ecblock)
@@ -1864,7 +1887,7 @@ func saveBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
 
 	fMemPool.resetDirBlockSigPool(dblock.Header.DBHeight+1)
 	newDBlock, newABlock, newECBlock, newFBlock, newEBlocks = nil, nil, nil, nil, nil
-	fmt.Printf("saveBlocks: end. h=%d, %s\n", dblock.Header.DBHeight, time.Now())
+	// fmt.Printf("saveBlocks: end. h=%d, %s\n", dblock.Header.DBHeight, time.Now())
 	return nil
 }
 
@@ -1970,19 +1993,29 @@ func exportBlocks(dblock *common.DirectoryBlock, ablock *common.AdminBlock,
 }
 
 func relayToServers(msg wire.Message) {
-	fmt.Printf("relayToServers: len %d, msg %s\n", len(localServer.federateServers), msg)
+	fmt.Printf("relayToServers: len %d, %s\n", len(localServer.federateServers), msg)
 	for _, s := range localServer.federateServers {
 		if s.Peer.nodeID != localServer.nodeID {
-			fmt.Println("relayToServers: ", s.Peer)
+			// fmt.Println("relayToServers: ", s.Peer)
+			s.Peer.QueueMessage(msg, nil) 
+		}
+	}
+}
+
+func relayToFollowers(msg wire.Message) {
+	// fmt.Printf("relayToFollowers: len %d, %s\n", len(localServer.federateServers), msg)
+	for _, s := range localServer.federateServers {
+		if s.Peer.nodeID != localServer.nodeID && s.Peer.nodeState != wire.NodeLeader {
+			fmt.Println("relayToFollowers: ", s.Peer)
 			s.Peer.QueueMessage(msg, nil) 
 		}
 	}
 }
 
 func relayHeartbeatToClients(msg wire.Message) {
-	fmt.Println("relayHeartbeatToClients: len %d, msg %s\n", len(localServer.clientPeers), msg)
+	fmt.Printf("relayHeartbeatToClients: len %d, %s\n", len(localServer.clientPeers), msg)
 	for _, client := range localServer.clientPeers {
-		fmt.Println("relayHeartbeatToClients: client=", client)
+		// fmt.Println("relayHeartbeatToClients: client=", client)
 		client.QueueMessage(msg, nil) 
 	}
 }
@@ -1991,7 +2024,7 @@ func relayToCandidates() {
 	_, candidates := localServer.nonCandidateServers()
 	fmt.Println("relayToCandidates: len=", len(candidates))
 	for _, candidate := range candidates {
-		fmt.Println("relayToCandidates: ", candidate.Peer)
+		// fmt.Println("relayToCandidates: ", candidate.Peer)
 		relayNewBlocks(candidate.Peer) 
 	}
 }
@@ -1999,7 +2032,7 @@ func relayToCandidates() {
 func relayToClients() {
 	fmt.Println("relayToClients: len=", len(localServer.clientPeers))
 	for _, client := range localServer.clientPeers {
-		fmt.Println("relayToClients: client=", client)
+		// fmt.Println("relayToClients: client=", client)
 		relayNewBlocks(client)
 	}
 }

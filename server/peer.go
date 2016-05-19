@@ -443,8 +443,7 @@ func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
 
 	// Limit to one version message per peer.
 	if p.versionKnown {
-		p.logError("Only one version message per peer is allowed %s.",
-			p)
+		p.logError("Only one version message per peer is allowed %s.", p)
 		p.StatsMtx.Unlock()
 
 		// Send an reject message indicating the version message was
@@ -457,40 +456,11 @@ func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
 		return
 	}
 
-	// Negotiate the protocol version.
-	p.protocolVersion = minUint32(p.protocolVersion, uint32(msg.ProtocolVersion))
-	p.versionKnown = true
-	// peerLog.Debugf("Negotiated protocol version %d for peer %s",
-		// p.protocolVersion, p)
-	p.lastBlock = msg.LastBlock
-	p.startingHeight = msg.LastBlock
-
-	// Set the supported services for the peer to what the remote peer
-	// advertised.
-	p.services = msg.Services
-
-	// Set the remote peer's user agent.
-	p.userAgent = msg.UserAgent
-
-	// Set the peer's time offset.
-	p.timeOffset = msg.Timestamp.Unix() - time.Now().Unix()
-
-	// Set the peer's ID.
-	p.id = atomic.AddInt32(&nodeCount, 1)
-
-	p.StatsMtx.Unlock()
-
-	// Choose whether or not to relay transactions before a filter command
-	// is received.
-	p.relayMtx.Lock()
-	p.disableRelayTx = msg.DisableRelayTx
-	p.relayMtx.Unlock()
-
 	// peerLog.Info("NodeType: ", msg.NodeType, ", NodeID: ", msg.NodeID)
 	// only verify id/sig for federate servers
 	if common.SERVER_NODE == msg.NodeType {
 		if !msg.NodeSig.Verify([]byte(msg.NodeID)) {
-			fmt.Println("Error in verifying peer signature: ", p)
+			p.logError("Error in verifying peer signature: %s", msg)
 			p.PushRejectMsg(msg.Command(), wire.RejectInvalidSig, "invalid signature", nil, true)
 			p.Disconnect()
 			return
@@ -502,9 +472,11 @@ func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
 
 		// Only check passphrase only if both you and I are SERVER node.
 		if common.SERVER_NODE == p.server.nodeType && !msg.ComparePassphrase(factomConfig.App.Passphrase) {
-			fmt.Println("Error in compare Passphrase: ", msg.Passphrase)
-			p.PushRejectMsg(msg.Command(), wire.RejectInvalidPWd, "invalid Passphrase", nil, true)
-			p.Disconnect()
+			fmt.Printf("*verKnown=%v, protocolVer=%d, (%s, %s)\n", p.VersionKnown(), 
+				p.ProtocolVersion(), msg.Command(), "invalid Passphrase")
+			fmt.Printf("Error in compare Passphrase: %s", msg.Passphrase)
+			p.PushRejectMsg(msg.Command(), wire.RejectInvalidPWd, "invalid Passphrase", nil, false)
+			// p.Disconnect()
 			return
 		}
 		var fed *federateServer
@@ -542,6 +514,35 @@ func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
 	p.nodeID = msg.NodeID
 	p.pubKey = msg.NodeSig.Pub
 	// peerLog.Info("set peer id/type info: ", p)
+
+	// Negotiate the protocol version.
+	p.protocolVersion = minUint32(p.protocolVersion, uint32(msg.ProtocolVersion))
+	p.versionKnown = true
+	// peerLog.Debugf("Negotiated protocol version %d for peer %s",
+		// p.protocolVersion, p)
+	p.lastBlock = msg.LastBlock
+	p.startingHeight = msg.LastBlock
+
+	// Set the supported services for the peer to what the remote peer
+	// advertised.
+	p.services = msg.Services
+
+	// Set the remote peer's user agent.
+	p.userAgent = msg.UserAgent
+
+	// Set the peer's time offset.
+	p.timeOffset = msg.Timestamp.Unix() - time.Now().Unix()
+
+	// Set the peer's ID.
+	p.id = atomic.AddInt32(&nodeCount, 1)
+
+	p.StatsMtx.Unlock()
+
+	// Choose whether or not to relay transactions before a filter command
+	// is received.
+	p.relayMtx.Lock()
+	p.disableRelayTx = msg.DisableRelayTx
+	p.relayMtx.Unlock()
 
 	// Inbound connections.
 	if p.inbound {
@@ -606,28 +607,23 @@ func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
 func (p *peer) PushRejectMsg(command string, code wire.RejectCode, reason string, hash *wire.ShaHash, wait bool) {
 	// Don't bother sending the reject message if the protocol version
 	// is too low.
+	fmt.Printf("verKnown=%v, protocolVer=%d, (%s, %s)\n", p.VersionKnown(), p.ProtocolVersion(), command, reason)
 	if p.VersionKnown() && p.ProtocolVersion() < wire.RejectVersion {
-		return
+		fmt.Println("before return.")
+		// return
 	}
 
 	msg := wire.NewMsgReject(command, code, reason)
-	/*	if command == wire.CmdTx || command == wire.CmdBlock {
-		if hash == nil {
-			peerLog.Warnf("Sending a reject message for command "+
-				"type %v which should have specified a hash "+
-				"but does not", command)
-			hash = &zeroBtcHash
-		}
-		msg.Hash = *hash
-	}*/
-
 	// Send the message without waiting if the caller has not requested it.
 	if !wait {
+		fmt.Println("sent immediately")
 		p.QueueMessage(msg, nil)
 		return
 	}
 
 	// Send the message and block until it has been sent before returning.
+	
+	fmt.Println("wait to send it")
 	doneChan := make(chan struct{}, 1)
 	p.QueueMessage(msg, doneChan)
 	<-doneChan
@@ -827,7 +823,7 @@ func (p *peer) readMessage() (wire.Message, []byte, error) {
 	}))
 		peerLog.Debugf("%v", newLogClosure(func() string {
 		return spew.Sdump(buf)
-	})) */
+	}))*/
 
 	return msg, buf, nil
 }
@@ -873,7 +869,7 @@ func (p *peer) writeMessage(msg wire.Message) {
 			return err.Error()
 		}
 		return spew.Sdump(buf.Bytes())
-	})) */
+	}))*/
 
 	// Write the message to the peer.
 	n, err := wire.WriteMessageN(p.conn, msg, p.ProtocolVersion(),
@@ -1340,8 +1336,20 @@ out:
 				p.lastPingTime = time.Now()
 				//}
 				p.StatsMtx.Unlock()
+
+			case *wire.MsgGetDirBlocks:
 			case *wire.MsgGetDirData:
-				// Should get us dir block, or not found for factom
+			case *wire.MsgGetNonDirData:
+			case *wire.MsgGetEntryData:
+			case *wire.MsgGetFactomData:
+				// Should get us factom block / entry, or not found for factom
+
+			case *wire.MsgNextLeader:
+				// should get us msgNextLeaderResp
+	
+			case *wire.MsgMissing:
+				// should get us missed ack / EOM
+
 			default:
 				// Not one of the above, no sure reply.
 				// We want to ping if nothing else
@@ -1358,7 +1366,7 @@ out:
 			if msg.doneChan != nil {
 				msg.doneChan <- struct{}{}
 			}
-			// peerLog.Tracef("%s: acking queuehandler", p)
+			// peerLog.Tracef("%s, %s: acking queuehandler", p, msg.msg)
 			p.sendDoneQueue <- struct{}{}
 			// peerLog.Tracef("%s: acked queuehandler", p)
 
@@ -1387,7 +1395,7 @@ cleanup:
 			break cleanup
 		}
 	}
-	// peerLog.Tracef("Peer output handler done for %s", p)
+	peerLog.Tracef("Peer output handler done for %s", p)
 }
 
 // QueueMessage adds the passed factom message to the peer send queue.  It
@@ -2633,9 +2641,10 @@ func (p *peer) handleRevealEntryMsg(msg *wire.MsgRevealEntry) {
 
 // Handle factom app imcoming msg
 func (p *peer) handleAckMsg(msg *wire.MsgAck) {
-	if !ClientOnly {
-		p.server.blockManager.QueueAck(msg, p)
+	if ClientOnly || p.server.IsLeader() {
+		return
 	}
+	p.server.blockManager.QueueAck(msg, p)
 
 	// this is needed only when i missed the currentLeader msg
 	// I have no other way to know who the leader is except through ack
@@ -2703,19 +2712,35 @@ func (p *peer) handleNextLeaderMsg(msg *wire.MsgNextLeader) {
 		return
 	}
 	fmt.Printf("handleNextLeaderMsg: %s, %s\n", msg, time.Now())
+
+	// todo: use peer of sourceNodeID to verify sig.
+	// s := p.server.GetPeerByID(msg.SourceNodeID)
+	// if s != nil && s.pubKey.Verify([]byte(msg.CurrLeaderID+msg.NextLeaderID), &msg.Sig) {
 	if !msg.Sig.Verify([]byte(msg.CurrLeaderID+msg.NextLeaderID)) {
 		fmt.Println("handleNextLeaderMsg: signature verify FAILED.")
-		return
+		// return
 	}
 	// leader := p.server.GetLeaderPeer()
 	// fmt.Printf("leader=%s, p=%s, my.fs.p=%s, p==fs.p: %t, leader==p: %t\n", leader, p, 
 		// p.server.GetMyFederateServer().Peer, p.server.GetMyFederateServer().Peer==p, leader==p)
-		
-	if p.nodeID != msg.CurrLeaderID {
+	
+	leader := p.server.GetLeaderPeer()
+	if leader != nil && leader.nodeID != msg.CurrLeaderID {
 		fmt.Printf("handleNextLeaderMsg: leader verify FAILED: my leader is %s, but msg.leader is %s\n",
-			p.nodeID, msg.CurrLeaderID)
+			leader.nodeID, msg.CurrLeaderID)
 		return
 	}
+
+	hash, _ := msg.Sha()
+	fmt.Printf("handleNextLeaderMsg: msg=%s, msg.hash=%s\n", msg, hash.String())
+	if fMemPool.haveMsg(hash) {
+		fmt.Printf("handleNextLeaderMsg: already in mempool. msg=%s, msg.hash=%s\n", 
+			msg, hash.String())
+		return
+	}
+	fMemPool.addMsg(msg, &hash)
+	relayToServers(msg)
+
 	if p.server.nodeID == msg.NextLeaderID {
 		policy := &leaderPolicy{
 			NextLeader:     p.server.GetMyFederateServer().Peer,
@@ -2729,8 +2754,12 @@ func (p *peer) handleNextLeaderMsg(msg *wire.MsgNextLeader) {
 			p.server.GetMyFederateServer().Peer)
 
 		sig := p.server.privKey.Sign([]byte(msg.CurrLeaderID + msg.NextLeaderID))
-		resp := wire.NewNextLeaderRespMsg(msg.CurrLeaderID, msg.NextLeaderID,
+		resp := wire.NewNextLeaderRespMsg(msg.CurrLeaderID, msg.NextLeaderID, p.server.nodeID,
 			msg.StartDBHeight, sig, true)
+
+		hash, _ := resp.Sha()
+		fMemPool.addMsg(resp, &hash)
+
 		fmt.Printf("handleNextLeaderMsg: sending NextLeaderRespMsg, leaderElected=%t, %s\n", 
 			p.server.IsLeaderElect(), time.Now())
 		p.server.BroadcastMessage(resp)
@@ -2738,14 +2767,25 @@ func (p *peer) handleNextLeaderMsg(msg *wire.MsgNextLeader) {
 }
 
 func (p *peer) handleNextLeaderRespMsg(msg *wire.MsgNextLeaderResp) {
-	if ClientOnly {
+	if ClientOnly || msg.SourceNodeID == p.server.nodeID {
 		return
 	}
-	fmt.Printf("handleNextLeaderRespMsg: %s, %s\n", msg, time.Now())
+	// fmt.Printf("handleNextLeaderRespMsg: %s, %s\n", msg, time.Now())
 	if !msg.Sig.Verify([]byte(msg.CurrLeaderID+msg.NextLeaderID)) {
 		fmt.Println("handleNextLeaderRespMsg: signature verify FAILED.")
 		return
 	}
+
+	hash, _ := msg.Sha()
+	fmt.Printf("handleNextLeaderRespMsg: %s, msg.hash=%s, %s\n", msg, hash.String(), time.Now())
+	if fMemPool.haveMsg(hash) {
+		fmt.Printf("handleNextLeaderRespMsg: already in mempool. %s, msg.hash=%s\n", 
+			msg, hash.String())
+		return
+	}
+	fMemPool.addMsg(msg, &hash)
+	relayToServers(msg)
+
 	if p.server.IsLeader() && p.server.nodeID == msg.CurrLeaderID {
 		p.server.myLeaderPolicy.Confirmed = true
 	}
@@ -2787,7 +2827,7 @@ func (p *peer) handleMissingMsg(msg *wire.MsgMissing) {
 }
 
 func (p *peer) handleCandidateMsg(msg *wire.MsgCandidate) {
-	if ClientOnly {
+	if ClientOnly || p.server.nodeID == msg.SourceNodeID {
 		return
 	}
 	fmt.Printf("handleCandidateMsg: %s, %s\n", msg, time.Now())
@@ -2795,38 +2835,57 @@ func (p *peer) handleCandidateMsg(msg *wire.MsgCandidate) {
 		fmt.Println("handleCandidateMsg: signature verify FAILED.")
 		return
 	}
-	if p.nodeID == msg.SourceNodeID { 
+	// if p.nodeID == msg.SourceNodeID && p.nodeState == wire.NodeCandidate { 
+	s := p.server.GetPeerByID(msg.SourceNodeID)
+	if s != nil && s.nodeState == wire.NodeCandidate { 
 		p.nodeState = wire.NodeFollower
 		fs := p.server.GetFederateServer(p)
 		if fs != nil {
 			fs.FirstAsFollower = msg.DBHeight
 		}
+		relayToServers(msg)
 		// fmt.Println("handleCandidateMsg: candidate turned to follower: ", spew.Sdump(fs))
 	}
 }
 
 func (p *peer) handleCurrentLeaderMsg(msg *wire.MsgCurrentLeader) {
-	if ClientOnly {
+	if ClientOnly || p.server.nodeID == msg.SourceNodeID {
 		return
 	}
-	fmt.Printf("handleCurrentLeaderMsg: %s, %s\n", msg, time.Now())
+	fmt.Printf("handleCurrentLeaderMsg: %s, p=%s, %s\n", msg, p, time.Now())
+	// for non-mesh network, this means a server I have not connected with
+	if p.nodeID != msg.SourceNodeID {
+		// try to connect with peer of sourceNodeID
+		fmt.Printf("handleCurrentLeaderMsg: a pass along msg. need to connect with ", msg.SourceNodeID)
+		return
+	}
 	// The timing b/w leader swtich in server.handleNextLeader and here could vary.
 	// So no need to check if p.server.IsLeader()	
 	// if p.server.IsLeader() {
 		// panic("handleCurrentLeaderMsg: I'm the current leader, no need to select a new current leader")
 	// }
 	if p.server.IsLeaderElect() {
-		panic("handleCurrentLeaderMsg: i'm the leaderElect, but new current leader is " + msg.NewLeaderCandidates)
+		panic("handleCurrentLeaderMsg: i'm the leaderElect, but new current leader is " + msg.NewLeaderCandidate)
 	}
-	if !msg.Sig.Verify([]byte(msg.CurrLeaderGone + msg.NewLeaderCandidates + msg.SourceNodeID + strconv.Itoa(int(msg.StartDBHeight)))) {
+	if !msg.Sig.Verify([]byte(msg.CurrLeaderGone + msg.NewLeaderCandidate + msg.SourceNodeID + strconv.Itoa(int(msg.StartDBHeight)))) {
 		panic("handleCurrentLeaderMsg: signature verify FAILED.")
 	}
-	
+
+	hash, _ := msg.Sha()
+	fmt.Printf("handleCurrentLeaderMsg: msg=%s, msg.hash=%s\n", msg, hash.String())
+	if fMemPool.haveMsg(hash) {
+		fmt.Printf("handleCurrentLeaderMsg: already in mempool. msg=%s, msg.hash=%s\n", 
+			msg, hash.String())
+		return
+	}
+	fMemPool.addMsg(msg, &hash)
+	relayToServers(msg)
+
 	// in normal regime change, when handleAckMsg come before this msg, and changed peer state
 	fmt.Println("handleCurrentLeaderMsg: ", spew.Sdump(p.server.federateServers))
 	prev := p.server.GetPrevLeaderPeer()
 	curr := p.server.GetLeaderPeer()
-	if curr != nil && curr.nodeID == msg.NewLeaderCandidates &&
+	if curr != nil && curr.nodeID == msg.NewLeaderCandidate &&
 		prev != nil && prev.nodeID == msg.CurrLeaderGone {
 		fmt.Printf("handleCurrentLeaderMsg: normal regime change done already. do nothing here. curr=%s. prev=%s\n", curr, prev)
 		return
@@ -2862,8 +2921,8 @@ func (p *peer) handleCurrentLeaderMsg(msg *wire.MsgCurrentLeader) {
 	/*
 	// this case will be handled by the longest tenured case 
 	// check if it's the only follower left
-	if !p.IsCandidate() && len(nonCandidates) == 1 && nonCandidates[0].Peer.nodeID == msg.NewLeaderCandidates {
-		fmt.Println("handleCurrentLeaderMsg: It's the only follower left. ", msg.NewLeaderCandidates)
+	if !p.IsCandidate() && len(nonCandidates) == 1 && nonCandidates[0].Peer.nodeID == msg.NewLeaderCandidate {
+		fmt.Println("handleCurrentLeaderMsg: It's the only follower left. ", msg.NewLeaderCandidate)
 		p.resetFollowerState(nonCandidates[0].Peer, msg)
 		return
 	}*/
@@ -2874,11 +2933,11 @@ func (p *peer) handleCurrentLeaderMsg(msg *wire.MsgCurrentLeader) {
 		fmt.Printf("handleCurrentLeaderMsg: leaderElect: %s, p=%s\n", next, p)
 		// the timing of udpate leader status could be different
 		// let stop checking to avoid inconsistancy
-		if next.nodeID != msg.NewLeaderCandidates {
+		if next.nodeID != msg.NewLeaderCandidate {
 			panic("handleCurrentLeaderMsg: the leaderElect is " + next.nodeID + 
-				", but new current leader is " + msg.NewLeaderCandidates)
+				", but new current leader is " + msg.NewLeaderCandidate)
 		} else {	// next should be p
-			fmt.Println("handleCurrentLeaderMsg: the leaderElect is the new leader: " + msg.NewLeaderCandidates)
+			fmt.Println("handleCurrentLeaderMsg: the leaderElect is the new leader: " + msg.NewLeaderCandidate)
 			p.resetFollowerState(next, msg)
 			return
 		}
@@ -2887,23 +2946,27 @@ func (p *peer) handleCurrentLeaderMsg(msg *wire.MsgCurrentLeader) {
 	// find the prev leader
 	if prev != nil {
 		fmt.Printf("handleCurrentLeaderMsg: prev leader: %s, p=%s\n", prev, p)
-		if prev.nodeID != msg.NewLeaderCandidates {
+		if prev.nodeID != msg.NewLeaderCandidate {
 			panic("handleCurrentLeaderMsg: the prev peer is " + prev.nodeID + 
-				", but new current leader is " + msg.NewLeaderCandidates)
+				", but new current leader is " + msg.NewLeaderCandidate)
 		} else {
-			fmt.Println("handleCurrentLeaderMsg: the prev leader is the new leader: " + msg.NewLeaderCandidates)
+			fmt.Println("handleCurrentLeaderMsg: the prev leader is the new leader: " + msg.NewLeaderCandidate)
 			p.resetFollowerState(prev, msg)
 			return
 		}
 	} 
 	// find out the server with the longest tenure
 	sort.Sort(ByStartTime(nonCandidates))
-	if nonCandidates[0].Peer.nodeID == msg.NewLeaderCandidates {
+	if nonCandidates[0].Peer.nodeID == msg.NewLeaderCandidate {
 		fmt.Printf("handleCurrentLeaderMsg: longest FirstJoined: %s, p=%s\n", nonCandidates[0].Peer, p)
 		p.resetFollowerState(nonCandidates[0].Peer, msg)
 		return
 	}
-	panic("no such candidate for current new leader.")
+
+	// for non-mesh network, this means a server I have not connected with
+	// try to connect to it
+	// panic("no such candidate for current new leader.")
+
 }
 
 func (p *peer) resetFollowerState(leader *peer, msg *wire.MsgCurrentLeader) {

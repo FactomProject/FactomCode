@@ -417,6 +417,6 @@ func (msg *MsgVersion) ComparePassphrase(Passphrase string) bool {
     if err == nil {
     	return true
     }
-    fmt.Println("err in ComparePassphrase: ", err)
+    // fmt.Println("error in ComparePassphrase: ", err)
     return false
 }

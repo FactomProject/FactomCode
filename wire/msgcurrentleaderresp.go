@@ -12,7 +12,7 @@ import (
 // in case of it's gone
 type MsgCurrentLeaderResp struct {
 	CurrLeaderGone      string // it's gone but still needs to be verified
-	NewLeaderCandidates string
+	NewLeaderCandidate	string
 	SourceNodeID        string
 	StartDBHeight       uint32
 	Sig                 common.Signature
@@ -42,7 +42,7 @@ func (msg *MsgCurrentLeaderResp) MsgDecode(r io.Reader, pver uint32) error {
 		if err != nil {
 			return err
 		}
-		msg.NewLeaderCandidates = nid
+		msg.NewLeaderCandidate = nid
 	}
 	if buf.Len() > 0 {
 		cid, err := readVarString(buf, pver)
@@ -64,7 +64,7 @@ func (msg *MsgCurrentLeaderResp) MsgEncode(w io.Writer, pver uint32) error {
 	if err != nil {
 		return err
 	}
-	err = writeVarString(w, pver, msg.NewLeaderCandidates)
+	err = writeVarString(w, pver, msg.NewLeaderCandidate)
 	if err != nil {
 		return err
 	}
@@ -91,7 +91,7 @@ func NewCurrentLeaderRespMsg(currLeaderID string, candidates string, sourceID st
 	height uint32, sig common.Signature) *MsgCurrentLeaderResp {
 	return &MsgCurrentLeaderResp{
 		CurrLeaderGone:      currLeaderID,
-		NewLeaderCandidates: candidates,
+		NewLeaderCandidate: candidates,
 		SourceNodeID:        sourceID,
 		StartDBHeight:       height,
 		Sig:                 sig,
@@ -101,5 +101,5 @@ func NewCurrentLeaderRespMsg(currLeaderID string, candidates string, sourceID st
 // String returns its string value
 func (msg *MsgCurrentLeaderResp) String() string {
 	return fmt.Sprintf("MsgCurrentLeaderResp: CurrLeaderID=%s, candidates=%s, sourceID=%s, StartDBHeight=%d",
-		msg.CurrLeaderGone, msg.NewLeaderCandidates, msg.SourceNodeID, msg.StartDBHeight)
+		msg.CurrLeaderGone, msg.NewLeaderCandidate, msg.SourceNodeID, msg.StartDBHeight)
 }

@@ -12,6 +12,7 @@ import (
 type MsgNextLeaderResp struct {
 	CurrLeaderID  string
 	NextLeaderID  string
+	SourceNodeID  string
 	StartDBHeight uint32
 	Sig           common.Signature
 	Confirmed     bool
@@ -43,6 +44,13 @@ func (msg *MsgNextLeaderResp) MsgDecode(r io.Reader, pver uint32) error {
 		}
 		msg.NextLeaderID = nid
 	}
+	if buf.Len() > 0 {
+		sid, err := readVarString(buf, pver)
+		if err != nil {
+			return err
+		}
+		msg.SourceNodeID = sid
+	}
 	err := readElements(buf, &msg.StartDBHeight, &msg.Sig, &msg.Confirmed)
 	if err != nil {
 		return err
@@ -57,6 +65,10 @@ func (msg *MsgNextLeaderResp) MsgEncode(w io.Writer, pver uint32) error {
 		return err
 	}
 	err = writeVarString(w, pver, msg.NextLeaderID)
+	if err != nil {
+		return err
+	}
+	err = writeVarString(w, pver, msg.SourceNodeID)
 	if err != nil {
 		return err
 	}
@@ -75,11 +87,12 @@ func (msg *MsgNextLeaderResp) MaxPayloadLength(pver uint32) uint32 {
 }
 
 // NewNextLeaderRespMsg creates a new MsgNextLeaderResp
-func NewNextLeaderRespMsg(currLeaderID string, nextLeaderID string,
+func NewNextLeaderRespMsg(currLeaderID string, nextLeaderID string, sid string,
 	height uint32, sig common.Signature, confirmed bool) *MsgNextLeaderResp {
 	return &MsgNextLeaderResp{
 		CurrLeaderID:  currLeaderID,
 		NextLeaderID:  nextLeaderID,
+		SourceNodeID:  sid,
 		StartDBHeight: height,
 		Sig:           sig,
 		Confirmed:     confirmed,
@@ -90,4 +103,13 @@ func NewNextLeaderRespMsg(currLeaderID string, nextLeaderID string,
 func (msg *MsgNextLeaderResp) String() string {
 	return fmt.Sprintf("MsgNextLeaderResp: Curr=%s, Next=%s, Start=%d",
 		msg.CurrLeaderID, msg.NextLeaderID, msg.StartDBHeight)
+}
+
+// Sha Creates a sha hash from the message binary (output of MsgEncode)
+func (msg *MsgNextLeaderResp) Sha() (ShaHash, error) {
+	buf := bytes.NewBuffer(nil)
+	msg.MsgEncode(buf, ProtocolVersion)
+	var sha ShaHash
+	_ = sha.SetBytes(Sha256(buf.Bytes()))
+	return sha, nil
 }
