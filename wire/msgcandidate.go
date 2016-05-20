@@ -46,7 +46,6 @@ func (msg *MsgCandidate) MsgDecode(r io.Reader, pver uint32) error {
 func (msg *MsgCandidate) MsgEncode(w io.Writer, pver uint32) error {
 	err := writeElements(w, msg.DBHeight, msg.Sig)
 	if err != nil {
-		fmt.Errorf(err.Error())
 		return err
 	}
 	err = writeVarString(w, pver, msg.SourceNodeID)

@@ -82,7 +82,7 @@ func (msg *MsgRevealEntry) MaxPayloadLength(pver uint32) uint32 {
 // interface.  See MsgInv for details.
 func NewMsgRevealEntry() *MsgRevealEntry {
 	return &MsgRevealEntry{
-		MilliSec: time.Now().UnixNano(),
+		MilliSec: time.Now().UnixNano() / 1000000,
 	}
 }
 
