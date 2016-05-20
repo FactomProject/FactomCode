@@ -59,21 +59,6 @@ func (msg *MsgMissing) MsgDecode(r io.Reader, pver uint32) error {
 		msg.ReqNodeID = nodeID
 	}
 	return nil
-	/*
-		newData, err := ioutil.ReadAll(r)
-		if err != nil {
-			return fmt.Errorf("MsgMissing.MsgDecode reader is invalid")
-		}
-
-		msg.Height, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
-		msg.Index, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
-		msg.Type = newData[0]
-		//msg.Type, newData = newData[0], newData[1:]
-		//len := len(newData) - 96
-		//msg.ReqNodeID = string(newData[:len])
-		//msg.Sig = common.UnmarshalBinarySignature(newData[len:])
-		return nil
-	*/
 }
 
 // MsgEncode is part of the Message interface implementation.
@@ -88,16 +73,6 @@ func (msg *MsgMissing) MsgEncode(w io.Writer, pver uint32) error {
 		return err
 	}
 	return nil
-	/*
-		var buf bytes.Buffer
-		binary.Write(&buf, binary.BigEndian, msg.Height)
-		binary.Write(&buf, binary.BigEndian, msg.Index)
-		buf.WriteByte(msg.Type)
-		//buf.Write([]byte(msg.ReqNodeID))
-		//data := common.MarshalBinarySignature(msg.Sig)
-		//buf.Write(data[:])
-		w.Write(buf.Bytes())
-		return nil*/
 }
 
 // Command returns the protocol command string for the message.  This is part
@@ -165,4 +140,10 @@ func (s ByMsgIndex) Swap(i, j int) {
 }
 func (s ByMsgIndex) Less(i, j int) bool {
 	return s[i].Index < s[j].Index
+}
+
+// String returns its string value
+func (msg *MsgMissing) String() string {
+	return fmt.Sprintf("MsgMissing(h=%d, idx=%d, type=%v, from=%s, isAck=%v)", 
+		msg.Height, msg.Index, msg.Type, msg.ReqNodeID, msg.IsAck)
 }

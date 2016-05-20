@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"time"
 
 	"github.com/FactomProject/FactomCode/common"
 )
@@ -16,6 +17,7 @@ import (
 // Reveal-Entry message.  It is used by client to reveal the entry.
 type MsgRevealEntry struct {
 	Entry *common.Entry
+	MilliSec int64
 }
 
 // MsgEncode encodes the receiver to w using the factom protocol encoding.
@@ -29,6 +31,11 @@ func (msg *MsgRevealEntry) MsgEncode(w io.Writer, pver uint32) error {
 	}
 
 	err = writeVarBytes(w, pver, bytes)
+	if err != nil {
+		return err
+	}
+
+	err = writeElement(w, msg.MilliSec)
 	if err != nil {
 		return err
 	}
@@ -51,6 +58,11 @@ func (msg *MsgRevealEntry) MsgDecode(r io.Reader, pver uint32) error {
 		return err
 	}
 
+	err = readElement(r, &msg.MilliSec)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -69,7 +81,9 @@ func (msg *MsgRevealEntry) MaxPayloadLength(pver uint32) uint32 {
 // NewMsgInv returns a new factom inv message that conforms to the Message
 // interface.  See MsgInv for details.
 func NewMsgRevealEntry() *MsgRevealEntry {
-	return &MsgRevealEntry{}
+	return &MsgRevealEntry{
+		MilliSec: time.Now().UnixNano(),
+	}
 }
 
 // Create a sha hash from the message binary (output of MsgEncode)

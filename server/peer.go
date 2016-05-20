@@ -249,8 +249,8 @@ func (p *peer) UpdateLastBlockHeight(newHeight int32) {
 	p.StatsMtx.Lock()
 	defer p.StatsMtx.Unlock()
 
-	peerLog.Tracef("Updating last block height of peer %v from %v to %v",
-		p.addr, p.lastBlock, newHeight)
+	// peerLog.Tracef("Updating last block height of peer %v from %v to %v",
+		// p.addr, p.lastBlock, newHeight)
 	p.lastBlock = int32(newHeight)
 }
 
@@ -1694,11 +1694,11 @@ func (p *peer) handleDirBlockMsg(msg *wire.MsgDirBlock, buf []byte) {
 	// if we're syncing the chain from scratch.
 	if blkShaUpdate != nil && heightUpdate != 0 {
 		p.UpdateLastBlockHeight(heightUpdate)
-		peerLog.Infof("handleDirBlockMsg: UpdateLastBlockHeight: %d, %s, %s",
-			heightUpdate, blkShaUpdate, p)
+		// peerLog.Infof("handleDirBlockMsg: UpdateLastBlockHeight: %d, %s, %s",
+			// heightUpdate, blkShaUpdate, p)
 		if p.server.blockManager.current() {
-			peerLog.Infof("handleDirBlockMsg: UpdatePeerHeights: %d, %s, %s",
-				heightUpdate, blkShaUpdate, p)
+			// peerLog.Infof("handleDirBlockMsg: UpdatePeerHeights: %d, %s, %s",
+				// heightUpdate, blkShaUpdate, p)
 			go p.server.UpdatePeerHeights(blkShaUpdate, int32(heightUpdate), p)
 		}
 	}
