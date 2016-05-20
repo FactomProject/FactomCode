@@ -99,7 +99,7 @@ func NewNextLeaderMsg(currLeaderID string, nextLeaderID string, sid string,
 
 // String returns its string value
 func (msg *MsgNextLeader) String() string {
-	return fmt.Sprintf("MsgNextLeader: Curr=%s, Next=%s, from=%d, Start=%d",
+	return fmt.Sprintf("MsgNextLeader: Curr=%s, Next=%s, from=%s, Start=%d",
 		msg.CurrLeaderID, msg.NextLeaderID, msg.SourceNodeID, msg.StartDBHeight)
 }
 

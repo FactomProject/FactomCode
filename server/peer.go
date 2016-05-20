@@ -485,6 +485,7 @@ func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
 			// this prevents duplication.
 			if fed.Peer.nodeID == msg.NodeID {
 				fmt.Printf("duplicated fed server / peer: msg.nodeID=%s; peer=%s\n", msg.NodeID, fed.Peer)
+				p.persistent = false
 				p.Shutdown()
 				return
 			}
@@ -2646,20 +2647,31 @@ func (p *peer) handleAckMsg(msg *wire.MsgAck) {
 	}
 	p.server.blockManager.QueueAck(msg, p)
 
-	// this is needed only when i missed the currentLeader msg
-	// I have no other way to know who the leader is except through ack
-	leader := p.server.GetLeaderPeer()
-	//fmt.Printf("handleAckMsg: current Leader Peer:%s, Ack coming from peer: %s\n", leader, p)
-	if p != leader && p.isFederateServer() {
-		fmt.Println("handleAckMsg: RESET Leader Peer to ", p)
-		if leader != nil {
-			fs := p.server.GetFederateServer(leader)
-			if fs != nil {
-				fs.LeaderLast = msg.Height
+	// I am connected with ack sender and p is supposed to be the leaderPeer
+	if p.nodeID == msg.SourceNodeID {
+		// this is needed only when i missed the currentLeader msg 
+		// or the currentLeader msg is later than this ack
+		// I have no other way to know who the leader is except through ack
+		leader := p.server.GetLeaderPeer()
+		//fmt.Printf("handleAckMsg: current Leader Peer:%s, Ack coming from peer: %s\n", leader, p)
+		if p != leader && p.isFederateServer() {
+			fmt.Println("peer.handleAckMsg: RESET Leader Peer to ", p)
+			if leader != nil {
+				fs := p.server.GetFederateServer(leader)
+				if fs != nil {
+					fs.LeaderLast = msg.Height
+				}
 			}
+			p.server.SetLeaderPeer(p)
+			p.server.latestLeaderSwitchDBHeight = msg.Height
 		}
-		p.server.SetLeaderPeer(p)
-		p.server.latestLeaderSwitchDBHeight = msg.Height
+	} else {
+		// I am not directly connected to the ack sender. let's make the connection
+		peer := p.server.GetPeerByID(msg.SourceNodeID)
+		if peer == nil {
+			fmt.Printf("peer.handleAckMsg: not connected to %s (%s)\n", msg.SourceNodeID, msg.SourceAddr)
+			p.server.ConnectNode(msg.SourceAddr, true)
+		}
 	}
 }
 
@@ -2711,7 +2723,7 @@ func (p *peer) handleNextLeaderMsg(msg *wire.MsgNextLeader) {
 	if ClientOnly || p.server.nodeID == msg.SourceNodeID {
 		return
 	}
-	fmt.Printf("handleNextLeaderMsg: %s, %s\n", msg, time.Now())
+	// fmt.Printf("handleNextLeaderMsg: %s, %s\n", msg, time.Now())
 
 	// todo: use peer of sourceNodeID to verify sig.
 	// s := p.server.GetPeerByID(msg.SourceNodeID)
@@ -2732,14 +2744,14 @@ func (p *peer) handleNextLeaderMsg(msg *wire.MsgNextLeader) {
 	}
 
 	hash, _ := msg.Sha()
-	fmt.Printf("handleNextLeaderMsg: msg=%s, msg.hash=%s\n", msg, hash.String())
+	fmt.Printf("handleNextLeaderMsg: %s, msg.hash=%s, %s\n", msg, hash.String(), time.Now())
 	if fMemPool.haveMsg(hash) {
 		fmt.Printf("handleNextLeaderMsg: already in mempool. msg=%s, msg.hash=%s\n", 
 			msg, hash.String())
 		return
 	}
 	fMemPool.addMsg(msg, &hash)
-	relayToServers(msg)
+	relayToFollowers(msg)
 
 	if p.server.nodeID == msg.NextLeaderID {
 		policy := &leaderPolicy{

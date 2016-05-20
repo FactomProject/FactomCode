@@ -11,6 +11,7 @@ import (
 	"io"
 	"io/ioutil"
 
+	// "github.com/davecgh/go-spew/spew"
 	"github.com/FactomProject/FactomCode/common"
 )
 
@@ -50,6 +51,7 @@ type MsgAck struct {
 	SerialHash        [32]byte
 	Signature         [64]byte
 	SourceNodeID	  string
+	SourceAddr		  string // the ip address of source peer in case of non-mesh network
 }
 
 // Sign is used to sign this message
@@ -83,6 +85,8 @@ func (msg *MsgAck) GetBinaryForSignature() (data []byte, err error) {
 	buf.Write(msg.SerialHash[:])
 	buf.WriteByte(byte(len(msg.SourceNodeID)))
 	buf.Write([]byte(msg.SourceNodeID))
+	buf.WriteByte(byte(len(msg.SourceAddr)))
+	buf.Write([]byte(msg.SourceAddr))
 	return buf.Bytes(), err
 }
 
@@ -109,8 +113,13 @@ func (msg *MsgAck) MsgDecode(r io.Reader, pver uint32) error {
 	copy(msg.Signature[:], newData[0:64])
 
 	var slen byte
+	var s []byte
 	slen, newData = newData[64], newData[65:]
-	msg.SourceNodeID = string(newData[:slen])
+	s, newData = newData[:slen], newData[slen:]
+	msg.SourceNodeID = string(s)
+
+	slen, newData = newData[0], newData[1:]
+	msg.SourceAddr = string(newData[:slen])
 	return nil
 }
 
@@ -128,6 +137,8 @@ func (msg *MsgAck) MsgEncode(w io.Writer, pver uint32) error {
 	buf.Write(msg.Signature[:])
 	buf.WriteByte(byte(len(msg.SourceNodeID)))
 	buf.Write([]byte(msg.SourceNodeID))
+	buf.WriteByte(byte(len(msg.SourceAddr)))
+	buf.Write([]byte(msg.SourceAddr))
 	w.Write(buf.Bytes())
 	return nil
 }
@@ -146,7 +157,9 @@ func (msg *MsgAck) MaxPayloadLength(pver uint32) uint32 {
 
 // NewMsgAck returns a new ack message that conforms to the Message
 // interface.  See MsgAck for details.
-func NewMsgAck(height uint32, index uint32, affirm *ShaHash, ackType byte, timestamp uint32, coinbaseTS uint64, sid string) *MsgAck {
+func NewMsgAck(height uint32, index uint32, affirm *ShaHash, ackType byte, timestamp uint32, 
+	coinbaseTS uint64, sid string, addr string) *MsgAck {
+
 	if affirm == nil {
 		affirm = new(ShaHash)
 	}
@@ -159,6 +172,7 @@ func NewMsgAck(height uint32, index uint32, affirm *ShaHash, ackType byte, times
 		Affirmation:       affirm,
 		Type:              ackType,
 		SourceNodeID:	   sid,
+		SourceAddr:		   addr,
 	}
 }
 
@@ -182,6 +196,7 @@ func (msg *MsgAck) Clone() *MsgAck {
 		Affirmation:       msg.Affirmation,
 		Type:              msg.Type,
 		SourceNodeID:	   msg.SourceNodeID,
+		SourceAddr:		   msg.SourceAddr,
 	}
 }
 
@@ -204,11 +219,12 @@ func (msg *MsgAck) Equals(ack *MsgAck) bool {
 		msg.ChainID.IsSameAs(ack.ChainID) &&
 		bytes.Equal(msg.SerialHash[:], ack.SerialHash[:]) &&
 		bytes.Equal(msg.Signature[:], ack.Signature[:]) && 
-		msg.SourceNodeID == ack.SourceNodeID
+		msg.SourceNodeID == ack.SourceNodeID &&
+		msg.SourceAddr == ack.SourceAddr
 }
 
 // String returns its string value
 func (msg *MsgAck) String() string {
-	return fmt.Sprintf("Ack(h=%d, idx=%d, type=%v, from=%s)", 
-		msg.Height, msg.Index, msg.Type, msg.SourceNodeID)
+	return fmt.Sprintf("Ack(h=%d, idx=%d, type=%v, from=%s [%s])", 
+		msg.Height, msg.Index, msg.Type, msg.SourceNodeID, msg.SourceAddr)
 }

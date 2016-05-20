@@ -407,13 +407,14 @@ func processLeaderEOM(msgEom *wire.MsgInt_EOM) error {
 		return err
 	}
 	//???
-	if ack.ChainID == nil {
-		ack.ChainID = dchain.ChainID
-	}
-	fmt.Printf("processLeaderEOM: sending %s\n", ack)
+	// if ack.ChainID == nil {
+		// ack.ChainID = dchain.ChainID
+	// }
+	h, _ := ack.Sha()
+	fmt.Printf("processLeaderEOM: sending %s, hash=%s\n", ack, h.String())
 	fmt.Println("processLeaderEOM: servers: ", localServer.FederateServerCount(),
 		", Non-candidates: ", localServer.NonCandidateServerCount(), ", ", time.Now())
-	relayToServers(ack)
+	relayToFollowers(ack)
 
 	hash, _ := ack.Sha()
 	fMemPool.addMsg(ack, &hash)
@@ -656,9 +657,9 @@ func processAckMsg(ack *wire.MsgAck) ([]*wire.MsgMissing, error) {
 	}
 
 	hash, _ := ack.Sha()
-	fmt.Printf("processAckMsg: ack=%s, ack.hash=%s\n", ack, hash.String())
+	fmt.Printf("processAckMsg: start. %s, ack.hash=%s, %s\n", ack, hash.String(), time.Now())
 	if fMemPool.haveMsg(hash) {
-		fmt.Printf("processAckMsg: already in mempool. ack=%s, ack.hash=%s\n", 
+		fmt.Printf("processAckMsg: already in mempool. %s, ack.hash=%s\n", 
 			ack, hash.String())
 		return nil, nil
 	}
@@ -691,14 +692,18 @@ func processAckMsg(ack *wire.MsgAck) ([]*wire.MsgMissing, error) {
 		fmt.Println()
 	}
 
-	fmt.Printf("processAckMsg: start. %s, dchain.NextDBHeight=%d, db.latestDBHeight=%d, blockSyncing=%v, %s\n",
+	fmt.Printf("processAckMsg: %s, dchain.NextDBHeight=%d, db.latestDBHeight=%d, blockSyncing=%v, %s\n",
 		ack, dchain.NextDBHeight, latestHeight, blockSyncing, time.Now())
 	
 	//dchain.NextDBHeight is the dir block height for the network
 	//update it with ack height from the leader if necessary
 	if dchain.NextDBHeight < ack.Height {
 		dchain.NextDBHeight = ack.Height
+	} else if dchain.NextDBHeight > ack.Height {
+		fmt.Println("processAckMsg: ack arrived too late. return. ", ack)
+		return nil, nil
 	}
+
 	//switch from block syncup to block build
 	if dchain.NextDBHeight == uint32(latestHeight)+1 && blockSyncing {
 		blockSyncing = false
@@ -855,7 +860,7 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 				return err
 			}
 			fmt.Printf("AckRevealEntry: %s\n", ack)
-			relayToServers(ack)
+			relayToFollowers(ack)
 			
 			hash, _ := ack.Sha()
 			fMemPool.addMsg(ack, &hash)
@@ -920,7 +925,7 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 				return err
 			}
 			fmt.Printf("AckRevealChain: %s\n", ack)
-			relayToServers(ack)
+			relayToFollowers(ack)
 			
 			hash, _ := ack.Sha()
 			fMemPool.addMsg(ack, &hash)
@@ -977,7 +982,7 @@ func processCommitEntry(msg *wire.MsgCommitEntry) error {
 			return err
 		}
 		fmt.Printf("AckCommitEntry: %s\n", ack)
-		relayToServers(ack)
+		relayToFollowers(ack)
 			
 		hash, _ := ack.Sha()
 		fMemPool.addMsg(ack, &hash)
@@ -1030,7 +1035,7 @@ func processCommitChain(msg *wire.MsgCommitChain) error {
 			return err
 		}
 		fmt.Printf("AckCommitChain: %s\n", ack)
-		relayToServers(ack)
+		relayToFollowers(ack)
 			
 		hash, _ := ack.Sha()
 		fMemPool.addMsg(ack, &hash)
@@ -1085,7 +1090,7 @@ func processFactoidTX(msg *wire.MsgFactoidTX) error {
 			return fmt.Errorf("processFactoidTX: ack is nil")
 		}
 		fmt.Printf("AckFactoidTx: %s\n", ack)
-		relayToServers(ack)
+		relayToFollowers(ack)
 
 		hash, _ := ack.Sha()
 		fMemPool.addMsg(ack, &hash)
@@ -1999,7 +2004,7 @@ func relayToServers(msg wire.Message) {
 	fmt.Printf("relayToServers: len %d, %s\n", len(localServer.federateServers) - 1, msg)
 	for _, s := range localServer.federateServers {
 		if s.Peer.nodeID != localServer.nodeID {
-			// fmt.Println("relayToServers: ", s.Peer)
+			fmt.Println("relayToServers: ", s.Peer)
 			s.Peer.QueueMessage(msg, nil) 
 		}
 	}

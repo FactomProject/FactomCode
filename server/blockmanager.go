@@ -664,19 +664,19 @@ func (b *blockManager) handleAckMsg(amsg *ackMsg) {
 
 	bytes, err := amsg.ack.GetBinaryForSignature()
 	if err != nil {
-		fmt.Println("error in GetBinaryForSignature: ", err.Error())
+		fmt.Println("blockManager.handleAckMsg: error in GetBinaryForSignature: ", err.Error())
 		return
 	}
 
 	// todo: use sourceNodeID's peer, not amsg.peer, to verify sig
 	if !amsg.peer.pubKey.Verify(bytes, &amsg.ack.Signature) {
-		fmt.Println("Invalid signature in ", amsg.ack.String())
+		fmt.Println("blockManager.handleAckMsg: Invalid signature in ", amsg.ack)
 		// return
 	}
 
 	missingMsgs, err := processAckMsg(amsg.ack)
 	if err != nil {
-		fmt.Printf("blockManager.handleAckMsg: ack=%s, err=%s\n", amsg.ack, err.Error())
+		fmt.Printf("blockManager.handleAckMsg: %s, err=%s\n", amsg.ack, err.Error())
 		return
 	}
 	// todo: use InvVest to send it in one msg

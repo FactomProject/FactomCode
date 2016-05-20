@@ -27,10 +27,10 @@ func NewProcessListMgr(height uint32, plSizeHint uint, privKey common.PrivateKey
 
 // AddToFollowersProcessList creates a new process list item and add it to the MyProcessList
 func (plMgr *ProcessListMgr) AddToFollowersProcessList(msg wire.Message, ack *wire.MsgAck, hash *wire.ShaHash) error {
-	err := ack.Sign(&plMgr.serverPrivKey)
-	if err != nil {
-		return err
-	}
+	// err := ack.Sign(&plMgr.serverPrivKey)
+	// if err != nil {
+		// return err
+	// }
 	plMgr.MyProcessList.nextIndex++
 
 	plItem := &ProcessListItem{
@@ -47,8 +47,8 @@ func (plMgr *ProcessListMgr) AddToLeadersProcessList(msg wire.FtmInternalMsg, ha
 	msgType byte, dirBlockTimestamp uint32, coinbaseTimestamp int64, sid string) (ack *wire.MsgAck, err error) {
 	
 	ack = wire.NewMsgAck(plMgr.NextDBlockHeight, uint32(plMgr.MyProcessList.nextIndex), hash, msgType,
-		dirBlockTimestamp, uint64(coinbaseTimestamp), sid)
-	// Sign the ack using server private keys
+		dirBlockTimestamp, uint64(coinbaseTimestamp), sid, localServer.listeners[0].Addr().String())
+
 	err = ack.Sign(&plMgr.serverPrivKey)
 	if err != nil {
 		return nil, err
