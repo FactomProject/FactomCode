@@ -146,6 +146,7 @@ type server struct {
 	latestLeaderSwitchDBHeight uint32 // latest dbheight when regime change happens
 	latestDBHeight             chan uint32
 	federateServers            []*federateServer
+	auditServers			   []*federateServer
 	myLeaderPolicy             *leaderPolicy
 	clientPeers				   []*peer
 	startTime				   int64
@@ -1959,7 +1960,7 @@ func (s *server) selectNextLeader(height uint32) {
 
 	sig := s.privKey.Sign([]byte(s.nodeID + next.Peer.nodeID))
 	msg := wire.NewNextLeaderMsg(s.nodeID, next.Peer.nodeID, s.nodeID, h, sig)
-	// fmt.Printf("selectNextLeader: broadcast NextLeaderMsg=%s\n", msg)
+	fmt.Printf("selectNextLeader: broadcast NextLeaderMsg=%s\n", msg)
 
 	s.BroadcastMessage(msg)
 	s.myLeaderPolicy.Notified = true

@@ -617,33 +617,6 @@ func resyncBlocks(p *peer) error {
 	return nil
 }
 
-/*
-// processAckPeerMsg validates the ack and adds it to processlist
-// this is only for post-syncup followers need to deal with Ack
-func processAckPeerMsg(ack *ackMsg) ([]*wire.MsgMissing, error) {
-	//fmt.Printf("processAckPeerMsg: %s\n", ack)
-	bytes, err := ack.ack.GetBinaryForSignature()
-	if err != nil {
-		return nil, fmt.Errorf("error in GetBinaryForSignature" + err.Error())
-	}
-	// ??? should use peer of sourceNodeID
-	if !ack.peer.pubKey.Verify(bytes, &ack.ack.Signature) {
-		return nil, fmt.Errorf("Invalid signature in " + ack.ack.String())
-	}
-
-	hash, _ := ack.ack.Sha()
-	fmt.Printf("processAckPeerMsg: ack=%s, ack.hash=%s\n", ack.ack, hash.String())
-	if fMemPool.haveMsg(hash) {
-		fmt.Printf("processAckPeerMsg: already in mempool. ack=%s, ack.hash=%s\n", 
-			ack.ack, hash.String())
-		return nil, nil
-	}
-	fMemPool.addMsg(ack.ack, &hash)
-	relayToFollowers(ack.ack)
-
-	return processAckMsg(ack.ack)
-}*/
-
 // processAckMsg validates the ack and adds it to processlist
 // this is only for post-syncup followers need to deal with Ack
 func processAckMsg(ack *wire.MsgAck) ([]*wire.MsgMissing, error) {
