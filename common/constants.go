@@ -33,7 +33,7 @@ const (
 	// maxProtocolVersion is the max protocol version the peer supports.
 	//Common constants
 	VERSION_0       = byte(0)
-	FACTOMD_VERSION = 3007000            //fixed point. resolves to 0.<minor1 release>.<minor2 release>.<minor3 release>
+	FACTOMD_VERSION = 3008000            //fixed point. resolves to 0.<minor1 release>.<minor2 release>.<minor3 release>
 	NETWORK_ID_DB   = uint32(4203931041) //0xFA92E5A1
 	NETWORK_ID_EB   = uint32(4203931042) //0xFA92E5A2
 	NETWORK_ID_CB   = uint32(4203931043) //0xFA92E5A3
