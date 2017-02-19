@@ -11,7 +11,7 @@ import (
 //var IncreaseBalanceSize int = 32 + 4 + 32
 
 type IncreaseBalance struct {
-	ECPubKey *[32]byte
+	ECPubKey *ByteSlice32
 	TXID     *Hash
 	Index    uint64
 	NumEC    uint64
@@ -75,7 +75,7 @@ func (b *IncreaseBalance) UnmarshalBinaryData(data []byte) (newData []byte, err 
 	if err != nil {
 		return
 	}
-	b.ECPubKey = new([32]byte)
+	b.ECPubKey = new(ByteSlice32)
 	copy(b.ECPubKey[:], hash)
 
 	_, err = buf.Read(hash)
