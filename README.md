@@ -1,4 +1,4 @@
-Factom
+Factom (This repository is historical and no longer maintained.  See FactomProject/factomd)
 ===========
 
 Factom is an Open-Source project that provides a way to build applications on the Bitcoin blockchain. 
